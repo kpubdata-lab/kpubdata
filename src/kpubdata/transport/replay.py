@@ -1,18 +1,18 @@
-"""재생(replay) 전송 계층 — 기록된 fixture로 실호출을 대체한다.
+"""Replay transport: serve recorded fixtures instead of calling the live API.
 
-``KPUBDATA_MODE=replay`` 환경 변수가 설정되면 ``HttpTransport.request``가
-이 모듈을 호출한다.
+``HttpTransport.request`` delegates here when ``KPUBDATA_MODE=replay`` is set.
 
-개입 조건(좁은 범위): 요청의 ``dataset_id``와 URL이 fixture 인덱스에
-(데이터셋, 엔드포인트) 쌍으로 등록된 경우만 매칭을 시도한다. 그 외 요청은
-``None``을 반환해 실호출 경로로 통과시킨다 — 전역 가로채기는 무관한 전송
-계층 단위 테스트를 깨뜨리므로 하지 않는다.
+Interception is deliberately narrow. A request is matched only when its
+``dataset_id`` and URL appear in the fixture index as a (dataset, endpoint)
+pair. Everything else returns ``None`` and falls through to the live path --
+intercepting globally would break unrelated transport unit tests.
 
-- fixture 루트: ``KPUBDATA_REPLAY_DIR`` (기본: ``./tests/fixtures``)
-- 매칭 키: 엔드포인트 + 민감(인증) 파라미터를 제외한 파라미터 전부
-- 등록된 조합인데 파라미터가 다르면 "make record" 안내와 함께 실패한다 —
-  지어낸 응답 없이, 결정적 검증만.
-- 개발·CI 전용 모드다(설치 환경에서는 fixture가 없으므로 미지정이 기본).
+- Fixture root: ``KPUBDATA_REPLAY_DIR`` (default: ``./tests/fixtures``)
+- Match key: the endpoint plus every parameter except the authentication ones
+- A registered pair whose parameters do not match fails with a "make record"
+  hint. No invented responses -- deterministic verification only.
+- Development and CI only. An installed environment has no fixtures, so leaving
+  the variable unset is the default.
 """
 
 from __future__ import annotations
@@ -27,13 +27,14 @@ from kpubdata.exceptions import InvalidRequestError
 from kpubdata.transport._sensitive import SENSITIVE_PARAM_KEYS
 
 _DEFAULT_ROOT = Path("tests") / "fixtures"
-# 인증 계열 파라미터는 값이 환경마다 달라 매칭에서 제외한다 — 목록은 _sensitive 가 정본이다.
+# Authentication parameters differ per environment, so they stay out of the match
+# key. _sensitive holds the canonical list of their names.
 
 _IndexEntry = tuple[str, str, str, Path]
 
 
 def _iter_index(root: Path) -> list[_IndexEntry]:
-    """fixture 인덱스를 (dataset_id, example, endpoint, meta 경로)로 순회한다."""
+    """Walk the fixture index as ``(dataset_id, example, endpoint, meta path)``."""
     index: list[_IndexEntry] = []
     for meta_path in sorted(root.rglob("*.meta.json")):
         try:
@@ -52,7 +53,7 @@ def _iter_index(root: Path) -> list[_IndexEntry]:
 
 
 def _signature(params: dict[str, str] | None) -> dict[str, str]:
-    """민감 파라미터를 제외한 소문자 키 시그니처를 만든다."""
+    """Build a lowercase key signature with the sensitive parameters removed."""
     return {
         key.lower(): value
         for key, value in (params or {}).items()
@@ -68,13 +69,15 @@ def replay_response(
     dataset_id: str | None = None,
     provider: str | None = None,
 ) -> httpx.Response | None:
-    """등록된 (데이터셋, 엔드포인트) 요청을 기록 응답으로 대체한다.
+    """Serve a recorded response for a registered (dataset, endpoint) request.
 
-    반환값:
-        기록 응답(매칭 성공) 또는 None(개입 대상 아님 — 실호출로 통과).
+    Returns:
+        The recorded response on a match, or None when this request is not ours
+        to intercept, in which case the caller falls through to the live API.
 
-    예외:
-        InvalidRequestError: 등록된 조합인데 파라미터가 매칭되지 않는 경우.
+    Raises:
+        InvalidRequestError: The pair is registered but no recording matches the
+            parameters.
     """
     root = Path(os.environ.get("KPUBDATA_REPLAY_DIR", str(_DEFAULT_ROOT)))
     index = _iter_index(root) if root.is_dir() else []

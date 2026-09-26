@@ -1,13 +1,15 @@
-"""식품의약품안전처(FDS) open API 어댑터 (#165).
+"""Adapter for the Ministry of Food and Drug Safety (FDS) open API (#165).
 
-식약처 open API(\`openapi.foodsafetykorea.go.kr\`)는 표준 data.go.kr 엔벨로프가
-아닌 고유 경로 형상을 쓴다::
+식약처 open API(\`openapi.foodsafetykorea.go.kr\`) does not use the standard
+data.go.kr envelope; the whole request lives in the URL path::
 
     http://openapi.foodsafetykorea.go.kr/api/{KEY}/{serviceId}/{dataType}/{startIdx}/{endIdx}
 
-- 인증키가 **URL 경로 세그먼트**로 들어간다(#354 마스킹 대상)
-- 페이지네이션은 1-based \`startIdx\`/\`endIdx\` 범위 조회
-- 오류는 \`{"code": "INFO-100", "message": ...}\` 형태, \`code == "000"\`이 정상
+- The API key is a **path segment**, not a query parameter, so it has to be
+  masked by value (#354)
+- Pagination is a 1-based \`startIdx\`/\`endIdx\` range
+- Errors look like \`{"code": "INFO-100", "message": ...}\`; \`code == "000"\`
+  means success
 """
 
 from __future__ import annotations
@@ -36,7 +38,7 @@ _CATALOGUE_PACKAGE = "kpubdata.providers.fds"
 
 
 class FdsAdapter:
-    """식품의약품안전처 open API 어댑터."""
+    """Adapter for the Ministry of Food and Drug Safety open API."""
 
     requires_api_key: bool = True
 
@@ -159,7 +161,8 @@ class FdsAdapter:
         return url
 
     def _request_and_decode(self, url: str, dataset_id: str) -> dict[str, object]:
-        # 인증키가 URL 경로에 있으므로 로그 마스킹에 실제 키를 넘긴다(#354).
+        # The key sits in the URL path, so log masking needs the literal value
+        # rather than a parameter name (#354).
         response = self._transport.request(
             "GET",
             url,
@@ -179,12 +182,15 @@ class FdsAdapter:
     def _parse_fds_envelope(
         self, payload: Mapping[str, object], dataset_id: str, service: str | None = None
     ) -> tuple[list[dict[str, object]], int]:
-        """FDS 응답에서 (items, total_count)를 추출한다.
+        """Extract ``(items, total_count)`` from an FDS response.
 
-        실측 확인 형상(2026-08-26, 유효하지 않은 키로 호출): 최상위 키가 서비스명
-        (예: ``I1200``)이고 그 아래 ``RESULT.CODE``/``RESULT.MSG``와 목록이 온다.
-        ``"000"`` 정상, ``INFO-100`` 인증 오류. 성공 형상의 목록 키는 공개 문서상
-        ``body``/``row`` 후보가 있어 둘 다 시도한다(실 키 확보 전 안전 폴백).
+        Shape observed against the live API on 2026-08-26, called with an invalid
+        key: the top-level key is the service name, for example ``I1200``, and
+        under it come ``RESULT.CODE``/``RESULT.MSG`` plus the list. ``"000"``
+        means success, ``INFO-100`` an authentication failure. The published docs
+        give both ``body`` and ``row`` as candidate list keys for the success
+        shape, so both are tried -- a safe fallback until a working key confirms
+        which one it is.
         """
         section: Mapping[str, object] | None = None
         if service and isinstance(payload.get(service), dict):
