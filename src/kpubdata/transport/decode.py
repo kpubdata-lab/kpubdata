@@ -1,4 +1,4 @@
-"""응답 디코딩 유틸리티 — content-type 감지와 JSON/XML 헬퍼."""
+"""Response decoding helpers: content-type detection plus JSON and XML."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ logger = logging.getLogger("kpubdata.transport.decode")
 
 
 def detect_content_type(response: httpx.Response) -> str:
-    """content-type 헤더를 기준으로 응답이 JSON, XML 또는 기타인지 감지한다."""
+    """Classify the response as JSON, XML or other, from the content-type header."""
     header_value_obj = response.headers.get("content-type", "")
     content_type = str(header_value_obj).lower()
     if "json" in content_type:
@@ -29,7 +29,7 @@ def detect_content_type(response: httpx.Response) -> str:
 
 
 def decode_json(data: str | bytes) -> object:
-    """실패 시 명확한 에러와 함께 JSON을 디코딩한다."""
+    """Decode JSON, raising a clear error when it fails."""
     try:
         payload = data.decode("utf-8") if isinstance(data, bytes) else data
     except UnicodeDecodeError as exc:
@@ -57,11 +57,11 @@ def decode_json(data: str | bytes) -> object:
 
 
 def decode_xml(data: str | bytes) -> dict[str, object]:
-    """XML을 dict로 디코딩한다.
+    """Decode XML into a dict.
 
-    예외:
-        ImportError: ``xmltodict``가 설치되지 않은 경우.
-        ParseError: 파싱에 실패한 경우.
+    Raises:
+        ImportError: If ``xmltodict`` is not installed.
+        ParseError: If parsing fails.
     """
     try:
         xmltodict = import_module("xmltodict")
