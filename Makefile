@@ -47,20 +47,30 @@ record:
 	@if [ -z "$(DATASET)" ]; then echo "사용법: make record DATASET=datago.apt_trade (목록: make list-datasets)"; exit 2; fi
 	uv run python scripts/record.py $(DATASET)
 
+# verify 는 읽기만 해야 한다. record.py 가 fixtures_root 와 무관하게 spec 의
+# last_verified 를 덮어쓴 적이 있고(#497), 그때는 아무도 알아채지 못했다.
+#
+# 예전 guard 는 실행 후 `git status --porcelain -- src/` 가 비어 있는지만 봤다.
+# 그러면 **실행 전부터 dirty 인 파일과 verify 가 만든 변경을 구분하지 못한다** —
+# spec 을 편집하는 중에 verify 를 돌리면 거짓 실패가 나고, 거짓 실패를 내는
+# 도구는 건너뛰게 되어 결국 원래 잡으려던 mutation 이 통과한다 (#513).
+#
+# 이제 실행 전후로 내용 스냅샷을 떠서 차이만 실패로 본다.
 verify:
-	@if [ -n "$(DATASET)" ]; then \
+	@set +e; \
+	snapshot=$$(mktemp -t kpubdata-verify); \
+	trap 'rm -f "$$snapshot"' EXIT; \
+	uv run python scripts/verify_guard.py snapshot > "$$snapshot" || exit 2; \
+	if [ -n "$(DATASET)" ]; then \
 		uv run python scripts/verify_spec.py --dataset $(DATASET); \
 	else \
 		uv run python scripts/verify_spec.py; \
-	fi
-	@# verify 는 읽기만 해야 한다. 소스를 고쳤다면 도구가 잘못된 것이다 —
-	@# record.py 가 fixtures_root 와 무관하게 spec 의 last_verified 를 덮어쓴
-	@# 적이 있고(#497), 그때는 아무도 알아채지 못했다.
-	@if [ -n "$$(git status --porcelain -- src/ 2>/dev/null)" ]; then \
-		echo "error: verify 가 소스를 수정했습니다 — 도구 결함입니다 (#497 참고)"; \
-		git status --short -- src/; \
-		exit 1; \
-	fi
+	fi; \
+	verify_status=$$?; \
+	uv run python scripts/verify_guard.py compare "$$snapshot"; \
+	guard_status=$$?; \
+	if [ $$guard_status -ne 0 ]; then exit $$guard_status; fi; \
+	exit $$verify_status
 
 verify-all: verify
 
