@@ -139,7 +139,7 @@ Milestone 계층은 만들지 않는다.
 해당한다 — Epic 은 Project 가 없으면 기록할 곳이 아예 없지만, Blocked 는 이슈
 본문의 `Blocked by:` 절이 이미 담고 있고 라벨을 더하면 두 곳이 어긋난다.
 
-Project 가 생기면 Status·Priority·Target Release 는 표대로 Project 필드로 간다.
+Project 가 생기면 Status·Target Release 는 표대로 Project 필드로 간다.
 Epic 은 라벨로 남긴다 — 위의 세 번째 이유는 Project 가 생겨도 사라지지 않는다.
 
 ---
