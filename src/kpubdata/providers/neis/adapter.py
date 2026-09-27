@@ -1,16 +1,16 @@
-"""교육부 나이스(NEIS) open API 어댑터 (#164).
+"""Ministry of Education NEIS open API adapter (#164).
 
-NEIS open API(open.neis.go.kr)는 표준 data.go.kr 엔벨로프와 다른 고유
-응답 형상을 쓴다::
+NEIS open API (open.neis.go.kr) uses a unique response shape different from
+standard data.go.kr envelope::
 
     {"mealServiceDietInfo": [
         [{"head": [{"list_total_count": N}, {"RESULT": {"CODE": "INFO-000", ...}}]}],
         [{"head": [{"list_total_count": N}, ...], "row": [ ...items... ]}],
     ]}
 
-- ``INFO-000``: 정상, ``INFO-200``: 결과 없음(빈 배치), ``ERROR-*``: 오류
-- 인증은 ``KEY`` query parameter(공공데이터포털 발급 인증키)로 한다
-- 페이지네이션은 ``pIndex``(1-based)/``pSize``(최대 100)
+- ``INFO-000``: Success, ``INFO-200``: No results (empty batch), ``ERROR-*``: Error
+- Authentication uses ``KEY`` query parameter (public data portal API key)
+- Pagination via ``pIndex`` (1-based) and ``pSize`` (max 100)
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ _MAX_PAGE_SIZE = 100
 
 
 class NeisAdapter:
-    """교육부 나이스 open API 어댑터."""
+    """Ministry of Education NEIS open API adapter."""
 
     requires_api_key: bool = True
 
@@ -178,17 +178,18 @@ class NeisAdapter:
     def _parse_neis_envelope(
         self, payload: Mapping[str, object], operation: str, dataset_id: str
     ) -> tuple[list[dict[str, object]], int]:
-        """NEIS 고유 이중 리스트 엔벨로프에서 (items, total_count)를 추출한다.
+        """Extract (items, total_count) from NEIS unique dual-list envelope.
 
-        결과 없음(INFO-200)은 빈 배치가 정상 동작이다. 오류 코드는 예외로
-        매핑한다(ERROR-290 인증 오류 → AuthError, 그 외 → ProviderResponseError).
+        No results (INFO-200) is normal empty batch operation. Error codes are
+        mapped to exceptions (ERROR-290 auth error → AuthError, others →
+        ProviderResponseError).
         """
         sections = payload.get(operation)
         if not isinstance(sections, list):
             result = payload.get("RESULT")
             self._raise_for_result(result, dataset_id)
-            # RESULT가 명시된 응답(예: INFO-200 결과 없음)은 섹션 없이 오는
-            # 것이 정상이다 — 오류가 아니라 빈 배치로 처리한다.
+            # Responses with explicit RESULT (e.g., INFO-200 no results) arrive
+            # without section — this is normal, not error; treat as empty batch.
             if result is None:
                 raise ProviderResponseError(
                     f"NEIS response has no '{operation}' section",
@@ -238,7 +239,7 @@ class NeisAdapter:
             return
         message = str(result.get("MESSAGE", ""))
         if code == "INFO-200":
-            return  # 결과 없음 — 호출부에서 빈 배치로 처리한다
+            return  # No results — caller treats as empty batch
         if code == "ERROR-290":
             raise AuthError(
                 f"NEIS authentication failed: {message}",
