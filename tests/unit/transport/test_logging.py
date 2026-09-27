@@ -1,7 +1,7 @@
-"""테스트 모듈.
+"""Test module.
 
-이 파일은 ``tests/unit/transport/test_logging.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
+This file ``tests/unit/transport/test_logging.py`` defines test scenarios and helper objects.
+For regression prevention and public contract validation verify core flows, exceptions, and edge conditions.
 """
 
 from __future__ import annotations
@@ -22,17 +22,17 @@ from kpubdata.transport.http import HttpTransport, TransportConfig
 
 def _response_with_content(content: bytes, content_type: str) -> httpx.Response:
     """
-    내부 헬퍼로서 response with content 처리를 담당한다.
+    As internal helper for handles response with content processing.
 
-    매개변수:
-        content (bytes): 호출자가 제공하는 입력 값이다.
-        content_type (str): 호출자가 제공하는 입력 값이다.
+    Args:
+        content (bytes): input value provided by caller.
+        content_type (str): input value provided by caller.
 
-    반환값:
-        httpx.Response: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        httpx.Response: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
     """
     request = httpx.Request("GET", "https://example.test/resource")
     return httpx.Response(
@@ -43,22 +43,22 @@ def _response_with_content(content: bytes, content_type: str) -> httpx.Response:
     )
 
 
-# test request params log redacts service key 테스트가 검증하는 시나리오를 설명한다.
+# test request params log redacts service key Explains scenario validated by test.
 def test_request_params_log_redacts_service_key(caplog: pytest.LogCaptureFixture) -> None:
     """
-    test request params log redacts service key 시나리오를 검증한다.
+    test request params log redacts service key Verify scenario.
 
-    매개변수:
-        caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+    Args:
+        caplog (pytest.LogCaptureFixture): input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     transport = HttpTransport(TransportConfig(max_retries=0))
     response = _response_with_content(b'{"ok": true}', "application/json")
@@ -77,22 +77,22 @@ def test_request_params_log_redacts_service_key(caplog: pytest.LogCaptureFixture
     assert params == {"serviceKey": "[REDACTED]", "query": "station"}
 
 
-# test response preview logged and truncated 테스트가 검증하는 시나리오를 설명한다.
+# test response preview logged and truncated Explains scenario validated by test.
 def test_response_preview_logged_and_truncated(caplog: pytest.LogCaptureFixture) -> None:
     """
-    test response preview logged and truncated 시나리오를 검증한다.
+    test response preview logged and truncated Verify scenario.
 
-    매개변수:
-        caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+    Args:
+        caplog (pytest.LogCaptureFixture): input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     transport = HttpTransport(TransportConfig(max_retries=0))
     long_text = "a" * 900
@@ -113,19 +113,19 @@ def test_response_preview_logged_and_truncated(caplog: pytest.LogCaptureFixture)
     assert len(preview) == 500
 
 
-# test sanitize params redacts sensitive keys 테스트가 검증하는 시나리오를 설명한다.
+# test sanitize params redacts sensitive keys Explains scenario validated by test.
 def test_sanitize_params_redacts_sensitive_keys() -> None:
     """
-    test sanitize params redacts sensitive keys 시나리오를 검증한다.
+    test sanitize params redacts sensitive keys Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     sanitize_params = cast(
         Callable[[dict[str, object] | None], dict[str, str]],
@@ -160,19 +160,19 @@ def test_sanitize_params_redacts_sensitive_keys() -> None:
     }
 
 
-# test response preview handles text and binary content 테스트가 검증하는 시나리오를 설명한다.
+# test response preview handles text and binary content Explains scenario validated by test.
 def test_response_preview_handles_text_and_binary_content() -> None:
     """
-    test response preview handles text and binary content 시나리오를 검증한다.
+    test response preview handles text and binary content Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     response_preview = cast(Callable[[httpx.Response], str], http_module._response_preview)
     text_response = _response_with_content(b'{"count": 1}', "application/json")
@@ -182,19 +182,19 @@ def test_response_preview_handles_text_and_binary_content() -> None:
     assert response_preview(binary_response) == "[binary content, 4 bytes]"
 
 
-# test debug gating skips sanitization and preview helpers 테스트가 검증하는 시나리오를 설명한다.
+# test debug gating skips sanitization and preview helpers Explains scenario validated by test.
 def test_debug_gating_skips_sanitization_and_preview_helpers() -> None:
     """
-    test debug gating skips sanitization and preview helpers 시나리오를 검증한다.
+    test debug gating skips sanitization and preview helpers Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     transport = HttpTransport(TransportConfig(max_retries=0))
     response = _response_with_content(b"ok", "text/plain")
@@ -214,22 +214,22 @@ def test_debug_gating_skips_sanitization_and_preview_helpers() -> None:
         _ = transport.request("GET", "https://example.test/resource", params={"serviceKey": "x"})
 
 
-# test request logs include dataset context 테스트가 검증하는 시나리오를 설명한다.
+# test request logs include dataset context Explains scenario validated by test.
 def test_request_logs_include_dataset_context(caplog: pytest.LogCaptureFixture) -> None:
     """
-    test request logs include dataset context 시나리오를 검증한다.
+    test request logs include dataset context Verify scenario.
 
-    매개변수:
-        caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+    Args:
+        caplog (pytest.LogCaptureFixture): input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     transport = HttpTransport(TransportConfig(max_retries=0))
     response = _response_with_content(b'{"ok": true}', "application/json")
@@ -253,19 +253,19 @@ def test_request_logs_include_dataset_context(caplog: pytest.LogCaptureFixture) 
         assert record.__dict__["provider"] == "datago"
 
 
-# test mask url redacts sensitive query params 테스트가 검증하는 시나리오를 설명한다.
+# test mask url redacts sensitive query params Explains scenario validated by test.
 def test_mask_url_redacts_sensitive_query_params() -> None:
     """
-    test mask url redacts sensitive query params 시나리오를 검증한다.
+    test mask url redacts sensitive query params Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     mask_url = cast(Callable[[str], str], http_module._mask_url)
 
@@ -282,19 +282,19 @@ def test_mask_url_redacts_sensitive_query_params() -> None:
     assert mask_url("https://[invalid") == "[invalid url]"
 
 
-# test exception message masks sensitive query params 테스트가 검증하는 시나리오를 설명한다.
+# test exception message masks sensitive query params Explains scenario validated by test.
 def test_exception_message_masks_sensitive_query_params() -> None:
     """
-    test exception message masks sensitive query params 시나리오를 검증한다.
+    test exception message masks sensitive query params Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     transport = HttpTransport(TransportConfig(max_retries=0))
     secret_url = "https://api.example.test/data?serviceKey=super-secret&query=station"
@@ -312,22 +312,22 @@ def test_exception_message_masks_sensitive_query_params() -> None:
     assert "query=station" in message
 
 
-# test request logs mask sensitive url 테스트가 검증하는 시나리오를 설명한다.
+# test request logs mask sensitive url Explains scenario validated by test.
 def test_request_logs_mask_sensitive_url(caplog: pytest.LogCaptureFixture) -> None:
     """
-    test request logs mask sensitive url 시나리오를 검증한다.
+    test request logs mask sensitive url Verify scenario.
 
-    매개변수:
-        caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+    Args:
+        caplog (pytest.LogCaptureFixture): input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     transport = HttpTransport(TransportConfig(max_retries=0))
     secret_url = "https://api.example.test/data?serviceKey=super-secret&query=station"
@@ -346,20 +346,20 @@ def test_request_logs_mask_sensitive_url(caplog: pytest.LogCaptureFixture) -> No
     assert logged_url == "https://api.example.test/data?serviceKey=[REDACTED]&query=station"
 
 
-# test status error chain suppressed when url masked 테스트가 검증하는 시나리오를 설명한다.
+# test status error chain suppressed when url masked Explains scenario validated by test.
 def test_status_error_chain_suppressed_when_url_masked() -> None:
     """
-    test status error chain suppressed when url masked 시나리오를 검증한다.
+    test status error chain suppressed when url masked Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        마스킹이 적용된 URL에서 HTTPStatusError가 발생하면 __cause__/__context__를
-        남기지 않아 원본 httpx 예외에 든 민감 URL이 traceback에 노출되지 않는다.
+    Example:
+        masked URL with HTTPStatusErrorwhen raised __cause__/__context__
+        not kept original httpx Raisesin sensitive URLin tracebackin not exposed.
     """
     transport = HttpTransport(TransportConfig(max_retries=0))
     secret_url = "https://api.example.test/data?serviceKey=super-secret&query=station"
@@ -375,20 +375,20 @@ def test_status_error_chain_suppressed_when_url_masked() -> None:
     assert excinfo.value.__suppress_context__ is True
 
 
-# test timeout chain suppressed when url masked 테스트가 검증하는 시나리오를 설명한다.
+# test timeout chain suppressed when url masked Explains scenario validated by test.
 def test_timeout_chain_suppressed_when_url_masked() -> None:
     """
-    test timeout chain suppressed when url masked 시나리오를 검증한다.
+    test timeout chain suppressed when url masked Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        마스킹이 적용된 URL에서 TimeoutException이 발생하면 TransportTimeoutError가
-        원본 예외를 __cause__에 남기지 않는다.
+    Example:
+        masked URL with TimeoutExceptionwhen raised TransportTimeoutErroris
+        original Raises __cause__in not kept.
     """
     transport = HttpTransport(TransportConfig(max_retries=0))
     secret_url = "https://api.example.test/data?serviceKey=super-secret&query=station"
@@ -404,20 +404,20 @@ def test_timeout_chain_suppressed_when_url_masked() -> None:
     assert excinfo.value.__suppress_context__ is True
 
 
-# test request error chain suppressed when url masked 테스트가 검증하는 시나리오를 설명한다.
+# test request error chain suppressed when url masked Explains scenario validated by test.
 def test_request_error_chain_suppressed_when_url_masked() -> None:
     """
-    test request error chain suppressed when url masked 시나리오를 검증한다.
+    test request error chain suppressed when url masked Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        마스킹이 적용된 URL에서 RequestError가 발생하면 TransportError가
-        원본 예외를 __cause__에 남기지 않는다.
+    Example:
+        masked URL with RequestErrorwhen raised TransportErroris
+        original Raises __cause__in not kept.
     """
     transport = HttpTransport(TransportConfig(max_retries=0))
     secret_url = "https://api.example.test/data?serviceKey=super-secret&query=station"
@@ -433,20 +433,20 @@ def test_request_error_chain_suppressed_when_url_masked() -> None:
     assert excinfo.value.__suppress_context__ is True
 
 
-# test exception chain preserved when url not masked 테스트가 검증하는 시나리오를 설명한다.
+# test exception chain preserved when url not masked Explains scenario validated by test.
 def test_exception_chain_preserved_when_url_not_masked() -> None:
     """
-    test exception chain preserved when url not masked 시나리오를 검증한다.
+    test exception chain preserved when url not masked Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        마스킹이 적용되지 않은 URL에서는 디버깅 편의를 위해 원본 httpx 예외를
-        __cause__에 그대로 유지한다.
+    Example:
+        unmask URL: for debugging convenience original httpx Raises
+        kept as-is in __cause__.
     """
     transport = HttpTransport(TransportConfig(max_retries=0))
     plain_url = "https://api.example.test/data?query=station"
@@ -462,10 +462,10 @@ def test_exception_chain_preserved_when_url_not_masked() -> None:
 
 
 class TestPathSegmentSecretMasking:
-    """URL 경로에 실제 값으로 실리는 키의 마스킹 (#354)."""
+    """Masking of keys carried as real values in URL path (#354)."""
 
     def test_path_segment_matching_secret_is_redacted(self) -> None:
-        """seoul 형상 URL의 경로 키 세그먼트가 [REDACTED]로 치환된다."""
+        """seoul-shaped URL path key segments are substituted as [REDACTED]."""
         from kpubdata.transport.http import _mask_url
 
         url = "http://openapi.seoul.go.kr:8088/SECRET-KEY-123/json/SearchParkInfoService/1/10"
@@ -473,12 +473,12 @@ class TestPathSegmentSecretMasking:
 
         assert "SECRET-KEY-123" not in masked
         assert "[REDACTED]" in masked
-        # 서비스명·인덱스는 값이 다르므로 오인 치환되지 않는다.
+        # service name, index have different values so not mistakenly substituted.
         assert "SearchParkInfoService" in masked
         assert masked.endswith("/1/10")
 
     def test_transport_logs_never_contain_path_key(self, caplog) -> None:
-        """transport 로그(success/debug)에 경로 키 원문이 남지 않는다."""
+        """transport log(success/debug)raw path key does not remain."""
         transport = HttpTransport(TransportConfig(max_retries=0))
         response = httpx.Response(
             200,
@@ -499,7 +499,7 @@ class TestPathSegmentSecretMasking:
             assert "REAL-KEY-9" not in record.getMessage()
 
     def test_seoul_adapter_passes_its_key_as_secret_value(self, monkeypatch) -> None:
-        """seoul adapter가 transport 호출에 실제 키를 secret_values로 넘긴다."""
+        """seoul adapter passes real keys as secret_values to transport call."""
         import json as json_module
 
         from kpubdata.config import KPubDataConfig
@@ -533,10 +533,10 @@ class TestPathSegmentSecretMasking:
 
 
 def test_mask_url_redacts_the_law_oc_key_parameter() -> None:
-    """law(국가법령정보)는 API 키를 ``OC`` 파라미터로 보낸다.
+    """law(national law information)uses API key as ``OC`` parameter.
 
-    이름만 봐서는 credential로 보이지 않아 마스킹 목록에서 빠져 있었고, 예외
-    메시지에 담긴 URL에 키가 평문으로 남았다.
+    by name alone does not look like credential missing from masking list and, Raises
+    message URL has key left in plaintext.
     """
     mask_url = cast(Callable[[str], str], http_module._mask_url)
 
@@ -554,10 +554,10 @@ def test_mask_url_redacts_the_oc_parameter_case_insensitively() -> None:
 
 
 def test_mask_url_redacts_the_sgis_oauth_parameters() -> None:
-    """sgis(통계지리정보)는 OAuth 스타일 이름을 쓴다.
+    """sgis(statistical geographic information)uses OAuth-style names.
 
-    목록은 부분 문자열 매칭이 아니라 정확한 이름이므로 각각 등재해야 한다 —
-    ``consumer_key`` 는 ``key`` 를 포함하지만 걸리지 않았다.
+    list is not substring match but exact name so must list separately —
+    ``consumer_key`` is ``key`` contains but not caught.
     """
     mask_url = cast(Callable[[str], str], http_module._mask_url)
 
@@ -572,16 +572,16 @@ def test_mask_url_redacts_the_sgis_oauth_parameters() -> None:
 
 
 class TestKeysPassedAsParamsAreAlsoMasked:
-    """키를 ``params=`` 로 넘기는 경로의 예외 체인.
+    """passing key via ``params=`` path's Raises chain.
 
-    체인을 끊을지 말지를 ``_mask_url(url) != url`` 하나로 판정했다. 그래서 키가
-    URL 문자열에 박혀 있을 때만 끊겼고, ``params=`` 로 넘길 때는 URL이 그대로라
-    체인이 유지됐다 — httpx 는 예외 메시지에 params 를 합친 **최종** URL을 넣으
-    므로, 그 메시지가 ``__cause__`` 를 타고 traceback 에 그대로 남았다.
+    whether to break chain ``_mask_url(url) != url`` judged by single. So key
+    only when embedded in URL string broke and, ``params=`` when passed via URL stays as-is
+    chain maintained — httpx is in Raises message params combines **final** URL puts
+    so, that message ``__cause__`` goes through traceback remains as-is in.
 
-    그런데 키를 params 로 보내는 것이 오히려 다수다 — datago·localdata·semas·
-    sgis 와 spec executor 가 전부 그렇다. 기존 테스트가 전부 URL 문자열 쪽만
-    확인해서 드러나지 않았다.
+    but key params sending via params actually is majority — datago, localdata, semas,
+    sgis and spec executor all do this. existing tests all only URL string side
+    checked not revealed.
     """
 
     _SECRET = "SUPERSECRETKEY"
@@ -606,7 +606,7 @@ class TestKeysPassedAsParamsAreAlsoMasked:
         assert excinfo.value.__suppress_context__ is True
 
     def test_the_key_appears_nowhere_in_the_rendered_traceback(self) -> None:
-        """``__cause__`` 가 None 인 것만으로는 부족하다 — 실제 출력에 없어야 한다."""
+        """``__cause__`` being None is not enough — must not appear in actual output."""
         import traceback
 
         transport = HttpTransport(TransportConfig(max_retries=0))
@@ -627,9 +627,9 @@ class TestKeysPassedAsParamsAreAlsoMasked:
         assert self._SECRET not in rendered
 
     def test_the_status_code_survives_the_broken_chain(self) -> None:
-        """체인을 끊으면 원래 응답도 함께 사라진다 — 상태 코드는 예외가 직접 들어야 한다.
+        """breaking chain makes original response disappear too — status code must go directly into Raises.
 
-        datago 의 403 안내와 spec executor 의 AuthError 가 이 값을 본다.
+        datago of 403 guidanceand spec executor of AuthError sees this value.
         """
         transport = HttpTransport(TransportConfig(max_retries=0))
 
@@ -644,7 +644,7 @@ class TestKeysPassedAsParamsAreAlsoMasked:
         assert excinfo.value.status_code == 403
 
     def test_a_request_without_any_credential_keeps_its_chain(self) -> None:
-        """자격이 없는 요청까지 체인을 끊으면 디버깅만 어려워진다."""
+        """breaking chain for unauthenticated requests only harms debugging."""
         transport = HttpTransport(TransportConfig(max_retries=0))
         request = httpx.Request("GET", self._URL, params={"page": "1"})
         response = httpx.Response(status_code=403, request=request)
@@ -658,7 +658,7 @@ class TestKeysPassedAsParamsAreAlsoMasked:
         assert isinstance(excinfo.value.__cause__, httpx.HTTPStatusError)
 
     def test_a_credential_header_also_breaks_the_chain(self) -> None:
-        """Authorization 헤더로 인증하는 provider 도 같은 보호를 받아야 한다."""
+        """providers using Authorization header also deserve same protection."""
         transport = HttpTransport(TransportConfig(max_retries=0))
         request = httpx.Request("GET", self._URL)
         response = httpx.Response(status_code=403, request=request)
@@ -675,10 +675,10 @@ class TestKeysPassedAsParamsAreAlsoMasked:
 
 
 class TestForbiddenDetectionDoesNotDependOnTheChain:
-    """403 판정이 ``__cause__`` 에 의존하면 마스킹과 서로를 무효화한다.
+    """403 judgment dependent on ``__cause__`` makes masking and each invalidate other.
 
-    datago 는 키를 params 로 보내므로, 체인을 끊는 순간 ``__cause__`` 기반
-    판정은 아무것도 찾지 못한다 — 사용자는 키 등록 안내 대신 일반 오류를 본다.
+    datago is key params sends via params so, moment chain breaks ``__cause__`` based
+    judgment finds nothing — user sees key registration guidance instead of generic error sees.
     """
 
     def test_datago_reads_the_status_code(self) -> None:
@@ -692,12 +692,12 @@ class TestForbiddenDetectionDoesNotDependOnTheChain:
 
 
 class TestTheExceptionChainIsFullyDetached:
-    """``from None`` 은 ``__suppress_context__`` 만 세운다.
+    """``from None`` is ``__suppress_context__`` only sets.
 
-    ``__context__`` 에는 원본 httpx 예외가 그대로 남고, 그 메시지에는 params 를
-    합친 최종 URL — 즉 키 — 이 들어 있다. 표준 traceback 출력과 Sentry 는 그
-    플래그를 존중하지만, ``exc.__context__.request.url`` 을 직접 읽는 로거에는
-    보인다.
+    ``__context__`` has original httpx Raisesremains as-is and, its message has params omitted
+    combines final URL — i.e. key — is in. standard traceback output and Sentry is that
+    flag but, ``exc.__context__.request.url`` omitted directly read logger has
+    visible.
     """
 
     _SECRET = "SUPERSECRETKEY"
@@ -724,7 +724,7 @@ class TestTheExceptionChainIsFullyDetached:
         )
 
     def test_the_key_is_unreachable_through_the_whole_chain(self) -> None:
-        """예외에서 출발해 닿을 수 있는 모든 곳에 키가 없어야 한다."""
+        """no key reachable from Raises anywhere."""
         transport = HttpTransport(TransportConfig(max_retries=0))
 
         with (
@@ -749,7 +749,7 @@ class TestTheExceptionChainIsFullyDetached:
         assert self._SECRET not in "".join(reachable)
 
     def test_a_request_without_a_credential_keeps_its_context(self) -> None:
-        """자격이 없는 요청까지 체인을 끊으면 디버깅만 어려워진다."""
+        """breaking chain for unauthenticated requests only harms debugging."""
         transport = HttpTransport(TransportConfig(max_retries=0))
         response = httpx.Response(
             status_code=403, request=httpx.Request("GET", self._URL, params={"page": "1"})
@@ -765,10 +765,10 @@ class TestTheExceptionChainIsFullyDetached:
 
 
 class TestOneSensitiveNameList:
-    """목록이 세 벌이면 반드시 어긋난다 — 실제로 어긋났다.
+    """three lists must diverge — actually diverges.
 
-    ``cache.py`` 에 sgis 의 ``consumer_secret`` 이 빠져 있었고, 목록에 없는
-    이름은 지문이 아니라 원문 그대로 캐시 키 재료가 된다.
+    ``cache.py`` in sgis of ``consumer_secret`` was missing and, in list not
+    name fingerprint not as-is raw Cache key material becomes.
     """
 
     def test_every_module_reads_the_same_object(self) -> None:

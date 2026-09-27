@@ -1,8 +1,8 @@
-"""``ResponseCache`` 의 가장자리 동작 회귀 테스트 (#454).
+"""``ResponseCache`` edge case regression tests (#454).
 
-캐시는 버그가 조용히 나는 계층이다 — 잘못된 키나 TTL 로 오래된/남의 응답을 돌려줘도
-호출부는 정상처럼 보인다. 여기서는 정상 왕복이 아니라 **캐시가 무엇을 돌려주지 않아야
-하는가**(만료·손상·형식 불일치)와 **키가 무엇을 구분해야 하는가**를 고정한다.
+Cache is a layer where bugs go silent — even with wrong key or TTL returning stale/other responses
+the caller looks normal. Here we focus not on normal round-trips but on **what cache must NOT return
+from**(expiration, corruption, format mismatch)and **what keys must distinguish**are pinned.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from kpubdata.transport.cache import ResponseCache, make_cache_key
 
 
 def _write_raw(cache: ResponseCache, key: str, payload: object) -> Path:
-    """검증을 우회해 캐시 파일을 직접 쓴다(손상된 엔트리 재현용)."""
+    """Bypass validation to write cache file directly (for simulating corrupted entries)."""
     path = cache.base_dir / f"{key}.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload), encoding="utf-8")
@@ -35,7 +35,7 @@ def _entry(
     }
 
 
-# --- TTL 경계 --------------------------------------------------------------
+# --- TTL boundary --------------------------------------------------------------
 
 
 def test_entry_is_served_before_its_ttl(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -47,13 +47,13 @@ def test_entry_is_served_before_its_ttl(tmp_path: Path, monkeypatch: pytest.Monk
 
 
 def test_entry_expires_exactly_at_its_ttl(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """경계는 닫혀 있다 — created_at + ttl 에 도달하면 이미 만료다."""
+    """Boundary is closed — at created_at + ttl is already expired."""
     cache = ResponseCache(base_dir=tmp_path)
     path = _write_raw(cache, "k", _entry(created_at=1_000.0, ttl=60.0))
 
     monkeypatch.setattr("kpubdata.transport.cache.time.time", lambda: 1_060.0)
     assert cache.get("k") is None
-    # 만료 엔트리는 읽을 때 지운다 — 디스크에 남겨 두지 않는다.
+    # Expired entries are deleted on read — not left on disk.
     assert not path.exists()
 
 
@@ -64,13 +64,13 @@ def test_zero_ttl_entry_is_never_served(tmp_path: Path, monkeypatch: pytest.Monk
 
 
 def test_negative_ttl_entry_is_never_served(tmp_path: Path) -> None:
-    """음수 TTL 은 '무한 유효' 가 아니라 즉시 만료다."""
+    """Negative TTL is NOT 'infinite validity' but immediate expiration."""
     cache = ResponseCache(base_dir=tmp_path)
     _ = _write_raw(cache, "k", _entry(ttl=-1.0))
     assert cache.get("k") is None
 
 
-# --- 손상된 엔트리 ---------------------------------------------------------
+# --- Corrupted entries ---------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -84,7 +84,7 @@ def test_negative_ttl_entry_is_never_served(tmp_path: Path) -> None:
     ],
 )
 def test_malformed_entry_is_dropped_not_served(tmp_path: Path, name: str, payload: object) -> None:
-    """형식이 어긋난 엔트리는 예외 없이 미스로 취급하고 파일도 지운다."""
+    """Malformed entries treated as miss without Raises, file deleted."""
     cache = ResponseCache(base_dir=tmp_path)
     path = _write_raw(cache, name, payload)
 
@@ -101,7 +101,7 @@ def test_unparsable_json_entry_is_a_miss(tmp_path: Path) -> None:
 
 
 def test_non_base64_body_is_a_miss(tmp_path: Path) -> None:
-    """body_b64 가 base64 가 아니면 디코딩 예외를 삼키고 미스를 반환한다."""
+    """If body_b64 is not base64, swallow decode Raises return miss."""
     cache = ResponseCache(base_dir=tmp_path)
     _ = _write_raw(
         cache, "k", {"created_at": 1.0, "ttl_seconds": 10**9, "body_b64": "!!!not-base64!!!"}
@@ -131,7 +131,7 @@ def test_clear_on_a_missing_directory_is_a_noop(tmp_path: Path) -> None:
 
 
 def test_clear_expired_keeps_live_entries(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """만료된 것만 지운다 — 유효한 엔트리를 같이 날리면 캐시가 무용지물이 된다."""
+    """Only delete expired — Deleting valid entries makes cache useless."""
     cache = ResponseCache(base_dir=tmp_path)
     _ = _write_raw(cache, "stale", _entry(body=b"old", created_at=0.0, ttl=1.0))
     _ = _write_raw(cache, "fresh", _entry(body=b"new", created_at=0.0, ttl=10**9))
@@ -144,7 +144,7 @@ def test_clear_expired_keeps_live_entries(tmp_path: Path, monkeypatch: pytest.Mo
 
 
 def test_clear_expired_drops_malformed_entries(tmp_path: Path) -> None:
-    """판정할 수 없는 엔트리도 정리 대상이다 — 영원히 남아 디스크를 먹지 않게."""
+    """Undecidable entries are also cleanup targets — to not remain forever eating disk."""
     cache = ResponseCache(base_dir=tmp_path)
     path = _write_raw(cache, "junk", {"nothing": "useful"})
 
@@ -164,11 +164,11 @@ def test_clear_expired_ignores_unrelated_files(tmp_path: Path) -> None:
     assert stray.exists()
 
 
-# --- 캐시 키 ---------------------------------------------------------------
+# --- Cache key ---------------------------------------------------------------
 
 
 def test_key_is_stable_across_parameter_order() -> None:
-    """dict 순서는 키에 영향을 주면 안 된다 — 같은 요청은 같은 엔트리여야 한다."""
+    """dict order must not affect key — same request must be same entry."""
     first = make_cache_key("GET", "https://x.test/r", {"a": "1", "b": "2"}, None)
     second = make_cache_key("GET", "https://x.test/r", {"b": "2", "a": "1"}, None)
     assert first == second
@@ -188,14 +188,14 @@ def test_key_separates_different_urls_methods_and_values() -> None:
 
 
 def test_key_treats_absent_and_empty_parameters_as_one_request() -> None:
-    """None 과 {} 는 같은 요청이다 — 둘을 다른 엔트리로 쪼개 캐시를 반으로 나누지 않는다."""
+    """None and {} are same request — do not split into different entries halving cache."""
     assert make_cache_key("GET", "https://x.test/r", None, None) == make_cache_key(
         "GET", "https://x.test/r", {}, None
     )
 
 
 def test_key_never_contains_the_credential(tmp_path: Path) -> None:
-    """키는 파일명이 된다 — 원문 credential 이 디스크 경로에 남으면 안 된다 (#263)."""
+    """key becomes filename — raw credential must not remain in disk path (#263)."""
     secret = "super-secret-service-key"
     key = make_cache_key("GET", "https://x.test/r", {"serviceKey": secret}, None)
     assert secret not in key
@@ -203,27 +203,27 @@ def test_key_never_contains_the_credential(tmp_path: Path) -> None:
 
 
 def test_key_isolates_header_credentials() -> None:
-    """Authorization 헤더가 다르면 같은 URL 이라도 다른 엔트리다."""
+    """Different Authorization header = different entry even for same URL."""
     first = make_cache_key("GET", "https://x.test/r", None, {"Authorization": "Bearer a"})
     second = make_cache_key("GET", "https://x.test/r", None, {"Authorization": "Bearer b"})
     assert first != second
 
 
 def test_key_handles_non_string_parameter_values() -> None:
-    """숫자/불리언 파라미터도 문자열로 정규화돼 예외 없이 키가 나온다."""
+    """Numeric/boolean params normalized to string, key generated without Raises."""
     key = make_cache_key("GET", "https://x.test/r", {"page": 1, "all": True}, None)
     assert len(key) == 32
     assert key == make_cache_key("GET", "https://x.test/r", {"page": "1", "all": "True"}, None)
 
 
-# --- 실패를 삼키는 경로 ----------------------------------------------------
+# --- Failure-swallowing path ----------------------------------------------------
 #
-# 캐시는 보조 계층이다 — 디스크가 말을 듣지 않아도 호출부가 죽으면 안 된다.
-# 아래 테스트는 "예외를 밖으로 내보내지 않는다"를 고정한다.
+# Cache is auxiliary layer — If disk misbehaves caller must not die.
+# tests below are "do not expose Raises outward"are pinned.
 
 
 def test_set_failure_does_not_raise(tmp_path: Path) -> None:
-    """base_dir 이 파일이면 mkdir 이 실패한다 — 조용히 포기해야 한다."""
+    """If base_dir is file, mkdir fails — must fail silently."""
     blocked = tmp_path / "blocked"
     blocked.write_text("not a directory", encoding="utf-8")
     cache = ResponseCache(base_dir=blocked)
@@ -247,24 +247,24 @@ def test_clear_failure_does_not_raise(tmp_path: Path, monkeypatch: pytest.Monkey
 
 
 def test_clear_expired_survives_one_unreadable_entry(tmp_path: Path) -> None:
-    """엔트리 하나가 읽히지 않아도 나머지 정리는 계속돼야 한다."""
+    """Cleanup must continue for remaining entries even if one cannot be read."""
     cache = ResponseCache(base_dir=tmp_path)
-    # 디렉터리를 .json 이름으로 두면 read_text 가 IsADirectoryError 를 던진다.
+    # If directory named .json, read_text raises IsADirectoryError.
     (tmp_path / "unreadable.json").mkdir()
     stale = _write_raw(cache, "stale", _entry(created_at=0.0, ttl=1.0))
 
     cache.clear_expired()
 
     assert (tmp_path / "unreadable.json").exists()
-    # 만료 엔트리가 디스크에서 사라졌는지를 본다. ``cache.get`` 은 정리가 중간에
-    # 멈췄더라도 실제 시계 기준으로 이미 만료라 None 을 주므로 아무것도 증명하지 못한다.
+    # Check if expired entry disappeared from disk. ``cache.get`` cleanup is mid-operation
+    # even if stopped, by real clock already expired returns None, proves nothing.
     assert not stale.exists()
 
 
 def test_delete_failure_still_reports_a_miss(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """만료 엔트리를 지우지 못해도 값을 돌려주지는 않는다."""
+    """even if cannot delete expired entry, still does not return value."""
     cache = ResponseCache(base_dir=tmp_path)
     _ = _write_raw(cache, "k", _entry(created_at=0.0, ttl=1.0))
 
@@ -276,7 +276,7 @@ def test_delete_failure_still_reports_a_miss(
     assert cache.get("k") is None
 
 
-# --- 기본 캐시 디렉터리 ----------------------------------------------------
+# --- default cache directory ----------------------------------------------------
 
 
 def test_default_dir_follows_xdg_cache_home(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -291,14 +291,14 @@ def test_default_dir_falls_back_to_home(monkeypatch: pytest.MonkeyPatch) -> None
 
 
 def test_empty_xdg_cache_home_falls_back_to_home(monkeypatch: pytest.MonkeyPatch) -> None:
-    """빈 문자열은 '설정 안 함'과 같게 다뤄야 한다 — 루트에 캐시를 만들지 않는다."""
+    """empty string must be treated like 'not configured' — do not create cache at root."""
     monkeypatch.setenv("XDG_CACHE_HOME", "")
     monkeypatch.setattr(Path, "home", classmethod(lambda cls: Path("/home/probe")))
     assert ResponseCache().base_dir == Path("/home/probe/.cache/kpubdata/responses")
 
 
 def test_a_cache_entry_is_written_atomically(tmp_path: Path) -> None:
-    """중간에 끊긴 파일이 완성된 엔트리로 읽히면 만료까지 깨진 값이 나온다."""
+    """partially written file read as complete entry yields broken value until expiration."""
     import os
 
     from kpubdata.transport.cache import ResponseCache

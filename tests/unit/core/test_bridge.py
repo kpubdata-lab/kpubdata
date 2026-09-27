@@ -1,7 +1,8 @@
-"""core/bridge.py 단위 테스트 — composite 병합·라우팅·레지스트리 통합 검증.
+"""Unit tests for core/bridge.py — composite merge·routing·registry integration validation.
 
-FakeInnerAdapter는 카탈로그 기반 내장 어댑터의 프로토콜 표면을 흉내내고,
-spec 쪽은 번들 골든 spec + FakeTransport 실행기를 사용해 실제 병합 동작을 검증한다.
+FakeInnerAdapter mimics the protocol surface of a catalog-based built-in adapter,
+while the spec side uses bundled golden spec + FakeTransport executor to validate
+actual merge operations.
 """
 
 from __future__ import annotations
@@ -29,7 +30,7 @@ SPECS_DIR = Path(__file__).resolve().parents[3] / "src" / "kpubdata" / "specs"
 
 
 class FakeResponse:
-    """httpx.Response의 최소 인터페이스를 흉내낸다."""
+    """Mimics the minimal interface of httpx.Response."""
 
     def __init__(self, content: bytes) -> None:
         self.content = content
@@ -37,7 +38,7 @@ class FakeResponse:
 
 
 class FakeTransport:
-    """호출을 기록하고 표준 envelope 응답을 반환한다."""
+    """Records calls and returns standard envelope responses."""
 
     def __init__(self) -> None:
         self.calls: list[dict[str, object]] = []
@@ -69,7 +70,7 @@ class FakeTransport:
 
 
 class FakeConfig(KPubDataConfig):
-    """키 조회를 고정값으로 대체한 설정."""
+    """Config with key lookup replaced by fixed values."""
 
     def get_provider_key(self, provider: str) -> str | None:
         return f"test-key-{provider}"
@@ -79,7 +80,7 @@ class FakeConfig(KPubDataConfig):
 
 
 class FakeInnerAdapter:
-    """카탈로그 어댑터 흉내 — spec 키 1개(apt_trade)와 카탈로그 전용 키 2개 제공."""
+    """Catalog adapter mimic — provides 1 spec key (apt_trade) and 2 catalog-only keys."""
 
     def __init__(self) -> None:
         self.query_calls: list[str] = []
@@ -156,49 +157,49 @@ def composite(
 
 
 # ----------------------------------------------------------------------
-# 병합 규칙
+# Merge rules
 # ----------------------------------------------------------------------
 
 
 def test_list_datasets_spec_wins_and_appends(
     composite: CompositeProviderAdapter, inner: FakeInnerAdapter
 ) -> None:
-    """겹치는 키는 spec 참조로 교체되고, spec 전용 키는 끝에 추가된다."""
+    """Overlapping keys are replaced by spec references; spec-only keys are appended at end."""
     refs = composite.list_datasets()
     by_key = {ref.dataset_key: ref for ref in refs}
 
     assert set(by_key) == {"apt_trade", "air_quality", "village_fcst"}
-    # apt_trade는 카탈로그에도 있지만 spec이 이긴다(제목으로 구분).
+    # apt_trade exists in catalog but spec wins (distinguished by title).
     assert by_key["apt_trade"].name == _golden("apt_trade").title
-    # 카탈로그 전용 키는 그대로(동일 내용).
+    # Catalog-only keys remain unchanged (same content).
     assert by_key["air_quality"].name == "대기오염"
 
 
 def test_search_datasets_merges_without_duplicates(composite: CompositeProviderAdapter) -> None:
-    """검색 결과 병합에서도 키 중복이 없다(spec 우선)."""
+    """Search result merge has no key duplicates (spec takes precedence)."""
     hits = composite.search_datasets("아파트")
     keys = [ref.dataset_key for ref in hits]
     assert keys.count("apt_trade") == 1
-    # spec의 제목 "아파트매매 실거래가"와 카탈로그의 "카탈로그 아파트" 둘 다 매치되어도 1건.
+    # Both spec title and catalog match, but only 1 result (spec takes precedence).
     assert "apt_trade" in keys
 
 
 def test_provider_name_mismatch_rejected(
     inner: FakeInnerAdapter, spec_adapter: SpecDatasetAdapter
 ) -> None:
-    """서로 다른 Provider 병합은 거부된다."""
+    """Merging different Providers is rejected."""
     other = SpecDatasetAdapter("seoul", [], SpecExecutor(FakeTransport(), FakeConfig()))
     with pytest.raises(ValueError, match="같은 Provider"):
         CompositeProviderAdapter(inner, other)
 
 
 # ----------------------------------------------------------------------
-# 라우팅
+# Routing
 # ----------------------------------------------------------------------
 
 
 def test_get_dataset_routes_spec_first(composite: CompositeProviderAdapter) -> None:
-    """spec 소유 키는 spec 참조를 반환한다."""
+    """Spec-owned keys return spec references."""
     ref = composite.get_dataset("apt_trade")
     assert ref.name == _golden("apt_trade").title
     catalogue_only = composite.get_dataset("air_quality")
@@ -212,7 +213,7 @@ def test_query_records_routes_by_owner(
     inner: FakeInnerAdapter,
     transport: FakeTransport,
 ) -> None:
-    """spec 소유 질의는 실행기로, 카탈로그 소유 질의는 내장 어댑터로 간다."""
+    """Spec-owned queries go to executor; catalog-owned queries go to inner adapter."""
     spec_ref = composite.get_dataset("apt_trade")
     batch = composite.query_records(spec_ref, Query())
     assert batch.items == [{"from": "spec"}]
@@ -227,7 +228,7 @@ def test_query_records_routes_by_owner(
 def test_call_raw_routes_by_owner(
     composite: CompositeProviderAdapter, inner: FakeInnerAdapter
 ) -> None:
-    """raw 비상구도 소유자 규칙을 따른다."""
+    """Raw escape hatch also follows ownership rules."""
     spec_ref = composite.get_dataset("village_fcst")
     raw = composite.call_raw(spec_ref, "raw", {})
     assert isinstance(raw, dict) and "response" in raw
@@ -238,7 +239,7 @@ def test_call_raw_routes_by_owner(
 
 
 def test_requires_api_key_or_semantics(inner: FakeInnerAdapter) -> None:
-    """requires_api_key는 논리합이다."""
+    """requires_api_key is logical OR."""
     no_key_spec = SpecDatasetAdapter("datago", [], SpecExecutor(FakeTransport(), FakeConfig()))
     inner.requires_api_key = False
     composite = CompositeProviderAdapter(inner, no_key_spec)
@@ -248,22 +249,22 @@ def test_requires_api_key_or_semantics(inner: FakeInnerAdapter) -> None:
 
 
 # ----------------------------------------------------------------------
-# 레지스트리 통합
+# Registry integration
 # ----------------------------------------------------------------------
 
 
 def test_registry_accepts_composite(composite: CompositeProviderAdapter) -> None:
-    """composite은 등록 시점 프로토콜·capability 검증을 통과한다."""
+    """Composite passes protocol and capability validation at registration."""
     registry = ProviderRegistry()
     registry.register(composite)
     assert "datago" in registry
     adapter = registry.get("datago")
     assert isinstance(adapter, CompositeProviderAdapter)
-    assert isinstance(adapter, ProviderAdapter)  # runtime_checkable 프로토콜
+    assert isinstance(adapter, ProviderAdapter)  # runtime_checkable protocol
 
 
 def test_client_resolves_spec_dataset_end_to_end() -> None:
-    """Client → composite → spec 실행기 경로가 실제 클라이언트에서 동작한다."""
+    """Client → composite → spec executor path works in real client."""
     payload = {
         "response": {
             "header": {"resultCode": "00", "resultMsg": "OK"},
@@ -282,13 +283,13 @@ def test_client_resolves_spec_dataset_end_to_end() -> None:
         assert isinstance(batch, RecordBatch)
         assert batch.items == [{"category": "T1H"}]
         assert mock_request.call_count == 1
-        # spec 경로 증명: format_param 값이 spec의 대문자 "JSON"(어댑터는 소문자 "json").
+        # Proof of spec path: format_param value is spec's uppercase "JSON" (adapter uses lowercase "json").
         kwargs = mock_request.call_args.kwargs
         assert kwargs["params"]["dataType"] == "JSON"
 
 
 def test_client_catalogue_dataset_unaffected() -> None:
-    """spec에 없는 카탈로그 데이터셋은 기존 어댑터 경로를 그대로 쓴다."""
+    """Catalog datasets not in spec use existing adapter path unchanged."""
     payload = {
         "response": {
             "header": {"resultCode": "00", "resultMsg": "OK"},
@@ -307,7 +308,7 @@ def test_client_catalogue_dataset_unaffected() -> None:
         assert len(batch.items) == 1
         kwargs = mock_request.call_args.kwargs
         params = kwargs["params"]
-        # 어댑터 경로 증명: format 파라미터 값이 소문자 "json"(spec 실행기는 대문자).
+        # Proof of adapter path: format parameter value is lowercase "json" (spec executor uses uppercase).
         format_values = {
             value for value in params.values() if value in {"json", "JSON", "xml", "XML"}
         }

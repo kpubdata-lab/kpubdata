@@ -36,17 +36,17 @@ class MockAdapter:
 
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
         """
-        query records 동작을 수행한다.
+        Perform query_records operation.
 
-        매개변수:
-            dataset (DatasetRef): 호출자가 제공하는 입력 값이다.
-            query (Query): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset (DatasetRef): Input value provided by caller.
+            query (Query): Input value provided by caller.
 
-        반환값:
-            RecordBatch: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            RecordBatch: Result of computation or return value from downstream call.
 
-        예외:
-            구현체 내부 또한 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Implementation may propagate exceptions from downstream dependencies.
         """
         self.last_query = query
         if self.batches:
@@ -223,19 +223,19 @@ class TestDataset:
         assert len(batches) == 1
         assert batches[0].items == [{"cursor": "a"}]
 
-    # test list all respects max pages parameter 테스트가 검증하는 시나리오를 설명한다.
+    # Validates test_list_all_respects_max_pages_parameter scenario.
     def test_list_all_respects_max_pages_parameter(self) -> None:
         """
-        test list all respects max pages parameter 시나리오를 검증한다.
+        Validates scenario described by test_list_all_respects_max_pages_parameter.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result of computation or return value from downstream call.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Implementation may propagate exceptions from downstream dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verify expected behavior maintained without regression as described by test name.
         """
         adapter = MockAdapter()
         dataset_ref = _ref()
@@ -253,19 +253,19 @@ class TestDataset:
         batches = list(ds.list_all(max_pages=10))
         assert len(batches) == 5
 
-    # test list all raises when max pages exceeded 테스트가 검증하는 시나리오를 설명한다.
+    # Validates test_list_all_raises_when_max_pages_exceeded scenario.
     def test_list_all_raises_when_max_pages_exceeded(self) -> None:
         """
-        test list all raises when max pages exceeded 시나리오를 검증한다.
+        Validates scenario described by test_list_all_raises_when_max_pages_exceeded.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result of computation or return value from downstream call.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Implementation may propagate exceptions from downstream dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verify expected behavior maintained without regression as described by test name.
         """
         adapter = MockAdapter()
         dataset_ref = _ref()
@@ -280,19 +280,19 @@ class TestDataset:
         with pytest.raises(InvalidRequestError, match="Pagination limit exceeded"):
             _ = list(ds.list_all(max_pages=10))
 
-    # test list all detects page cycle 테스트가 검증하는 시나리오를 설명한다.
+    # Validates test_list_all_detects_page_cycle scenario.
     def test_list_all_detects_page_cycle(self) -> None:
         """
-        test list all detects page cycle 시나리오를 검증한다.
+        Validates scenario described by test_list_all_detects_page_cycle.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result of computation or return value from downstream call.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Implementation may propagate exceptions from downstream dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verify expected behavior maintained without regression as described by test name.
         """
         adapter = MockAdapter()
         dataset_ref = _ref()
@@ -308,19 +308,19 @@ class TestDataset:
         with pytest.raises(InvalidRequestError, match="pagination cycle"):
             _ = list(ds.list_all())
 
-    # test list all detects cursor cycle 테스트가 검증하는 시나리오를 설명한다.
+    # Validates test_list_all_detects_cursor_cycle scenario.
     def test_list_all_detects_cursor_cycle(self) -> None:
         """
-        test list all detects cursor cycle 시나리오를 검증한다.
+        Validates scenario described by test_list_all_detects_cursor_cycle.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result of computation or return value from downstream call.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Implementation may propagate exceptions from downstream dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verify expected behavior maintained without regression as described by test name.
         """
         adapter = MockAdapter()
         dataset_ref = _ref()
@@ -336,19 +336,19 @@ class TestDataset:
         with pytest.raises(InvalidRequestError, match="pagination cycle"):
             _ = list(ds.list_all())
 
-    # test list all raises on consecutive empty batches 테스트가 검증하는 시나리오를 설명한다.
+    # Validates test_list_all_raises_on_consecutive_empty_batches scenario.
     def test_list_all_raises_on_consecutive_empty_batches(self) -> None:
         """
-        test list all raises on consecutive empty batches 시나리오를 검증한다.
+        Validates scenario described by test_list_all_raises_on_consecutive_empty_batches.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result of computation or return value from downstream call.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Implementation may propagate exceptions from downstream dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verify expected behavior maintained without regression as described by test name.
         """
         adapter = MockAdapter()
         dataset_ref = _ref()
@@ -364,19 +364,19 @@ class TestDataset:
         with pytest.raises(InvalidRequestError, match="consecutive empty batches"):
             _ = list(ds.list_all())
 
-    # test list all allows single empty batch 테스트가 검증하는 시나리오를 설명한다.
+    # Validates test_list_all_allows_single_empty_batch scenario.
     def test_list_all_allows_single_empty_batch(self) -> None:
         """
-        test list all allows single empty batch 시나리오를 검증한다.
+        Validates scenario described by test_list_all_allows_single_empty_batch.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result of computation or return value from downstream call.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Implementation may propagate exceptions from downstream dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verify expected behavior maintained without regression as described by test name.
         """
         adapter = MockAdapter()
         dataset_ref = _ref()
@@ -389,19 +389,19 @@ class TestDataset:
         assert len(batches) == 1
         assert batches[0].items == []
 
-    # test list all handles mixed empty and non empty batches 테스트가 검증하는 시나리오를 설명한다.
+    # Validates test_list_all_handles_mixed_empty_and_non_empty_batches scenario.
     def test_list_all_handles_mixed_empty_and_non_empty_batches(self) -> None:
         """
-        test list all handles mixed empty and non empty batches 시나리오를 검증한다.
+        Validates scenario described by test_list_all_handles_mixed_empty_and_non_empty_batches.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result of computation or return value from downstream call.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Implementation may propagate exceptions from downstream dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verify expected behavior maintained without regression as described by test name.
         """
         adapter = MockAdapter()
         dataset_ref = _ref()
@@ -422,19 +422,19 @@ class TestDataset:
             3,
         ]
 
-    # test list all uses default max pages when not specified 테스트가 검증하는 시나리오를 설명한다.
+    # Validates test_list_all_uses_default_max_pages_when_not_specified scenario.
     def test_list_all_uses_default_max_pages_when_not_specified(self) -> None:
         """
-        test list all uses default max pages when not specified 시나리오를 검증한다.
+        Validates scenario described by test_list_all_uses_default_max_pages_when_not_specified.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result of computation or return value from downstream call.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Implementation may propagate exceptions from downstream dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verify expected behavior maintained without regression as described by test name.
         """
         adapter = MockAdapter()
         dataset_ref = _ref()
@@ -452,19 +452,19 @@ class TestDataset:
         batches = list(ds.list_all())
         assert len(batches) == 10
 
-    # test list all detects immediate cycle from first page 테스트가 검증하는 시나리오를 설명한다.
+    # Validates test_list_all_detects_immediate_cycle_from_first_page scenario.
     def test_list_all_detects_immediate_cycle_from_first_page(self) -> None:
         """
-        test list all detects immediate cycle from first page 시나리오를 검증한다.
+        Validates scenario described by test_list_all_detects_immediate_cycle_from_first_page.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result of computation or return value from downstream call.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Implementation may propagate exceptions from downstream dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verify expected behavior maintained without regression as described by test name.
         """
         adapter = MockAdapter()
         dataset_ref = _ref()
@@ -476,19 +476,19 @@ class TestDataset:
         with pytest.raises(InvalidRequestError, match="pagination cycle"):
             _ = list(ds.list_all())
 
-    # test list all passes through filters with max pages 테스트가 검증하는 시나리오를 설명한다.
+    # Validates test_list_all_passes_through_filters_with_max_pages scenario.
     def test_list_all_passes_through_filters_with_max_pages(self) -> None:
         """
-        test list all passes through filters with max pages 시나리오를 검증한다.
+        Validates scenario described by test_list_all_passes_through_filters_with_max_pages.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result of computation or return value from downstream call.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Implementation may propagate exceptions from downstream dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verify expected behavior maintained without regression as described by test name.
         """
         adapter = MockAdapter()
         dataset_ref = _ref()
@@ -500,19 +500,19 @@ class TestDataset:
         assert adapter.last_query is not None
         assert adapter.last_query.filters == {"region": "서울", "code": "11680"}
 
-    # test list all with max pages None uses default 테스트가 검증하는 시나리오를 설명한다.
+    # Validates test_list_all_with_max_pages_none_uses_default scenario.
     def test_list_all_with_max_pages_none_uses_default(self) -> None:
         """
-        test list all with max pages None uses default 시나리오를 검증한다.
+        Validates scenario described by test_list_all_with_max_pages_none_uses_default.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result of computation or return value from downstream call.
 
-        예외:
-            구현체 내부 또한 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Implementation may also propagate exceptions from downstream dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verify expected behavior maintained without regression as described by test name.
         """
         adapter = MockAdapter()
         dataset_ref = _ref()
@@ -523,19 +523,19 @@ class TestDataset:
         batches = list(ds.list_all(max_pages=None))
         assert len(batches) == 1
 
-    # test list all with max pages one 테스트가 검증하는 시나리오를 설명한다.
+    # Validates test_list_all_with_max_pages_one scenario.
     def test_list_all_with_max_pages_one(self) -> None:
         """
-        test list all with max pages one 시나리오를 검증한다.
+        Validates scenario described by test_list_all_with_max_pages_one.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result of computation or return value from downstream call.
 
-        예외:
-            구현체 내부 또은 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Implementation may also propagate exceptions from downstream dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verify expected behavior maintained without regression as described by test name.
         """
         adapter = MockAdapter()
         dataset_ref = _ref()
@@ -546,19 +546,19 @@ class TestDataset:
         batches = list(ds.list_all(max_pages=1))
         assert len(batches) == 1
 
-    # test list all rejects max pages zero 테스트가 검증하는 시나리오를 설명한다.
+    # Validates test_list_all_rejects_max_pages_zero scenario.
     def test_list_all_rejects_max_pages_zero(self) -> None:
         """
-        test list all rejects max pages zero 시나리오를 검증한다.
+        Validates scenario described by test_list_all_rejects_max_pages_zero.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result of computation or return value from downstream call.
 
-        예외:
-            구현체 내부 또은 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Implementation may also propagate exceptions from downstream dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verify expected behavior maintained without regression as described by test name.
         """
         adapter = MockAdapter()
         dataset_ref = _ref()
@@ -568,19 +568,19 @@ class TestDataset:
         with pytest.raises(InvalidRequestError, match="must be None or a positive integer"):
             _ = list(ds.list_all(max_pages=0))
 
-    # test list all rejects max pages negative 테스트가 검증하는 시나리오를 설명한다.
+    # Validates test_list_all_rejects_max_pages_negative scenario.
     def test_list_all_rejects_max_pages_negative(self) -> None:
         """
-        test list all rejects max pages negative 시나리오를 검증한다.
+        Validates scenario described by test_list_all_rejects_max_pages_negative.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result of computation or return value from downstream call.
 
-        예외:
-            구현체 내부 또은 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Implementation may also propagate exceptions from downstream dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verify expected behavior maintained without regression as described by test name.
         """
         adapter = MockAdapter()
         dataset_ref = _ref()
@@ -590,19 +590,19 @@ class TestDataset:
         with pytest.raises(InvalidRequestError, match="must be None or a positive integer"):
             _ = list(ds.list_all(max_pages=-1))
 
-    # test list all rejects max pages true 테스트가 검증하는 시나리오를 설명한다.
+    # Validates test_list_all_rejects_max_pages_true scenario.
     def test_list_all_rejects_max_pages_true(self) -> None:
         """
-        test list all rejects max pages true 시나리오를 검증한다.
+        Validates scenario described by test_list_all_rejects_max_pages_true.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result of computation or return value from downstream call.
 
-        예외:
-            구현체 내부 또은 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Implementation may also propagate exceptions from downstream dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verify expected behavior maintained without regression as described by test name.
         """
         adapter = MockAdapter()
         dataset_ref = _ref()
@@ -614,19 +614,19 @@ class TestDataset:
         ):
             _ = list(ds.list_all(max_pages=True))
 
-    # test list all rejects max pages string 테스트가 검증하는 시나리오를 설명한다.
+    # Validates test_list_all_rejects_max_pages_string scenario.
     def test_list_all_rejects_max_pages_string(self) -> None:
         """
-        test list all rejects max pages string 시나리오를 검증한다.
+        Validates scenario described by test_list_all_rejects_max_pages_string.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result of computation or return value from downstream call.
 
-        예외:
-            구현체 내부 또은 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Implementation may also propagate exceptions from downstream dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verify expected behavior maintained without regression as described by test name.
         """
         adapter = MockAdapter()
         dataset_ref = _ref()

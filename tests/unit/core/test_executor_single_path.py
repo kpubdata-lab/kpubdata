@@ -1,15 +1,15 @@
-"""실행 경로와 verify 경로가 같은 구현을 써야 한다.
+"""Execution path and verify path must use same implementation.
 
-``SpecExecutor._check_error``/``_extract_items`` 가 모듈 함수
-``check_payload_error``/``extract_items`` 와 **따로** 구현돼 있었다. 모듈 쪽은
-``make verify`` 와 ``make record`` 가 쓰고, 메서드 쪽은 실제 질의가 쓴다. 두 벌이
-갈라지면서 모듈 쪽에만 네 가지가 추가됐다 — ``err_field`` style, ``{operation}``
-치환, KorService 류 최상단 ``resultCode`` 폴백, ``resultMsg``/``errMsg`` 폴백,
-그리고 ``extract_items`` 쪽의 ``neis_double_list`` 와 ``$`` 루트.
+``SpecExecutor._check_error``/``_extract_items`` is module function
+``check_payload_error``/``extract_items`` were implemented **separately**. Module side is used by
+``make verify`` and ``make record`` and method side is used by actual queries. As two diverged
+four things were added to module side only — ``err_field`` style, ``{operation}``
+substitution, KorService-like top-level ``resultCode`` fallback, ``resultMsg``/``errMsg`` fallback,
+and ``extract_items`` side had ``neis_double_list`` and ``$`` root.
 
-그래서 "verify 통과" 가 실행 경로를 검증한다는 보장이 없었다. 지금 저장소에
-실린 spec(datago·localdata 23개)은 그 기능을 쓰지 않으므로 당장 깨지는 것은
-없지만, 그 기능을 쓰는 spec 이 들어오는 순간 verify 는 통과하고 실행은 실패한다.
+So "verify pass" does not guarantee verify of execution path. current repository has
+specs in(23 datago/localdata specs)do not use that feature so nothing breaks immediately but
+however when specs using that feature arrive verify passes but execution fails.
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ def _with_error_style(spec: SpecDefinition, style: str) -> SpecDefinition:
 
 class TestTheRuntimePathHasTheSameCapabilities:
     def test_root_items_path(self, spec: SpecDefinition, executor: SpecExecutor) -> None:
-        """``$`` 는 루트를 가리킨다 (kosis 최상위 배열). 예전에는 빈 목록이었다."""
+        """``$`` points to root (kosis top-level array). previously was empty list."""
         rooted = dataclasses.replace(
             spec, response=dataclasses.replace(spec.response, items_path="$")
         )
@@ -53,7 +53,7 @@ class TestTheRuntimePathHasTheSameCapabilities:
     def test_err_field_style_accepts_a_success(
         self, spec: SpecDefinition, executor: SpecExecutor
     ) -> None:
-        """kosis 류는 코드 체계가 없다 — 예전에는 성공 응답이 오히려 실패했다."""
+        """kosis-like has no code system — previously success response was actually failure."""
         executor._check_error(_with_error_style(spec, "err_field"), {"result": [{"a": 1}]})
 
     def test_err_field_style_rejects_a_failure(
@@ -65,13 +65,13 @@ class TestTheRuntimePathHasTheSameCapabilities:
     def test_the_top_level_result_code_fallback(
         self, spec: SpecDefinition, executor: SpecExecutor
     ) -> None:
-        """KorService 류는 에러를 envelope 밖 최상단으로 평면 반환한다."""
+        """KorService-like returns errors flat at top level outside envelope."""
         with pytest.raises(RateLimitError):
             executor._check_error(spec, {"resultCode": "22", "resultMsg": "LIMITED"})
 
 
 class TestBothPathsAgree:
-    """두 경로가 같은 입력에 같은 답을 내는지 — 갈라짐을 막는 고정핀."""
+    """whether both paths return same answer for same input — pin to prevent divergence."""
 
     @pytest.mark.parametrize(
         "payload",

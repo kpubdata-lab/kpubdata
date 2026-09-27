@@ -1,4 +1,4 @@
-"""core/spec.py 로더 단위 테스트 — fixture 표본과 번들 골든 spec 검증."""
+"""Unit tests for core/spec.py — validate fixture samples and bundled golden specs."""
 
 from pathlib import Path
 
@@ -23,7 +23,7 @@ FIXTURES_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "specs"
 
 
 def test_from_mapping_minimal() -> None:
-    """최소 필수 필드만으로 로드에 성공한다."""
+    """Load succeeds with minimal required fields only."""
     spec = load_spec_file(FIXTURES_DIR / "valid_minimal.yaml")
     assert spec.id == "test.minimal"
     assert spec.provider == "test"
@@ -36,7 +36,7 @@ def test_from_mapping_minimal() -> None:
 
 
 def test_from_mapping_full_sections() -> None:
-    """모든 스키마 섹션이 올바르게 해석된다."""
+    """All schema sections are correctly interpreted."""
     spec = load_spec_file(FIXTURES_DIR / "valid_full.yaml")
     assert spec.endpoint.format_param is not None
     assert spec.endpoint.format_param.name == "_type"
@@ -68,12 +68,12 @@ def test_from_mapping_full_sections() -> None:
     assert spec.last_verified is not None
     assert spec.source is not None and spec.source.doc_version == "v1.2"
 
-    # 미선언 키는 raw_metadata에 보존된다(상위 호환).
+    # Undeclared keys are preserved in raw_metadata (backward compat).
     assert spec.raw_metadata.get("custom_future_field") == "보존되어야 하는 미선언 키"
 
 
 def test_from_mapping_license_parsed() -> None:
-    """license 섹션이 LicenseSpec으로 올바르게 변환된다."""
+    """license section correctly converts to LicenseSpec."""
     data: dict[str, object] = {
         "id": "test.lic",
         "provider": "test",
@@ -105,12 +105,12 @@ def test_from_mapping_license_parsed() -> None:
 
 
 def test_from_mapping_license_bad_type_is_rejected() -> None:
-    """license 필드의 잘못된 타입은 spec 로드를 실패시킨다.
+    """Invalid license field type fails spec load.
 
-    예전에는 문제를 기록만 하고 값 자리에 None을 넣었는데, 그 기록이
-    ``if problems: raise`` 를 지난 뒤에 만들어져 통째로 버려졌다. 선언이 틀렸다는
-    사실이 "선언하지 않음"과 구분되지 않으면, 재배포 가능성 판단이 조용히
-    바뀐다.
+    Previously only logged problems and put None, but that log was
+    created after ``if problems: raise`` so was discarded entirely.
+    Distinguishing "bad declaration" from "no declaration" is needed
+    for redistribution possibility judgment not to change silently.
     """
     data: dict[str, object] = {
         "id": "test.lic2",
@@ -127,7 +127,7 @@ def test_from_mapping_license_bad_type_is_rejected() -> None:
         "status": "active",
         "license": {
             "type": "공공누리_1유형",
-            "commercial_use": "true",  # 문자열 — bool이어야 함
+            "commercial_use": "true",  # String instead of bool
         },
     }
     with pytest.raises(InvalidRequestError) as exc:
@@ -137,7 +137,7 @@ def test_from_mapping_license_bad_type_is_rejected() -> None:
 
 
 def test_from_mapping_license_none_when_absent() -> None:
-    """license 섹션이 없으면 None이다."""
+    """license section is None when absent."""
     data: dict[str, object] = {
         "id": "test.nolic",
         "provider": "test",
@@ -157,14 +157,14 @@ def test_from_mapping_license_none_when_absent() -> None:
 
 
 def test_from_mapping_invalid_id_format() -> None:
-    """provider.dataset 형식이 아닌 id는 모든 문제와 함께 실패한다."""
+    """ID not in provider.dataset format fails with all problems."""
     with pytest.raises(InvalidRequestError) as exc_info:
         load_spec_file(FIXTURES_DIR / "invalid_bad_id.yaml")
     assert "형식이어야 합니다" in str(exc_info.value)
 
 
 def test_from_mapping_invalid_enum_lists_all_problems() -> None:
-    """enum 위반 여러 건이 하나의 메시지에 모두 나열된다."""
+    """Multiple enum violations are listed in a single message."""
     with pytest.raises(InvalidRequestError) as exc_info:
         load_spec_file(FIXTURES_DIR / "invalid_bad_enum.yaml")
     message = str(exc_info.value)
@@ -175,7 +175,7 @@ def test_from_mapping_invalid_enum_lists_all_problems() -> None:
 
 
 def test_from_mapping_missing_required() -> None:
-    """endpoint·response·pagination 누락이 각각 보고된다."""
+    """endpoint·response·pagination omissions are each reported."""
     with pytest.raises(InvalidRequestError) as exc_info:
         load_spec_file(FIXTURES_DIR / "invalid_missing_required.yaml")
     message = str(exc_info.value)
@@ -185,7 +185,7 @@ def test_from_mapping_missing_required() -> None:
 
 
 def test_from_mapping_id_provider_mismatch() -> None:
-    """id 접두사와 provider 불일치가 보고된다."""
+    """Mismatch between id prefix and provider is reported."""
     with pytest.raises(InvalidRequestError, match="불일치"):
         load_spec_file(FIXTURES_DIR / "invalid_id_mismatch.yaml")
 
@@ -196,7 +196,7 @@ def test_from_mapping_id_provider_mismatch() -> None:
 
 
 def test_discover_specs_valid_only_root(tmp_path: Path) -> None:
-    """유효한 spec만 있는 디렉터리는 전부 로드한다(invalid_* 제외 검증)."""
+    """Directory with valid specs only loads all (excludes invalid_* validation)."""
     valid_dir = tmp_path / "valid"
     valid_dir.mkdir()
     for name in ("valid_minimal.yaml", "valid_full.yaml"):
@@ -207,13 +207,13 @@ def test_discover_specs_valid_only_root(tmp_path: Path) -> None:
 
 
 def test_discover_specs_invalid_fixture_raises() -> None:
-    """무효 spec이 포함된 디렉터리 스캔은 구조 검증 예외를 전파한다."""
+    """Directory scan including invalid specs propagates schema validation exception."""
     with pytest.raises(InvalidRequestError):
         discover_specs(FIXTURES_DIR)
 
 
 def test_discover_bundled_golden_specs() -> None:
-    """패키지에 번들된 골든 예제 3종이 발견된다."""
+    """Three bundled golden examples are discovered."""
     specs = discover_specs()
     ids = {spec.id for spec in specs}
     assert {
@@ -224,7 +224,7 @@ def test_discover_bundled_golden_specs() -> None:
 
 
 def test_spec_index_and_find_spec_lookup() -> None:
-    """full id·bare key·provider 한정 조회가 모두 동작한다."""
+    """Full id·bare key·provider-scoped lookup all work."""
     index = spec_index()
     assert "datago.apt_trade" in index
 
@@ -257,10 +257,11 @@ def _base_spec_data(**overrides: object) -> dict[str, object]:
 
 
 def test_invalid_last_verified_is_rejected_not_silently_dropped() -> None:
-    """``2026-13-45`` 같은 값이 조용히 None이 되면 안 된다.
+    """Invalid value like ``2026-13-45`` does not silently become None.
 
-    검증일이 없는 spec과 검증일을 잘못 적은 spec이 구별되지 않으면,
-    SUPPORTED_DATA의 "실API 검증" 주장이 근거 없이 통과한다.
+    Spec without verification date must be distinguished from spec with
+    bad verification date, or SUPPORTED_DATA's "real API verified"
+    claim will pass without evidence.
     """
     with pytest.raises(InvalidRequestError) as exc:
         from_mapping(_base_spec_data(last_verified="2026-13-45"))

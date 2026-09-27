@@ -1,7 +1,7 @@
-"""테스트 모듈.
+"""Test module.
 
-이 파일은 ``tests/unit/transport/test_retry_after.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
+This file ``tests/unit/transport/test_retry_after.py`` defines test scenarios and helper objects.
+For regression prevention and public contract validation verify core flows, exceptions, and edge conditions.
 """
 
 from __future__ import annotations
@@ -19,36 +19,36 @@ from kpubdata.transport.http import HttpTransport, TransportConfig
 
 def _response(status_code: int, *, retry_after: str | None = None) -> httpx.Response:
     """
-    내부 헬퍼로서 response 처리를 담당한다.
+    As internal helper for handles response processing.
 
-    매개변수:
-        status_code (int): 호출자가 제공하는 입력 값이다.
-        retry_after (str | None): 호출자가 제공하는 입력 값이다.
+    Args:
+        status_code (int): input value provided by caller.
+        retry_after (str | None): input value provided by caller.
 
-    반환값:
-        httpx.Response: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        httpx.Response: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
     """
     request = httpx.Request("GET", "https://example.test/resource")
     headers = {"Retry-After": retry_after} if retry_after is not None else None
     return httpx.Response(status_code=status_code, headers=headers, request=request)
 
 
-# test 429 with retry after seconds uses header delay 테스트가 검증하는 시나리오를 설명한다.
+# test 429 with retry after seconds uses header delay Explains scenario validated by test.
 def test_429_with_retry_after_seconds_uses_header_delay() -> None:
     """
-    test 429 with retry after seconds uses header delay 시나리오를 검증한다.
+    test 429 with retry after seconds uses header delay Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     transport = HttpTransport(TransportConfig(max_retries=1, retry_backoff_factor=0.5))
 
@@ -65,24 +65,24 @@ def test_429_with_retry_after_seconds_uses_header_delay() -> None:
     sleep_mock.assert_called_once_with(2.0)
 
 
-# test 429 with retry after http date uses computed delay 테스트가 검증하는 시나리오를 설명한다.
+# test 429 with retry after http date uses computed delay Explains scenario validated by test.
 def test_429_with_retry_after_http_date_uses_computed_delay(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """
-    test 429 with retry after http date uses computed delay 시나리오를 검증한다.
+    test 429 with retry after http date uses computed delay Verify scenario.
 
-    매개변수:
-        monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (pytest.MonkeyPatch): input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     import kpubdata.transport.http as http_module
 
@@ -92,28 +92,28 @@ def test_429_with_retry_after_http_date_uses_computed_delay(
 
     class _FixedDatetime:
         """
-        _FixedDatetime 관련 역할을 캡슐화하는 클래스.
+        Class encapsulating _FixedDatetime role.
 
-        이 클래스는 ``tests/unit/transport/test_retry_after.py`` 모듈 안에서 _FixedDatetime의 상태와 동작을 함께 관리한다.
-        주요 메서드: now.
+        This class ``tests/unit/transport/test_retry_after.py`` within module _FixedDatetimemanages its state and behavior together.
+        Key methods: now.
 
-        속성 설명:
-            생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+        Property description:
+            Properties defined in constructor and class body are reused by sub-methods in shared context.
         """
 
         @staticmethod
         def now(_tz: timezone) -> datetime:
             """
-            now 동작을 수행한다.
+            now performs operation.
 
-            매개변수:
-                _tz (timezone): 호출자가 제공하는 입력 값이다.
+            Args:
+                _tz (timezone): input value provided by caller.
 
-            반환값:
-                datetime: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+            Returns:
+                datetime: returns computation result or value from sub-call.
 
-            예외:
-                구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+            Raises:
+                can propagate exceptions from sub-dependencies as-is.
             """
             return fixed_now
 
@@ -134,19 +134,19 @@ def test_429_with_retry_after_http_date_uses_computed_delay(
     sleep_mock.assert_called_once_with(4.0)
 
 
-# test 429 with invalid retry after falls back to exponential backoff 테스트가 검증하는 시나리오를 설명한다.
+# test 429 with invalid retry after falls back to exponential backoff Explains scenario validated by test.
 def test_429_with_invalid_retry_after_falls_back_to_exponential_backoff() -> None:
     """
-    test 429 with invalid retry after falls back to exponential backoff 시나리오를 검증한다.
+    test 429 with invalid retry after falls back to exponential backoff Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     transport = HttpTransport(TransportConfig(max_retries=1, retry_backoff_factor=0.75))
 
@@ -162,19 +162,19 @@ def test_429_with_invalid_retry_after_falls_back_to_exponential_backoff() -> Non
     sleep_mock.assert_called_once_with(0.75)
 
 
-# test 429 without retry after uses exponential backoff 테스트가 검증하는 시나리오를 설명한다.
+# test 429 without retry after uses exponential backoff Explains scenario validated by test.
 def test_429_without_retry_after_uses_exponential_backoff() -> None:
     """
-    test 429 without retry after uses exponential backoff 시나리오를 검증한다.
+    test 429 without retry after uses exponential backoff Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     transport = HttpTransport(TransportConfig(max_retries=1, retry_backoff_factor=0.25))
 
@@ -190,19 +190,19 @@ def test_429_without_retry_after_uses_exponential_backoff() -> None:
     sleep_mock.assert_called_once_with(0.25)
 
 
-# test 503 with retry after respects header delay 테스트가 검증하는 시나리오를 설명한다.
+# test 503 with retry after respects header delay Explains scenario validated by test.
 def test_503_with_retry_after_respects_header_delay() -> None:
     """
-    test 503 with retry after respects header delay 시나리오를 검증한다.
+    test 503 with retry after respects header delay Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     transport = HttpTransport(TransportConfig(max_retries=1, retry_backoff_factor=0.5))
 
@@ -218,19 +218,19 @@ def test_503_with_retry_after_respects_header_delay() -> None:
     sleep_mock.assert_called_once_with(3.0)
 
 
-# test non retryable status does not retry even with retry after 테스트가 검증하는 시나리오를 설명한다.
+# test non retryable status does not retry even with retry after Explains scenario validated by test.
 def test_non_retryable_status_does_not_retry_even_with_retry_after() -> None:
     """
-    test non retryable status does not retry even with retry after 시나리오를 검증한다.
+    test non retryable status does not retry even with retry after Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     transport = HttpTransport(TransportConfig(max_retries=3, retry_backoff_factor=0.5))
 
@@ -249,11 +249,11 @@ def test_non_retryable_status_does_not_retry_even_with_retry_after() -> None:
 
 
 def test_retry_after_beyond_the_cap_raises_instead_of_sleeping() -> None:
-    """상한을 넘는 ``Retry-After``는 대기가 아니라 즉시 반환이다.
+    """exceeding limit ``Retry-After``means immediate return not wait.
 
-    상한이 없던 시절에는 서버가 ``Retry-After: 3600``을 주면 라이브러리가
-    호출자의 스레드를 한 시간 붙잡고 잤다. 그것은 재시도가 아니라 정지다 —
-    "지금은 쓸 수 없다"는 신호이지 "여기서 잠들라"는 지시가 아니다.
+    when there was no limit server ``Retry-After: 3600`` gives library
+    caller's thread hour holds slept. that retry not stop —
+    "now cannot use"is signal not "here sleep"is instruction not.
     """
     transport = HttpTransport(TransportConfig(max_retries=1, max_retry_delay=60.0))
 
@@ -288,7 +288,7 @@ def test_retry_after_within_the_cap_still_sleeps() -> None:
 
 
 def test_the_cap_does_not_touch_exponential_backoff() -> None:
-    # 상한은 서버 힌트에만 적용된다 — 힌트가 없으면 기존 백오프 그대로다.
+    # limit applies only to server hint — no hint = existing backoff unchanged.
     transport = HttpTransport(
         TransportConfig(max_retries=1, retry_backoff_factor=0.5, max_retry_delay=0.1)
     )
@@ -320,10 +320,10 @@ def test_the_cap_is_configurable() -> None:
 
 
 def test_a_terminal_status_error_carries_its_status_code() -> None:
-    """마스킹으로 예외 체인을 끊으면 원래 응답이 함께 사라진다.
+    """Masking breaks Raises chain, original response disappears too.
 
-    status_code 를 싣지 않으면 호출자가 401 과 503 을 구분할 방법이 메시지
-    문자열밖에 없다.
+    status_code not carried then caller 401 and 503 way to distinguish message
+    string only nothing.
     """
     transport = HttpTransport(TransportConfig(max_retries=1))
 
@@ -337,8 +337,8 @@ def test_a_terminal_status_error_carries_its_status_code() -> None:
 
 
 def test_an_exhausted_429_is_a_rate_limit_error() -> None:
-    # 429 를 일반 TransportError 로 올리면 호출자가 한도 초과를 다른 전송 실패와
-    # 구분할 수 없다.
+    # If 429 raised as generic TransportError caller cannot distinguish Limit exceeded from other transport failureand
+    # cannot distinguish.
     from kpubdata.exceptions import RateLimitError
 
     transport = HttpTransport(TransportConfig(max_retries=1))

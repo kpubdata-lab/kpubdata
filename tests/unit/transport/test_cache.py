@@ -1,7 +1,7 @@
-"""테스트 모듈.
+"""Test module.
 
-이 파일은 ``tests/unit/transport/test_cache.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
+This file ``tests/unit/transport/test_cache.py`` defines test scenarios and helper objects.
+For regression prevention and public contract validation verify core flows, exceptions, and edge conditions.
 """
 
 from __future__ import annotations
@@ -28,40 +28,40 @@ def _response(
     content: bytes = b'{"ok": true}',
 ) -> httpx.Response:
     """
-    내부 헬퍼로서 response 처리를 담당한다.
+    As internal helper for handles response processing.
 
-    매개변수:
-        status_code (int): 호출자가 제공하는 입력 값이다.
-        method (str): 호출자가 제공하는 입력 값이다.
-        url (str): 호출자가 제공하는 입력 값이다.
-        content (bytes): 호출자가 제공하는 입력 값이다.
+    Args:
+        status_code (int): input value provided by caller.
+        method (str): input value provided by caller.
+        url (str): input value provided by caller.
+        content (bytes): input value provided by caller.
 
-    반환값:
-        httpx.Response: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        httpx.Response: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
     """
     request = httpx.Request(method, url)
     return httpx.Response(status_code=status_code, content=content, request=request)
 
 
-# test response cache roundtrip 테스트가 검증하는 시나리오를 설명한다.
+# test response cache roundtrip Explains scenario validated by test.
 def test_response_cache_roundtrip(tmp_path: Path) -> None:
     """
-    test response cache roundtrip 시나리오를 검증한다.
+    test response cache roundtrip Verify scenario.
 
-    매개변수:
-        tmp_path (Path): 호출자가 제공하는 입력 값이다.
+    Args:
+        tmp_path (Path): input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     cache = ResponseCache(base_dir=tmp_path)
 
@@ -70,23 +70,23 @@ def test_response_cache_roundtrip(tmp_path: Path) -> None:
     assert cache.get("abc") == (b"payload", "")
 
 
-# test response cache expiry 테스트가 검증하는 시나리오를 설명한다.
+# test response cache expiry Explains scenario validated by test.
 def test_response_cache_expiry(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """
-    test response cache expiry 시나리오를 검증한다.
+    test response cache expiry Verify scenario.
 
-    매개변수:
-        tmp_path (Path): 호출자가 제공하는 입력 값이다.
-        monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
+    Args:
+        tmp_path (Path): input value provided by caller.
+        monkeypatch (pytest.MonkeyPatch): input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     cache = ResponseCache(base_dir=tmp_path)
     now = 1_700_000_000.0
@@ -99,41 +99,41 @@ def test_response_cache_expiry(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     assert not (tmp_path / "abc.json").exists()
 
 
-# test response cache missing key returns none 테스트가 검증하는 시나리오를 설명한다.
+# test response cache missing key returns none Explains scenario validated by test.
 def test_response_cache_missing_key_returns_none(tmp_path: Path) -> None:
     """
-    test response cache missing key returns none 시나리오를 검증한다.
+    test response cache missing key returns none Verify scenario.
 
-    매개변수:
-        tmp_path (Path): 호출자가 제공하는 입력 값이다.
+    Args:
+        tmp_path (Path): input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     cache = ResponseCache(base_dir=tmp_path)
 
     assert cache.get("missing") is None
 
 
-# test make cache key redacts secret values 테스트가 검증하는 시나리오를 설명한다.
+# test make cache key redacts secret values Explains scenario validated by test.
 def test_make_cache_key_isolates_credentials() -> None:
     """
-    test make cache key redacts secret values 시나리오를 검증한다.
+    test make cache key redacts secret values Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     key_one = make_cache_key(
         "GET",
@@ -154,28 +154,28 @@ def test_make_cache_key_isolates_credentials() -> None:
         {"Accept": "application/json", "Authorization": "Bearer bbb"},
     )
 
-    # #263: credential이 다르면 같은 endpoint라도 반드시 다른 캐시 키다.
+    # #263: Different credentials = different cache key even for same endpoint.
     assert key_one != key_two
     assert key_one != key_three
     assert key_two != key_three
 
 
-# test response cache filesystem errors are swallowed 테스트가 검증하는 시나리오를 설명한다.
+# test response cache filesystem errors are swallowed Explains scenario validated by test.
 def test_response_cache_filesystem_errors_are_swallowed(tmp_path: Path) -> None:
     """
-    test response cache filesystem errors are swallowed 시나리오를 검증한다.
+    test response cache filesystem errors are swallowed Verify scenario.
 
-    매개변수:
-        tmp_path (Path): 호출자가 제공하는 입력 값이다.
+    Args:
+        tmp_path (Path): input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     blocked_path = tmp_path / "blocked"
     _ = blocked_path.write_text("not-a-directory", encoding="utf-8")
@@ -187,26 +187,26 @@ def test_response_cache_filesystem_errors_are_swallowed(tmp_path: Path) -> None:
     cache.clear_expired()
 
 
-# test http transport get cache hit logs and skips network 테스트가 검증하는 시나리오를 설명한다.
+# test http transport get cache hit logs and skips network Explains scenario validated by test.
 def test_http_transport_get_cache_hit_logs_and_skips_network(
     tmp_path: Path,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """
-    test http transport get cache hit logs and skips network 시나리오를 검증한다.
+    test http transport get cache hit logs and skips network Verify scenario.
 
-    매개변수:
-        tmp_path (Path): 호출자가 제공하는 입력 값이다.
-        caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+    Args:
+        tmp_path (Path): input value provided by caller.
+        caplog (pytest.LogCaptureFixture): input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     cache = ResponseCache(base_dir=tmp_path)
     transport = HttpTransport(TransportConfig(max_retries=0), cache=cache, cache_ttl_seconds=60)
@@ -236,8 +236,8 @@ def test_http_transport_get_cache_hit_logs_and_skips_network(
             provider="datago",
         )
 
-    # #263: credential을 바꾸면 같은 endpoint여도 이전 응답을 재사용하지 않는다
-    # (2회 네트워크 호출), 원래 credential로 돌아오면 자기 캐시에 hit한다.
+    # #263: Changing credentials = no reuse of previous response even for same endpoint
+    # (2 network calls), Returning to original credential hits own cache.
     assert first.content == second.content == third.content == b'{"cached": false}'
     assert request_mock.call_count == 2
 
@@ -250,29 +250,29 @@ def test_http_transport_get_cache_hit_logs_and_skips_network(
     assert len(miss_records) == 2
     assert len(hit_records) == 1
     assert hit_records[0].__dict__["provider"] == "datago"
-    # 두 miss는 서로 다른 캐시 키(credential 격리), hit은 첫 요청(secret) 키와 동일.
+    # two misses are different cache keys(credential isolation), hit is first request(secret) key identical.
     first_key = miss_records[0].__dict__["cache_key"]
     second_key = miss_records[1].__dict__["cache_key"]
     assert first_key != second_key
     assert hit_records[0].__dict__["cache_key"] == first_key
 
 
-# test http transport post is never cached 테스트가 검증하는 시나리오를 설명한다.
+# test http transport post is never cached Explains scenario validated by test.
 def test_http_transport_post_is_never_cached(tmp_path: Path) -> None:
     """
-    test http transport post is never cached 시나리오를 검증한다.
+    test http transport post is never cached Verify scenario.
 
-    매개변수:
-        tmp_path (Path): 호출자가 제공하는 입력 값이다.
+    Args:
+        tmp_path (Path): input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     cache = ResponseCache(base_dir=tmp_path)
     transport = HttpTransport(TransportConfig(max_retries=0), cache=cache, cache_ttl_seconds=60)
@@ -286,22 +286,22 @@ def test_http_transport_post_is_never_cached(tmp_path: Path) -> None:
     assert list(tmp_path.glob("*.json")) == []
 
 
-# test http transport non 2xx is never cached 테스트가 검증하는 시나리오를 설명한다.
+# test http transport non 2xx is never cached Explains scenario validated by test.
 def test_http_transport_non_2xx_is_never_cached(tmp_path: Path) -> None:
     """
-    test http transport non 2xx is never cached 시나리오를 검증한다.
+    test http transport non 2xx is never cached Verify scenario.
 
-    매개변수:
-        tmp_path (Path): 호출자가 제공하는 입력 값이다.
+    Args:
+        tmp_path (Path): input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     cache = ResponseCache(base_dir=tmp_path)
     transport = HttpTransport(TransportConfig(max_retries=0), cache=cache, cache_ttl_seconds=60)
@@ -316,26 +316,26 @@ def test_http_transport_non_2xx_is_never_cached(tmp_path: Path) -> None:
     assert list(tmp_path.glob("*.json")) == []
 
 
-# test client from env enables cache and honors overrides 테스트가 검증하는 시나리오를 설명한다.
+# test client from env enables cache and honors overrides Explains scenario validated by test.
 def test_client_from_env_enables_cache_and_honors_overrides(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     """
-    test client from env enables cache and honors overrides 시나리오를 검증한다.
+    test client from env enables cache and honors overrides Verify scenario.
 
-    매개변수:
-        monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
-        tmp_path (Path): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (pytest.MonkeyPatch): input value provided by caller.
+        tmp_path (Path): input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     monkeypatch.setenv("KPUBDATA_CACHE", "1")
     monkeypatch.setenv("KPUBDATA_CACHE_DIR", str(tmp_path))
@@ -350,26 +350,26 @@ def test_client_from_env_enables_cache_and_honors_overrides(
     assert transport_config.cache.base_dir == tmp_path
 
 
-# test client from env explicit cache false disables env cache 테스트가 검증하는 시나리오를 설명한다.
+# test client from env explicit cache false disables env cache Explains scenario validated by test.
 def test_client_from_env_explicit_cache_false_disables_env_cache(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     """
-    test client from env explicit cache false disables env cache 시나리오를 검증한다.
+    test client from env explicit cache false disables env cache Verify scenario.
 
-    매개변수:
-        monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
-        tmp_path (Path): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (pytest.MonkeyPatch): input value provided by caller.
+        tmp_path (Path): input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     monkeypatch.setenv("KPUBDATA_CACHE", "1")
     monkeypatch.setenv("KPUBDATA_CACHE_DIR", str(tmp_path))
@@ -380,24 +380,24 @@ def test_client_from_env_explicit_cache_false_disables_env_cache(
     assert transport_config.cache is None
 
 
-# test client from env invalid cache ttl raises config error 테스트가 검증하는 시나리오를 설명한다.
+# test client from env invalid cache ttl raises config error Explains scenario validated by test.
 def test_client_from_env_invalid_cache_ttl_raises_config_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """
-    test client from env invalid cache ttl raises config error 시나리오를 검증한다.
+    test client from env invalid cache ttl raises config error Verify scenario.
 
-    매개변수:
-        monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (pytest.MonkeyPatch): input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        잘못된 KPUBDATA_CACHE_TTL 값이 ConfigError로 보고되는지 확인한다.
+    Example:
+        invalid KPUBDATA_CACHE_TTL value reports as ConfigError.
     """
     monkeypatch.setenv("KPUBDATA_CACHE_TTL", "abc")
 
@@ -411,24 +411,24 @@ def test_client_from_env_invalid_cache_ttl_raises_config_error(
     assert isinstance(error.__cause__, ValueError)
 
 
-# test client from env invalid cache ttl explicit override takes priority 테스트가 검증하는 시나리오를 설명한다.
+# test client from env invalid cache ttl explicit override takes priority Explains scenario validated by test.
 def test_client_from_env_invalid_cache_ttl_explicit_override_takes_priority(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """
-    test client from env invalid cache ttl explicit override takes priority 시나리오를 검증한다.
+    test client from env invalid cache ttl explicit override takes priority Verify scenario.
 
-    매개변수:
-        monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (pytest.MonkeyPatch): input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        명시적 override가 환경변수보다 우선 적용되는지 확인한다.
+    Example:
+        explicit override takes priority over env var.
     """
     monkeypatch.setenv("KPUBDATA_CACHE_TTL", "abc")
 
@@ -438,24 +438,24 @@ def test_client_from_env_invalid_cache_ttl_explicit_override_takes_priority(
     assert transport_config.cache_ttl_seconds == 30
 
 
-# test client from env missing cache ttl uses default 테스트가 검증하는 시나리오를 설명한다.
+# test client from env missing cache ttl uses default Explains scenario validated by test.
 def test_client_from_env_missing_cache_ttl_uses_default(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """
-    test client from env missing cache ttl uses default 시나리오를 검증한다.
+    test client from env missing cache ttl uses default Verify scenario.
 
-    매개변수:
-        monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (pytest.MonkeyPatch): input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        환경변수가 없을 때 기본값 86400이 사용되는지 확인한다.
+    Example:
+        default 86400 used when env var missing.
     """
     monkeypatch.delenv("KPUBDATA_CACHE_TTL", raising=False)
 
@@ -465,24 +465,24 @@ def test_client_from_env_missing_cache_ttl_uses_default(
     assert transport_config.cache_ttl_seconds == 86400
 
 
-# test client from env empty cache ttl uses default 테스트가 검증하는 시나리오를 설명한다.
+# test client from env empty cache ttl uses default Explains scenario validated by test.
 def test_client_from_env_empty_cache_ttl_uses_default(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """
-    test client from env empty cache ttl uses default 시나리오를 검증한다.
+    test client from env empty cache ttl uses default Verify scenario.
 
-    매개변수:
-        monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (pytest.MonkeyPatch): input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        환경변수가 빈 문자열일 때 기본값 86400이 사용되는지 확인한다.
+    Example:
+        default 86400 used when env var empty.
     """
     monkeypatch.setenv("KPUBDATA_CACHE_TTL", "")
 

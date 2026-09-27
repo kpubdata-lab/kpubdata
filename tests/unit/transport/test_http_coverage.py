@@ -1,7 +1,7 @@
-"""테스트 모듈.
+"""Test module.
 
-이 파일은 ``tests/unit/transport/test_http_coverage.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
+This file ``tests/unit/transport/test_http_coverage.py`` defines test scenarios and helper objects.
+For regression prevention and public contract validation verify core flows, exceptions, and edge conditions.
 """
 
 from __future__ import annotations
@@ -17,16 +17,16 @@ from kpubdata.transport.http import HttpTransport, TransportConfig
 
 def _response(status_code: int) -> httpx.Response:
     """
-    내부 헬퍼로서 response 처리를 담당한다.
+    As internal helper for handles response processing.
 
-    매개변수:
-        status_code (int): 호출자가 제공하는 입력 값이다.
+    Args:
+        status_code (int): input value provided by caller.
 
-    반환값:
-        httpx.Response: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        httpx.Response: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
     """
     request = httpx.Request("GET", "https://example.test/resource")
     return httpx.Response(status_code=status_code, request=request)
@@ -34,31 +34,31 @@ def _response(status_code: int) -> httpx.Response:
 
 def _request_error() -> httpx.RequestError:
     """
-    내부 헬퍼로서 request error 처리를 담당한다.
+    As internal helper for request error processing.
 
-    반환값:
-        httpx.RequestError: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        httpx.RequestError: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
     """
     request = httpx.Request("GET", "https://example.test/resource")
     return httpx.RequestError("boom", request=request)
 
 
-# test repr reports configuration and client state 테스트가 검증하는 시나리오를 설명한다.
+# test repr reports configuration and client state Explains scenario validated by test.
 def test_repr_reports_configuration_and_client_state() -> None:
     """
-    test repr reports configuration and client state 시나리오를 검증한다.
+    test repr reports configuration and client state Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     transport = HttpTransport(TransportConfig(timeout=2.5, max_retries=4, retry_backoff_factor=0.2))
 
@@ -68,19 +68,19 @@ def test_repr_reports_configuration_and_client_state() -> None:
     assert "client_initialized=True" in repr(transport)
 
 
-# test client property initializes client lazily 테스트가 검증하는 시나리오를 설명한다.
+# test client property initializes client lazily Explains scenario validated by test.
 def test_client_property_initializes_client_lazily() -> None:
     """
-    test client property initializes client lazily 시나리오를 검증한다.
+    test client property initializes client lazily Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     transport = HttpTransport()
     fake_client = MagicMock(spec=httpx.Client)
@@ -92,19 +92,19 @@ def test_client_property_initializes_client_lazily() -> None:
     build_client.assert_called_once_with()
 
 
-# test request rejects negative max retries 테스트가 검증하는 시나리오를 설명한다.
+# test request rejects negative max retries Explains scenario validated by test.
 def test_request_rejects_negative_max_retries() -> None:
     """
-    test request rejects negative max retries 시나리오를 검증한다.
+    test request rejects negative max retries Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     transport = HttpTransport(TransportConfig(max_retries=-1))
 
@@ -112,19 +112,19 @@ def test_request_rejects_negative_max_retries() -> None:
         _ = transport.request("GET", "https://example.test")
 
 
-# test request rejects negative retry backoff factor 테스트가 검증하는 시나리오를 설명한다.
+# test request rejects negative retry backoff factor Explains scenario validated by test.
 def test_request_rejects_negative_retry_backoff_factor() -> None:
     """
-    test request rejects negative retry backoff factor 시나리오를 검증한다.
+    test request rejects negative retry backoff factor Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     transport = HttpTransport(TransportConfig(max_retries=0, retry_backoff_factor=-0.1))
 
@@ -132,19 +132,19 @@ def test_request_rejects_negative_retry_backoff_factor() -> None:
         _ = transport.request("GET", "https://example.test")
 
 
-# test request retries on request error then succeeds 테스트가 검증하는 시나리오를 설명한다.
+# test request retries on request error then succeeds Explains scenario validated by test.
 def test_request_retries_on_request_error_then_succeeds() -> None:
     """
-    test request retries on request error then succeeds 시나리오를 검증한다.
+    test request retries on request error then succeeds Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     transport = HttpTransport(TransportConfig(max_retries=1, retry_backoff_factor=0.5))
 
@@ -161,19 +161,19 @@ def test_request_retries_on_request_error_then_succeeds() -> None:
     sleep_mock.assert_called_once_with(0.5)
 
 
-# test request error exhaustion raises transport error 테스트가 검증하는 시나리오를 설명한다.
+# test request error exhaustion raises transport error Explains scenario validated by test.
 def test_request_error_exhaustion_raises_transport_error() -> None:
     """
-    test request error exhaustion raises transport error 시나리오를 검증한다.
+    test request error exhaustion raises transport error Verify scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     transport = HttpTransport(TransportConfig(max_retries=2, retry_backoff_factor=0.25))
 
@@ -187,12 +187,12 @@ def test_request_error_exhaustion_raises_transport_error() -> None:
     assert sleep_mock.call_count == 2
 
 
-# test request unreachable state raises runtime error 테스트가 검증하는 시나리오를 설명한다.
+# test request unreachable state raises runtime error Explains scenario validated by test.
 def test_request_unreachable_state_raises_runtime_error(monkeypatch: pytest.MonkeyPatch) -> None:
-    """재시도 루프 리팩터(#414) 후 계약: identity 재시도는 시도 횟수를 소모하지 않는다.
+    """retry loop refactor(#414) contract after: identity retry does not consume attempt count.
 
-    max_retries=0(총 1회 시도)에서도 디코딩 실패 시 identity 재시도로 회복해야 한다.
-    루프 꼬리의 RuntimeError는 방어 코드로 남는다(도달 불가 — pragma no cover).
+    max_retries=0(1 total attempt)also in decode failure on identity retry via must recover.
+    loop tail RuntimeErroris defensive code remains(unreachable — pragma no cover).
     """
     from tests.unit.transport.test_identity_retry import FakeGzipBrokenClient
 
@@ -203,5 +203,5 @@ def test_request_unreachable_state_raises_runtime_error(monkeypatch: pytest.Monk
     response = transport.request("GET", "https://example.test/api")
 
     assert response.content == b'{"ok": true}'
-    # 1번째 시도(기본 헤더) 실패 → identity 재시도가 시도 1회 안에서 이뤄졌다.
+    # 1st attempt(default headers) failure → identity retry happens within 1 attempt.
     assert client.sent_accept_encodings == [None, "identity"]
