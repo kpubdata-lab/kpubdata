@@ -71,7 +71,7 @@ class TestPandasIsReallyOptional:
 
         datasets = client_module.Client().datasets.list()
 
-        assert datasets, "catalog must not be empty"
+        assert datasets, "카탈로그가 비면 안 된다"
 
     def test_krx_still_lists_its_own_datasets(self, without_optional_extras: None) -> None:
         module = importlib.import_module("kpubdata.providers.krx.adapter")
@@ -91,8 +91,7 @@ class TestPandasIsReallyOptional:
 
 @pytest.mark.skipif(
     not _TYPING_EXTENSIONS_IS_OPTIONAL,
-    reason="On 3.11 and earlier typing_extensions is declared dependency; "
-    "blocking it fails as expected",
+    reason='3.11 이하에서는 typing_extensions 가 선언된 의존성이라 차단하면 당연히 실패한다',
 )
 class TestTypingExtensionsIsReallyOptional:
     """Python 3.12+ new installs have no typing_extensions.
