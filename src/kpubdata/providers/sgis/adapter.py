@@ -1,7 +1,9 @@
-"""KPubData Python 모듈.
+"""KPubData Python module.
 
-이 파일은 ``src/kpubdata/providers/sgis/adapter.py`` 경로의 구현을 담는다.
-주요 클래스와 함수는 공개 API, 전송 계층, Provider 어댑터 중 하나의 역할을 담당한다.
+This file contains the implementation at
+``src/kpubdata/providers/sgis/adapter.py``.
+Key classes and functions serve as public API, transport layer, or provider
+adapter.
 """
 
 from __future__ import annotations
@@ -30,7 +32,7 @@ _BASE_URL = "https://sgisapi.kostat.go.kr/OpenAPI3"
 
 
 class _AuthClient(Protocol):
-    """AuthClient과 관련된 값을 계산하거나 조회한다."""
+    """Protocol for AuthClient to compute or retrieve values."""
 
     def get_access_token(self, *, force_refresh: bool = False) -> str: ...
 
@@ -38,7 +40,7 @@ class _AuthClient(Protocol):
 
 
 class SgisAdapter:
-    """SgisAdapter과 관련된 값을 계산하거나 조회한다."""
+    """SgisAdapter to compute or retrieve values."""
 
     requires_api_key: bool = True
 
@@ -50,7 +52,7 @@ class SgisAdapter:
         catalogue: Sequence[DatasetRef] | None = None,
         auth_client: _AuthClient | None = None,
     ) -> None:
-        """인스턴스가 사용할 내부 상태를 초기화한다."""
+        """Initialize internal state for this adapter instance."""
         self._config: KPubDataConfig = config or KPubDataConfig()
         transport_config = TransportConfig(
             timeout=self._config.timeout,
@@ -70,15 +72,15 @@ class SgisAdapter:
 
     @property
     def name(self) -> str:
-        """name과 관련된 값을 계산하거나 조회한다."""
+        """Return the provider name."""
         return _SGIS_PROVIDER
 
     def list_datasets(self) -> list[DatasetRef]:
-        """list datasets과 관련된 값을 계산하거나 조회한다."""
+        """Return the list of available datasets."""
         return list(self._datasets)
 
     def search_datasets(self, text: str) -> list[DatasetRef]:
-        """search datasets과 관련된 값을 계산하거나 조회한다."""
+        """Search datasets by text."""
         needle = text.casefold()
         return [
             dataset
@@ -87,7 +89,7 @@ class SgisAdapter:
         ]
 
     def get_dataset(self, dataset_key: str) -> DatasetRef:
-        """dataset을 반환한다."""
+        """Return a dataset by key."""
         dataset = self._datasets_by_key.get(dataset_key)
         if dataset is not None:
             return dataset
@@ -99,7 +101,7 @@ class SgisAdapter:
         )
 
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
-        """records을 수행한다."""
+        """Perform record query."""
         endpoint = self._dataset_endpoint(dataset)
         request_params = self._build_boundary_params(dataset, query.filters)
         payload = self._request_geojson(
@@ -124,11 +126,11 @@ class SgisAdapter:
         return RecordBatch(items=items, dataset=dataset, total_count=len(items), raw=payload)
 
     def get_schema(self, dataset: DatasetRef) -> SchemaDescriptor | None:
-        """schema을 반환한다."""
+        """Return schema for dataset."""
         return build_schema_from_metadata(dataset)
 
     def call_raw(self, dataset: DatasetRef, operation: str, params: dict[str, object]) -> object:
-        """call raw과 관련된 값을 계산하거나 조회한다."""
+        """Call raw operation."""
         endpoint = self._resolve_raw_endpoint(dataset, operation)
         request_params: dict[str, str] = {}
         for key, value in params.items():
@@ -142,7 +144,7 @@ class SgisAdapter:
         )
 
     def _resolve_raw_endpoint(self, dataset: DatasetRef, operation: str) -> str:
-        """설정과 기본값을 바탕으로 raw endpoint을 결정한다."""
+        """Resolve raw endpoint from configuration and defaults."""
         if operation == "list":
             return self._dataset_endpoint(dataset)
         if operation.startswith("http://") or operation.startswith("https://"):
@@ -157,7 +159,7 @@ class SgisAdapter:
     def _build_boundary_params(
         self, dataset: DatasetRef, filters: Mapping[str, object]
     ) -> dict[str, str]:
-        """boundary params을 구성해 반환한다."""
+        """Build and return boundary parameters."""
         params: dict[str, str] = {
             "year": str(dataset.raw_metadata.get("default_year", "2023")),
         }
@@ -184,7 +186,7 @@ class SgisAdapter:
         params: Mapping[str, str],
         dataset_id: str,
     ) -> dict[str, object]:
-        """request geojson과 관련된 값을 계산하거나 조회한다."""
+        """Request GeoJSON and return decoded payload."""
         url = self._make_url(endpoint)
         response = self._transport.request(
             "GET",
@@ -232,7 +234,7 @@ class SgisAdapter:
         return payload
 
     def _normalize_feature(self, feature: Mapping[str, object]) -> dict[str, object]:
-        """feature을 정규화해 반환한다."""
+        """Normalize feature and return result."""
         properties_obj = feature.get("properties")
         properties = (
             cast(dict[str, object], properties_obj) if isinstance(properties_obj, dict) else {}
@@ -249,7 +251,7 @@ class SgisAdapter:
         return item
 
     def _raise_for_err_code(self, payload: Mapping[str, object], dataset_id: str) -> None:
-        """raise for err code과 관련된 값을 계산하거나 조회한다."""
+        """Raise exception for error code."""
         err_code = _extract_err_code(payload)
         if err_code is None or err_code == 0:
             return
@@ -259,7 +261,7 @@ class SgisAdapter:
         self._raise_for_code(err_code, message, dataset_id)
 
     def _raise_for_code(self, err_code: int, message: str, dataset_id: str) -> NoReturn:
-        """raise for code과 관련된 값을 계산하거나 조회한다."""
+        """Raise exception for specific error code."""
         provider_code = str(err_code)
         if err_code in {-100}:
             raise ProviderResponseError(
@@ -305,7 +307,7 @@ class SgisAdapter:
         )
 
     def _dataset_endpoint(self, dataset: DatasetRef) -> str:
-        """dataset endpoint과 관련된 값을 계산하거나 조회한다."""
+        """Return dataset endpoint from metadata."""
         endpoint_obj = dataset.raw_metadata.get("endpoint")
         if isinstance(endpoint_obj, str) and endpoint_obj:
             return endpoint_obj
@@ -317,12 +319,12 @@ class SgisAdapter:
 
     @staticmethod
     def _make_url(endpoint: str) -> str:
-        """url을 생성해 반환한다."""
+        """Generate and return URL from endpoint."""
         return f"{_BASE_URL}/{endpoint.lstrip('/')}"
 
     @staticmethod
     def _load_default_catalogue() -> tuple[DatasetRef, ...]:
-        """기본 카탈로그을 로드해 반환한다."""
+        """Load and return default catalogue."""
         return load_catalogue("kpubdata.providers.sgis", _SGIS_PROVIDER)
 
 

@@ -1,18 +1,20 @@
-"""KRX (한국거래소) 데이터 Provider 어댑터.
+"""KRX (Korea Exchange) data provider adapter.
 
-이 어댑터는 pykrx 라이브러리를 통해 KRX 시장 데이터에 접근합니다.
+This adapter accesses KRX market data through the pykrx library.
 
-.. warning:: 라이선스 주의
+.. warning:: License Notice
 
-   KRX 데이터는 일반 공공 OpenAPI와 다른 이용 조건이 적용됩니다.
+   KRX data is subject to different terms than standard public OpenAPI.
 
-   - KRX 시세 정보의 제3자 제공·재배포는 KRX와 별도 계약이 필요할 수 있습니다.
-   - 상업적 목적의 KRX 데이터 활용 시 KRX 정보데이터시스템
-     (https://data.krx.co.kr/) 이용약관을 반드시 확인하세요.
-   - KPubData는 pykrx를 통해 데이터에 접근하는 SDK 역할만 수행하며,
-     데이터의 재배포 권한을 부여하지 않습니다.
+   - Redistribution of KRX price information to third parties may require
+     a separate agreement with KRX.
+   - For commercial use of KRX data, you must review the KRX Information
+     Data System (https://data.krx.co.kr/) terms of use.
+   - KPubData acts as an SDK that accesses data through pykrx only and
+     does not grant data redistribution rights.
 
-   이 어댑터는 개인 학습·연구·분석 용도를 전제로 제공됩니다.
+   This adapter is provided for personal learning, research, and analysis
+   purposes.
 """
 
 from __future__ import annotations
@@ -28,11 +30,11 @@ if TYPE_CHECKING:
     import pandas as pd
 
     class _PandasModule(ModuleType):
-        """이 어댑터가 pandas 에서 실제로 쓰는 것들.
+        """Pandas types used by this adapter.
 
-        지연 import 를 ``ModuleType`` 으로만 받으면 모든 접근이 ``Any`` 가 되어
-        ``--strict`` 아래에서 타입이 통째로 사라진다. 필요한 네 가지만 적어 두면
-        타입도 유지되고, 이 모듈이 pandas 에 무엇을 기대하는지도 드러난다.
+        Deferred import via ModuleType alone makes all attribute access
+        return Any, losing type under --strict. Listing only needed types
+        preserves typing and clarifies what this module expects from pandas.
         """
 
         DataFrame: type[pd.DataFrame]
@@ -54,23 +56,25 @@ from kpubdata.transport.http import HttpTransport, TransportConfig
 
 logger = logging.getLogger("kpubdata.provider.krx")
 
-#: krx 가 지원하는 raw 작업. pykrx 래퍼라 데이터셋별 목록 조회 하나뿐이다.
+#: Raw operations supported by KRX. Since this wraps pykrx, there is only
+#: one: list for querying available datasets.
 _RAW_OPERATIONS = frozenset({"list"})
 
 _pandas_module: _PandasModule | None = None
 
 
 def _pandas() -> _PandasModule:
-    """pandas 를 필요한 순간에만 import 한다.
+    """Import pandas only when needed.
 
-    pandas 는 optional extra 인데 이 모듈이 최상단에서 import 하고 있었다. krx 는
-    인증이 필요 없어서 provider manifest 에 항상 실려 있고, ``client.datasets.list()``
-    와 ``kpubdata datasets list`` 는 provider 를 지정하지 않으면 등록된 어댑터를
-    전부 materialize 한다. 그래서 ``pip install kpubdata`` 만 한 환경에서는 krx 를
-    쓸 생각이 없어도 그 두 호출이 ImportError 로 죽었다. CI 는 늘 ``--extra dev``
-    로 돌아서 드러나지 않았다.
+    pandas is an optional extra but was imported at module level.
+    KRX requires no authentication and always appears in provider manifest.
+    Calls like client.datasets.list() and kpubdata datasets list materialize
+    all registered adapters when provider is unspecified. In environments with
+    only ``pip install kpubdata``, these calls failed with ImportError.
+    CI always runs ``--extra dev`` so this was hidden.
 
-    pykrx 는 이미 이런 식으로 지연 import 하고 있었다 — pandas 만 예외였다.
+    pykrx already uses deferred import pattern like this — pandas was the
+    exception.
     """
     global _pandas_module
     if _pandas_module is None:
@@ -93,7 +97,7 @@ _INVESTOR_LABELS: tuple[tuple[str, str], ...] = (
 
 
 class _StockNamespace(Protocol):
-    """StockNamespace과 관련된 값을 계산하거나 조회한다."""
+    """Protocol for StockNamespace to compute or retrieve values."""
 
     def get_index_ohlcv(self, start_date: str, end_date: str, ticker: str) -> pd.DataFrame: ...
 
@@ -136,13 +140,13 @@ class _StockNamespace(Protocol):
 
 
 class _PykrxNamespace(Protocol):
-    """PykrxNamespace과 관련된 값을 계산하거나 조회한다."""
+    """Protocol for PykrxNamespace to compute or retrieve values."""
 
     stock: _StockNamespace
 
 
 class KrxAdapter:
-    """KrxAdapter과 관련된 값을 계산하거나 조회한다."""
+    """KrxAdapter to compute or retrieve values."""
 
     requires_api_key: bool = False
 
@@ -153,7 +157,7 @@ class KrxAdapter:
         transport: HttpTransport | None = None,
         catalogue: Sequence[DatasetRef] | None = None,
     ) -> None:
-        """인스턴스가 사용할 내부 상태를 초기화한다."""
+        """Initialize internal state for this adapter instance."""
         self._config: KPubDataConfig = config or KPubDataConfig()
         transport_config = TransportConfig(
             timeout=self._config.timeout,
@@ -170,15 +174,15 @@ class KrxAdapter:
 
     @property
     def name(self) -> str:
-        """name과 관련된 값을 계산하거나 조회한다."""
+        """Return the provider name."""
         return "krx"
 
     def list_datasets(self) -> list[DatasetRef]:
-        """list datasets과 관련된 값을 계산하거나 조회한다."""
+        """Return the list of available datasets."""
         return list(self._datasets)
 
     def search_datasets(self, text: str) -> list[DatasetRef]:
-        """search datasets과 관련된 값을 계산하거나 조회한다."""
+        """Search datasets by text."""
         needle = text.casefold()
         return [
             dataset
@@ -190,7 +194,7 @@ class KrxAdapter:
         ]
 
     def get_dataset(self, dataset_key: str) -> DatasetRef:
-        """dataset을 반환한다."""
+        """Return a dataset by key."""
         dataset = self._datasets_by_key.get(dataset_key)
         if dataset is not None:
             return dataset
@@ -206,7 +210,7 @@ class KrxAdapter:
         )
 
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
-        """records을 수행한다."""
+        """Perform record query."""
         resolved_dataset = self.get_dataset(dataset.dataset_key)
         frame = self._dispatch_dataframe(
             resolved_dataset,
@@ -227,17 +231,16 @@ class KrxAdapter:
         )
 
     def get_schema(self, dataset: DatasetRef) -> SchemaDescriptor | None:
-        """schema을 반환한다."""
+        """Return schema for dataset."""
         return build_schema_from_metadata(dataset)
 
     def call_raw(self, dataset: DatasetRef, operation: str, params: dict[str, object]) -> object:
-        """정규화 없이 원시 레코드를 반환한다. ``operation`` 은 ``"list"`` 뿐이다.
+        """Return raw records without normalization. operation is "list" only.
 
-        예전에는 ``_ = operation`` 으로 인자를 버렸다. 그래서 어떤 이름을 넘기든
-        같은 결과가 돌아왔고, 호출자는 자기가 요청한 작업이 수행됐다고 믿었다 —
-        오타든 다른 provider 의 operation 이름이든 조용히 통과했다. krx 는
-        pykrx 를 감싸기만 하므로 이름 붙은 raw 작업이 실제로 하나뿐이고,
-        그렇다면 그 사실을 말해 주는 편이 맞다.
+        Previously this method ignored operation via _ = operation. Any name
+        passed would return the same result, so callers silently accepted
+        typos or names from other providers. KRX wraps pykrx and has only
+        one named raw operation, so stating that fact is correct.
         """
         if operation and operation not in _RAW_OPERATIONS:
             raise InvalidRequestError(
@@ -257,7 +260,7 @@ class KrxAdapter:
         return self._frame_to_records(frame)
 
     def _dataset_handlers(self) -> Mapping[str, Callable[[DatasetRef, Query], pd.DataFrame]]:
-        """dataset handlers과 관련된 값을 계산하거나 조회한다."""
+        """Return dataset handlers."""
         return {
             "kospi_index": self._fetch_kospi_index,
             "investor_flow": self._fetch_investor_flow,
@@ -265,7 +268,7 @@ class KrxAdapter:
         }
 
     def _dataset_raw_handlers(self) -> Mapping[str, Callable[[DatasetRef, Query], pd.DataFrame]]:
-        """dataset raw handlers과 관련된 값을 계산하거나 조회한다."""
+        """Return dataset raw handlers."""
         return {
             "kospi_index": self._fetch_kospi_index,
             "investor_flow": self._fetch_investor_flow_raw,
@@ -275,7 +278,7 @@ class KrxAdapter:
     def _dataset_normalizers(
         self,
     ) -> Mapping[str, Callable[[pd.DataFrame, DatasetRef, Query], list[dict[str, object]]]]:
-        """dataset normalizers과 관련된 값을 계산하거나 조회한다."""
+        """Return dataset normalizers."""
         return {
             "kospi_index": self._normalize_kospi_index,
             "investor_flow": self._normalize_investor_flow,
@@ -288,7 +291,7 @@ class KrxAdapter:
         query: Query,
         handlers: Mapping[str, Callable[[DatasetRef, Query], pd.DataFrame]],
     ) -> pd.DataFrame:
-        """dispatch dataframe과 관련된 값을 계산하거나 조회한다."""
+        """Dispatch to appropriate handler and return dataframe."""
         handler = handlers.get(dataset.dataset_key)
         if handler is None:
             raise DatasetNotFoundError(
@@ -309,7 +312,7 @@ class KrxAdapter:
             ) from exc
 
     def _fetch_kospi_index(self, dataset: DatasetRef, query: Query) -> pd.DataFrame:
-        """kospi index 데이터를 조회해 반환한다."""
+        """Fetch and return KOSPI index data."""
         stock = self._stock_api()
         start_date, end_date = self._require_date_range(dataset, query)
         ticker = self._resolve_string_param(query, "ticker") or self._metadata_default(
@@ -325,7 +328,7 @@ class KrxAdapter:
             raise
 
     def _fetch_investor_flow(self, dataset: DatasetRef, query: Query) -> pd.DataFrame:
-        """investor flow 데이터를 조회해 반환한다."""
+        """Fetch and return investor flow data."""
         stock = self._stock_api()
         start_date, end_date = self._require_date_range(dataset, query)
         market = self._resolve_string_param(query, "market") or self._metadata_default(
@@ -340,7 +343,7 @@ class KrxAdapter:
         return self._combine_investor_frames(buy_frame, sell_frame)
 
     def _fetch_investor_flow_raw(self, dataset: DatasetRef, query: Query) -> pd.DataFrame:
-        """investor flow raw 데이터를 조회해 반환한다."""
+        """Fetch and return raw investor flow data."""
         stock = self._stock_api()
         start_date, end_date = self._require_date_range(dataset, query)
         market = self._resolve_string_param(query, "market") or self._metadata_default(
@@ -350,7 +353,7 @@ class KrxAdapter:
         return stock.get_market_trading_value_by_date(start_date, end_date, market, on=on)
 
     def _fetch_market_valuation(self, dataset: DatasetRef, query: Query) -> pd.DataFrame:
-        """market valuation 데이터를 조회해 반환한다."""
+        """Fetch and return market valuation data."""
         stock = self._stock_api()
         start_date, end_date = self._require_date_range(dataset, query)
         market = self._resolve_string_param(query, "market") or self._metadata_default(
@@ -374,14 +377,16 @@ class KrxAdapter:
         end_date: str,
         market: str,
     ) -> pd.DataFrame:
-        """날짜별 시장 PER/PBR/배당수익률을 조회해 DataFrame으로 반환한다.
+        """Fetch daily market PER/PBR/dividend yield and return as DataFrame.
 
         .. warning::
-            이 메서드는 start_date~end_date 범위의 **달력상 모든 날짜**마다
-            ``pykrx.stock.get_market_fundamental_by_ticker`` API를 개별 호출한다.
-            호출 횟수는 O(N_days) 이므로 날짜 범위가 길수록 네트워크 요청이 많아진다.
-            예: 1년 조회 ≈ 365회 호출. 거래일(영업일)만 필터링하지 않으므로
-            주말·공휴일은 빈 응답을 반환하지만 호출 자체는 발생한다.
+            This method makes individual API calls for **every calendar day**
+            in the start_date~end_date range via
+            ``pykrx.stock.get_market_fundamental_by_ticker``.
+            Call count is O(N_days), so longer date ranges mean more network
+            requests. Example: 1 year ≈ 365 calls. Filtering only trading
+            days (business days) doesn't occur, so weekends and holidays
+            return empty responses but calls still happen.
         """
         rows: list[dict[str, object]] = []
         total_days = len(
@@ -391,7 +396,7 @@ class KrxAdapter:
         )
         if total_days > 90:  # noqa: PLR2004
             logger.warning(
-                "KRX market_valuation: 날짜 범위 %d일 → API %d회 호출 예정",
+                "KRX market_valuation: date range %d days → API %d calls expected",
                 total_days,
                 total_days,
                 extra={"provider": "krx", "dataset_id": "krx.market_valuation"},
@@ -426,7 +431,7 @@ class KrxAdapter:
         buy_frame: pd.DataFrame,
         sell_frame: pd.DataFrame,
     ) -> pd.DataFrame:
-        """investor frames을 결합해 반환한다."""
+        """Combine investor buy and sell frames and return result."""
         rows: list[dict[str, object]] = []
         for day in buy_frame.index:
             for raw_label, normalized_label in _INVESTOR_LABELS:
@@ -450,7 +455,7 @@ class KrxAdapter:
         return _pandas().DataFrame(rows)
 
     def _aggregate_market_valuation_frame(self, frame: pd.DataFrame) -> pd.DataFrame:
-        """market valuation frame을 집계해 반환한다."""
+        """Aggregate market valuation frame and return result."""
         if isinstance(frame.index, _pandas().DatetimeIndex):
             return frame
         if "date" in frame.columns:
@@ -463,7 +468,7 @@ class KrxAdapter:
         dataset: DatasetRef,
         query: Query,
     ) -> list[dict[str, object]]:
-        """kospi index을 정규화해 반환한다."""
+        """Normalize KOSPI index and return result."""
         _ = dataset, query
         records = self._frame_to_records(frame)
         return [
@@ -486,7 +491,7 @@ class KrxAdapter:
         dataset: DatasetRef,
         query: Query,
     ) -> list[dict[str, object]]:
-        """investor flow을 정규화해 반환한다."""
+        """Normalize investor flow and return result."""
         market = self._resolve_string_param(query, "market") or self._metadata_default(
             dataset, "market"
         )
@@ -509,7 +514,7 @@ class KrxAdapter:
         dataset: DatasetRef,
         query: Query,
     ) -> list[dict[str, object]]:
-        """market valuation을 정규화해 반환한다."""
+        """Normalize market valuation and return result."""
         market = self._resolve_string_param(query, "market") or self._metadata_default(
             dataset, "market"
         )
@@ -528,15 +533,15 @@ class KrxAdapter:
         ]
 
     def _load_default_catalogue(self) -> tuple[DatasetRef, ...]:
-        """기본 카탈로그을 로드해 반환한다."""
+        """Load and return default catalogue."""
         return load_catalogue("kpubdata.providers.krx", "krx")
 
     def _import_pykrx(self) -> object:
-        """import pykrx과 관련된 값을 계산하거나 조회한다."""
+        """Import and return pykrx module."""
         return importlib.import_module("pykrx")
 
     def _load_pykrx(self) -> _PykrxNamespace:
-        """pykrx을 로드해 반환한다."""
+        """Load and return pykrx namespace."""
         if self._pykrx is not None:
             return self._pykrx
         try:
@@ -547,11 +552,11 @@ class KrxAdapter:
         return self._pykrx
 
     def _stock_api(self) -> _StockNamespace:
-        """stock api과 관련된 값을 계산하거나 조회한다."""
+        """Return stock API namespace."""
         return self._load_pykrx().stock
 
     def _require_date_range(self, dataset: DatasetRef, query: Query) -> tuple[str, str]:
-        """필수 date range을 읽고 없으면 예외를 발생시킨다."""
+        """Read required date range or raise exception."""
         start_date = query.start_date or self._resolve_string_param(query, "start_date")
         end_date = query.end_date or self._resolve_string_param(query, "end_date")
         if start_date is None or end_date is None:
@@ -564,7 +569,7 @@ class KrxAdapter:
 
     @staticmethod
     def _query_from_params(params: Mapping[str, object]) -> Query:
-        """from params을 수행한다."""
+        """Build Query from params dict."""
         query = Query()
         for key, value in params.items():
             if key == "start_date" and isinstance(value, str):
@@ -577,7 +582,7 @@ class KrxAdapter:
 
     @staticmethod
     def _resolve_string_param(query: Query, key: str) -> str | None:
-        """설정과 기본값을 바탕으로 string param을 결정한다."""
+        """Resolve string parameter from query filters or extra data."""
         if key in query.filters:
             filter_value = query.filters[key]
             if isinstance(filter_value, str) and filter_value:
@@ -590,7 +595,7 @@ class KrxAdapter:
 
     @staticmethod
     def _metadata_default(dataset: DatasetRef, key: str) -> str:
-        """metadata default과 관련된 값을 계산하거나 조회한다."""
+        """Return metadata default value for key."""
         raw_value = dataset.raw_metadata.get("default_query_params")
         if isinstance(raw_value, Mapping):
             value = raw_value.get(key)
@@ -604,11 +609,11 @@ class KrxAdapter:
 
     @staticmethod
     def _has_columns(frame: pd.DataFrame, *columns: str) -> bool:
-        """columns가 충족되는지 반환한다."""
+        """Check if all specified columns exist in frame."""
         return all(column in frame.columns for column in columns)
 
     def _frame_to_records(self, frame: pd.DataFrame) -> list[dict[str, object]]:
-        """frame to records과 관련된 값을 계산하거나 조회한다."""
+        """Convert DataFrame to list of record dicts."""
         reset_frame = frame.reset_index()
         records = cast(list[dict[str, object]], reset_frame.to_dict(orient="records"))
         return [
@@ -617,14 +622,14 @@ class KrxAdapter:
         ]
 
     def _to_python_value(self, value: object) -> object:
-        """python value 형태로 변환한다."""
+        """Convert value to Python representation."""
         if isinstance(value, _pandas().Timestamp):
             return value.strftime("%Y-%m-%d")
         return value
 
     @staticmethod
     def _coerce_numeric_value(value: object) -> int | float:
-        """입력값을 numeric value 표현으로 변환한다."""
+        """Coerce value to numeric representation."""
         if isinstance(value, bool):
             return int(value)
         if isinstance(value, int | float):
@@ -636,7 +641,7 @@ class KrxAdapter:
 
     @staticmethod
     def _format_date(value: object) -> str:
-        """date을 문자열 형식으로 변환한다."""
+        """Convert date value to string format."""
         if isinstance(value, str):
             if len(value) == 8 and value.isdigit():
                 return datetime.strptime(value, "%Y%m%d").strftime("%Y-%m-%d")
