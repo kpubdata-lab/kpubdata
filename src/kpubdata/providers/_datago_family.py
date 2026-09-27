@@ -1,16 +1,18 @@
-"""data.go.kr 계열 provider 어댑터의 공용 구현.
+"""Shared implementation for data.go.kr family provider adapters.
 
-``localdata`` 와 ``semas`` 는 같은 data.go.kr 인증·envelope·페이지네이션 규약을
-쓴다. 두 어댑터가 375줄짜리 사본 두 벌로 존재했고, 이름 문자열을 맞춰 놓고 비교하면
-**코드 차이가 0줄**이었다 — 다른 것은 주석과 포매팅뿐이었다.
+``localdata`` and ``semas`` use the same data.go.kr auth, envelope, and
+pagination contract. Originally two 375-line adapter copies existed; comparing
+them by normalizing name strings yielded **0 lines of code difference** — only
+comments and formatting varied.
 
-그 중복이 실제로 회귀를 만들었다. data.go.kr 의 ``"03"``(NODATA_ERROR)을 정상
-응답으로 다루는 분기가 semas 에는 있고 localdata 에는 없어서, 필터를 걸어 조회했는데
-결과가 없는 흔한 경우가 localdata 에서만 예외로 올라왔다 (#470). 한쪽을 고치면
-다른 쪽도 고쳐야 한다는 사실이 코드 어디에도 적혀 있지 않았다.
+This duplication caused real regressions. The data.go.kr ``"03"`` (NODATA_ERROR)
+branch, which treats it as a normal response (no matching data), existed in semas
+but not localdata, causing filtered queries with no results to raise exceptions
+only in localdata (#470). There was no documentation that fixes must be applied
+to both.
 
-새 provider 가 같은 규약을 쓰면 ``provider_name`` 과 catalogue 패키지만 지정해
-상속한다.
+New providers using the same contract inherit by specifying ``provider_name``
+and catalogue package only.
 """
 
 from __future__ import annotations
@@ -34,13 +36,13 @@ from kpubdata.providers._common import build_schema_from_metadata, coerce_int, l
 from kpubdata.transport.decode import decode_json, decode_xml, detect_content_type
 from kpubdata.transport.http import HttpTransport, TransportConfig
 
-#: 모듈 기본 logger. 인스턴스는 ``self._logger`` 로 provider 별 logger 를 쓴다 —
-#: 운영자가 ``kpubdata.provider.localdata`` 로 필터하던 것을 깨지 않기 위해서다.
+#: Module-level logger. Instances use per-provider logger via ``self._logger``
+#: to avoid breaking operator filtering by ``kpubdata.provider.localdata``.
 logger = logging.getLogger("kpubdata.provider.datago_family")
 
 
 def _is_success_code(code: str) -> bool:
-    """success code인지 반환한다."""
+    """Return whether code is a success code."""
     try:
         return int(code) == 0
     except ValueError:
@@ -48,14 +50,14 @@ def _is_success_code(code: str) -> bool:
 
 
 class DataGoFamilyAdapter:
-    """data.go.kr 계열 어댑터의 공통 동작.
+    """Shared implementation for data.go.kr family adapters.
 
-    하위 클래스는 ``provider_name`` 과 ``catalogue_package`` 만 지정한다.
+    Subclasses specify only ``provider_name`` and ``catalogue_package``.
     """
 
-    #: provider 식별자. 로그·예외·credential 해석에 모두 이 값을 쓴다.
+    #: Provider identifier used in logs, exceptions, and credential resolution.
     provider_name: ClassVar[str]
-    #: 기본 catalogue.json 을 담은 패키지 경로.
+    #: Package path containing default catalogue.json.
     catalogue_package: ClassVar[str]
 
     requires_api_key: bool = True
@@ -67,10 +69,11 @@ class DataGoFamilyAdapter:
         transport: HttpTransport | None = None,
         catalogue: Sequence[DatasetRef] | None = None,
     ) -> None:
-        """인스턴스가 사용할 내부 상태를 초기화한다."""
-        # provider 별 logger. 공용 구현이지만 로그는 provider 단위로 남아야 한다.
+        """Initialize instance internal state."""
+        # Per-provider logger. Shared implementation but logs must be
+        # per-provider.
         self._logger = logging.getLogger(f"kpubdata.provider.{self.provider_name}")
-        #: 로그 메시지에 쓰는 표시 이름 ("Localdata", "Semas").
+        #: Display name used in log messages ("Localdata", "Semas").
         self._label = self.provider_name.capitalize()
         self._config: KPubDataConfig = config or KPubDataConfig()
         transport_config = TransportConfig(
@@ -87,15 +90,15 @@ class DataGoFamilyAdapter:
 
     @property
     def name(self) -> str:
-        """name과 관련된 값을 계산하거나 조회한다."""
+        """Return computed or retrieved name-related value."""
         return self.provider_name
 
     def list_datasets(self) -> list[DatasetRef]:
-        """list datasets과 관련된 값을 계산하거나 조회한다."""
+        """Return computed or retrieved list-datasets value."""
         return list(self._datasets)
 
     def search_datasets(self, text: str) -> list[DatasetRef]:
-        """search datasets과 관련된 값을 계산하거나 조회한다."""
+        """Return computed or retrieved search-datasets value."""
         needle = text.casefold()
         return [
             dataset
@@ -104,7 +107,7 @@ class DataGoFamilyAdapter:
         ]
 
     def get_dataset(self, dataset_key: str) -> DatasetRef:
-        """dataset을 반환한다."""
+        """Return dataset."""
         dataset = self._datasets_by_key.get(dataset_key)
         if dataset is not None:
             return dataset
@@ -123,7 +126,7 @@ class DataGoFamilyAdapter:
         )
 
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
-        """records을 수행한다."""
+        """Execute query_records operation."""
         page = query.page or 1
         page_size = query.page_size or 100
         self._logger.debug(
@@ -179,11 +182,11 @@ class DataGoFamilyAdapter:
         )
 
     def get_schema(self, dataset: DatasetRef) -> SchemaDescriptor | None:
-        """schema을 반환한다."""
+        """Return schema."""
         return build_schema_from_metadata(dataset)
 
     def call_raw(self, dataset: DatasetRef, operation: str, params: dict[str, object]) -> object:
-        """call raw과 관련된 값을 계산하거나 조회한다."""
+        """Return computed or retrieved call-raw value."""
         self._logger.debug(
             f"{self.provider_name} call_raw",
             extra={
@@ -205,17 +208,19 @@ class DataGoFamilyAdapter:
         return payload
 
     def _require_api_key(self) -> str:
-        """공공데이터포털(data.go.kr) API 키를 읽고 없으면 예외를 발생시킨다.
-        localdata · semas · lofin 어댓터는 모두 data.go.kr 인증 시스템을 공유하며
-        단일 provider_key("datago")로 관리하는 것이 의도된 설계다.
+        """Read data.go.kr API key; raise on missing.
+
+        localdata, semas, and lofin adapters all share the data.go.kr
+        authentication system, managed by a single provider key ("datago")
+        by design.
         """
-        # 자기 이름을 먼저 본다. 이 계열은 data.go.kr 서비스라 datago 와 같은 키를
-        # 쓰지만, 곧바로 "datago" 를 요구하면 README 가 안내하는
-        # KPUBDATA_<PROVIDER>_API_KEY 가 조용히 무시된다.
+        # Check own name first. This family uses data.go.kr credentials,
+        # but requiring "datago" immediately would silently ignore the
+        # KPUBDATA_<PROVIDER>_API_KEY guidance in README.
         return self._config.require_provider_key(self.provider_name, fallback_to="datago")
 
     def _build_request_url(self, dataset: DatasetRef, operation: str | None = None) -> str:
-        """요청 URL을 구성해 반환한다."""
+        """Build and return request URL."""
         base_url_raw = dataset.raw_metadata.get("base_url")
         if not isinstance(base_url_raw, str) or not base_url_raw:
             self._logger.debug(
@@ -234,7 +239,7 @@ class DataGoFamilyAdapter:
         return base_url_raw
 
     def _build_base_params(self, dataset: DatasetRef) -> dict[str, str]:
-        """기본 파라미터을 구성해 반환한다."""
+        """Build and return base parameters."""
         api_key = self._require_api_key()
         service_key_param_raw = dataset.raw_metadata.get("service_key_param", "serviceKey")
         format_param_raw = dataset.raw_metadata.get("format_param", "type")
@@ -251,7 +256,7 @@ class DataGoFamilyAdapter:
     def _request_and_decode(
         self, url: str, params: Mapping[str, object], dataset_id: str
     ) -> dict[str, object]:
-        """request and decode과 관련된 값을 계산하거나 조회한다."""
+        """Request and decode return value."""
         string_params = {key: str(value) for key, value in params.items()}
         response = self._transport.request(
             "GET",
@@ -291,7 +296,7 @@ class DataGoFamilyAdapter:
     def _validate_envelope(
         self, payload: dict[str, object], dataset_id: str = ""
     ) -> tuple[dict[str, object], list[dict[str, object]]]:
-        """envelope의 형식을 검증하고 필요한 값을 추출한다."""
+        """Validate envelope format and extract required values."""
         response_obj = payload.get("response")
         if not isinstance(response_obj, dict):
             raise ProviderResponseError(
@@ -332,10 +337,10 @@ class DataGoFamilyAdapter:
             cast(dict[str, object], body_obj) if isinstance(body_obj, dict) else {}
         )
 
-        # data.go.kr 의 "03"(NODATA_ERROR)은 정상 응답이다 — 조건에 맞는 데이터가
-        # 없다는 뜻이지 호출이 실패한 것이 아니다. 이 분기가 없으면 필터를 걸어
-        # 조회했는데 결과가 없는 흔한 경우가 예외로 올라온다. semas 는 처음부터
-        # 이렇게 처리했고 localdata 만 빠져 있었다 (#470).
+        # data.go.kr "03" (NODATA_ERROR) is a normal response — it means
+        # no matching data exists, not that the call failed. Without this
+        # branch, filtered queries with no results commonly raise exceptions.
+        # semas handled this from the start; localdata was missing it (#470).
         if result_code == "03":
             return body_dict, []
         if not _is_success_code(result_code):
@@ -345,7 +350,7 @@ class DataGoFamilyAdapter:
         return body_dict, items
 
     def _raise_for_result_code(self, code: str, msg: str, dataset_id: str) -> NoReturn:
-        """raise for 결과 코드과 관련된 값을 계산하거나 조회한다."""
+        """Raise exception for result code."""
         if code in {"30", "31", "20", "32"}:
             raise AuthError(msg, provider=self.provider_name, provider_code=code)
         if code == "22":
@@ -366,7 +371,7 @@ class DataGoFamilyAdapter:
         raise ProviderResponseError(msg, provider=self.provider_name, provider_code=code)
 
     def _normalize_items(self, items_wrapper: object) -> list[dict[str, object]]:
-        """items을 정규화해 반환한다."""
+        """Normalize and return items."""
         if items_wrapper is None:
             return []
 
@@ -382,14 +387,15 @@ class DataGoFamilyAdapter:
             if isinstance(item_value, dict):
                 return [cast(dict[str, object], item_value)]
             if "item" in items_wrapper or not items_wrapper:
-                # ``item`` 키가 있는데 list 도 dict 도 아니면 비어 있다는 뜻이다
-                # (XML ``<items><item/></items>`` 는 ``{"item": None}`` 이 된다).
-                # 빈 dict 도 마찬가지다. 이 둘을 단건으로 승격하면 **유령 1행** 이
-                # 생긴다 — #470 에서 그렇게 만들었고, 그것이 회귀였다.
+                # ``item`` key with non-list/dict value means empty response.
+                # (XML ``<items><item/></items>`` becomes ``{"item": None}``).
+                # Empty dict is the same. Promoting both as single records
+                # creates **phantom rows** — that happened in #470, causing
+                # regression.
                 return []
-            # 그 밖의 비어 있지 않은 dict 는 래핑 없이 온 단건이다. []로
-            # 떨어뜨리면 같은 모양의 응답이 provider 에 따라 0건과 1건으로
-            # 갈린다 (#470).
+            # Non-empty dict without wrapping is a single record. Dropping to
+            # [] causes same-shaped responses to differ per-provider (0 vs 1
+            # record) — #470.
             return [cast(dict[str, object], items_wrapper)]
 
         if isinstance(items_wrapper, list):
@@ -401,7 +407,7 @@ class DataGoFamilyAdapter:
         return []
 
     def _load_default_catalogue(self) -> tuple[DatasetRef, ...]:
-        """하위 클래스가 지정한 패키지에서 기본 카탈로그를 로드한다."""
+        """Load and return default catalogue from subclass-specified package."""
         return load_catalogue(self.catalogue_package, self.provider_name)
 
 

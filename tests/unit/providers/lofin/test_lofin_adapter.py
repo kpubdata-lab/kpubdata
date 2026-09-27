@@ -1,7 +1,9 @@
-"""테스트 모듈.
+"""Test module.
 
-이 파일은 ``tests/unit/providers/lofin/test_lofin_adapter.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
+This file defines test scenarios and helper objects at
+``tests/unit/providers/lofin/test_lofin_adapter.py``.
+It verifies core flows, exceptions, and edge cases for regression
+prevention and public contract validation.
 """
 
 from __future__ import annotations
@@ -22,27 +24,29 @@ from kpubdata.transport.http import HttpTransport
 
 class FakeResponse:
     """
-    FakeResponse 관련 역할을 캡슐화하는 클래스.
+    Class that encapsulates FakeResponse role and state.
 
-    이 클래스는 ``tests/unit/providers/lofin/test_lofin_adapter.py`` 모듈 안에서 FakeResponse의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__.
+    This class manages FakeResponse state and behavior together at
+    ``tests/unit/providers/lofin/test_lofin_adapter.py``. Main method: __init__.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attributes:
+        Properties defined in constructor and class body are shared as
+        common context by downstream methods.
     """
 
     def __init__(self, payload: dict[str, object]) -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize internal state for instance.
 
-        매개변수:
-            payload (dict[str, object]): 호출자가 제공하는 입력 값이다.
+        Args:
+            payload (dict[str, object]): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Computed result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exceptions from implementation or downstream dependencies may be
+            raised as-is.
         """
         self.headers: dict[str, str] = {"content-type": "application/json"}
         self.text: str = json.dumps(payload)
@@ -51,64 +55,56 @@ class FakeResponse:
 
 class FakeTransport:
     """
-    FakeTransport 관련 역할을 캡슐화하는 클래스.
+    Class that encapsulates FakeTransport role and state.
 
-    이 클래스는 ``tests/unit/providers/lofin/test_lofin_adapter.py`` 모듈 안에서 FakeTransport의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__, request.
+    This class manages FakeTransport state and behavior together at
+    ``tests/unit/providers/lofin/test_lofin_adapter.py``. Main methods: __init__, request.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attributes:
+        Properties defined in constructor and class body are shared as
+        common context by downstream methods.
     """
 
     def __init__(self, responses: list[FakeResponse]) -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize internal state for instance.
 
-        매개변수:
-            responses (list[FakeResponse]): 호출자가 제공하는 입력 값이다.
+        Args:
+            responses (list[FakeResponse]): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Computed result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exceptions from implementation or downstream dependencies may be
+            raised as-is.
         """
         self._responses: list[FakeResponse] = list(responses)
         self.calls: list[dict[str, object]] = []
 
     def request(self, method: str, url: str, **kwargs: object) -> FakeResponse:
         """
-        request 동작을 수행한다.
+        Perform request operation.
 
-        매개변수:
-            method (str): 호출자가 제공하는 입력 값이다.
-            url (str): 호출자가 제공하는 입력 값이다.
-            **kwargs (object): 호출자가 제공하는 입력 값이다.
+        Args:
+            method (str): Input value provided by caller.
+            url (str): Input value provided by caller.
+            **kwargs (object): Input value provided by caller.
 
-        반환값:
-            FakeResponse: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            FakeResponse: Computed result or return value from downstream
+            calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exceptions from implementation or downstream dependencies may be
+            raised as-is.
         """
         self.calls.append({"method": method, "url": url, **kwargs})
         return self._responses.pop(0)
 
 
 def _success_payload(*, items: object, total_count: object) -> dict[str, object]:
-    """
-    내부 헬퍼로서 success payload 처리를 담당한다.
-
-    매개변수:
-        items (object): 호출자가 제공하는 입력 값이다.
-        total_count (object): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        dict[str, object]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-    """
+    """"""
     return {
         "AJGCF": [
             {
@@ -126,16 +122,18 @@ def _build_adapter_with_transport(
     responses: list[FakeResponse],
 ) -> tuple[LofinAdapter, DatasetRef, FakeTransport]:
     """
-    내부 헬퍼로서 build adapter with transport 처리를 담당한다.
+    Internal helper to process build adapter with transport.
 
-    매개변수:
-        responses (list[FakeResponse]): 호출자가 제공하는 입력 값이다.
+    Args:
+        responses (list[FakeResponse]): Input value provided by caller.
 
-    반환값:
-        tuple[LofinAdapter, DatasetRef, FakeTransport]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        tuple[LofinAdapter, DatasetRef, FakeTransport]: Computed result or
+        return value from downstream calls.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from implementation or downstream dependencies may be
+        raised as-is.
     """
     transport = FakeTransport(responses)
     adapter = LofinAdapter(
@@ -146,20 +144,9 @@ def _build_adapter_with_transport(
     return adapter, dataset, transport
 
 
-# test query records returns single page and sets next page 테스트가 검증하는 시나리오를 설명한다.
+# Verifies scenario tested by test_query_records_returns_single_page_and_sets_next_page.
 def test_query_records_returns_single_page_and_sets_next_page() -> None:
-    """
-    test query records returns single page and sets next page 시나리오를 검증한다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     payload = _success_payload(items=[{"id": 1}, {"id": 2}], total_count=5)
     adapter, dataset, transport = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -172,20 +159,9 @@ def test_query_records_returns_single_page_and_sets_next_page() -> None:
     assert len(transport.calls) == 1
 
 
-# test query records uses default page size 100 테스트가 검증하는 시나리오를 설명한다.
+# Verifies scenario tested by test_query_records_uses_default_page_size_100.
 def test_query_records_uses_default_page_size_100() -> None:
-    """
-    test query records uses default page size 100 시나리오를 검증한다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     payload = _success_payload(items=[{"id": 1}], total_count=1)
     adapter, dataset, transport = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -195,20 +171,9 @@ def test_query_records_uses_default_page_size_100() -> None:
     assert "pSize=100" in request_url
 
 
-# test query records uses heuristic next page without total count 테스트가 검증하는 시나리오를 설명한다.
+# Verifies scenario tested by test_query_records_uses_heuristic_next_page_without_total_count.
 def test_query_records_uses_heuristic_next_page_without_total_count() -> None:
-    """
-    test query records uses heuristic next page without total count 시나리오를 검증한다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     payload = _success_payload(items=[{"id": 1}, {"id": 2}], total_count=None)
     adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -218,23 +183,9 @@ def test_query_records_uses_heuristic_next_page_without_total_count() -> None:
     assert batch.next_page == 2
 
 
-# test build request url missing base url logs debug 테스트가 검증하는 시나리오를 설명한다.
+# Verifies scenario tested by test_build_request_url_missing_base_url_logs_debug.
 def test_build_request_url_missing_base_url_logs_debug(caplog: pytest.LogCaptureFixture) -> None:
-    """
-    test build request url missing base url logs debug 시나리오를 검증한다.
-
-    매개변수:
-        caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     adapter, dataset, _ = _build_adapter_with_transport([])
     dataset = DatasetRef(
         id=dataset.id,
@@ -261,23 +212,9 @@ def test_build_request_url_missing_base_url_logs_debug(caplog: pytest.LogCapture
     assert record.__dict__["dataset_id"] == dataset.id
 
 
-# test query records zero items logs debug 테스트가 검증하는 시나리오를 설명한다.
+# Verifies scenario tested by test_query_records_zero_items_logs_debug.
 def test_query_records_zero_items_logs_debug(caplog: pytest.LogCaptureFixture) -> None:
-    """
-    test query records zero items logs debug 시나리오를 검증한다.
-
-    매개변수:
-        caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     payload = _success_payload(items=[], total_count=0)
     adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -330,12 +267,7 @@ def test_client_applies_lofin_ssl_context() -> None:
 
 
 class TestLofinVerifiesCertificates:
-    """lofin 컨텍스트가 인증서 검증을 끄지 않는지 고정한다.
-
-    ``check_hostname = False`` + ``CERT_NONE`` 이었다. 이 요청에는 API 키가 함께
-    나가므로, 중간자가 인증서를 갈아끼우면 응답을 조작하는 데서 끝나지 않고 키를
-    가져간다. 실제로 필요했던 건 cipher 완화뿐이었다.
-    """
+    """Verify Lofin context does not disable certificate validation."""
 
     def test_hostname_checking_stays_on(self) -> None:
         import ssl
@@ -348,10 +280,10 @@ class TestLofinVerifiesCertificates:
         assert ctx.verify_mode is ssl.CERT_REQUIRED
 
     def test_the_cipher_relaxation_is_still_there(self) -> None:
-        """이게 이 커스텀 컨텍스트가 존재하는 이유다 — 없애면 원래 문제가 돌아온다."""
+        """This is why this custom context exists — removing it brings back original issue."""
         from kpubdata.providers.lofin.adapter import _lofin_ssl_context
 
         ciphers = {entry["name"] for entry in _lofin_ssl_context().get_ciphers()}
 
-        # SECLEVEL=1 에서만 협상 대상에 남는 구형 cipher.
+        # Legacy cipher only negotiated at SECLEVEL=1.
         assert "AES256-SHA256" in ciphers

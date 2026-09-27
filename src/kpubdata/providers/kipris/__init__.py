@@ -1,4 +1,5 @@
-"""특허청(KIPI) 특허패밀리정보 open API Provider."""
+"""Korean Intellectual Property Office (KIPI) Patent Family Information open
+API Provider."""
 
 from .adapter import KiprisAdapter
 

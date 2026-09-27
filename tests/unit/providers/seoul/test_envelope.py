@@ -1,8 +1,9 @@
-"""서울 API envelope 파서의 오류·가장자리 경로 회귀 테스트 (#454).
+"""Seoul API envelope parser regression tests for errors and edge cases (#454).
 
-이 파서가 응답 형상을 판정한다 — 깨지면 downstream 이 예외가 아니라 **빈 결과**를
-받는다. 그래서 여기서는 성공 왕복보다 "어떤 응답을 어떤 예외로 분류하는가"와
-"비어 있음과 실패를 어떻게 구분하는가"를 고정한다.
+This parser determines response shape — when broken, downstream receives
+**empty results** rather than exceptions. Thus this suite fixes "which
+responses map to which exceptions" and "how to distinguish empty from failed"
+rather than success round-trips.
 """
 
 from __future__ import annotations
@@ -37,7 +38,7 @@ def _envelope(code: str, *, rows: object = None, message: str = "msg") -> dict[s
     return {_SERVICE: body}
 
 
-# --- 성공/비어있음 ---------------------------------------------------------
+# --- Success / Empty ---
 
 
 def test_success_returns_body_and_rows() -> None:
@@ -49,7 +50,7 @@ def test_success_returns_body_and_rows() -> None:
 
 
 def test_empty_result_code_is_not_an_error() -> None:
-    """INFO-200(데이터 없음)은 예외가 아니라 빈 목록이다."""
+    """INFO-200 (no data) is empty list, not exception."""
     _, rows = validate_envelope(_envelope("INFO-200"), _SERVICE, _ref())
     assert rows == []
 
@@ -60,7 +61,7 @@ def test_success_with_no_row_key_yields_no_rows() -> None:
 
 
 def test_single_row_object_is_wrapped_in_a_list() -> None:
-    """행이 하나면 서울 API 가 dict 를 그대로 준다 — 목록으로 정규화해야 한다."""
+    """Single row: Seoul API returns dict as-is — must normalize to list."""
     _, rows = validate_envelope(_envelope("INFO-000", rows={"a": 1}), _SERVICE, _ref())
     assert rows == [{"a": 1}]
 
@@ -72,14 +73,14 @@ def test_unusable_row_payload_yields_no_rows(rows: object) -> None:
 
 
 def test_non_mapping_row_entries_are_dropped() -> None:
-    """섞여 들어온 비-객체 항목은 버리고 나머지는 살린다."""
+    """Drop mixed non-object items, keep rest."""
     _, rows = validate_envelope(
         _envelope("INFO-000", rows=[{"a": 1}, "junk", None, {"b": 2}]), _SERVICE, _ref()
     )
     assert rows == [{"a": 1}, {"b": 2}]
 
 
-# --- 결과 코드 → 예외 분류 -------------------------------------------------
+# --- Result Code -> Exception Mapping ---
 
 
 @pytest.mark.parametrize("code", ["INFO-100", "INFO-300"])
@@ -104,7 +105,7 @@ def test_server_codes_raise_provider_response_error(code: str) -> None:
 
 
 def test_unknown_code_still_raises_rather_than_returning_empty() -> None:
-    """분류되지 않은 코드를 성공으로 흘려보내면 빈 결과가 조용히 내려간다."""
+    """Unclassified codes as success lead to silent empty results."""
     with pytest.raises(ProviderResponseError) as exc:
         validate_envelope(_envelope("ERROR-999", message="알 수 없음"), _SERVICE, _ref())
     assert exc.value.provider_code == "ERROR-999"
@@ -118,7 +119,7 @@ def test_non_string_code_and_message_get_placeholders() -> None:
     assert "Provider returned error" in str(exc.value)
 
 
-# --- 형상이 어긋난 envelope ------------------------------------------------
+# --- Malformed Envelope ---
 
 
 def test_missing_service_key_is_reported_by_name() -> None:
@@ -145,11 +146,11 @@ def test_result_that_is_not_a_mapping_is_rejected() -> None:
         validate_envelope(payload, _SERVICE, _ref())
 
 
-# --- top-level RESULT 변형 -------------------------------------------------
+# --- Top-level RESULT Variations ---
 
 
 def test_top_level_result_success() -> None:
-    """일부 서비스는 RESULT 를 최상위에 두고 키 이름도 'RESULT.CODE' 형태다."""
+    """Some services put RESULT at top level with key name 'RESULT.CODE'."""
     payload: dict[str, object] = {
         "RESULT": {"RESULT.CODE": "INFO-000", "RESULT.MESSAGE": "정상"},
         _SERVICE: [{"a": 1}],
@@ -178,11 +179,11 @@ def test_top_level_result_missing_block_is_rejected() -> None:
         validate_envelope(payload, _SERVICE, _ref(top_level_result=True))
 
 
-# --- 최상위 code/message 오류 응답 -----------------------------------------
+# --- Top-level code/message Error Response ---
 
 
 def test_bare_error_object_is_classified_before_envelope_parsing() -> None:
-    """서비스 키 없이 code/message 만 오는 오류 응답도 같은 분류를 거친다."""
+    """Error responses with only code/message (no service key) share same classification."""
     with pytest.raises(AuthError) as exc:
         validate_envelope({"code": "INFO-100", "message": "키 없음"}, _SERVICE, _ref())
     assert exc.value.provider_code == "INFO-100"
@@ -195,7 +196,7 @@ def test_bare_error_object_with_non_string_fields() -> None:
 
 
 def test_code_and_message_alongside_the_service_key_are_not_an_error() -> None:
-    """정상 응답이 code/message 를 함께 담고 있어도 오류로 오판하면 안 된다."""
+    """Success responses may include code/message too — must not misclassify as error."""
     payload: dict[str, object] = {
         "code": "INFO-000",
         "message": "정상",
@@ -205,7 +206,7 @@ def test_code_and_message_alongside_the_service_key_are_not_an_error() -> None:
     assert rows == [{"a": 1}]
 
 
-# --- envelope_key 재정의 ---------------------------------------------------
+# --- Envelope Key Redefinition ---
 
 
 def test_envelope_key_override_is_used_when_present() -> None:
@@ -215,7 +216,7 @@ def test_envelope_key_override_is_used_when_present() -> None:
 
 
 def test_envelope_key_override_falls_back_when_absent_from_payload() -> None:
-    """재정의한 키가 응답에 없으면 서비스 이름으로 돌아간다 — 바로 실패하지 않는다."""
+    """Redefined key absent in response falls back to service name — does not fail immediately."""
     payload = _envelope("INFO-000", rows=[{"a": 1}])
     _, rows = validate_envelope(payload, _SERVICE, _ref(envelope_key="Missing"))
     assert rows == [{"a": 1}]

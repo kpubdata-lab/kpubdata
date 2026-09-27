@@ -1,7 +1,8 @@
-"""KPubData Python 모듈.
+"""KPubData Python module.
 
-이 파일은 ``src/kpubdata/providers/seoul/adapter.py`` 경로의 구현을 담는다.
-주요 클래스와 함수는 공개 API, 전송 계층, Provider 어댑터 중 하나의 역할을 담당한다.
+This file contains the implementation at ``src/kpubdata/providers/seoul/adapter.py``.
+Key classes and functions are part of the public API, transport layer,
+or provider adapter.
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ from kpubdata.transport.http import HttpTransport, TransportConfig
 
 
 class SeoulAdapter:
-    """SeoulAdapter과 관련된 값을 계산하거나 조회한다."""
+    """Compute or query values related to SeoulAdapter."""
 
     requires_api_key: bool = True
 
@@ -36,7 +37,7 @@ class SeoulAdapter:
         transport: HttpTransport | None = None,
         catalogue: Sequence[DatasetRef] | None = None,
     ) -> None:
-        """인스턴스가 사용할 내부 상태를 초기화한다."""
+        """Initialize instance state."""
         self._config: KPubDataConfig = config or KPubDataConfig()
         transport_config = TransportConfig(
             timeout=self._config.timeout,
@@ -52,15 +53,15 @@ class SeoulAdapter:
 
     @property
     def name(self) -> str:
-        """name과 관련된 값을 계산하거나 조회한다."""
+        """Return provider name."""
         return "seoul"
 
     def list_datasets(self) -> list[DatasetRef]:
-        """list datasets과 관련된 값을 계산하거나 조회한다."""
+        """Return all datasets provided by this adapter."""
         return list(self._datasets)
 
     def search_datasets(self, text: str) -> list[DatasetRef]:
-        """search datasets과 관련된 값을 계산하거나 조회한다."""
+        """Search datasets."""
         needle = text.casefold()
         return [
             dataset
@@ -69,7 +70,7 @@ class SeoulAdapter:
         ]
 
     def get_dataset(self, dataset_key: str) -> DatasetRef:
-        """dataset을 반환한다."""
+        """Return the dataset for the given key."""
         dataset = self._datasets_by_key.get(dataset_key)
         if dataset is not None:
             return dataset
@@ -81,7 +82,7 @@ class SeoulAdapter:
         )
 
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
-        """records을 수행한다."""
+        """Query records by calling Seoul API."""
         page_no = query.page or 1
         page_size = query.page_size or 100
         self._validate_pagination(page_no, page_size, dataset.id)
@@ -112,11 +113,11 @@ class SeoulAdapter:
         )
 
     def get_schema(self, dataset: DatasetRef) -> SchemaDescriptor | None:
-        """schema을 반환한다."""
+        """Return schema information of the dataset."""
         return build_schema_from_metadata(dataset)
 
     def call_raw(self, dataset: DatasetRef, operation: str, params: dict[str, object]) -> object:
-        """call raw과 관련된 값을 계산하거나 조회한다."""
+        """Call Seoul API directly and return raw response."""
         page_no = self._int_param(params, "page_no", 1)
         page_size = self._int_param(params, "page_size", 100)
         self._validate_pagination(page_no, page_size, dataset.id)
@@ -140,7 +141,7 @@ class SeoulAdapter:
         return payload
 
     def _validate_pagination(self, page_no: int, page_size: int, dataset_id: str) -> None:
-        """pagination의 형식을 검증하고 필요한 값을 추출한다."""
+        """Validate Seoul API pagination format."""
         if page_no < 1:
             raise InvalidRequestError(
                 "Seoul API page_no must be >= 1",
@@ -161,7 +162,7 @@ class SeoulAdapter:
             )
 
     def _require_api_key(self) -> str:
-        """필수 API 키을 읽고 없으면 예외를 발생시킨다."""
+        """Read required API key or raise exception."""
         return self._config.require_provider_key("seoul")
 
     def _build_request_url(
@@ -173,7 +174,7 @@ class SeoulAdapter:
         end_index: int,
         path_params: Mapping[str, str],
     ) -> str:
-        """요청 URL을 구성해 반환한다."""
+        """Build Seoul API request URL."""
         base_url = self._require_dataset_metadata(dataset, "base_url")
         service_name = self._service_name(dataset, operation=operation)
         path_suffix = "/".join(quote(value, safe="") for value in path_params.values())
@@ -185,15 +186,15 @@ class SeoulAdapter:
         return base_path
 
     def _service_name(self, dataset: DatasetRef, operation: str | None) -> str:
-        """service name과 관련된 값을 계산하거나 조회한다."""
+        """Return service name for dataset."""
         if operation is not None and operation:
             return operation
         return self._require_dataset_metadata(dataset, "default_operation")
 
     def _request_and_decode(self, url: str, dataset_id: str) -> dict[str, object]:
-        """request and decode과 관련된 값을 계산하거나 조회한다."""
-        # seoul은 API 키를 URL 경로 세그먼트로 싣는다(#354) — transport가 로그/예외
-        # URL에서 해당 값을 가릴 수 있게 실제 키 원문을 넘긴다.
+        """Compute or query values related to request and decode."""
+        # seoul passes API key as URL path segment (#354) — transport can mask it in logs/exception
+        # URLs so it passes the actual key.
         response = self._transport.request(
             "GET",
             url,
@@ -219,7 +220,7 @@ class SeoulAdapter:
         dataset: DatasetRef,
         params: Mapping[str, object],
     ) -> dict[str, str]:
-        """필수 path params을 읽고 없으면 예외를 발생시킨다."""
+        """Read required path parameters."""
         resolved: dict[str, str] = {}
         for param_name in self._required_path_param_names(dataset):
             value = params.get(param_name)
@@ -234,7 +235,7 @@ class SeoulAdapter:
         return resolved
 
     def _required_path_param_names(self, dataset: DatasetRef) -> tuple[str, ...]:
-        """required path param names과 관련된 값을 계산하거나 조회한다."""
+        """Return required path parameter names."""
         raw = dataset.raw_metadata.get("required_path_params")
         if not isinstance(raw, list):
             raise ProviderResponseError(
@@ -250,7 +251,7 @@ class SeoulAdapter:
         return tuple(names)
 
     def _require_dataset_metadata(self, dataset: DatasetRef, key: str) -> str:
-        """필수 dataset metadata을 읽고 없으면 예외를 발생시킨다."""
+        """Read required field from dataset metadata."""
         value = dataset.raw_metadata.get(key)
         if isinstance(value, str) and value:
             return value
@@ -262,13 +263,13 @@ class SeoulAdapter:
 
     @staticmethod
     def _int_param(params: Mapping[str, object], key: str, default: int) -> int:
-        """int param과 관련된 값을 계산하거나 조회한다."""
+        """Extract integer parameter or return default."""
         coerced = coerce_int(params.get(key), default)
         return coerced if coerced > 0 else default
 
     @staticmethod
     def _load_default_catalogue() -> tuple[DatasetRef, ...]:
-        """기본 카탈로그을 로드해 반환한다."""
+        """Load and return default catalog."""
         return load_catalogue("kpubdata.providers.seoul", "seoul")
 
 

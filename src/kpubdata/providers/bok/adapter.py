@@ -1,7 +1,8 @@
-"""KPubData Python 모듈.
+"""KPubData Python module.
 
-이 파일은 ``src/kpubdata/providers/bok/adapter.py`` 경로의 구현을 담는다.
-주요 클래스와 함수는 공개 API, 전송 계층, Provider 어댑터 중 하나의 역할을 담당한다.
+This file contains the implementation at ``src/kpubdata/providers/bok/adapter.py``.
+Key classes and functions are part of the public API, transport layer,
+or provider adapter.
 """
 
 from __future__ import annotations
@@ -34,10 +35,10 @@ logger = logging.getLogger("kpubdata.provider.bok")
 
 
 class BokAdapter:
-    """한국은행 경제통계시스템(BOK ECOS) API 어댑터.
+    """Bank of Korea Economic Statistics System (BOK ECOS) API adapter.
 
-    BOK ECOS(Economic Statistics System)에서 제공하는 100대 통계지표와
-    경제 시계열 데이터를 조회하고 정규화한다.
+    Queries and normalizes the top 100 statistical indicators and economic
+    time-series data provided by BOK ECOS (Economic Statistics System).
     """
 
     requires_api_key: bool = True
@@ -49,12 +50,12 @@ class BokAdapter:
         transport: HttpTransport | None = None,
         catalogue: Sequence[DatasetRef] | None = None,
     ) -> None:
-        """인스턴스가 사용할 내부 상태를 초기화한다.
+        """Initialize instance state.
 
-        매개변수:
-            config: KPubData 설정. None이면 기본값 사용.
-            transport: HTTP 전송 계층. None이면 새 인스턴스 생성.
-            catalogue: 데이터셋 목록. None이면 기본 카탈로그 로드.
+        Args:
+            config: KPubData config. Uses defaults if None.
+            transport: HTTP transport layer. Creates new instance if None.
+            catalogue: Dataset list. Loads default catalog if None.
         """
         self._config: KPubDataConfig = config or KPubDataConfig()
         transport_config = TransportConfig(
@@ -71,29 +72,30 @@ class BokAdapter:
 
     @property
     def name(self) -> str:
-        """Provider 이름을 반환한다.
+        """Return the provider name.
 
-        반환값:
-            항상 "bok" 문자열.
+        Returns:
+            Always returns "bok" string.
         """
         return "bok"
 
     def list_datasets(self) -> list[DatasetRef]:
-        """이 어댑터가 제공하는 모든 데이터셋 목록을 반환한다.
+        """Return all datasets provided by this adapter.
 
-        반환값:
-            DatasetRef 리스트. 각 항목은 BOK ECOS 통계 지표를 나타낸다.
+        Returns:
+            List of DatasetRef. Each item represents a BOK ECOS statistical indicator.
         """
         return list(self._datasets)
 
     def search_datasets(self, text: str) -> list[DatasetRef]:
-        """데이터셋을 검색한다.
+        """Search datasets.
 
-        매개변수:
-            text: 검색어. 데이터셋 ID 또는 이름에서 대소문자 무시하고 부분 매칭.
+        Args:
+            text: Search term. Searches by dataset ID or name with
+                case-insensitive partial match.
 
-        반환값:
-            검색 조건에 일치하는 DatasetRef 리스트.
+        Returns:
+            List of DatasetRef matching the search condition.
         """
         needle = text.casefold()
         return [
@@ -103,16 +105,16 @@ class BokAdapter:
         ]
 
     def get_dataset(self, dataset_key: str) -> DatasetRef:
-        """주어진 키에 해당하는 데이터셋을 반환한다.
+        """Return the dataset for the given key.
 
-        매개변수:
-            dataset_key: 데이터셋 고유 키 (예: "901Y009").
+        Args:
+            dataset_key: Unique dataset key (e.g., "901Y009").
 
-        반환값:
-            DatasetRef 인스턴스.
+        Returns:
+            DatasetRef instance.
 
-        예외:
-            DatasetNotFoundError: 해당 키의 데이터셋이 존재하지 않을 때.
+        Raises:
+            DatasetNotFoundError: When dataset with the key does not exist.
         """
         dataset = self._datasets_by_key.get(dataset_key)
         if dataset is not None:
@@ -129,20 +131,21 @@ class BokAdapter:
         )
 
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
-        """BOK ECOS API를 호출하여 레코드를 조회한다.
+        """Query records by calling BOK ECOS API.
 
-        매개변수:
-            dataset: 대상 데이터셋.
-            query: 조회 쿼리. start_date, end_date 필수. 주기(frequency)는 선택.
+        Args:
+            dataset: Target dataset.
+            query: Query. start_date and end_date required. frequency optional.
 
-        반환값:
-            RecordBatch. items에 조회된 레코드, total_count와 next_page 포함.
+        Returns:
+            RecordBatch with queried records in items, includes total_count and
+            next_page.
 
-        예외:
-            InvalidRequestError: start_date 또는 end_date 누락 시.
-            AuthError: API 키 인증 실패 시.
-            RateLimitError: 호출 한도 초과 시.
-            ServiceUnavailableError: BOK ECOS 서비스 점검 중일 때.
+        Raises:
+            InvalidRequestError: When start_date or end_date is missing.
+            AuthError: When API key authentication fails.
+            RateLimitError: When call rate limit exceeded.
+            ServiceUnavailableError: When BOK ECOS service is under maintenance.
         """
         page = query.page or 1
         page_size = query.page_size or 100
@@ -215,30 +218,33 @@ class BokAdapter:
         )
 
     def get_schema(self, dataset: DatasetRef) -> SchemaDescriptor | None:
-        """데이터셋의 스키마 정보를 반환한다.
+        """Return schema information of the dataset.
 
-        매개변수:
-            dataset: 대상 데이터셋.
+        Args:
+            dataset: Target dataset.
 
-        반환값:
-            SchemaDescriptor 또는 None. 메타데이터에서 스키마를 구성할 수 없으면 None.
+        Returns:
+            SchemaDescriptor or None. Returns None if schema cannot be built from
+            metadata.
         """
         return build_schema_from_metadata(dataset)
 
     def call_raw(self, dataset: DatasetRef, operation: str, params: dict[str, object]) -> object:
-        """BOK ECOS API를 직접 호출하고 원본 응답을 반환한다 (비상구).
+        """Call BOK ECOS API directly and return raw response (escape hatch).
 
-        매개변수:
-            dataset: 대상 데이터셋.
-            operation: ECOS API 작업명 (예: "StatisticSearch"). 비어 있으면 기본 작업 사용.
-            params: API 파라미터. frequency, start_date, end_date, start_index, end_index 등.
+        Args:
+            dataset: Target dataset.
+            operation: ECOS API operation name (e.g., "StatisticSearch").
+                Uses default if empty.
+            params: API parameters such as frequency, start_date, end_date,
+                start_index, end_index.
 
-        반환값:
-            BOK ECOS API 원본 JSON 응답 (dict).
+        Returns:
+            BOK ECOS API raw JSON response (dict).
 
-        예외:
-            InvalidRequestError: 필수 파라미터 누락 시.
-            AuthError, RateLimitError, ServiceUnavailableError: API 오류 시.
+        Raises:
+            InvalidRequestError: When required parameters are missing.
+            AuthError, RateLimitError, ServiceUnavailableError: On API errors.
         """
         logger.debug(
             "bok call_raw",
@@ -268,13 +274,13 @@ class BokAdapter:
         return payload
 
     def _require_api_key(self) -> str:
-        """필수 API 키를 읽고 없으면 예외를 발생시킨다.
+        """Read required API key or raise an exception if missing.
 
-        반환값:
-            BOK ECOS API 키 (config에서 읽음).
+        Returns:
+            BOK ECOS API key (read from config).
 
-        예외:
-            AuthError: API 키가 설정되지 않았을 때.
+        Raises:
+            AuthError: When API key is not configured.
         """
         return self._config.require_provider_key("bok")
 
@@ -289,22 +295,22 @@ class BokAdapter:
         start_date: str,
         end_date: str,
     ) -> str:
-        """BOK ECOS API 요청 URL을 구성한다.
+        """Build BOK ECOS API request URL.
 
-        매개변수:
-            dataset: 대상 데이터셋.
-            operation: API 작업명. None이면 메타데이터의 default_operation 사용.
-            start_index: 조회 시작 인덱스 (1부터 시작).
-            end_index: 조회 종료 인덱스.
-            frequency: 주기 코드 (예: "M"=월, "Q"=분기, "A"=연).
-            start_date: 조회 시작 날짜 (YYYYMMDD 또는 YYYYMM 형식).
-            end_date: 조회 종료 날짜 (YYYYMMDD 또는 YYYYMM 형식).
+        Args:
+            dataset: Target dataset.
+            operation: API operation name. Uses metadata's default_operation if None.
+            start_index: Query start index (1-based).
+            end_index: Query end index.
+            frequency: Period code (e.g., "M"=monthly, "Q"=quarterly, "A"=annual).
+            start_date: Query start date (YYYYMMDD or YYYYMM format).
+            end_date: Query end date (YYYYMMDD or YYYYMM format).
 
-        반환값:
-            BOK ECOS API 호출용 전체 URL 문자열.
+        Returns:
+            Full URL string for BOK ECOS API call.
 
-        예외:
-            ProviderResponseError: 메타데이터에 필수 필드 누락 시.
+        Raises:
+            ProviderResponseError: When required fields are missing from metadata.
         """
         base_url_raw = dataset.raw_metadata.get("base_url")
         if not isinstance(base_url_raw, str) or not base_url_raw:
@@ -339,20 +345,20 @@ class BokAdapter:
         )
 
     def _request_and_decode(self, url: str, dataset_id: str) -> dict[str, object]:
-        """BOK ECOS API에 HTTP GET 요청을 보내고 JSON 응답을 디코딩한다.
+        """Send HTTP GET request to BOK ECOS API and decode JSON response.
 
-        매개변수:
-            url: 요청할 전체 URL.
-            dataset_id: 데이터셋 ID (로깅용).
+        Args:
+            url: Full URL to request.
+            dataset_id: Dataset ID (for logging).
 
-        반환값:
-            파싱된 JSON 응답 (dict).
+        Returns:
+            Parsed JSON response (dict).
 
-        예외:
-            ParseError: 응답 파싱 실패 또는 응답이 JSON object가 아닐 때.
+        Raises:
+            ParseError: When response parsing fails or response is not a JSON object.
         """
-        # bok은 API 키를 URL 경로 세그먼트로 싣는다 — transport가 로그/예외 URL에서
-        # 그 값을 가릴 수 있도록 실제 키 원문을 넘긴다(seoul/fds와 같은 계약).
+        # bok passes API key as URL path segment — transport can mask it in logs/exception
+        # URLs per contract (like seoul/fds).
         response = self._transport.request(
             "GET",
             url,
@@ -377,19 +383,20 @@ class BokAdapter:
     def _validate_envelope(
         self, payload: dict[str, object], dataset_id: str = ""
     ) -> tuple[dict[str, object], list[dict[str, object]]]:
-        """BOK ECOS API 응답 envelope의 형식을 검증하고 필요한 값을 추출한다.
+        """Validate BOK ECOS API response envelope format and extract values.
 
-        매개변수:
-            payload: 디코딩된 API 응답 (dict).
-            dataset_id: 데이터셋 ID (로깅/예외용).
+        Args:
+            payload: Decoded API response (dict).
+            dataset_id: Dataset ID (for logging/exceptions).
 
-        반환값:
-            (body_dict, items) 튜플.
-            body_dict는 StatisticSearch 본문, items는 레코드 리스트.
+        Returns:
+            (body_dict, items) tuple.
+            body_dict is StatisticSearch body, items is record list.
 
-        예외:
-            ProviderResponseError: envelope에 StatisticSearch가 없거나 형식 오류 시.
-            AuthError, RateLimitError, ServiceUnavailableError: RESULT 필드에 오류 코드 있을 때.
+        Raises:
+            ProviderResponseError: When envelope lacks StatisticSearch or format error.
+            AuthError, RateLimitError, ServiceUnavailableError: When error codes
+                in RESULT field.
         """
         self._raise_for_result(payload, dataset_id)
 
@@ -406,18 +413,18 @@ class BokAdapter:
         return body_dict, items
 
     def _raise_for_result(self, payload: Mapping[str, object], dataset_id: str) -> None:
-        """BOK ECOS API 응답의 RESULT 필드를 확인하고 오류 시 예외를 발생시킨다.
+        """Check BOK ECOS API response RESULT field and raise exception on errors.
 
-        매개변수:
-            payload: 디코딩된 API 응답.
-            dataset_id: 데이터셋 ID (예외 메시지용).
+        Args:
+            payload: Decoded API response.
+            dataset_id: Dataset ID (for exception messages).
 
-        예외:
-            AuthError: 인증키 오류 시.
-            RateLimitError: 호출 한도 초과 시.
-            ServiceUnavailableError: 서비스 점검 중일 때.
-            InvalidRequestError: 잘못된 파라미터 사용 시.
-            ProviderResponseError: 기타 오류 시.
+        Raises:
+            AuthError: On authentication key error.
+            RateLimitError: When call rate limit exceeded.
+            ServiceUnavailableError: When service is under maintenance.
+            InvalidRequestError: When invalid parameters used.
+            ProviderResponseError: On other errors.
         """
         result_obj = payload.get("RESULT")
         if not isinstance(result_obj, dict):
@@ -432,20 +439,20 @@ class BokAdapter:
             "BOK ECOS result",
             extra={"result_code": code, "result_msg": message, "dataset_id": dataset_id},
         )
-        # RESULT 필드가 있으면 항상 오류 — BOK ECOS는 성공 시 RESULT 없이 응답
+        # RESULT field indicates error — BOK ECOS responds without RESULT on success
         self._raise_for_result_code(code, message, dataset_id)
 
     def _raise_for_result_code(self, code: str, msg: str, dataset_id: str) -> NoReturn:
-        """BOK ECOS API 오류 코드를 분석하여 적절한 예외를 발생시킨다.
+        """Analyze BOK ECOS API error code and raise appropriate exception.
 
-        매개변수:
-            code: RESULT.CODE 값.
-            msg: RESULT.MESSAGE 값.
-            dataset_id: 데이터셋 ID (예외 메시지용).
+        Args:
+            code: RESULT.CODE value.
+            msg: RESULT.MESSAGE value.
+            dataset_id: Dataset ID (for exception messages).
 
-        예외:
+        Raises:
             AuthError, RateLimitError, ServiceUnavailableError, InvalidRequestError,
-            또는 ProviderResponseError 중 하나. (항상 예외를 던지므로 반환하지 않음)
+            or ProviderResponseError (always raises, does not return).
         """
         normalized_msg = msg.casefold()
         if "인증키" in msg or "api key" in normalized_msg or "auth" in normalized_msg:
@@ -474,25 +481,25 @@ class BokAdapter:
         )
 
     def _resolve_frequency(self, query: Query) -> str:
-        """쿼리에서 주기(frequency) 파라미터를 추출하거나 기본값을 반환한다.
+        """Extract frequency parameter from query or return default.
 
-        매개변수:
-            query: Query 인스턴스.
+        Args:
+            query: Query instance.
 
-        반환값:
-            주기 코드 문자열 (예: "M"). 없으면 "M" (월간) 기본값.
+        Returns:
+            Period code string (e.g., "M"). Defaults to "M" (monthly) if missing.
         """
         return self._resolve_string_param(query, "frequency") or "M"
 
     def _resolve_string_param(self, query: Query, key: str) -> str | None:
-        """쿼리의 extra 또는 filters에서 문자열 파라미터를 추출한다.
+        """Extract string parameter from query extra or filters.
 
-        매개변수:
-            query: Query 인스턴스.
-            key: 추출할 파라미터 키.
+        Args:
+            query: Query instance.
+            key: Parameter key to extract.
 
-        반환값:
-            파라미터 값 문자열 또는 None. extra 우선, 없으면 filters 확인.
+        Returns:
+            Parameter value string or None. Checks extra first, then filters.
         """
         if key in query.extra:
             extra_value = query.extra[key]
@@ -505,17 +512,17 @@ class BokAdapter:
         return None
 
     def _require_dataset_metadata(self, dataset: DatasetRef, key: str) -> str:
-        """데이터셋 메타데이터에서 필수 필드를 읽고 없으면 예외를 발생시킨다.
+        """Read required field from dataset metadata or raise exception.
 
-        매개변수:
-            dataset: DatasetRef 인스턴스.
-            key: 메타데이터 키 (예: "stat_code", "item_code1").
+        Args:
+            dataset: DatasetRef instance.
+            key: Metadata key (e.g., "stat_code", "item_code1").
 
-        반환값:
-            메타데이터 값 문자열.
+        Returns:
+            Metadata value string.
 
-        예외:
-            ProviderResponseError: 메타데이터에 해당 키가 없거나 값이 비어 있을 때.
+        Raises:
+            ProviderResponseError: When key missing from metadata or value empty.
         """
         value = dataset.raw_metadata.get(key)
         if isinstance(value, str) and value:
@@ -527,14 +534,14 @@ class BokAdapter:
         )
 
     def _normalize_rows(self, rows_wrapper: object) -> list[dict[str, object]]:
-        """BOK ECOS API 응답의 row 필드를 정규화하여 리스트로 반환한다.
+        """Normalize BOK ECOS API response row field and return as list.
 
-        매개변수:
-            rows_wrapper: API 응답의 row 값. None, dict, 또는 list일 수 있음.
+        Args:
+            rows_wrapper: API response row value. Can be None, dict, or list.
 
-        반환값:
-            dict 리스트. row가 None이면 빈 리스트, dict 하나면 1개 항목 리스트,
-            list면 그 중 dict만 필터링하여 반환.
+        Returns:
+            List of dicts. Empty if row is None, single-item if dict, filters dicts
+            from list.
         """
         if rows_wrapper is None:
             return []
@@ -547,14 +554,14 @@ class BokAdapter:
 
     @staticmethod
     def _string_param(params: Mapping[str, object], key: str) -> str | None:
-        """call_raw params에서 문자열 파라미터를 추출한다.
+        """Extract string parameter from call_raw params.
 
-        매개변수:
-            params: 파라미터 dict.
-            key: 추출할 키.
+        Args:
+            params: Parameter dict.
+            key: Key to extract.
 
-        반환값:
-            문자열 값 또는 None. 값이 없거나 문자열이 아니거나 비어 있으면 None.
+        Returns:
+            String value or None. Returns None if missing, not string, or empty.
         """
         value = params.get(key)
         if isinstance(value, str) and value:
@@ -563,18 +570,18 @@ class BokAdapter:
 
     @classmethod
     def _require_param(cls, params: Mapping[str, object], key: str, dataset_id: str) -> str:
-        """call_raw params에서 필수 문자열 파라미터를 읽고 없으면 예외를 발생시킨다.
+        """Read required string parameter from call_raw params or raise exception.
 
-        매개변수:
-            params: 파라미터 dict.
-            key: 필수 파라미터 키.
-            dataset_id: 데이터셋 ID (예외 메시지용).
+        Args:
+            params: Parameter dict.
+            key: Required parameter key.
+            dataset_id: Dataset ID (for exception messages).
 
-        반환값:
-            파라미터 값 문자열.
+        Returns:
+            Parameter value string.
 
-        예외:
-            InvalidRequestError: 파라미터가 없거나 비어 있을 때.
+        Raises:
+            InvalidRequestError: When parameter missing or empty.
         """
         value = cls._string_param(params, key)
         if value is not None:
@@ -589,15 +596,15 @@ class BokAdapter:
 
     @classmethod
     def _int_param(cls, params: Mapping[str, object], key: str, default: int) -> int:
-        """call_raw params에서 정수 파라미터를 추출하고 유효하지 않으면 기본값 반환.
+        """Extract integer parameter from call_raw params or return default if invalid.
 
-        매개변수:
-            params: 파라미터 dict.
-            key: 추출할 키.
-            default: 기본값 정수.
+        Args:
+            params: Parameter dict.
+            key: Key to extract.
+            default: Default integer value.
 
-        반환값:
-            정수 값. 변환 실패하거나 0 이하면 default 반환.
+        Returns:
+            Integer value. Returns default if conversion fails or value <= 0.
         """
         value = params.get(key)
         coerced = coerce_int(value, default)
@@ -605,10 +612,10 @@ class BokAdapter:
 
     @staticmethod
     def _load_default_catalogue() -> tuple[DatasetRef, ...]:
-        """기본 카탈로그를 로드하여 반환한다.
+        """Load and return default catalog.
 
-        반환값:
-            kpubdata.providers.bok 패키지의 카탈로그에서 로드한 DatasetRef 튜플.
+        Returns:
+            DatasetRef tuple loaded from kpubdata.providers.bok catalog.
         """
         return load_catalogue("kpubdata.providers.bok", "bok")
 

@@ -1,4 +1,4 @@
-"""서울 실시간 도시데이터 데이터셋."""
+"""Seoul real-time urban data dataset."""
 
 DATASET_KEY = "citydata"
 DEFAULT_OPERATION = "citydata_ppltn"

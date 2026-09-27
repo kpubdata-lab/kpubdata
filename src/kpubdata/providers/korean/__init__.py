@@ -1,4 +1,5 @@
-"""국립국어원 표준국어대사전 open API Provider."""
+"""National Institute of Korean Language Standard Korean Dictionary open API
+Provider."""
 
 from .adapter import KoreanAdapter
 

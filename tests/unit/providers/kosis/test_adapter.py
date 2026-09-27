@@ -153,7 +153,7 @@ def test_adapter_docstring_documents_default_query_params_merge_rule() -> None:
     Raises:
         Exceptions propagated."""
     assert KosisAdapter.__doc__ is not None
-    assert "dataset default_query_params < query.filters (호출자 우선)" in KosisAdapter.__doc__
+    assert "dataset default_query_params < query.filters (caller priority)" in KosisAdapter.__doc__
 
 
 # test query records missing start date logs debug Describes the scenario verified by the test.

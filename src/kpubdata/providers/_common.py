@@ -1,4 +1,4 @@
-"""Provider 어댑터를 위한 공통 카탈로그 및 스키마 유틸리티."""
+"""Common catalogue and schema utilities for provider adapters."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ _CATALOGUE_CANONICAL_KEYS = frozenset(
 
 
 def load_catalogue(package_name: str, provider: str) -> tuple[DatasetRef, ...]:
-    """Provider 패키지의 catalogue.json을 로드하고 파싱한다."""
+    """Load and parse the provider package's catalogue.json."""
     package_files = files(package_name)
     catalogue_text = package_files.joinpath("catalogue.json").read_text(encoding="utf-8")
     parsed_catalogue = cast(object, json.loads(catalogue_text))
@@ -69,7 +69,7 @@ def load_catalogue(package_name: str, provider: str) -> tuple[DatasetRef, ...]:
 
 
 def build_dataset_ref(provider: str, entry: dict[str, object]) -> DatasetRef:
-    """원시 카탈로그 엔트리 dict로부터 DatasetRef를 구성한다."""
+    """Build a DatasetRef from a raw catalogue entry dict."""
     dataset_key = require_string_field(entry, "dataset_key", provider)
     name = require_string_field(entry, "name", provider)
     representation_value = require_string_field(entry, "representation", provider)
@@ -126,7 +126,7 @@ def build_dataset_ref(provider: str, entry: dict[str, object]) -> DatasetRef:
 
 
 def _parse_query_support(entry: dict[str, object], provider: str) -> QuerySupport | None:
-    """카탈로그 엔트리에서 query_support를 파싱한다."""
+    """Parse query_support from a catalogue entry."""
     qs_raw_obj = entry.get("query_support")
     if not isinstance(qs_raw_obj, dict):
         return None
@@ -157,7 +157,7 @@ def _parse_query_support(entry: dict[str, object], provider: str) -> QuerySuppor
 
 
 def _parse_field_constraints(entry: dict[str, object]) -> FieldConstraints | None:
-    """field constraints을 파싱해 반환한다."""
+    """Parse and return field constraints."""
     constraints_raw = entry.get("constraints")
     if not isinstance(constraints_raw, dict):
         return None
@@ -202,7 +202,7 @@ def _parse_field_constraints(entry: dict[str, object]) -> FieldConstraints | Non
 
 
 def build_schema_from_metadata(dataset: DatasetRef) -> SchemaDescriptor | None:
-    """카탈로그 메타데이터 필드에서 SchemaDescriptor를 구성한다."""
+    """Build SchemaDescriptor from catalogue metadata fields."""
     fields_raw = dataset.raw_metadata.get("fields")
     if not isinstance(fields_raw, list) or not fields_raw:
         return None
@@ -244,7 +244,7 @@ def build_schema_from_metadata(dataset: DatasetRef) -> SchemaDescriptor | None:
 
 
 def coerce_int(value: object, default: int) -> int:
-    """값을 int로 강제 변환하고, 실패하면 기본값을 반환한다."""
+    """Coerce value to int; return default on failure."""
     if isinstance(value, int):
         return value
     if isinstance(value, str):
@@ -256,7 +256,7 @@ def coerce_int(value: object, default: int) -> int:
 
 
 def require_string_field(entry: Mapping[str, object], field_name: str, provider: str) -> str:
-    """카탈로그 엔트리에서 필수 비어 있지 않은 문자열 필드를 추출한다."""
+    """Extract required non-empty string field from catalogue entry."""
     value = entry.get(field_name)
     if isinstance(value, str) and value:
         return value

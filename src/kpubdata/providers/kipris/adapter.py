@@ -1,13 +1,14 @@
-"""특허청(KIPI) 특허패밀리정보 open API 어댑터 (#223).
+"""Korean Intellectual Property Office (KIPI) Patent Family Information open API adapter (#223).
 
-kipo-api.kipi.or.kr의 patFamInfoSearchService는 data.go.kr 등록 REST 타입으로,
-공공데이터포털 serviceKey를 쓴다. 응답 형상::
+kipo-api.kipi.or.kr patFamInfoSearchService is registered as REST type on the
+public data portal and uses serviceKey for authentication. Response shape::
 
     {"response": {"header": {...}, "body": {"items": {"item": [...]}, ...}}}
 
-- ``_type=json``이면 표준 엔베프로프와 유사하나 totalCount 필드가 없다
-  (``numOfRows``/``pageNo``만 제공) — 페이지 계산은 항목 수 기반 폴백을 쓴다.
-- 필수 파라미터: ``applicationNumber``(국내 출원번호)
+- With ``_type=json``, the shape is similar to standard envelope but lacks
+  totalCount field (only ``numOfRows``/``pageNo`` available) — page
+  calculation falls back to item count.
+- Required parameter: ``applicationNumber`` (domestic application number)
 """
 
 from __future__ import annotations
@@ -34,7 +35,7 @@ _CATALOGUE_PACKAGE = "kpubdata.providers.kipris"
 
 
 class KiprisAdapter:
-    """특허청 특허패밀리정보 검색 어댑터."""
+    """Korean Intellectual Property Office patent family search adapter."""
 
     requires_api_key: bool = True
 
@@ -106,7 +107,7 @@ class KiprisAdapter:
         payload = self._request_and_decode(url, dataset.id)
         items = self._parse_kipris_envelope(payload, dataset.id)
 
-        # totalCount가 없어 full-page 폴백으로 다음 페이지를 판정한다.
+        # No totalCount available; determine next page by full-page fallback.
         next_page: int | None = None
         if len(items) == page_size:
             next_page = page + 1
@@ -185,7 +186,7 @@ class KiprisAdapter:
     def _parse_kipris_envelope(
         self, payload: Mapping[str, object], dataset_id: str
     ) -> list[dict[str, object]]:
-        """KIPI 엔벨로프(response/body/items/item)에서 item 리스트를 추출한다."""
+        """Extract item list from KIPI envelope (response/body/items/item)."""
         response = payload.get("response")
         if not isinstance(response, dict):
             raise ProviderResponseError(
@@ -203,7 +204,7 @@ class KiprisAdapter:
         items_raw = body.get("items")
         if items_raw is None:
             return []
-        # 단일 item도 객체로 내려올 수 있다 — 리스트로 정규화한다.
+        # Single item may arrive as an object — normalize to list.
         if isinstance(items_raw, dict):
             items_raw = items_raw.get("item")
         if isinstance(items_raw, dict):

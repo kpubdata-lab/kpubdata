@@ -1,7 +1,8 @@
-"""KPubData Python 모듈.
+"""KPubData Python module.
 
-이 파일은 ``src/kpubdata/providers/lofin/adapter.py`` 경로의 구현을 담는다.
-주요 클래스와 함수는 공개 API, 전송 계층, Provider 어댑터 중 하나의 역할을 담당한다.
+This file contains the implementation at ``src/kpubdata/providers/lofin/adapter.py``.
+Key classes and functions are part of the public API, transport layer,
+or provider adapter.
 """
 
 from __future__ import annotations
@@ -28,26 +29,27 @@ logger = logging.getLogger("kpubdata.provider.lofin")
 
 
 def _lofin_ssl_context() -> ssl.SSLContext:
-    """LOFIN 서버와 호환되는 SSL 컨텍스트를 생성한다.
+    """Create SSL context compatible with LOFIN server.
 
-    인증서 검증을 켜 둔다. 예전에는 ``check_hostname = False`` 와
-    ``verify_mode = CERT_NONE`` 으로 검증을 통째로 껐다 — 이 요청에는 API 키가
-    함께 나가므로, 중간자가 인증서를 갈아끼우면 키까지 그대로 가져간다.
-    README 는 그것을 "SSL 설정 자동 조정" 이라고만 적어 두었다.
+    Certificate verification is enabled. Previously, verification was disabled
+    entirely with ``check_hostname = False`` and ``verify_mode = CERT_NONE`` —
+    but since API keys travel with this request, a MITM attacker who swaps
+    certificates also gets the key. The README only noted it as "SSL settings
+    auto-adjusted".
 
-    실제로 필요했던 건 cipher 완화뿐이다. 2026-09-25 에 www.lofin365.go.kr 로
-    직접 확인한 결과는 이렇다::
+    Actually only cipher relaxation was needed. Direct verification on
+    2026-09-25 of www.lofin365.go.kr shows::
 
-        기본 컨텍스트(전체 검증)        OK  TLSv1.3  TLS_AES_256_GCM_SHA384
-        검증 ON + SECLEVEL=1            OK  TLSv1.3  TLS_AES_256_GCM_SHA384
-        발급자 CN = Sectigo Public Server Authentication CA OV R36
+        Default context (full verification)    OK  TLSv1.3  TLS_AES_256_GCM_SHA384
+        Verification ON + SECLEVEL=1           OK  TLSv1.3  TLS_AES_256_GCM_SHA384
+        Issuer CN = Sectigo Public Server Authentication CA OV R36
         subject   = lofin365.go.kr
 
-    공개 CA 가 발급한 정상 인증서이고 TLSv1.3 로 붙는다 — 검증을 끌 이유가
-    애초에 없었고 지금은 더욱 없다. ``SECLEVEL=1`` 은 남겨 둔다. 서버가
-    TLSv1.2 와 AES256-SHA256 만 제시하던 시절이 이 함수가 생긴 이유이므로,
-    일부 노드가 아직 그렇더라도 붙을 수 있게 한다 — cipher 하한을 낮추는 것과
-    상대가 누구인지 확인하지 않는 것은 전혀 다른 문제다.
+    Public CA issued a proper certificate and connects via TLSv1.3 — there was
+    never reason to disable verification, and even less so now. ``SECLEVEL=1``
+    is retained because this function exists from when the server offered only
+    TLSv1.2 and AES256-SHA256, so some nodes may still do that — relaxing cipher
+    floor is completely different from not verifying the peer.
     """
     ctx = ssl.create_default_context()
     ctx.set_ciphers("DEFAULT:@SECLEVEL=1")
@@ -55,7 +57,7 @@ def _lofin_ssl_context() -> ssl.SSLContext:
 
 
 class LofinAdapter:
-    """LofinAdapter과 관련된 값을 계산하거나 조회한다."""
+    """Compute or query values related to LofinAdapter."""
 
     requires_api_key: bool = True
 
@@ -70,7 +72,7 @@ class LofinAdapter:
         transport: HttpTransport | None = None,
         catalogue: Sequence[DatasetRef] | None = None,
     ) -> None:
-        """인스턴스가 사용할 내부 상태를 초기화한다."""
+        """Initialize instance state."""
         self._config: KPubDataConfig = config or KPubDataConfig()
         if transport is not None:
             self._transport: HttpTransport = transport
@@ -91,15 +93,15 @@ class LofinAdapter:
 
     @property
     def name(self) -> str:
-        """name과 관련된 값을 계산하거나 조회한다."""
+        """Return provider name."""
         return "lofin"
 
     def list_datasets(self) -> list[DatasetRef]:
-        """list datasets과 관련된 값을 계산하거나 조회한다."""
+        """Return all datasets provided by this adapter."""
         return list(self._datasets)
 
     def search_datasets(self, text: str) -> list[DatasetRef]:
-        """search datasets과 관련된 값을 계산하거나 조회한다."""
+        """Search datasets."""
         needle = text.casefold()
         return [
             dataset
@@ -108,7 +110,7 @@ class LofinAdapter:
         ]
 
     def get_dataset(self, dataset_key: str) -> DatasetRef:
-        """dataset을 반환한다."""
+        """Return the dataset for the given key."""
         dataset = self._datasets_by_key.get(dataset_key)
         if dataset is not None:
             return dataset
@@ -124,7 +126,7 @@ class LofinAdapter:
         )
 
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
-        """records을 수행한다."""
+        """Query records by calling LOFIN API."""
         page = query.page or 1
         page_size = query.page_size or 100
         logger.debug(
@@ -172,11 +174,11 @@ class LofinAdapter:
         )
 
     def get_schema(self, dataset: DatasetRef) -> SchemaDescriptor | None:
-        """schema을 반환한다."""
+        """Return schema information of the dataset."""
         return build_schema_from_metadata(dataset)
 
     def call_raw(self, dataset: DatasetRef, operation: str, params: dict[str, object]) -> object:
-        """call raw과 관련된 값을 계산하거나 조회한다."""
+        """Call LOFIN API directly and return raw response."""
         _ = operation
         logger.debug(
             "lofin call_raw",
@@ -197,9 +199,11 @@ class LofinAdapter:
         return payload
 
     def _require_api_key(self) -> str:
-        """공공데이터포털(data.go.kr) API 키를 읽고 없으면 예외를 발생시킨다.
-        localdata · semas · lofin 어댓터는 모두 data.go.kr 인증 시스템을 공유하며
-        단일 provider_key("datago")로 관리하는 것이 의도된 설계다.
+        """Read public data portal (data.go.kr) API key or raise exception.
+
+        localdata, semas, and lofin adapters all share the data.go.kr
+        authentication system and are intentionally managed under a single
+        provider_key ("datago").
         """
         return self._config.require_provider_key("datago")
 
@@ -211,7 +215,7 @@ class LofinAdapter:
         page_size: int,
         filters: dict[str, object] | None = None,
     ) -> str:
-        """요청 URL을 구성해 반환한다."""
+        """Build LOFIN API request URL."""
         base_url_raw = dataset.raw_metadata.get("base_url")
         if not isinstance(base_url_raw, str) or not base_url_raw:
             logger.debug(
@@ -238,7 +242,7 @@ class LofinAdapter:
         return url
 
     def _request_and_decode(self, url: str, dataset_id: str = "") -> dict[str, object]:
-        """request and decode과 관련된 값을 계산하거나 조회한다."""
+        """Send HTTP GET request to LOFIN API and decode."""
         response = self._transport.request("GET", url, dataset_id=dataset_id, provider="lofin")
 
         try:
@@ -258,7 +262,7 @@ class LofinAdapter:
     def _validate_envelope(
         self, payload: dict[str, object], dataset: DatasetRef
     ) -> tuple[dict[str, object], list[dict[str, object]]]:
-        """envelope의 형식을 검증하고 필요한 값을 추출한다."""
+        """Validate LOFIN API response envelope format."""
         dataset_code = self._require_dataset_metadata(dataset, "api_code")
         body_obj = payload.get(dataset_code)
         if not isinstance(body_obj, list) or not body_obj:
@@ -318,7 +322,7 @@ class LofinAdapter:
         return metadata, items
 
     def _raise_for_top_level_result(self, payload: Mapping[str, object], dataset_id: str) -> None:
-        """raise for top level result과 관련된 값을 계산하거나 조회한다."""
+        """Check LOFIN top-level result field."""
         result_obj = payload.get("RESULT")
         if not isinstance(result_obj, list):
             return
@@ -336,7 +340,7 @@ class LofinAdapter:
         )
 
     def _raise_for_result(self, payload: Mapping[str, object], dataset_id: str) -> None:
-        """raise for result과 관련된 값을 계산하거나 조회한다."""
+        """Check LOFIN result field and raise on error."""
         result_obj = payload.get("RESULT")
         if not isinstance(result_obj, dict):
             return
@@ -359,7 +363,7 @@ class LofinAdapter:
         self._raise_for_result_code(code, message, dataset_id)
 
     def _raise_for_result_code(self, code: str, msg: str, dataset_id: str) -> NoReturn:
-        """raise for 결과 코드과 관련된 값을 계산하거나 조회한다."""
+        """Analyze LOFIN error code and raise exception."""
         if code in {"ERROR-290", "ERROR-300"}:
             raise AuthError(
                 msg, provider="lofin", provider_code=code, dataset_id=dataset_id or None
@@ -379,7 +383,7 @@ class LofinAdapter:
         )
 
     def _require_dataset_metadata(self, dataset: DatasetRef, key: str) -> str:
-        """필수 dataset metadata을 읽고 없으면 예외를 발생시킨다."""
+        """Read required field from dataset metadata."""
         value = dataset.raw_metadata.get(key)
         if isinstance(value, str) and value:
             return value
@@ -390,7 +394,7 @@ class LofinAdapter:
         )
 
     def _normalize_rows(self, rows_wrapper: object) -> list[dict[str, object]]:
-        """rows을 정규화해 반환한다."""
+        """Normalize LOFIN API response rows field."""
         if rows_wrapper is None:
             return []
         if isinstance(rows_wrapper, list):
@@ -402,14 +406,14 @@ class LofinAdapter:
 
     @classmethod
     def _int_param(cls, params: Mapping[str, object], key: str, default: int) -> int:
-        """int param과 관련된 값을 계산하거나 조회한다."""
+        """Extract integer parameter or return default."""
         value = params.get(key)
         coerced = coerce_int(value, default)
         return coerced if coerced > 0 else default
 
     @staticmethod
     def _load_default_catalogue() -> tuple[DatasetRef, ...]:
-        """기본 카탈로그을 로드해 반환한다."""
+        """Load and return default catalog."""
         return load_catalogue("kpubdata.providers.lofin", "lofin")
 
 

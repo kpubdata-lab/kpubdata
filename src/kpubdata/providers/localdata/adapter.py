@@ -1,9 +1,10 @@
-"""localdata provider 어댑터.
+"""Localdata provider adapter.
 
-data.go.kr 계열 공용 구현(:mod:`kpubdata.providers._datago_family`)을 그대로 쓴다 —
-인증·envelope·페이지네이션 규약이 datago 와 같기 때문이다. 예전에는 localdata 와
-semas 가 각각 375줄짜리 사본을 들고 있었고, 이름을 맞춰 비교하면 코드 차이가
-0줄이었다. 그 중복 때문에 "03"(NODATA) 처리가 한쪽에만 들어가 #470 회귀가 났다.
+Uses shared data.go.kr family implementation (:mod:`kpubdata.providers._datago_family`)
+directly — authentication, envelope, and pagination conventions match datago.
+Previously localdata and semas each had 375-line copies; comparing by normalizing
+names showed **0 lines of code difference**. That duplication caused "03"
+(NODATA) handling to exist in only one, creating #470 regression.
 """
 
 from __future__ import annotations
@@ -12,7 +13,7 @@ from kpubdata.providers._datago_family import DataGoFamilyAdapter
 
 
 class LocaldataAdapter(DataGoFamilyAdapter):
-    """localdata 데이터셋 어댑터."""
+    """Localdata (Local Administrative License) dataset adapter."""
 
     provider_name = "localdata"
     catalogue_package = "kpubdata.providers.localdata"
