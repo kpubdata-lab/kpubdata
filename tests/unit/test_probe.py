@@ -101,7 +101,7 @@ class TestApplyReport:
 
         report = render_apply_report(results)
 
-        assert "Applying for 1 service unlocks 3 datasets" in report
+        assert "서비스 1건을 신청하면 데이터셋 3종이 풀립니다" in report
         assert report.count("## ") == 1
 
     def test_only_pending_datasets_appear(self) -> None:
@@ -120,7 +120,7 @@ class TestApplyReport:
     def test_nothing_pending_says_so(self) -> None:
         report = render_apply_report([_result("datago.ok", "OkSvc", "available")])
 
-        assert "none" in report.lower()
+        assert "없습니다" in report
 
 
 class TestReportFile:

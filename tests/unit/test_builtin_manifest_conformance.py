@@ -25,7 +25,7 @@ def _supported_providers() -> set[str]:
     rows = [
         line
         for line in text.splitlines()
-        if line.startswith("| supported ") or line.startswith("| partially supported ")
+        if line.startswith("| 지원 |") or line.startswith("| 부분 지원 |")
     ]
     providers = set()
     for row in rows:
@@ -41,7 +41,7 @@ def test_every_supported_doc_provider_is_builtin() -> None:
     builtin = {name for name, _module, _cls in BUILTIN_PROVIDERS}
     missing = documented - builtin
     assert not missing, (
-        f"SUPPORTED_DATA.md marked as supported but not in builtin manifest: {sorted(missing)}"
+        f"SUPPORTED_DATA.md가 지원으로 표시했지만 builtin manifest에 없음: {sorted(missing)}"
     )
 
 
@@ -50,7 +50,7 @@ def test_supported_provider_resolves_without_network(provider: str) -> None:
     """Supported providers resolve without network in Client()."""
     client = Client()
     entries = client.datasets.list(provider=provider)
-    assert entries, f"provider {provider!r} has no datasets"
+    assert entries, f"provider {provider!r}에 dataset이 하나도 없다"
 
     dataset = client.dataset(f"{provider}.{entries[0].dataset_key}")
     assert dataset._ref.dataset_key == entries[0].dataset_key
