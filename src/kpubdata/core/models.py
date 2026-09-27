@@ -175,6 +175,42 @@ class Query:
                 )
 
 
+@_dataclass(slots=True, frozen=True)
+class FieldIssue:
+    """A single field-level validation issue found during normalization (#572).
+
+    Attributes:
+        field: The field name from the spec or response.
+        kind: One of 'uncastable', 'missing', 'undeclared'.
+        declared_type: The spec's declared type (None for undeclared).
+        failed_count: How many values failed (for uncastable).
+        sample_values: Up to 3 repr'd failing values (for uncastable).
+    """
+
+    field: str
+    kind: str
+    declared_type: str | None = None
+    failed_count: int = 0
+    sample_values: tuple[str, ...] = ()
+
+
+@_dataclass(slots=True, frozen=True)
+class ValidationReport:
+    """Typed validation summary for a RecordBatch (#572).
+
+    Attributes:
+        issues: Field-level issues found during normalization.
+        ok: True when no issues were found.
+    """
+
+    issues: tuple[FieldIssue, ...] = ()
+
+    @property
+    def ok(self) -> bool:
+        """Return True when no issues were found."""
+        return len(self.issues) == 0
+
+
 @_dataclass(slots=True)
 class RecordBatch:
     """Normalized record batch returned from dataset query.
@@ -184,6 +220,8 @@ class RecordBatch:
         next_cursor: Opaque cursor token for cursor-based pagination.
         raw: Provider-specific response payload used to derive this batch.
         meta: Additional adapter metadata not fitting canonical fields.
+        validation: Typed normalization report; None means the adapter
+            did not run field-level validation (#572).
     """
 
     items: list[dict[str, object]]
@@ -193,6 +231,7 @@ class RecordBatch:
     next_cursor: str | None = None
     raw: object | None = None
     meta: dict[str, object] = field(default_factory=dict)
+    validation: ValidationReport | None = None
 
     def __len__(self) -> int:
         """Return the number of records in the batch."""
