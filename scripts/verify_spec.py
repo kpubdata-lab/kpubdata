@@ -1,12 +1,14 @@
-"""데이터셋 검증 오케스트레이터 — `make verify`의 실체.
+"""Dataset verification orchestrator — the substance of `make verify`.
 
-단계(하나라도 실패하면 exit 1):
-1. spec 스키마·id·중복 검사 (scripts/validate_spec.py 위임)
-2. fixture 무결성 — raw/meta/expected 3종 존재 + 해시 일치
-3. replay 계약 — raw → envelope 검사 → items/total 추출이 expected와 일치
+Steps (any failure exits 1):
+1. Spec schema/id/duplicate checks (delegates to
+   scripts/validate_spec.py)
+2. Fixture integrity — raw/meta/expected all present + hashes match
+3. Replay contract — raw → envelope validation → items/total extraction
+   matches expected
 
-사용법:
-    uv run python scripts/verify_spec.py                     # 전체 spec
+Usage:
+    uv run python scripts/verify_spec.py                     # all specs
     uv run python scripts/verify_spec.py --dataset datago.apt_trade
 """
 
@@ -28,7 +30,7 @@ FIXTURES_ROOT = REPO_ROOT / "tests" / "fixtures"
 
 @dataclass
 class StepResult:
-    """단일 검증 단계 결과."""
+    """Single verification stage result."""
 
     name: str
     passed: bool
@@ -37,24 +39,24 @@ class StepResult:
 
 @dataclass
 class DatasetVerifyResult:
-    """데이터셋별 검증 결과."""
+    """Verification result per dataset."""
 
     dataset_id: str
     steps: list[StepResult] = field(default_factory=list)
 
     @property
     def passed(self) -> bool:
-        """모든 단계 통과 여부."""
+        """All stages passed."""
         return all(step.passed for step in self.steps)
 
 
 def _canon_bytes(data: object) -> str:
-    """해시 비교용 정규 JSON 직렬화(record.py의 규칙과 동일)."""
+    """Canonical JSON serialization for hash comparison (same rules as record.py)."""
     return json.dumps(data, ensure_ascii=False, sort_keys=True, indent=1) + "\n"
 
 
 def _verify_fixtures(spec: SpecDefinition) -> list[StepResult]:
-    """fixture 무결성 + replay 계약을 검증한다."""
+    """Verify fixture integrity + replay contract."""
     results: list[StepResult] = []
     out_dir = FIXTURES_ROOT / spec.provider / spec.dataset_key
     if not out_dir.is_dir() or not list(out_dir.glob("*.raw.json")):
@@ -73,7 +75,7 @@ def _verify_fixtures(spec: SpecDefinition) -> list[StepResult]:
         meta_path = raw_path.with_name(f"{example}.meta.json")
         expected_path = raw_path.with_name(f"{example}.expected.json")
 
-        # 2-a. 3종 존재
+        # 2-a. All 3 types exist
         missing = [path.name for path in (raw_path, meta_path, expected_path) if not path.is_file()]
         if missing:
             results.append(
@@ -85,7 +87,7 @@ def _verify_fixtures(spec: SpecDefinition) -> list[StepResult]:
             )
             continue
 
-        # 2-b. 해시 일치 (agent가 fixture를 지어내는 경로 차단)
+        # 2-b. Hash match (block agent from fabricating fixtures)
         payload = json.loads(raw_path.read_text(encoding="utf-8"))
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
         digest = hashlib.sha256(_canon_bytes(payload).encode("utf-8")).hexdigest()
@@ -99,14 +101,14 @@ def _verify_fixtures(spec: SpecDefinition) -> list[StepResult]:
             )
             continue
 
-        # 3. replay 계약 — spec 필드를 바꾸면 이 단계에서 실패해야 한다
+        # 3. replay contract — changing spec fields should fail at this stage
         from kpubdata.core.executor import check_payload_error, extract_items, extract_total_count
 
         try:
             check_payload_error(spec, payload)
             items = extract_items(spec, payload)
             total = extract_total_count(spec, payload)
-        except Exception as exc:  # noqa: BLE001 — 검증기는 모든 실패를 결과로 수집
+        except Exception as exc:  # noqa: BLE001 — verifier collects all failures as results
             results.append(
                 StepResult(f"replay[{example}] envelope 검사", passed=False, detail=str(exc))
             )
@@ -132,7 +134,7 @@ def _verify_fixtures(spec: SpecDefinition) -> list[StepResult]:
 
 
 def run_verify(dataset_id: str | None = None) -> int:
-    """전체(또는 단일) spec에 대해 검증을 수행하고 종료 코드를 반환한다."""
+    """Run verification on all (or single) specs and return exit code."""
     specs: list[SpecDefinition]
     if dataset_id:
         spec = find_spec(dataset_id)
@@ -143,7 +145,7 @@ def run_verify(dataset_id: str | None = None) -> int:
     else:
         specs = discover_specs()
 
-    # 1. 스키마 검증 위임
+    # 1. Delegate schema validation
     validate = subprocess.run(
         [sys.executable, str(REPO_ROOT / "scripts" / "validate_spec.py")],
         check=False,
@@ -156,8 +158,8 @@ def run_verify(dataset_id: str | None = None) -> int:
             print(validate.stderr.rstrip())
         return 1
 
-    # unstable/broken status인 spec은 fixture·예제 검증을 건너뛴다 —
-    # 활용신청 미승인 등으로 fixture 생성이 불가능한 경우다.
+    # specs with unstable/broken status skip fixture/example verification —
+    # case where fixture creation is impossible (e.g., usage request not approved).
     skippable = frozenset({"unstable", "broken"})
 
     failed_any = False
@@ -183,7 +185,7 @@ def run_verify(dataset_id: str | None = None) -> int:
 
 
 def _run_live_schema_diff(spec: SpecDefinition) -> StepResult:
-    """LIVE=1 시 실호출 스키마 diff를 수행한다(값 변화는 무시, 구조만 비교)."""
+    """Perform live schema diff when LIVE=1 (ignore value changes, compare structure only)."""
     import os
 
     if os.environ.get("LIVE") != "1":
@@ -216,7 +218,7 @@ def _run_live_schema_diff(spec: SpecDefinition) -> StepResult:
         params, payload = executor.fetch(spec, query, format_hint=example.format)
         check_payload_error(spec, payload)
         live_items = extract_items(spec, payload)
-    except Exception as exc:  # noqa: BLE001 — LIVE 검증은 실패를 결과로 수집
+    except Exception as exc:  # noqa: BLE001 — LIVE verification collects failures as results
         return StepResult("live 스키마 diff", passed=False, detail=f"실호출 실패: {str(exc)[:120]}")
 
     expected = json.loads((out_dir / f"{example_name}.expected.json").read_text(encoding="utf-8"))
@@ -233,7 +235,7 @@ def _run_live_schema_diff(spec: SpecDefinition) -> StepResult:
 
 
 def _run_example_script(spec: SpecDefinition) -> StepResult:
-    """예제 스크립트를 replay 모드로 실행한다(검증 4단계)."""
+    """Run example script in replay mode (verification stage 4)."""
     import os
     import subprocess
 
@@ -264,7 +266,7 @@ def _run_example_script(spec: SpecDefinition) -> StepResult:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI 진입점."""
+    """CLI entry point."""
     parser = argparse.ArgumentParser(description="spec 데이터셋 검증 (make verify)")
     parser.add_argument("--dataset", help="단일 데이터셋 id (예: datago.apt_trade)")
     args = parser.parse_args(argv)

@@ -1,9 +1,10 @@
-"""응답 정화(redaction) — fixture에 민감값이 남지 않게 한다.
+"""Response redaction — ensures sensitive values don't remain in fixtures.
 
-record.py가 저장하기 전에 원본 페이로드·파라미터에서 다음을 치환한다:
-- API 키 실제 값(설정에서 읽어 전달받은 값 그대로)
-- 이메일 주소
-- 한국 전화번호(010-1234-5678, 02-123-4567 등)
+Before record.py saves, replaces the following in the original payload
+and parameters:
+- The literal API key value (exactly as read from configuration)
+- Email addresses
+- Korean phone numbers (010-1234-5678, 02-123-4567 and the like)
 """
 
 from __future__ import annotations
@@ -16,7 +17,7 @@ _REDACTED = "[REDACTED]"
 
 
 def redact_string(value: str, secrets: tuple[str, ...] = ()) -> str:
-    """문자열에서 민감값을 치환한다."""
+    """Substitute sensitive values in string."""
     result = value
     for secret in secrets:
         if secret:
@@ -27,9 +28,10 @@ def redact_string(value: str, secrets: tuple[str, ...] = ()) -> str:
 
 
 def redact_mapping(data: dict[str, object], secrets: tuple[str, ...] = ()) -> dict[str, object]:
-    """매핑을 재귀 순회하며 문자열 값을 정화한 사본을 반환한다.
+    """Recursively traverse mapping and return copy with sanitized string values.
 
-    키 이름이 민감 파라미터(serviceKey 등)인 항목은 값 전체를 치환한다.
+    Entries whose key name is a sensitive parameter (serviceKey etc.) have
+    the whole value replaced.
     """
     sensitive_keys = {"servicekey", "service_key", "apikey", "api_key", "key", "token", "secret"}
     redacted: dict[str, object] = {}
@@ -49,7 +51,7 @@ def redact_mapping(data: dict[str, object], secrets: tuple[str, ...] = ()) -> di
 
 
 def _redact_list(values: list[object], secrets: tuple[str, ...]) -> list[object]:
-    """리스트 내부를 재귀 정화한다."""
+    """Recursively clean list contents."""
     result: list[object] = []
     for value in values:
         if isinstance(value, str):

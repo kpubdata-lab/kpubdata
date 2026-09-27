@@ -1,11 +1,12 @@
-"""문서용 예제 생성기 — examples/ 스크립트에서 docs/dataset-examples.md 를 만든다.
+"""Documentation example generator — creates docs/dataset-examples.md from examples/ scripts.
 
-사용법:
-    uv run python scripts/gen_docs_examples.py           # 생성
-    uv run python scripts/gen_docs_examples.py --check   # 드리프트 검사(CI용, exit 1)
+Usage:
+    uv run python scripts/gen_docs_examples.py           # generate
+    uv run python scripts/gen_docs_examples.py --check   # drift check (CI, exit 1)
 
-손으로 쓴 예제 블록 대신 항상 이 생성물을 인용한다(#379 2.3) —
-예제 스크립트가 곧 검증 대상(replay 실행)이므로 문서와 코드가 어긋날 수 없다.
+Always quote this generated output instead of hand-written example blocks
+(#379 2.3) — the example scripts are themselves the verification target
+(replay), so documentation and code cannot diverge.
 """
 
 from __future__ import annotations
@@ -29,14 +30,14 @@ _HEADER = """# 데이터셋 예제
 
 
 def generate(examples_dir: Path = EXAMPLES_DIR) -> str:
-    """examples 트리에서 마크다운 문서 내용을 생성한다."""
+    """Generate markdown documentation content from examples tree."""
     blocks: list[str] = [_HEADER]
     scripts = sorted(
         path
         for path in examples_dir.rglob("*.py")
         if path.name != "__init__.py"
         and path.parent != examples_dir
-        # 배치 자동 생성 예제는 문서에서 제외(수록 규모·큐레이션 이유)
+        # Auto-generated batch examples excluded from docs (coverage/curation reasons)
         and not path.read_text(encoding="utf-8").startswith("# auto-generated: docs-exclude")
     )
     if not scripts:
@@ -60,7 +61,7 @@ def generate(examples_dir: Path = EXAMPLES_DIR) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI 진입점 — 생성 또는 드리프트 검사."""
+    """CLI entry point — generate or check drift."""
     parser = argparse.ArgumentParser(description="docs/dataset-examples.md 생성기")
     parser.add_argument("--check", action="store_true", help="생성 결과가 커밋과 일치하는지만 검사")
     args = parser.parse_args(argv)

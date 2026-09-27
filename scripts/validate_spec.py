@@ -1,19 +1,21 @@
-"""데이터셋 spec 검증 CLI — 스키마 계약·id 규칙·중복 검사를 수행한다.
+"""Dataset spec validation CLI — performs schema contract, id rules, duplicate checks.
 
-사용법:
-    uv run python scripts/validate_spec.py              # 전체 spec 검증
+Usage:
+    uv run python scripts/validate_spec.py              # validate all specs
     uv run python scripts/validate_spec.py --spec datago.apt_trade
     uv run python scripts/validate_spec.py --specs-dir PATH --schema PATH
 
-검사 항목:
-1. YAML 파싱
-2. ``specs/schema.json`` (JSON Schema draft 2020-12) 위반 여부
-3. id == "{provider}.{파일명 stem}" 및 파일 경로({provider}/) 일치
-4. 전체 spec 간 id 중복
-5. examples[].name 중복(데이터셋 내부)
-6. 동일 키의 catalogue.json 항목 존재 시 공존 NOTICE 출력(실패 아님 — 파일럿 병존 설계)
+Checks:
+1. YAML parsing
+2. Violations of ``specs/schema.json`` (JSON Schema draft 2020-12)
+3. id == "{provider}.{file stem}" and the file path ({provider}/) match
+4. Duplicate ids across all specs
+5. Duplicate examples[].names (within a dataset)
+6. When a catalogue.json entry with the same key exists, prints a
+   coexistence NOTICE (not a failure — pilot coexistence design)
 
-CI(ci.yml)에서 의존성 설치 후 실행되며, 하나라도 실패하면 exit 1을 반환한다.
+CI (ci.yml) runs this after dependency install; any failure returns
+exit 1.
 """
 
 from __future__ import annotations
@@ -34,7 +36,7 @@ PROVIDERS_DIR = REPO_ROOT / "src" / "kpubdata" / "providers"
 
 @dataclass
 class SpecCheckResult:
-    """단일 spec 검사 결과."""
+    """Single spec check result."""
 
     spec_id: str
     path: Path
@@ -43,34 +45,34 @@ class SpecCheckResult:
 
     @property
     def passed(self) -> bool:
-        """오류가 없으면 True를 반환한다."""
+        """Return True if no errors."""
         return not self.errors
 
 
 @dataclass
 class ValidationReport:
-    """전체 검증 보고서."""
+    """Complete validation report."""
 
     results: list[SpecCheckResult] = field(default_factory=list)
 
     @property
     def passed_count(self) -> int:
-        """통과한 spec 수를 반환한다."""
+        """Return count of passed specs."""
         return sum(1 for result in self.results if result.passed)
 
     @property
     def failed_count(self) -> int:
-        """실패한 spec 수를 반환한다."""
+        """Return count of failed specs."""
         return sum(1 for result in self.results if not result.passed)
 
     @property
     def ok(self) -> bool:
-        """전체 통과 여부를 반환한다."""
+        """Return whether all passed."""
         return bool(self.results) and self.failed_count == 0
 
 
 def _load_schema(schema_path: Path) -> dict[str, object]:
-    """스키마 파일을 읽어 dict로 반환한다."""
+    """Read schema file and return as dict."""
     import json
 
     data = json.loads(schema_path.read_text(encoding="utf-8"))
@@ -81,7 +83,7 @@ def _load_schema(schema_path: Path) -> dict[str, object]:
 
 
 def _catalogue_dataset_keys(provider: str) -> set[str]:
-    """해당 Provider의 catalogue.json 데이터셋 키 집합을 반환한다(없으면 빈 집합)."""
+    """Return set of catalogue.json dataset keys for provider (empty if none)."""
     catalogue_path = PROVIDERS_DIR / provider / "catalogue.json"
     if not catalogue_path.is_file():
         return set()
@@ -102,7 +104,7 @@ def validate_spec_file(
     schema: dict[str, object],
     seen_ids: dict[str, Path],
 ) -> SpecCheckResult:
-    """spec 파일 하나를 스키마·id 규칙에 따라 검사한다."""
+    """Check one spec file against schema and id rules."""
     spec_id = path.stem
     result = SpecCheckResult(spec_id=spec_id, path=path)
     try:
@@ -120,14 +122,14 @@ def validate_spec_file(
     provider = data.get("provider")
     provider = provider if isinstance(provider, str) else ""
 
-    # jsonschema 검사 — 오류 메시지를 사람이 읽을 수 있는 형태로 축약한다.
+    # jsonschema check — abbreviate error messages to human-readable form.
     validator_cls = jsonschema.Draft202012Validator
     validator = validator_cls(schema)
     for error in sorted(validator.iter_errors(data), key=lambda item: list(item.absolute_path)):
         location = ".".join(str(part) for part in error.absolute_path) or "(루트)"
         result.errors.append(f"스키마 위반 [{location}]: {error.message}")
 
-    # id ↔ 파일명/디렉터리 규칙
+    # id ↔ filename/directory rules
     if declared_id and declared_id != f"{provider}.{path.stem}":
         result.errors.append(
             f"id({declared_id!r})는 '{{provider}}.{{파일명}}' 규칙과 불일치합니다 "
@@ -139,7 +141,7 @@ def validate_spec_file(
             f"파일이 {expected_dir!r} 디렉터리에 있지만 provider는 {provider!r}입니다."
         )
 
-    # 전역 중복 id
+    # Global duplicate ids
     if declared_id:
         existing = seen_ids.get(declared_id)
         if existing is not None and existing != path:
@@ -149,7 +151,7 @@ def validate_spec_file(
         else:
             seen_ids[declared_id] = path
 
-    # examples[].name 중복
+    # examples[].name duplicates
     examples = data.get("examples")
     if isinstance(examples, list):
         names: list[str] = [
@@ -161,7 +163,7 @@ def validate_spec_file(
         if duplicated:
             result.errors.append(f"examples[].name 중복: {', '.join(duplicated)}")
 
-    # catalogue 공존 NOTICE (실패 아님)
+    # catalogue coexistence NOTICE (not a failure)
     dataset_key = path.stem
     if dataset_key in _catalogue_dataset_keys(provider):
         result.notices.append(
@@ -173,7 +175,7 @@ def validate_spec_file(
 
 
 def validate_specs(specs_dir: Path, schema_path: Path) -> ValidationReport:
-    """specs 디렉터리 전체를 검증해 보고서를 반환한다."""
+    """Validate entire specs directory and return report."""
     schema = _load_schema(schema_path)
     report = ValidationReport()
     seen_ids: dict[str, Path] = {}
@@ -185,7 +187,7 @@ def validate_specs(specs_dir: Path, schema_path: Path) -> ValidationReport:
 
 
 def format_report(report: ValidationReport) -> str:
-    """보고서를 사람이 읽는 요약 문자열로 변환한다."""
+    """Convert report to human-readable summary string."""
     lines: list[str] = []
     for result in report.results:
         status = "통과" if result.passed else "실패"
@@ -204,7 +206,7 @@ def format_report(report: ValidationReport) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI 진입점 — 검증을 실행하고 종료 코드를 반환한다."""
+    """CLI entry point — run validation and return exit code."""
     parser = argparse.ArgumentParser(description="데이터셋 spec 검증")
     parser.add_argument("--spec", help="이 id의 spec만 검증 (예: datago.apt_trade)")
     parser.add_argument("--specs-dir", type=Path, default=DEFAULT_SPECS_DIR, help="specs 디렉터리")
@@ -217,7 +219,7 @@ def main(argv: list[str] | None = None) -> int:
 
     report = validate_specs(args.specs_dir, args.schema)
     if args.spec:
-        # 매칭은 "provider.파일명" 전체 id 또는 파일명(stem) 둘 다 허용한다.
+        # Match allows both full id "provider.filename" or filename (stem).
         report.results = [
             result
             for result in report.results

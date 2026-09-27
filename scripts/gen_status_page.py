@@ -1,13 +1,14 @@
-"""데이터셋 상태 페이지 생성 — 검증 현황을 JSON+마크다운으로 남긴다.
+"""Dataset status page generation — validation status saved as JSON+markdown.
 
-사용법:
+Usage:
     uv run python scripts/gen_status_page.py [--check]
 
-산출물:
-- ``docs/status/latest.json`` — 기계 판독용 스냅샷(생성 시각·spec 검증일·Provider별 수)
-- ``docs/status.md`` — mkdocs 페이지(사람용 요약)
+Outputs:
+- ``docs/status/latest.json`` — machine-readable snapshot (generation
+  time, spec verification dates, per-provider counts)
+- ``docs/status.md`` — mkdocs page (human summary)
 
-월간 집계(#384 6.5)와 smoke 리포트의 기준 데이터가 된다.
+Feeds the monthly rollup (#384 6.5) and the smoke report.
 """
 
 from __future__ import annotations
@@ -29,7 +30,7 @@ SUPPORTED = REPO_ROOT / "SUPPORTED_DATA.md"
 
 
 def _catalogue_counts() -> dict[str, int]:
-    """catalogue Provider별 데이터셋 수."""
+    """Dataset count per provider from catalogue."""
     counts: dict[str, int] = {}
     for catalogue in sorted((REPO_ROOT / "src/kpubdata/providers").glob("*/catalogue.json")):
         counts[catalogue.parent.name] = len(json.loads(catalogue.read_text(encoding="utf-8")))
@@ -37,7 +38,7 @@ def _catalogue_counts() -> dict[str, int]:
 
 
 def _supported_summary() -> dict[str, int]:
-    """SUPPORTED_DATA 상태 열 요약(지원/폐기/기타)."""
+    """SUPPORTED_DATA status column summary (active/deprecated/other)."""
     counts: dict[str, int] = {}
     content = SUPPORTED.read_text(encoding="utf-8") if SUPPORTED.is_file() else ""
     known = {"지원", "폐기", "예정"}
@@ -50,7 +51,7 @@ def _supported_summary() -> dict[str, int]:
 
 
 def build_status() -> dict[str, object]:
-    """현재 상태 스냅샷을 만든다."""
+    """Create current status snapshot."""
     specs = discover_specs()
     verified = [s for s in specs if s.last_verified]
     fresh = [
@@ -76,14 +77,14 @@ def build_status() -> dict[str, object]:
 
 
 def _recent_cutoff() -> str:
-    """90일 전 ISO 날짜."""
+    """ISO date 90 days ago."""
     from datetime import timedelta
 
     return (date.today() - timedelta(days=90)).isoformat()
 
 
 def render_md(status: dict[str, object]) -> str:
-    """상태 JSON을 사람용 마크다운으로 바꾼다."""
+    """Convert status JSON to human-readable markdown."""
     spec = status["spec_datasets"]  # type: ignore[index]
     catalogue = status["catalogue_datasets"]  # type: ignore[index]
     supported = status["supported_rows"]  # type: ignore[index]
@@ -118,7 +119,7 @@ def render_md(status: dict[str, object]) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI 진입점 — 생성 또는 드리프트 검사."""
+    """CLI entry point — generate or check drift."""
     parser = argparse.ArgumentParser(description="데이터셋 상태 페이지 생성")
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args(argv)

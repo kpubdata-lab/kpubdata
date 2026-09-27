@@ -1,12 +1,15 @@
-"""배치 예제 스크립트 생성기 — 녹화된 spec에 대한 예제를 템플릿으로 찍어낸다.
+"""Batch example script generator — stamps out examples from recorded specs using a template.
 
-사용법:
+Usage:
     uv run python scripts/gen_example_scripts.py --provider localdata
 
-생성 규칙:
-- 녹화 fixture가 있는 spec만 대상 (``tests/fixtures/{provider}/{key}/default.meta.json``)
-- 구조 검증 assert: 총건수 보고 + items dict 구조 (배치 생성물의 정직한 기준선)
-- 헤더에 ``auto-generated`` 마커 → ``gen_docs_examples.py`` 는 문서에서 제외
+Generation rules:
+- Only specs with recorded fixtures
+  (``tests/fixtures/{provider}/{key}/default.meta.json``)
+- Structure-verification asserts: total count reported + items dict shape
+  (an honest baseline for batch output)
+- An ``auto-generated`` marker in the header → ``gen_docs_examples.py``
+  excludes it from documentation
 """
 
 from __future__ import annotations
@@ -59,7 +62,7 @@ if __name__ == "__main__":
 
 
 def generate(provider: str) -> list[str]:
-    """녹화된 spec에 대해 예제 스크립트를 생성한다."""
+    """Generate example scripts for recorded specs."""
     created: list[str] = []
     for spec in discover_specs():
         if spec.provider != provider:
@@ -91,7 +94,7 @@ def generate(provider: str) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI 진입점."""
+    """CLI entry point."""
     parser = argparse.ArgumentParser(description="배치 예제 생성")
     parser.add_argument("--provider", required=True)
     args = parser.parse_args(argv)

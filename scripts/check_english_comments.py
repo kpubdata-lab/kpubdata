@@ -7,8 +7,8 @@ they are what ``help()``, the mkdocs API pages and IDE tooltips show.
 
 Only comments and docstrings are checked. Korean *string literals* are left
 alone on purpose -- user-facing messages (the data.go.kr 403 hint that names
-활용신청, CLI output) are runtime behaviour, and whether to translate them is a
-separate product decision.
+the activation request, CLI output) are runtime behaviour, and whether to
+translate them is a separate product decision.
 """
 
 from __future__ import annotations

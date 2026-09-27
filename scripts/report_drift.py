@@ -1,16 +1,18 @@
-"""드리프트 리포트 — 스모크 결과에서 "2회 연속 실패" 데이터셋을 추출한다.
+"""Drift report — extracts "2 consecutive failures" datasets from smoke results.
 
-사용법 (GitHub Actions smoke.yml의 report 잡 또는 로컬):
-    gh run list --workflow=smoke.yml --limit 3   # 전제: 스모크 실행 기록
+Usage (the report job of GitHub Actions smoke.yml, or locally):
+    gh run list --workflow=smoke.yml --limit 3   # prerequisite: smoke history
     GH_TOKEN=... uv run python scripts/report_drift.py [--dry-run]
 
-동작:
-1. 최근 스모크 실행들의 로그에서 실패한 통합테스트(데이터셋) 목록을 추출
-2. 직전 2회 연속 실패한 데이터셋만 선별 (일시 장애와 지속 드리프트 구분)
-3. 각 데이터셋에 대해 기존 열린 drift 이슈가 있으면 코멘트 갱신, 없으면 신규 발행
-4. ``--dry-run`` 은 이슈 발행 없이 판정만 출력
+Behavior:
+1. Extracts the failing integration tests (datasets) from recent smoke runs
+2. Selects only datasets that failed the last 2 consecutive runs
+   (distinguishing transient outages from persistent drift)
+3. For each dataset: updates the comment on an existing open drift issue,
+   or files a new one
+4. ``--dry-run`` prints the verdict without filing issues
 
-의존: gh CLI + 쓰기 권한 토큰(GH_TOKEN/GITHUB_TOKEN).
+Requires: gh CLI + a write-capable token (GH_TOKEN/GITHUB_TOKEN).
 """
 
 from __future__ import annotations
@@ -24,20 +26,20 @@ from dataclasses import dataclass, field
 
 REPO = "yeongseon/kpubdata"
 WORKFLOW = "smoke.yml"
-# 통합테스트 함수명 패턴: test_datago_village_fcst → datago.village_fcst
+# Integration test function name pattern: test_datago_village_fcst → datago.village_fcst
 _TEST_RE = re.compile(r"FAILED\s+\S*test_(?P<provider>[a-z]+)_(?P<key>[a-z0-9_]+)\b")
 
 
 @dataclass
 class DriftReport:
-    """드리프트 판정 결과."""
+    """Drift determination result."""
 
     consecutive_failures: list[str] = field(default_factory=list)
     recent_runs: list[dict[str, object]] = field(default_factory=list)
 
 
 def _gh(args: list[str]) -> str:
-    """gh CLI를 실행하고 표준출력을 반환한다."""
+    """Run gh CLI and return stdout."""
     proc = subprocess.run(
         ["gh", *args, "--repo", REPO],
         check=False,
@@ -51,9 +53,10 @@ def _gh(args: list[str]) -> str:
 
 
 def _failed_datasets_from_run(run_id: str) -> set[str]:
-    """실행의 junit 아티팩트에서 실패한 데이터셋 id 집합을 추출한다.
+    """Extract set of failed dataset ids from run's junit artifact.
 
-    로그는 보존이 불안정해 아티팩트(smoke-*)를 1차 소스로 쓴다.
+    Logs are not reliably retained, so the (smoke-*) artifacts are the
+    primary source.
     """
     import io
     import xml.etree.ElementTree as ET
@@ -103,7 +106,7 @@ def _failed_datasets_from_run(run_id: str) -> set[str]:
 
 
 def collect(consecutive_required: int = 2, limit: int = 6) -> DriftReport:
-    """최근 스모크 실행을 분석해 N회 연속 실패 데이터셋을 판정한다."""
+    """Analyze recent smoke runs to determine N consecutive failure datasets."""
     listing = _gh(
         [
             "run",
@@ -146,7 +149,7 @@ def collect(consecutive_required: int = 2, limit: int = 6) -> DriftReport:
 
 
 def _existing_drift_issue(dataset: str) -> int | None:
-    """데이터셋에 대한 열린 drift 이슈 번호를 찾는다(데이터셋당 1개 원칙)."""
+    """Find open drift issue number for dataset (one per dataset principle)."""
     out = _gh(
         ["issue", "list", "--search", f'"{dataset}" is:open label:drift', "--json", "number,title"]
     )
@@ -160,7 +163,7 @@ def _existing_drift_issue(dataset: str) -> int | None:
 
 
 def file_or_update(dataset: str, report: DriftReport, dry_run: bool) -> None:
-    """2회 연속 실패 데이터셋을 이슈로 발행하거나 기존 이슈를 갱신한다."""
+    """Publish 2 consecutive failure datasets as issue or update existing issue."""
     title = f"[drift] {dataset} 실API 스모크 연속 실패"
     body_lines = [
         f"## 대상\n{dataset}",
@@ -209,7 +212,7 @@ def file_or_update(dataset: str, report: DriftReport, dry_run: bool) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI 진입점."""
+    """CLI entry point."""
     parser = argparse.ArgumentParser(description="스모크 드리프트 리포트")
     parser.add_argument("--dry-run", action="store_true", help="이슈 발행 없이 판정만")
     args = parser.parse_args(argv)

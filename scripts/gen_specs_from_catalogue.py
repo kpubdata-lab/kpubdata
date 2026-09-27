@@ -1,19 +1,22 @@
-"""catalogue → spec 일괄 변환기 (migrate-to-spec 웨이브 도구).
+"""catalogue → spec batch converter (migrate-to-spec wave tool).
 
-data.go.kr standard envelope 계열(datago 직영 + localdata + semas + kipris)의
-catalogue 엔트리를 spec YAML로 기계 생성한다. 실행기가 아직 지원하지 않는
-변이/커스텀 Provider는 스킵 규칙으로 제외한다.
+Machine-generates spec YAML from catalogue entries of the data.go.kr
+standard-envelope family (first-party datago + localdata + semas + kipris).
+Variants and custom providers the executor does not yet support are
+excluded via skip rules.
 
-사용법:
+Usage:
     uv run python scripts/gen_specs_from_catalogue.py --provider localdata [--dry-run] [--limit N]
 
-생성물:
-- ``src/kpubdata/specs/{provider}/{dataset_key}.yaml`` (이미 있으면 건너뜀)
-- 예제 1개(``default``: 필터 없음, page 1, page_size 10)
+Outputs:
+- ``src/kpubdata/specs/{provider}/{dataset_key}.yaml`` (existing files are
+  skipped)
+- One example (``default``: no filters, page 1, page_size 10)
 
-주의: 생성 후에는 반드시 ``make record DATASET=<id>`` 로 fixture를 만들어야
-``make verify``가 통과한다. 녹화 실패(필수 파라미터·폐기) 목록은 로그로 남기고
-해당 spec은 ``--prune-failures`` 로 제거한다.
+Note: after generation you MUST record fixtures with
+``make record DATASET=<id>`` for ``make verify`` to pass. Specs whose
+recording fails (required params, retirement) are listed in the log and
+removed via ``--prune-failures``.
 """
 
 from __future__ import annotations
@@ -27,16 +30,17 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SPECS_DIR = REPO_ROOT / "src" / "kpubdata" / "specs"
 PROVIDERS_DIR = REPO_ROOT / "src" / "kpubdata" / "providers"
 
-# 실행기/스키마 범위 밖 — 변환 금지 (Phase 0 커스텀 목록 + envelope 변형 + 비표준 인증/페이지네이션)
+# Outside executor/schema scope — no conversion
+# (Phase 0 custom list + envelope variants + non-standard auth/pagination)
 SKIP_KEYS: dict[str, set[str]] = {
     "datago": {
-        # envelope 변형 / call_raw 전용 / odcloud 페이지네이션
+        # Envelope variants / call_raw only / odcloud pagination
         "bus_arrival",
         "road_traffic",
         "social_enterprise",
     },
 }
-# 변환 대상 Provider 화이트리스트: query_param 인증 + standard envelope + page_no_rows 조합만.
+# Target providers whitelist: query_param auth + standard envelope + page_no_rows combo only.
 ELIGIBLE_PROVIDERS = frozenset({"datago", "localdata", "semas", "kipris"})
 
 _TEMPLATE = """# catalogue 일괄 변환 생성 (scripts/gen_specs_from_catalogue.py) — 수동 보강 가능
@@ -95,7 +99,7 @@ status: active
 
 
 def _quote(text: str) -> str:
-    """YAML 스칼라 안전 인용 (콜론·특수문자 포함 시)."""
+    """YAML scalar safe quoting (for colons and special chars)."""
     if any(ch in text for ch in ":#{}[]'\"") or text != text.strip():
         return json.dumps(text, ensure_ascii=False)
     return text
@@ -107,9 +111,10 @@ def convert_provider(
     dry_run: bool = False,
     limit: int | None = None,
 ) -> tuple[list[str], list[str]]:
-    """Provider catalogue에서 변환 가능한 엔트리를 spec으로 만든다.
+    """Convert eligible catalogue entries from provider to specs.
 
-    반환값: (생성된 dataset id 목록, 스킵 목록 'key:사유').
+    Returns:
+        (list of created dataset ids, list of skipped 'key:reason').
     """
     catalogue_path = PROVIDERS_DIR / provider / "catalogue.json"
     entries = json.loads(catalogue_path.read_text(encoding="utf-8"))
@@ -165,7 +170,7 @@ def convert_provider(
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI 진입점."""
+    """CLI entry point."""
     parser = argparse.ArgumentParser(description="catalogue → spec 일괄 변환")
     parser.add_argument("--provider", required=True, choices=sorted(ELIGIBLE_PROVIDERS))
     parser.add_argument("--dry-run", action="store_true", help="파일 생성 없이 개수만")

@@ -1,15 +1,17 @@
-"""활용가이드 문서 캐시 — data.go.kr 데이터셋 페이지를 텍스트로 저장한다.
+"""Guide document cache — saves data.go.kr dataset pages as text.
 
-사용법:
+Usage:
     uv run python scripts/fetch_guide.py \
         --url "https://www.data.go.kr/data/15001241/openapi.do" --id datago.hospital_info
 
-출력: ``docs/sources/{id}/guide.txt`` (+ ``url`` 파일). agent는 브라우징 대신
-이 캐시를 우선 읽는다(AGENTS.md 데이터셋 추가 절차 1단계).
+Output: ``docs/sources/{id}/guide.txt`` (+ an ``url`` file). Agents read this
+cache first instead of browsing (step 1 of the AGENTS.md dataset-add
+procedure).
 
-정직한 제약: data.go.kr 상세 페이지는 동적 렌더링이 많아 정적 fetch로는
-목록·기본 정보 위주만 담긴다. 부족하면 URL 원문을 직접 확인해야 한다.
-실패해도 exit 0으로 끝내지 않고 상태를 보고한다(캐시 부재를 숨기지 않는다).
+Honest limitation: data.go.kr detail pages rely heavily on dynamic
+rendering, so a static fetch captures mostly the list and basic info.
+When insufficient, consult the original URL directly. On failure it does
+not exit 0 silently — it reports status (never hides a missing cache).
 """
 
 from __future__ import annotations
@@ -27,7 +29,7 @@ SOURCES_DIR = REPO_ROOT / "docs" / "sources"
 
 
 class _TextExtractor(HTMLParser):
-    """HTML에서 스크립트/스타일을 제외한 텍스트를 모은다."""
+    """Collect text from HTML, excluding scripts/styles."""
 
     _SKIP = {"script", "style", "noscript"}
 
@@ -37,23 +39,23 @@ class _TextExtractor(HTMLParser):
         self._skip_depth = 0
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        """스킵 태그 진입 깊이를 센다."""
+        """Count skip tag entry depth."""
         if tag in self._SKIP:
             self._skip_depth += 1
 
     def handle_endtag(self, tag: str) -> None:
-        """스킵 태그를 벗어난다."""
+        """Exit skip tag."""
         if tag in self._SKIP and self._skip_depth > 0:
             self._skip_depth -= 1
 
     def handle_data(self, data: str) -> None:
-        """텍스트 노드를 모은다(스킵 중이 아닐 때)."""
+        """Collect text nodes (when not skipping)."""
         if self._skip_depth == 0 and data.strip():
             self.chunks.append(data.strip())
 
 
 def extract_text(html: str) -> str:
-    """HTML을 줄 단위 텍스트로 정리한다."""
+    """Clean HTML to line-based text."""
     parser = _TextExtractor()
     parser.feed(html)
     lines = [line for line in parser.chunks if len(line) > 1]
@@ -62,7 +64,7 @@ def extract_text(html: str) -> str:
 
 
 def fetch_guide(url: str, dataset_id: str, *, sources_dir: Path = SOURCES_DIR) -> Path | None:
-    """가이드 페이지를 받아 텍스트 캐시로 저장한다."""
+    """Fetch guide page and save as text cache."""
     out_dir = sources_dir / dataset_id
     out_dir.mkdir(parents=True, exist_ok=True)
     try:
@@ -87,7 +89,7 @@ def fetch_guide(url: str, dataset_id: str, *, sources_dir: Path = SOURCES_DIR) -
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI 진입점."""
+    """CLI entry point."""
     parser = argparse.ArgumentParser(description="data.go.kr 활용가이드 캐시")
     parser.add_argument("--url", required=True, help="데이터셋 페이지 URL")
     parser.add_argument("--id", required=True, help="데이터셋 id (예: datago.hospital_info)")

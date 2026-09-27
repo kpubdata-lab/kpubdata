@@ -1,9 +1,10 @@
-"""월간 집계 리포트 (#384 6.5) — pilot-log + drift 이슈 + 상태 페이지를 종합한다.
+"""Monthly aggregation report (#384 6.5) — synthesizes pilot-log + drift issues + status page.
 
-사용법:
+Usage:
     uv run python scripts/monthly_report.py [--month 2026-09]
 
-산출: docs/internal/monthly-{month}.md — 실패 원인 분포, 통과율, 개선 권고.
+Output: docs/internal/monthly-{month}.md — failure-cause distribution,
+pass rate, improvement advice.
 """
 
 from __future__ import annotations
@@ -27,7 +28,7 @@ def _gh(args: list[str]) -> str:
 
 
 def collect_pilot_stats(month: str) -> dict[str, object]:
-    """pilot-log.md에서 해당 월 통계 추출."""
+    """Extract stats for month from pilot-log.md."""
     log = REPO_ROOT / "docs/internal/pilot-log.md"
     if not log.is_file():
         return {}
@@ -42,7 +43,7 @@ def collect_pilot_stats(month: str) -> dict[str, object]:
 
 
 def collect_drift_issues(month: str) -> list[dict[str, str]]:
-    """해당 월에 열린/닫힌 drift 이슈."""
+    """Open/closed drift issues for month."""
     out = _gh(
         [
             "issue",
@@ -63,7 +64,7 @@ def collect_drift_issues(month: str) -> list[dict[str, str]]:
 
 
 def collect_spec_status() -> dict[str, object]:
-    """현재 spec 상태."""
+    """Current spec state."""
     status_path = REPO_ROOT / "docs/status/latest.json"
     if not status_path.is_file():
         return {}
@@ -71,7 +72,7 @@ def collect_spec_status() -> dict[str, object]:
 
 
 def build_report(month: str) -> str:
-    """월간 리포트 생성."""
+    """Generate monthly report."""
     pilot = collect_pilot_stats(month)
     drift = collect_drift_issues(month)
     spec = collect_spec_status()
