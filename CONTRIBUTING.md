@@ -16,6 +16,35 @@ KPubData는 공공데이터를 더 쉽고 표준화된 방식으로 다루기 �
 
 이 레포지토리(`kpubdata`)는 다양한 공공데이터 API를 하나의 표준 인터페이스로 연결하는 역할을 합니다.
 
+## 1-1. 어떤 언어로 쓰면 되나요 (Language)
+
+**이슈와 PR 본문은 한국어로 쓰셔도 됩니다.** 제목만 영어로 부탁드립니다. 기여자 대부분이
+한국인이고, 활용신청·법정동코드·기관별 특이사항 같은 논의는 한국어가 더 정확합니다.
+
+영어로 고정된 것은 **밖으로 나가거나 오래 남는 것**뿐입니다.
+
+| | |
+|---|---|
+| 코드 주석·docstring, 커밋 메시지, **이슈·PR 제목**, CHANGELOG | 영어 |
+| README | 한국어 기본 + 뒤쪽에 영어 절 |
+| 이슈 본문, PR 본문, 리뷰 코멘트 | 한국어 또는 영어 |
+
+제목만 영어인 이유는 그것이 목록·검색·교차 참조에 나타나는 유일한 텍스트이기
+때문입니다. 이슈 목록을 훑는 사람은 제목만 읽습니다. PR 제목은 squash merge 에서
+그대로 커밋 메시지가 되어 CHANGELOG 로 이어집니다.
+
+**영어로 쓰기 어렵다고 기여를 망설이지 마세요.** 제목을 영어로 쓰기 어려우면
+한국어로 올리고 그렇게 말씀해 주세요 — triage 나 리뷰에서 함께 정리합니다.
+제목 하나 때문에 이슈를 안 올리시면 이 정책은 실패한 것입니다.
+
+> Issue and PR **titles** are in English; **bodies** may be Korean or English.
+> A title is the only text that shows up in lists, search and cross-references, and
+> a PR title becomes the commit message on squash merge. If writing English is a
+> barrier, open it in Korean and say so — we will sort the title out during triage
+> or review.
+
+자세한 근거는 [ADR 0003](docs/adrs/0003-language-policy.md) 에 있습니다.
+
 ## 2. 개발 환경 설정 (처음부터 끝까지)
 
 Python 코드를 수정하고 테스트하기 위한 환경을 만들어 봅시다.
