@@ -56,12 +56,14 @@ record:
 # 도구는 건너뛰게 되어 결국 원래 잡으려던 mutation 이 통과한다 (#513).
 #
 # 이제 실행 전후로 내용 스냅샷을 떠서 차이만 실패로 본다.
+#
+# 레시피는 한 셸 블록이다. 주석을 블록 안에 넣으면 그 줄이 ``\`` 로 이어지지
+# 않아 make 가 셸을 쪼개고, ``set +e`` 가 뒤쪽에 적용되지 않는다.
+#
+# mktemp 템플릿은 명시한다 — ``mktemp -t <prefix>`` 는 BSD(macOS)에서만 동작하고
+# GNU coreutils 는 XXXXXX 로 끝나기를 요구해 Linux 러너에서 죽었다.
 verify:
 	@set +e; \
-	# mktemp -t <prefix> 는 BSD(macOS)에서만 동작한다. GNU coreutils 는 템플릿이
-	# XXXXXX 로 끝나기를 요구하고, 그래서 Linux 러너에서 "too few X's in template"
-	# 로 죽었다. 로컬에서 make verify 를 돌릴 수 없어(uv 가 PyPI 에 닿지 못한다)
-	# CI 가 먼저 잡았다.
 	snapshot=$$(mktemp "$${TMPDIR:-/tmp}/kpubdata-verify.XXXXXX"); \
 	trap 'rm -f "$$snapshot"' EXIT; \
 	uv run python scripts/verify_guard.py snapshot > "$$snapshot" || exit 2; \
