@@ -1,7 +1,9 @@
-"""테스트 모듈.
+"""Test module.
 
-이 파일은 ``tests/unit/providers/sgis/test_adapter.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
+This file defines test scenarios and helper objects at
+``tests/unit/providers/sgis/test_adapter.py``.
+It verifies core flows, exceptions, and edge cases for regression
+prevention and public contract validation.
 """
 
 from __future__ import annotations
@@ -21,15 +23,7 @@ from kpubdata.transport.http import HttpTransport
 
 
 class _SgisAdapterFactory(Protocol):
-    """
-    _SgisAdapterFactory 관련 역할을 캡슐화하는 클래스.
-
-    이 클래스는 ``tests/unit/providers/sgis/test_adapter.py`` 모듈 안에서 _SgisAdapterFactory의 상태와 동작을 함께 관리한다.
-    주요 메서드: __call__.
-
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
+    """"""
 
     def __call__(
         self,
@@ -42,32 +36,35 @@ class _SgisAdapterFactory(Protocol):
 
 def _fixture_path(name: str) -> Path:
     """
-    내부 헬퍼로서 fixture path 처리를 담당한다.
+    Internal helper to process fixture path.
 
-    매개변수:
-        name (str): 호출자가 제공하는 입력 값이다.
+    Args:
+        name (str): Input value provided by caller.
 
-    반환값:
-        Path: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        Path: Computed result or return value from downstream calls.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from implementation or downstream dependencies may be
+        raised as-is.
     """
     return Path(__file__).resolve().parents[3] / "fixtures" / "sgis" / name
 
 
 def _load_fixture(name: str) -> dict[str, object]:
     """
-    내부 헬퍼로서 load fixture 처리를 담당한다.
+    Internal helper to process load fixture.
 
-    매개변수:
-        name (str): 호출자가 제공하는 입력 값이다.
+    Args:
+        name (str): Input value provided by caller.
 
-    반환값:
-        dict[str, object]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        dict[str, object]: Computed result or return value from downstream
+        calls.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from implementation or downstream dependencies may be
+        raised as-is.
     """
     payload = cast(object, json.loads(_fixture_path(name).read_text(encoding="utf-8")))
     if isinstance(payload, dict):
@@ -77,27 +74,29 @@ def _load_fixture(name: str) -> dict[str, object]:
 
 class _FakeResponse:
     """
-    _FakeResponse 관련 역할을 캡슐화하는 클래스.
+    Class that encapsulates _FakeResponse role and state.
 
-    이 클래스는 ``tests/unit/providers/sgis/test_adapter.py`` 모듈 안에서 _FakeResponse의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__.
+    This class manages _FakeResponse state and behavior together at
+    ``tests/unit/providers/sgis/test_adapter.py``. Main method: __init__.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attributes:
+        Properties defined in constructor and class body are shared as
+        common context by downstream methods.
     """
 
     def __init__(self, payload: dict[str, object]) -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize internal state for instance.
 
-        매개변수:
-            payload (dict[str, object]): 호출자가 제공하는 입력 값이다.
+        Args:
+            payload (dict[str, object]): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Computed result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exceptions from implementation or downstream dependencies may be
+            raised as-is.
         """
         self.headers: dict[str, str] = {"content-type": "application/json"}
         self.text: str = json.dumps(payload, ensure_ascii=False)
@@ -106,45 +105,37 @@ class _FakeResponse:
 
 class _FakeTransport:
     """
-    _FakeTransport 관련 역할을 캡슐화하는 클래스.
+    Class that encapsulates _FakeTransport role and state.
 
-    이 클래스는 ``tests/unit/providers/sgis/test_adapter.py`` 모듈 안에서 _FakeTransport의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__, request.
+    This class manages _FakeTransport state and behavior together at
+    ``tests/unit/providers/sgis/test_adapter.py``. Main methods: __init__, request.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attributes:
+        Properties defined in constructor and class body are shared as
+        common context by downstream methods.
     """
 
     def __init__(self, responses: list[_FakeResponse]) -> None:
-        """
-        인스턴스가 사용할 내부 상태를 초기화한다.
-
-        매개변수:
-            responses (list[_FakeResponse]): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        """"""
         self._responses: list[_FakeResponse] = list(responses)
         self.calls: list[dict[str, object]] = []
 
     def request(self, method: str, url: str, **kwargs: object) -> _FakeResponse:
         """
-        request 동작을 수행한다.
+        Perform request operation.
 
-        매개변수:
-            method (str): 호출자가 제공하는 입력 값이다.
-            url (str): 호출자가 제공하는 입력 값이다.
-            **kwargs (object): 호출자가 제공하는 입력 값이다.
+        Args:
+            method (str): Input value provided by caller.
+            url (str): Input value provided by caller.
+            **kwargs (object): Input value provided by caller.
 
-        반환값:
-            _FakeResponse: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            _FakeResponse: Computed result or return value from downstream
+            calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exceptions from implementation or downstream dependencies may be
+            raised as-is.
         """
         self.calls.append({"method": method, "url": url, **kwargs})
         if not self._responses:
@@ -154,45 +145,24 @@ class _FakeTransport:
 
 class _FakeAuthClient:
     """
-    _FakeAuthClient 관련 역할을 캡슐화하는 클래스.
+    Class that encapsulates _FakeAuthClient role and state.
 
-    이 클래스는 ``tests/unit/providers/sgis/test_adapter.py`` 모듈 안에서 _FakeAuthClient의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__, get_access_token, invalidate.
+    This class manages _FakeAuthClient state and behavior together at
+    ``tests/unit/providers/sgis/test_adapter.py``. Main methods: __init__, get_access_token, invalidate.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attributes:
+        Properties defined in constructor and class body are shared as
+        common context by downstream methods.
     """
 
     def __init__(self, tokens: list[str]) -> None:
-        """
-        인스턴스가 사용할 내부 상태를 초기화한다.
-
-        매개변수:
-            tokens (list[str]): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        """"""
         self._tokens: list[str] = list(tokens)
         self.invalidate_count: int = 0
         self.force_refresh_count: int = 0
 
     def get_access_token(self, *, force_refresh: bool = False) -> str:
-        """
-        get access token 동작을 수행한다.
-
-        매개변수:
-            force_refresh (bool): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        """"""
         if force_refresh:
             self.force_refresh_count += 1
         if not self._tokens:
@@ -200,15 +170,7 @@ class _FakeAuthClient:
         return self._tokens.pop(0)
 
     def invalidate(self) -> None:
-        """
-        invalidate 동작을 수행한다.
-
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        """"""
         self.invalidate_count += 1
 
 
@@ -217,19 +179,7 @@ def _build_adapter(
     *,
     auth_client: _FakeAuthClient,
 ) -> tuple[ProviderAdapter, _FakeTransport]:
-    """
-    내부 헬퍼로서 build adapter 처리를 담당한다.
-
-    매개변수:
-        responses (list[_FakeResponse]): 호출자가 제공하는 입력 값이다.
-        auth_client (_FakeAuthClient): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        tuple[ProviderAdapter, _FakeTransport]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-    """
+    """"""
     transport = _FakeTransport(responses)
     adapter_module = import_module("kpubdata.providers.sgis.adapter")
     adapter_class_obj = cast(object, adapter_module.SgisAdapter)
@@ -244,20 +194,9 @@ def _build_adapter(
     return adapter, transport
 
 
-# test query records sido parses features 테스트가 검증하는 시나리오를 설명한다.
+# Verifies scenario tested by test_query_records_sido_parses_features.
 def test_query_records_sido_parses_features() -> None:
-    """
-    test query records sido parses features 시나리오를 검증한다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     auth_client = _FakeAuthClient(["token-1"])
     adapter, transport = _build_adapter(
         [_FakeResponse(_load_fixture("sido_boundary.geojson"))],
@@ -276,20 +215,9 @@ def test_query_records_sido_parses_features() -> None:
     assert request_params["low_search"] == "1"
 
 
-# test query records sigungu applies filter overrides 테스트가 검증하는 시나리오를 설명한다.
+# Verifies scenario tested by test_query_records_sigungu_applies_filter_overrides.
 def test_query_records_sigungu_applies_filter_overrides() -> None:
-    """
-    test query records sigungu applies filter overrides 시나리오를 검증한다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     auth_client = _FakeAuthClient(["token-1"])
     adapter, transport = _build_adapter(
         [_FakeResponse(_load_fixture("sigungu_boundary.geojson"))],
@@ -306,20 +234,9 @@ def test_query_records_sigungu_applies_filter_overrides() -> None:
     assert request_params["low_search"] == "2"
 
 
-# test query records refreshes token on auth error 테스트가 검증하는 시나리오를 설명한다.
+# Verifies scenario tested by test_query_records_refreshes_token_on_auth_error.
 def test_query_records_refreshes_token_on_auth_error() -> None:
-    """
-    test query records refreshes token on auth error 시나리오를 검증한다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     auth_client = _FakeAuthClient(["expired-token", "fresh-token"])
     adapter, transport = _build_adapter(
         [
@@ -341,20 +258,9 @@ def test_query_records_refreshes_token_on_auth_error() -> None:
     assert second_params["accessToken"] == "fresh-token"
 
 
-# test query records raises auth error when refresh also fails 테스트가 검증하는 시나리오를 설명한다.
+# Verifies scenario tested by test_query_records_raises_auth_error_when_refresh_also_fails.
 def test_query_records_raises_auth_error_when_refresh_also_fails() -> None:
-    """
-    test query records raises auth error when refresh also fails 시나리오를 검증한다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     auth_client = _FakeAuthClient(["expired-token", "fresh-token"])
     adapter, _ = _build_adapter(
         [
@@ -369,20 +275,9 @@ def test_query_records_raises_auth_error_when_refresh_also_fails() -> None:
         _ = adapter.query_records(dataset, Query())
 
 
-# test call raw list uses dataset endpoint 테스트가 검증하는 시나리오를 설명한다.
+# Verifies scenario tested by test_call_raw_list_uses_dataset_endpoint.
 def test_call_raw_list_uses_dataset_endpoint() -> None:
-    """
-    test call raw list uses dataset endpoint 시나리오를 검증한다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     auth_client = _FakeAuthClient(["token-1"])
     payload = _load_fixture("sido_boundary.geojson")
     adapter, _ = _build_adapter([_FakeResponse(payload)], auth_client=auth_client)
@@ -393,20 +288,9 @@ def test_call_raw_list_uses_dataset_endpoint() -> None:
     assert raw == payload
 
 
-# test call raw rejects full url operation 테스트가 검증하는 시나리오를 설명한다.
+# Verifies scenario tested by test_call_raw_rejects_full_url_operation.
 def test_call_raw_rejects_full_url_operation() -> None:
-    """
-    test call raw rejects full url operation 시나리오를 검증한다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     auth_client = _FakeAuthClient(["token-1"])
     adapter, _ = _build_adapter(
         [_FakeResponse(_load_fixture("sido_boundary.geojson"))], auth_client=auth_client
@@ -419,20 +303,9 @@ def test_call_raw_rejects_full_url_operation() -> None:
         )
 
 
-# test get dataset invalid key raises 테스트가 검증하는 시나리오를 설명한다.
+# Verifies scenario tested by test_get_dataset_invalid_key_raises.
 def test_get_dataset_invalid_key_raises() -> None:
-    """
-    test get dataset invalid key raises 시나리오를 검증한다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     auth_client = _FakeAuthClient(["token-1"])
     adapter, _ = _build_adapter(
         [_FakeResponse(_load_fixture("sido_boundary.geojson"))], auth_client=auth_client
@@ -442,20 +315,9 @@ def test_get_dataset_invalid_key_raises() -> None:
         _ = adapter.get_dataset("missing.dataset")
 
 
-# test dataset ref ids include required catalogue entries 테스트가 검증하는 시나리오를 설명한다.
+# Verifies scenario tested by test_dataset_ref_ids_include_required_catalogue_entries.
 def test_dataset_ref_ids_include_required_catalogue_entries() -> None:
-    """
-    test dataset ref ids include required catalogue entries 시나리오를 검증한다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     auth_client = _FakeAuthClient(["token-1"])
     adapter, _ = _build_adapter(
         [_FakeResponse(_load_fixture("sido_boundary.geojson"))], auth_client=auth_client
@@ -467,20 +329,9 @@ def test_dataset_ref_ids_include_required_catalogue_entries() -> None:
     assert "sgis.boundary.emd" in dataset_ids
 
 
-# test schema returns descriptor for boundary dataset 테스트가 검증하는 시나리오를 설명한다.
+# Verifies scenario tested by test_schema_returns_descriptor_for_boundary_dataset.
 def test_schema_returns_descriptor_for_boundary_dataset() -> None:
-    """
-    test schema returns descriptor for boundary dataset 시나리오를 검증한다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     auth_client = _FakeAuthClient(["token-1"])
     adapter, _ = _build_adapter(
         [_FakeResponse(_load_fixture("sido_boundary.geojson"))], auth_client=auth_client
