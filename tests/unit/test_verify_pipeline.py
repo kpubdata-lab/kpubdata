@@ -23,7 +23,7 @@ SPECS_DIR = REPO_ROOT / "src" / "kpubdata" / "specs"
 
 
 def _load_script(name: str):
-    """Load scripts/ module (add to sys.path for redact import support).
+    """Load scripts/ module (add to sys.path for redact import support)."""
     if str(SCRIPTS) not in sys.path:
         sys.path.insert(0, str(SCRIPTS))
     spec = importlib.util.spec_from_file_location(name, SCRIPTS / f"{name}.py")
@@ -163,7 +163,7 @@ def test_verify_passes_on_fresh_record(tmp_path: Path, monkeypatch: pytest.Monke
     _record_apt(tmp_path)
     monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
     steps = verify_mod._verify_fixtures(_spec("datago.apt_trade"))
-    assert steps, "fixture verification steps must be generated"
+    assert steps, "fixture 검증 단계가 생성되어야 한다"
     assert all(step.passed for step in steps)
 
 
@@ -186,7 +186,7 @@ def test_verify_fails_on_hash_tamper(tmp_path: Path, monkeypatch: pytest.MonkeyP
         json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=1) + "\n", encoding="utf-8"
     )
     steps = verify_mod._verify_fixtures(_spec("datago.apt_trade"))
-    assert any("hash" in step.name.lower() and not step.passed for step in steps)
+    assert any("해시" in step.name and not step.passed for step in steps)
 
 
 def test_verify_fails_when_spec_field_changed(
@@ -291,7 +291,7 @@ def test_verify_step4_missing_example_script_fails(
     monkeypatch.setattr(verify_mod, "REPO_ROOT", tmp_path)
     step = verify_mod._run_example_script(_spec("datago.apt_trade"))
     assert not step.passed
-    assert ("example" in step.detail.lower() or "script" in step.detail.lower()) == False
+    assert "예제 스크립트 없음" in step.detail
     assert "examples/README.md" in step.detail
 
 
@@ -313,7 +313,7 @@ def test_gen_docs_examples_check_mode(tmp_path: Path) -> None:
     assert gen.main(["--check"]) == 0
 
     # drift → check fails
-    monkeyped_out.write_text("manually edited content", encoding="utf-8")
+    monkeyped_out.write_text("손으로 수정한 내용", encoding="utf-8")
     assert gen.main(["--check"]) == 1
 
 
