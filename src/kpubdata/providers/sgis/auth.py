@@ -1,7 +1,9 @@
-"""KPubData Python 모듈.
+"""KPubData Python module.
 
-이 파일은 ``src/kpubdata/providers/sgis/auth.py`` 경로의 구현을 담는다.
-주요 클래스와 함수는 공개 API, 전송 계층, Provider 어댑터 중 하나의 역할을 담당한다.
+This file contains the implementation at
+``src/kpubdata/providers/sgis/auth.py``.
+Key classes and functions serve as public API, transport layer, or provider
+adapter.
 """
 
 from __future__ import annotations
@@ -24,23 +26,23 @@ _SECRET_ENV = "KPUBDATA_SGIS_CONSUMER_SECRET"
 
 @dataclass(slots=True)
 class _TokenState:
-    """TokenState과 관련된 값을 계산하거나 조회한다."""
+    """TokenState to compute or retrieve values."""
 
     value: str
     expires_at: datetime
 
 
 class SgisAuthClient:
-    """SgisAuthClient과 관련된 값을 계산하거나 조회한다."""
+    """SgisAuthClient to compute or retrieve values."""
 
     def __init__(self, *, config: KPubDataConfig, transport: HttpTransport) -> None:
-        """인스턴스가 사용할 내부 상태를 초기화한다."""
+        """Initialize internal state for this auth client instance."""
         self._config: KPubDataConfig = config
         self._transport: HttpTransport = transport
         self._cached_token: _TokenState | None = None
 
     def get_access_token(self, *, force_refresh: bool = False) -> str:
-        """access token을 반환한다."""
+        """Return access token."""
         if (
             not force_refresh
             and self._cached_token is not None
@@ -53,20 +55,22 @@ class SgisAuthClient:
         return token_state.value
 
     def invalidate(self) -> None:
-        """invalidate과 관련된 값을 계산하거나 조회한다."""
+        """Invalidate cached token state."""
         self._cached_token = None
 
     def _request_access_token(self) -> _TokenState:
-        """request access token과 관련된 값을 계산하거나 조회한다."""
+        """Request access token.
+
+        Response body is the access token itself. Caching in transport cache
+        would leave token plaintext in ~/.cache; force_refresh would re-read
+        that stale cache without refreshing. Token caching is done by this
+        class in-memory with expiration time.
+        """
         consumer_key, consumer_secret = self._resolve_credentials()
         response = self._transport.request(
             "GET",
             _AUTH_ENDPOINT,
             params={"consumer_key": consumer_key, "consumer_secret": consumer_secret},
-            # 응답 본문이 곧 access token 이다. 캐시에 넣으면 토큰이 ~/.cache 에
-            # 평문으로 남고, force_refresh 가 그 캐시를 다시 읽어 만료된 토큰을
-            # 그대로 돌려준다 — 갱신이 되지 않는다. 토큰 캐싱은 이 클래스가
-            # 메모리에서 만료 시각과 함께 직접 한다.
             no_store=True,
         )
 
@@ -107,7 +111,7 @@ class SgisAuthClient:
         return _TokenState(value=token_obj, expires_at=expires_at)
 
     def _resolve_credentials(self) -> tuple[str, str]:
-        """설정과 기본값을 바탕으로 credentials을 결정한다."""
+        """Resolve credentials from configuration and defaults."""
         consumer_key_raw = self._config.require_provider_key(_SGIS_PROVIDER)
         consumer_secret_env = os.environ.get(_SECRET_ENV)
 
@@ -126,12 +130,12 @@ class SgisAuthClient:
         )
 
     def _is_expired(self, state: _TokenState) -> bool:
-        """expired인지 반환한다."""
+        """Return whether token is expired."""
         now = datetime.now(tz=timezone.utc)
         return now >= state.expires_at
 
     def _raise_for_err_code(self, payload: dict[str, object]) -> None:
-        """raise for err code과 관련된 값을 계산하거나 조회한다."""
+        """Raise exception for error code."""
         err_code = _extract_err_code(payload)
         if err_code is None or err_code == 0:
             return
@@ -143,7 +147,7 @@ class SgisAuthClient:
         self._raise_for_code(err_code, message)
 
     def _raise_for_code(self, err_code: int, message: str) -> NoReturn:
-        """raise for code과 관련된 값을 계산하거나 조회한다."""
+        """Raise exception for specific error code."""
         provider_code = str(err_code)
         if err_code in {-401, -402, -403}:
             raise AuthError(message, provider=_SGIS_PROVIDER, provider_code=provider_code)
@@ -153,7 +157,7 @@ class SgisAuthClient:
 
 
 def _extract_err_code(payload: Mapping[str, object]) -> int | None:
-    """err code에서 필요한 값을 추출한다."""
+    """Extract needed value from error code."""
     err_obj = payload.get("errCd")
     if isinstance(err_obj, int):
         return err_obj
@@ -166,7 +170,7 @@ def _extract_err_code(payload: Mapping[str, object]) -> int | None:
 
 
 def _coerce_epoch(value: object) -> int | None:
-    """입력값을 epoch 표현으로 변환한다."""
+    """Coerce value to epoch representation."""
     if isinstance(value, int):
         return value
     if isinstance(value, str):
