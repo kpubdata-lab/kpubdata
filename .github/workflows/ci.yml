@@ -20,6 +20,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+        with:
+          # 기본 shallow clone 은 커밋 하나만 가져오므로 fixture 변경의 저자를
+          # 조회할 수 없다 (#523).
+          fetch-depth: 0
 
       - uses: astral-sh/setup-uv@v7
         with:
@@ -52,6 +56,14 @@ jobs:
         run: |
           uv run python scripts/gen_docs_examples.py --check
           uv run python scripts/gen_readme_datasets.py --check
+
+      # fixture 는 "이 데이터셋은 검증됐다" 의 근거다. 판정 대상이 근거를 고칠 수
+      # 있으면 판정이 반증 불가능해진다 (#497, #523).
+      - name: Recorded evidence authorship
+        if: github.event_name == 'pull_request'
+        run: |
+          uv run python scripts/check_fixture_authorship.py \
+            --base "origin/${{ github.base_ref }}"
 
   spec-changes:
     name: Spec Change Summary
