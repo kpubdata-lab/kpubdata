@@ -484,3 +484,70 @@ KPubData의 설계 철학과 사용 방법을 안내하는 문서 목록입니�
 ## 로드맵
 
 상세 로드맵 및 버전별 계획은 [ROADMAP.md](./ROADMAP.md)를 참고하세요.
+
+---
+
+## In English
+
+Korean is the primary language of this README. This section is the minimum needed
+to decide whether to keep reading — not a full translation. See
+[ADR 0003](docs/adrs/0003-language-policy.md) for why it is arranged this way.
+
+### What this is
+
+A Python access layer for **Korean public data APIs**. Each government agency
+publishes its own API with its own authentication, response envelope and
+pagination scheme. KPubData absorbs those differences behind one interface:
+
+```python
+from kpubdata import Client
+
+client = Client.from_env()                      # reads KPUBDATA_<PROVIDER>_API_KEY
+batch = client.dataset("datago.apt_trade").list(
+    filters={"LAWD_CD": "11110", "DEAL_YMD": "202601"}
+)
+```
+
+14 providers, 23 machine-verified specs and about 150 catalogued datasets.
+
+### What it deliberately does not do
+
+- **It does not store or redistribute data.** You call the APIs with your own key.
+  There is no hosted copy of anything.
+- **It does not hide provider differences that carry meaning.** Where an agency's
+  vocabulary or constraint is real, it stays visible rather than being flattened
+  into a false common shape.
+- **It is not a data warehouse.** Collecting, transforming and versioning data for
+  SQL analysis is [kpubdata-builder](https://github.com/yeongseon/kpubdata-builder).
+
+### You will need a Korean API key
+
+Every dataset here is behind a Korean government API, and most require 활용신청 —
+a per-service application on [data.go.kr](https://www.data.go.kr). Approval is
+usually automatic within minutes, but **it cannot be skipped**, and a valid key
+still returns HTTP 403 for a service you have not applied for.
+
+`kpubdata probe` classifies what your key can reach and lists what needs applying
+for, grouped per service.
+
+Some providers also restrict non-Korean source IPs (result code 32,
+`UNREGISTERED_IP`). We have not confirmed the exact policy —
+see [#529](https://github.com/yeongseon/kpubdata/issues/529).
+
+### Getting started
+
+```bash
+pip install kpubdata
+export KPUBDATA_DATAGO_API_KEY=...
+python -c "import kpubdata; print(kpubdata.__version__)"
+```
+
+Then read the Korean [빠른 시작](#빠른-시작) section above, or
+[docs/quickstart.md](docs/quickstart.md).
+
+### Contributing
+
+Issues and pull requests are welcome in **Korean or English**. Titles are in
+English; bodies may be either. If writing an English title is a barrier, open it
+in Korean and say so — we will sort it out during triage.
+[CONTRIBUTING.md](CONTRIBUTING.md) has the details.
