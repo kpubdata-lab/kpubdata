@@ -1,17 +1,21 @@
-"""도달성 프로브 — 키 하나로 전 데이터셋을 분류하고 활용신청 목록을 만든다 (#499).
+"""Reachability probe — classify every dataset with one key and build the
+activation-request list (#499).
 
-데이터셋 추가에서 **사람만 할 수 있는 단계는 data.go.kr 활용신청** 하나다. 그런데
-어느 데이터셋이 신청을 기다리는지가 ``SUPPORTED_DATA.md`` 비고란 텍스트에만 있어서,
-에이전트는 spec 작업을 시작한 **뒤에야** 403 으로 알게 된다. 되돌릴 작업을 먼저 하는
-셈이다.
+In the dataset-addition workflow, the **only step that needs a human is the
+data.go.kr activation request**. Yet which datasets await an application
+lived only in the free text of the ``SUPPORTED_DATA.md`` remarks column,
+so an agent learned about it via a 403 **after** already starting spec
+work — doing work that has to be undone.
 
-이 모듈은 그 판정을 앞으로 당긴다 — 데이터셋마다 1회 호출해 분류한다. 분류
-어휘는 ``PROBE_STATUSES`` 이고, 예전 네 갈래보다 넓다: **폐기와 일시 장애를
-구분하지 못하면 한도 초과가 폐기로 읽혀** 기다리면 되는 것을 포기하라고 알려
-준다 (#514).
+This module front-loads that verdict — one call per dataset, classified
+into the ``PROBE_STATUSES`` vocabulary, which is wider than the earlier
+four-way split: **failing to distinguish retirement from a transient
+outage makes a quota overrun read as retirement**, telling the user to
+give up on something they only needed to wait for (#514).
 
-``batch_record.py`` 와 같은 fast-fail 전송 설정을 쓴다(timeout 15s·재시도 0) —
-실패 데이터셋이 전체를 늦추지 않아야 하고, 여기서는 실패가 정상 결과다.
+It reuses the fast-fail transport settings of ``batch_record.py``
+(15s timeout, zero retries) — failing datasets must not slow the whole
+run, and here failure is a normal result.
 """
 
 from __future__ import annotations
@@ -42,7 +46,7 @@ from kpubdata.transport.http import HttpTransport, TransportConfig
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_REPORT_PATH = REPO_ROOT / "docs" / "status" / "key-scope.json"
 
-#: 프로브 전송 설정. 실패가 정상 결과이므로 빠르게 포기한다.
+#: Probe transport settings. Failure is a normal result here, so give up fast.
 PROBE_TIMEOUT_SECONDS = 15
 PROBE_RETRIES = 0
 
@@ -87,7 +91,7 @@ _CODE_STATUS: Mapping[str, ProbeStatus] = {
 
 @dataclass(frozen=True)
 class ProbeResult:
-    """데이터셋 하나의 도달성 판정."""
+    """Reachability verdict for a single dataset."""
 
     dataset_id: str
     service_id: str
@@ -97,12 +101,13 @@ class ProbeResult:
 
 
 def service_id_of(spec: SpecDefinition) -> str:
-    """이 데이터셋이 속한 data.go.kr 서비스 식별자.
+    """The data.go.kr service identifier this dataset belongs to.
 
-    ``base_url`` 의 마지막 경로 세그먼트다 — 활용신청은 **데이터셋이 아니라 서비스
-    단위**로 한다. 예컨대 ``ArpltnInforInqireSvc`` 하나를 신청하면 대기질 관련
-    데이터셋 셋이 함께 풀린다. 데이터셋 단위로 나열하면 세 번 신청해야 하는 것처럼
-    보인다.
+    It is the last path segment of ``base_url`` — the activation request is
+    granted **per service, not per dataset**. Applying for
+    ``ArpltnInforInqireSvc`` once, for example, unlocks the whole set of
+    air-quality datasets. Listing them per dataset would make it look like
+    three separate applications.
     """
     base_url = getattr(spec.endpoint, "base_url", "") or ""
     path = urlsplit(base_url).path.rstrip("/")
@@ -192,7 +197,7 @@ def probe_dataset(
     config: KPubDataConfig | None = None,
     transport: HttpTransport | None = None,
 ) -> ProbeResult | None:
-    """데이터셋 하나를 1회 호출해 분류한다. spec 이 없으면 None."""
+    """Probe one dataset with a single call; None when no spec exists."""
     spec = find_spec(dataset_id)
     if spec is None:
         return None
@@ -231,7 +236,7 @@ def probe_dataset(
         _ = executor.query(spec, _ref_for(spec), query)
     except PublicDataError as exc:
         error = exc
-    except Exception as exc:  # noqa: BLE001 — 프로브는 모든 실패를 분류해야 한다
+    except Exception as exc:  # noqa: BLE001 — the probe must classify every failure
         error = exc
 
     status, detail = classify(error)
@@ -245,7 +250,7 @@ def probe_dataset(
 
 
 def _ref_for(spec: SpecDefinition) -> DatasetRef:
-    """executor 가 요구하는 최소 DatasetRef."""
+    """The minimal DatasetRef the executor requires."""
     from kpubdata.core.models import DatasetRef
     from kpubdata.core.representation import Representation
 
@@ -265,7 +270,7 @@ def probe_all(
     config: KPubDataConfig | None = None,
     transport: HttpTransport | None = None,
 ) -> list[ProbeResult]:
-    """대상 데이터셋 전체를 프로브한다."""
+    """Probe every dataset in scope."""
     if dataset_id:
         one = probe_dataset(dataset_id, config=config, transport=transport)
         return [one] if one else []
@@ -281,10 +286,10 @@ def probe_all(
 
 
 def render_apply_report(results: list[ProbeResult]) -> str:
-    """활용신청 체크리스트. **서비스 단위로 묶는다.**
+    """The activation-request checklist. **Groups by service.**
 
-    묶는 것이 이 보고서의 요점이다 — 데이터셋 단위로 나열하면 같은 서비스를 여러 번
-    신청해야 하는 것처럼 보인다.
+    Grouping is the point of this report — listing per dataset makes it
+    look like the same service must be applied for several times.
     """
     pending = [r for r in results if r.status == "application_required"]
     if not pending:
@@ -378,7 +383,7 @@ def write_report(results: list[ProbeResult], path: Path = DEFAULT_REPORT_PATH) -
 
 
 def summarize(results: list[ProbeResult]) -> dict[str, int]:
-    """분류별 개수."""
+    """Counts per classification."""
     counts: dict[str, int] = {}
     for result in results:
         counts[result.status] = counts.get(result.status, 0) + 1
