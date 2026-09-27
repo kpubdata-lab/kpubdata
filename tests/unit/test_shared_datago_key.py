@@ -1,9 +1,9 @@
-"""README 가 안내하는 provider 키 이름이 실제로 동작해야 한다.
+"""Documented provider key names must work.
 
-localdata·semas 는 data.go.kr 서비스라 datago 와 같은 서비스 키를 쓴다. 두
-어댑터가 곧바로 ``require_provider_key("datago")`` 를 부르는 바람에, README 의
-``provider_keys={"localdata": ...}`` 와 ``KPUBDATA_LOCALDATA_API_KEY`` 가 조용히
-무시됐다 — 문서를 그대로 따라 한 사용자는 ConfigError 를 봤다.
+localdata and semas are data.go.kr services using the datago key. Both
+adapters called require_provider_key("datago") directly, silently ignoring
+README's provider_keys={"localdata": ...} and KPUBDATA_LOCALDATA_API_KEY.
+Users following docs saw ConfigError.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ _SHARED_KEY_PROVIDERS = ("localdata", "semas")
 
 @pytest.fixture(autouse=True)
 def _no_ambient_keys(monkeypatch: pytest.MonkeyPatch) -> None:
-    """실행 환경의 실제 키가 결과를 가리지 않게 한다."""
+    """Prevent runtime environment keys from affecting results."""
     for name in ("DATAGO", "LOCALDATA", "SEMAS"):
         monkeypatch.delenv(f"KPUBDATA_{name}_API_KEY", raising=False)
         monkeypatch.delenv(f"{name}_API_KEY", raising=False)
@@ -42,7 +42,7 @@ class TestTheDocumentedNameWorks:
 class TestTheSharedKeyStillWorks:
     @pytest.mark.parametrize("provider", _SHARED_KEY_PROVIDERS)
     def test_the_datago_key_is_used_when_no_own_key_exists(self, provider: str) -> None:
-        """기존 사용자는 datago 키 하나만 설정해 두었다 — 그 구성을 깨지 않는다."""
+        """Legacy users configured only datago key—don't break that setup."""
         config = KPubDataConfig(provider_keys={"datago": "shared-key"})
 
         assert config.require_provider_key(provider, fallback_to="datago") == "shared-key"

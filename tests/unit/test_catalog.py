@@ -17,17 +17,17 @@ class StubAdapter:
 
     def __init__(self, provider_name: str, datasets: list[DatasetRef]) -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize internal state for the instance.
 
-        매개변수:
-            provider_name (str): 호출자가 제공하는 입력 값이다.
-            datasets (list[DatasetRef]): 호출자가 제공하는 입력 값이다.
+        Args:
+            provider_name (str): Input value provided by caller.
+            datasets (list[DatasetRef]): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         self._name = provider_name
         self._datasets = datasets
@@ -35,56 +35,56 @@ class StubAdapter:
     @property
     def name(self) -> str:
         """
-        name 동작을 수행한다.
+        name Performs the operation.
 
-        반환값:
-            str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            str: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return self._name
 
     def list_datasets(self) -> list[DatasetRef]:
         """
-        list datasets 동작을 수행한다.
+        list datasets Performs the operation.
 
-        반환값:
-            list[DatasetRef]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            list[DatasetRef]: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return list(self._datasets)
 
     def search_datasets(self, text: str) -> list[DatasetRef]:
         """
-        search datasets 동작을 수행한다.
+        search datasets Performs the operation.
 
-        매개변수:
-            text (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            text (str): Input value provided by caller.
 
-        반환값:
-            list[DatasetRef]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            list[DatasetRef]: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         needle = text.casefold()
         return [d for d in self._datasets if needle in d.name.casefold()]
 
     def get_dataset(self, dataset_key: str) -> DatasetRef:
         """
-        get dataset 동작을 수행한다.
+        get dataset Performs the operation.
 
-        매개변수:
-            dataset_key (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset_key (str): Input value provided by caller.
 
-        반환값:
-            DatasetRef: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            DatasetRef: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         for d in self._datasets:
             if d.dataset_key == dataset_key:
@@ -93,49 +93,49 @@ class StubAdapter:
 
     def query_records(self, dataset: object, query: object) -> object:
         """
-        query records 동작을 수행한다.
+        query records Performs the operation.
 
-        매개변수:
-            dataset (object): 호출자가 제공하는 입력 값이다.
-            query (object): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset (object): Input value provided by caller.
+            query (object): Input value provided by caller.
 
-        반환값:
-            object: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            object: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return None
 
     def get_schema(self, dataset: object) -> object:
         """
-        get schema 동작을 수행한다.
+        get schema Performs the operation.
 
-        매개변수:
-            dataset (object): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset (object): Input value provided by caller.
 
-        반환값:
-            object: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            object: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return None
 
     def call_raw(self, dataset: object, operation: str, params: dict[str, object]) -> object:
         """
-        call raw 동작을 수행한다.
+        call raw Performs the operation.
 
-        매개변수:
-            dataset (object): 호출자가 제공하는 입력 값이다.
-            operation (str): 호출자가 제공하는 입력 값이다.
-            params (dict[str, object]): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset (object): Input value provided by caller.
+            operation (str): Input value provided by caller.
+            params (dict[str, object]): Input value provided by caller.
 
-        반환값:
-            object: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            object: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         _ = dataset, operation, params
         return None
@@ -143,18 +143,18 @@ class StubAdapter:
 
 def _make_ref(provider: str, key: str, name: str) -> DatasetRef:
     """
-    내부 헬퍼로서 make ref 처리를 담당한다.
+    Helper handling make ref processing.
 
-    매개변수:
-        provider (str): 호출자가 제공하는 입력 값이다.
-        key (str): 호출자가 제공하는 입력 값이다.
-        name (str): 호출자가 제공하는 입력 값이다.
+    Args:
+        provider (str): Input value provided by caller.
+        key (str): Input value provided by caller.
+        name (str): Input value provided by caller.
 
-    반환값:
-        DatasetRef: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        DatasetRef: Returns the result or return value from downstream calls.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Propagates exceptions from implementation or dependencies.
     """
     return DatasetRef(
         id=f"{provider}.{key}",
@@ -168,24 +168,24 @@ def _make_ref(provider: str, key: str, name: str) -> DatasetRef:
 
 class TestCatalog:
     """
-    TestCatalog 관련 역할을 캡슐화하는 클래스.
+    TestCatalog Class encapsulating related operations.
 
-    이 클래스는 ``tests/unit/test_catalog.py`` 모듈 안에서 TestCatalog의 상태와 동작을 함께 관리한다.
-    주요 메서드: _build, test_list_all, test_list_filtered, test_search, test_search_case_insensitive.
+    This class in ``tests/unit/test_catalog.py`` module manages TestCatalogstate and behavior.
+    Key methods: _build, test_list_all, test_list_filtered, test_search, test_search_case_insensitive.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attributes:
+        Properties defined in constructor and class body are reused as shared context by methods.
     """
 
     def _build(self) -> Catalog:
         """
-        내부 헬퍼로서 build 처리를 담당한다.
+        Helper handling build processing.
 
-        반환값:
-            Catalog: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            Catalog: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         reg = ProviderRegistry()
         reg.register(
@@ -207,185 +207,185 @@ class TestCatalog:
         )
         return Catalog(reg)
 
-    # test list all 테스트가 검증하는 시나리오를 설명한다.
+    # test list all Test scenario summary.
     def test_list_all(self) -> None:
         """
-        test list all 시나리오를 검증한다.
+        test list all Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         catalog = self._build()
         result = catalog.list()
         assert len(result) == 3
 
-    # test list filtered 테스트가 검증하는 시나리오를 설명한다.
+    # test list filtered Test scenario summary.
     def test_list_filtered(self) -> None:
         """
-        test list filtered 시나리오를 검증한다.
+        test list filtered Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         catalog = self._build()
         result = catalog.list(provider="alpha")
         assert len(result) == 2
 
-    # test search 테스트가 검증하는 시나리오를 설명한다.
+    # test search Test scenario summary.
     def test_search(self) -> None:
         """
-        test search 시나리오를 검증한다.
+        test search Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         catalog = self._build()
         result = catalog.search("subway")
         assert len(result) == 1
         assert result[0].name == "Beta Subway Data"
 
-    # test search case insensitive 테스트가 검증하는 시나리오를 설명한다.
+    # test search case insensitive Test scenario summary.
     def test_search_case_insensitive(self) -> None:
         """
-        test search case insensitive 시나리오를 검증한다.
+        test search case insensitive Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         catalog = self._build()
         result = catalog.search("ALPHA")
         assert len(result) == 2
 
-    # test search with provider filter 테스트가 검증하는 시나리오를 설명한다.
+    # test search with provider filter Test scenario summary.
     def test_search_with_provider_filter(self) -> None:
         """
-        test search with provider filter 시나리오를 검증한다.
+        test search with provider filter Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         catalog = self._build()
         result = catalog.search("dataset", provider="alpha")
         assert len(result) == 2
         assert all(r.provider == "alpha" for r in result)
 
-    # test search delegates to adapter 테스트가 검증하는 시나리오를 설명한다.
+    # test search delegates to adapter Test scenario summary.
     def test_search_delegates_to_adapter(self) -> None:
         """
-        test search delegates to adapter 시나리오를 검증한다.
+        test search delegates to adapter Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         catalog = self._build()
         result = catalog.search("subway")
         assert len(result) == 1
         assert result[0].name == "Beta Subway Data"
 
-    # test search no match returns empty 테스트가 검증하는 시나리오를 설명한다.
+    # test search no match returns empty Test scenario summary.
     def test_search_no_match_returns_empty(self) -> None:
         """
-        test search no match returns empty 시나리오를 검증한다.
+        test search no match returns empty Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         catalog = self._build()
         result = catalog.search("nonexistent_xyz")
         assert result == []
 
-    # test resolve 테스트가 검증하는 시나리오를 설명한다.
+    # test resolve Test scenario summary.
     def test_resolve(self) -> None:
         """
-        test resolve 시나리오를 검증한다.
+        test resolve Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         catalog = self._build()
         adapter, ref = catalog.resolve("beta.subway")
         assert ref.dataset_key == "subway"
         assert adapter.name == "beta"
 
-    # test resolve invalid format 테스트가 검증하는 시나리오를 설명한다.
+    # test resolve invalid format Test scenario summary.
     def test_resolve_invalid_format(self) -> None:
         """
-        test resolve invalid format 시나리오를 검증한다.
+        test resolve invalid format Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         catalog = self._build()
         with pytest.raises(DatasetNotFoundError, match="Invalid dataset id"):
             _ = catalog.resolve("nodot")
 
-    # test resolve not found 테스트가 검증하는 시나리오를 설명한다.
+    # test resolve not found Test scenario summary.
     def test_resolve_not_found(self) -> None:
         """
-        test resolve not found 시나리오를 검증한다.
+        test resolve not found Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         catalog = self._build()
         with pytest.raises(DatasetNotFoundError):
@@ -405,20 +405,20 @@ class TestCatalogFuzzySearch:
         tags: tuple[str, ...] = (),
     ) -> DatasetRef:
         """
-        내부 헬퍼로서 make rich ref 처리를 담당한다.
+        Helper for make rich ref processing.
 
-        매개변수:
-            provider (str): 호출자가 제공하는 입력 값이다.
-            key (str): 호출자가 제공하는 입력 값이다.
-            name (str): 호출자가 제공하는 입력 값이다.
-            description (str | None): 호출자가 제공하는 입력 값이다.
-            tags (tuple[str, ...]): 호출자가 제공하는 입력 값이다.
+        Args:
+            provider (str): Input value provided by caller.
+            key (str): Input value provided by caller.
+            name (str): Input value provided by caller.
+            description (str | None): Input value provided by caller.
+            tags (tuple[str, ...]): Input value provided by caller.
 
-        반환값:
-            DatasetRef: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            DatasetRef: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return DatasetRef(
             id=f"{provider}.{key}",
@@ -433,13 +433,13 @@ class TestCatalogFuzzySearch:
 
     def _build_rich(self) -> Catalog:
         """
-        내부 헬퍼로서 build rich 처리를 담당한다.
+        Helper for build rich processing.
 
-        반환값:
-            Catalog: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            Catalog: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         reg = ProviderRegistry()
         reg.register(
@@ -479,170 +479,170 @@ class TestCatalogFuzzySearch:
         )
         return Catalog(reg)
 
-    # test search by description 테스트가 검증하는 시나리오를 설명한다.
+    # test search by description Test scenario summary.
     def test_search_by_description(self) -> None:
         """
-        test search by description 시나리오를 검증한다.
+        test search by description Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         catalog = self._build_rich()
         result = catalog.search("기상청")
         assert len(result) == 1
         assert result[0].dataset_key == "village_fcst"
 
-    # test search by tag 테스트가 검증하는 시나리오를 설명한다.
+    # test search by tag Test scenario summary.
     def test_search_by_tag(self) -> None:
         """
-        test search by tag 시나리오를 검증한다.
+        test search by tag Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         catalog = self._build_rich()
         result = catalog.search("pollution")
         assert len(result) == 1
         assert result[0].dataset_key == "air_quality"
 
-    # test search by korean tag 테스트가 검증하는 시나리오를 설명한다.
+    # test search by korean tag Test scenario summary.
     def test_search_by_korean_tag(self) -> None:
         """
-        test search by korean tag 시나리오를 검증한다.
+        test search by korean tag Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         catalog = self._build_rich()
         result = catalog.search("금리")
         assert len(result) == 1
         assert result[0].dataset_key == "base_rate"
 
-    # test search by id substring 테스트가 검증하는 시나리오를 설명한다.
+    # test search by id substring Test scenario summary.
     def test_search_by_id_substring(self) -> None:
         """
-        test search by id substring 시나리오를 검증한다.
+        test search by id substring Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         catalog = self._build_rich()
         result = catalog.search("base_rate")
         assert len(result) >= 1
         assert result[0].dataset_key == "base_rate"
 
-    # test search partial name 테스트가 검증하는 시나리오를 설명한다.
+    # test search partial name Test scenario summary.
     def test_search_partial_name(self) -> None:
         """
-        test search partial name 시나리오를 검증한다.
+        test search partial name Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         catalog = self._build_rich()
         result = catalog.search("예보")
         assert len(result) == 1
         assert result[0].dataset_key == "village_fcst"
 
-    # test search sorted by relevance 테스트가 검증하는 시나리오를 설명한다.
+    # test search sorted by relevance Test scenario summary.
     def test_search_sorted_by_relevance(self) -> None:
         """
-        test search sorted by relevance 시나리오를 검증한다.
+        test search sorted by relevance Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         catalog = self._build_rich()
         result = catalog.search("대기")
         assert len(result) >= 1
         assert result[0].dataset_key == "air_quality"
 
-    # test search custom threshold 테스트가 검증하는 시나리오를 설명한다.
+    # test search custom threshold Test scenario summary.
     def test_search_custom_threshold(self) -> None:
         """
-        test search custom threshold 시나리오를 검증한다.
+        test search custom threshold Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         catalog = self._build_rich()
         strict = catalog.search("weathr", threshold=0.9)
         lenient = catalog.search("weathr", threshold=0.1)
         assert len(lenient) >= len(strict)
 
-    # test search empty string 테스트가 검증하는 시나리오를 설명한다.
+    # test search empty string Test scenario summary.
     def test_search_empty_string(self) -> None:
         """
-        test search empty string 시나리오를 검증한다.
+        test search empty string Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         catalog = self._build_rich()
         result = catalog.search("")
         assert len(result) == 3
 
-    # test search provider filter with fuzzy 테스트가 검증하는 시나리오를 설명한다.
+    # test search provider filter with fuzzy Test scenario summary.
     def test_search_provider_filter_with_fuzzy(self) -> None:
         """
-        test search provider filter with fuzzy 시나리오를 검증한다.
+        test search provider filter with fuzzy Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         catalog = self._build_rich()
         result = catalog.search("정보", provider="weather")
@@ -655,17 +655,17 @@ class TestScoreDataset:
     @staticmethod
     def _ref(name: str, **kwargs: object) -> DatasetRef:
         """
-        내부 헬퍼로서 ref 처리를 담당한다.
+        Helper for ref processing.
 
-        매개변수:
-            name (str): 호출자가 제공하는 입력 값이다.
-            **kwargs (object): 호출자가 제공하는 입력 값이다.
+        Args:
+            name (str): Input value provided by caller.
+            **kwargs (object): Input value provided by caller.
 
-        반환값:
-            DatasetRef: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            DatasetRef: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return DatasetRef(
             id="test.ds",
@@ -676,38 +676,38 @@ class TestScoreDataset:
             **kwargs,  # type: ignore[arg-type]
         )
 
-    # test exact substring returns one 테스트가 검증하는 시나리오를 설명한다.
+    # test exact substring returns one Test scenario summary.
     def test_exact_substring_returns_one(self) -> None:
         """
-        test exact substring returns one 시나리오를 검증한다.
+        test exact substring returns one Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         from kpubdata.catalog import _score_dataset
 
         ref = self._ref("Hello World")
         assert _score_dataset("hello", ref) == 1.0
 
-    # test no match returns low 테스트가 검증하는 시나리오를 설명한다.
+    # test no match returns low Test scenario summary.
     def test_no_match_returns_low(self) -> None:
         """
-        test no match returns low 시나리오를 검증한다.
+        test no match returns low Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         from kpubdata.catalog import _score_dataset
 
@@ -715,76 +715,76 @@ class TestScoreDataset:
         score = _score_dataset("zzzzzzzzz", ref)
         assert score < 0.2
 
-    # test description match 테스트가 검증하는 시나리오를 설명한다.
+    # test description match Test scenario summary.
     def test_description_match(self) -> None:
         """
-        test description match 시나리오를 검증한다.
+        test description match Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         from kpubdata.catalog import _score_dataset
 
         ref = self._ref("Short Name", description="A detailed description with keywords")
         assert _score_dataset("keywords", ref) == 1.0
 
-    # test tag match 테스트가 검증하는 시나리오를 설명한다.
+    # test tag match Test scenario summary.
     def test_tag_match(self) -> None:
         """
-        test tag match 시나리오를 검증한다.
+        test tag match Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         from kpubdata.catalog import _score_dataset
 
         ref = self._ref("Name", tags=("weather", "forecast"))
         assert _score_dataset("forecast", ref) == 1.0
 
-    # test case insensitive 테스트가 검증하는 시나리오를 설명한다.
+    # test case insensitive Test scenario summary.
     def test_case_insensitive(self) -> None:
         """
-        test case insensitive 시나리오를 검증한다.
+        test case insensitive Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         from kpubdata.catalog import _score_dataset
 
         ref = self._ref("Base Rate")
         assert _score_dataset("BASE RATE", ref) == 1.0
 
-    # test whitespace only returns one 테스트가 검증하는 시나리오를 설명한다.
+    # test whitespace only returns one Test scenario summary.
     def test_whitespace_only_returns_one(self) -> None:
         """
-        test whitespace only returns one 시나리오를 검증한다.
+        test whitespace only returns one Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         from kpubdata.catalog import _score_dataset
 
@@ -820,20 +820,20 @@ class TestCatalogIndexedScorer:
         tags: tuple[str, ...] = (),
     ) -> DatasetRef:
         """
-        내부 헬퍼로서 make ref 처리를 담당한다.
+        Helper handling make ref processing.
 
-        매개변수:
-            provider (str): 호출자가 제공하는 입력 값이다.
-            key (str): 호출자가 제공하는 입력 값이다.
-            name (str): 호출자가 제공하는 입력 값이다.
-            description (str | None): 호출자가 제공하는 입력 값이다.
-            tags (tuple[str, ...]): 호출자가 제공하는 입력 값이다.
+        Args:
+            provider (str): Input value provided by caller.
+            key (str): Input value provided by caller.
+            name (str): Input value provided by caller.
+            description (str | None): Input value provided by caller.
+            tags (tuple[str, ...]): Input value provided by caller.
 
-        반환값:
-            DatasetRef: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            DatasetRef: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return DatasetRef(
             id=f"{provider}.{key}",
@@ -848,13 +848,13 @@ class TestCatalogIndexedScorer:
 
     def _build_catalog(self) -> Catalog:
         """
-        내부 헬퍼로서 build catalog 처리를 담당한다.
+        Helper for build catalog processing.
 
-        반환값:
-            Catalog: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            Catalog: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         reg = ProviderRegistry()
         reg.register(
@@ -950,7 +950,7 @@ class TestCatalogIndexedScorer:
     def test_mixed_korean_and_ascii_tokenization(self) -> None:
         """Korean and ASCII tokens coexist in a single query."""
         catalog = self._build_catalog()
-        # '기상청 forecast' — '기상청' substring hits the description of
+        # 'Korean forecast' substring search test (dataset has Korean description)
         # village_fcst; 'forecast' substring hits its tag. Both pass via the
         # substring layer; result is non-empty and stably ordered.
         result = catalog.search("기상청 forecast", threshold=0.5)
@@ -959,7 +959,7 @@ class TestCatalogIndexedScorer:
     def test_provider_filter_applies_before_indexing(self) -> None:
         """Provider filter narrows candidates; cross-provider matches are excluded."""
         catalog = self._build_catalog()
-        # '한국은행' appears only in the finance dataset's description; with
+        # 'Korean bank' appears only in finance dataset (search test with Korean);
         # provider='weather' the candidate pool excludes finance entirely.
         result = catalog.search("한국은행", provider="weather")
         assert result == []
@@ -991,18 +991,18 @@ class TestIndexedScorerHelpers:
         tags: tuple[str, ...] = (),
     ) -> DatasetRef:
         """
-        내부 헬퍼로서 ref 처리를 담당한다.
+        Helper for ref processing.
 
-        매개변수:
-            name (str): 호출자가 제공하는 입력 값이다.
-            description (str | None): 호출자가 제공하는 입력 값이다.
-            tags (tuple[str, ...]): 호출자가 제공하는 입력 값이다.
+        Args:
+            name (str): Input value provided by caller.
+            description (str | None): Input value provided by caller.
+            tags (tuple[str, ...]): Input value provided by caller.
 
-        반환값:
-            DatasetRef: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            DatasetRef: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return DatasetRef(
             id="prov.key",
@@ -1015,92 +1015,92 @@ class TestIndexedScorerHelpers:
             tags=tags,
         )
 
-    # test tokenize splits on non word chars 테스트가 검증하는 시나리오를 설명한다.
+    # test tokenize splits on non word chars Test scenario summary.
     def test_tokenize_splits_on_non_word_chars(self) -> None:
         """
-        test tokenize splits on non word chars 시나리오를 검증한다.
+        test tokenize splits on non word chars Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         from kpubdata.catalog import _tokenize
 
         assert _tokenize("Hello, World!") == frozenset({"hello", "world"})
 
-    # test tokenize keeps underscore identifier intact 테스트가 검증하는 시나리오를 설명한다.
+    # test tokenize keeps underscore identifier intact Test scenario summary.
     def test_tokenize_keeps_underscore_identifier_intact(self) -> None:
         """
-        test tokenize keeps underscore identifier intact 시나리오를 검증한다.
+        test tokenize keeps underscore identifier intact Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         from kpubdata.catalog import _tokenize
 
         assert _tokenize("village_fcst") == frozenset({"village_fcst"})
 
-    # test tokenize korean word 테스트가 검증하는 시나리오를 설명한다.
+    # test tokenize korean word Test scenario summary.
     def test_tokenize_korean_word(self) -> None:
         """
-        test tokenize korean word 시나리오를 검증한다.
+        test tokenize korean word Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         from kpubdata.catalog import _tokenize
 
         assert _tokenize("기상청 예보") == frozenset({"기상청", "예보"})
 
-    # test tokenize empty returns empty set 테스트가 검증하는 시나리오를 설명한다.
+    # test tokenize empty returns empty set Test scenario summary.
     def test_tokenize_empty_returns_empty_set(self) -> None:
         """
-        test tokenize empty returns empty set 시나리오를 검증한다.
+        test tokenize empty returns empty set Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         from kpubdata.catalog import _tokenize
 
         assert _tokenize("") == frozenset()
         assert _tokenize("   ") == frozenset()
 
-    # test build index includes provider and dataset key 테스트가 검증하는 시나리오를 설명한다.
+    # test build index includes provider and dataset key Test scenario summary.
     def test_build_index_includes_provider_and_dataset_key(self) -> None:
         """
-        test build index includes provider and dataset key 시나리오를 검증한다.
+        test build index includes provider and dataset key Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         from kpubdata.catalog import _build_index
 
@@ -1114,19 +1114,19 @@ class TestIndexedScorerHelpers:
         assert "alpha" in item.tokens
         assert "desc" in item.tokens
 
-    # test score indexed substring returns one 테스트가 검증하는 시나리오를 설명한다.
+    # test score indexed substring returns one Test scenario summary.
     def test_score_indexed_substring_returns_one(self) -> None:
         """
-        test score indexed substring returns one 시나리오를 검증한다.
+        test score indexed substring returns one Verifies the scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         from kpubdata.catalog import _build_index, _score_indexed, _tokenize
 
@@ -1180,10 +1180,10 @@ class TestIndexedScorerHelpers:
 
 
 class TestSearchIndexCache:
-    """catalog.search의 인덱스 재사용 (#279)."""
+    """catalog.search index reuse (#279)."""
 
     def test_repeated_searches_reuse_built_index(self, monkeypatch) -> None:
-        """동일 카탈로그 구성에서는 _build_index가 한 번만 실행된다."""
+        """_build_index runs once for identical catalog setup."""
         import kpubdata.catalog as catalog_module
 
         calls: list[int] = []
@@ -1240,7 +1240,7 @@ class TestSearchIndexCache:
         assert len(calls) == 1
 
     def test_registry_change_rebuilds_index(self, monkeypatch) -> None:
-        """카탈로그 구성이 바뀌면 인덱스가 재구성된다(캐시 무효화)."""
+        """Index rebuilt when catalog setup changes (cache invalidation)."""
         import kpubdata.catalog as catalog_module
 
         calls: list[int] = []

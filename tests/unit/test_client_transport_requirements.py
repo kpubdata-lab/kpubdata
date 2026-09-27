@@ -1,7 +1,7 @@
-"""테스트 모듈.
+"""Unit test module.
 
-이 파일은 ``tests/unit/test_client_transport_requirements.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
+tests/unit/test_client_transport_requirements.py`` Defines test scenarios and helper objects.
+Verifies core flows, exceptions, and edge conditions for regression prevention and public contract validation.
 """
 
 from __future__ import annotations
@@ -20,30 +20,30 @@ from kpubdata.transport.http import HttpTransport, TransportRequirements
 
 class _AdapterWithoutRequirements:
     """
-    _AdapterWithoutRequirements 관련 역할을 캡슐화하는 클래스.
+    _AdapterWithoutRequirements Class encapsulating related operations.
 
-    이 클래스는 ``tests/unit/test_client_transport_requirements.py`` 모듈 안에서 _AdapterWithoutRequirements의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__, name, list_datasets, search_datasets, get_dataset.
+    This class in ``tests/unit/test_client_transport_requirements.py`` module manages _AdapterWithoutRequirementsstate and behavior.
+    Key methods: __init__, name, list_datasets, search_datasets, get_dataset.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attributes:
+        Properties defined in constructor and class body are reused as shared context by methods.
     """
 
     instances: list[object] = []
 
     def __init__(self, *, config: object, transport: HttpTransport) -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize internal state for the instance.
 
-        매개변수:
-            config (object): 호출자가 제공하는 입력 값이다.
-            transport (HttpTransport): 호출자가 제공하는 입력 값이다.
+        Args:
+            config (object): Input value provided by caller.
+            transport (HttpTransport): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         self.config: object = config
         self.transport: HttpTransport = transport
@@ -52,133 +52,133 @@ class _AdapterWithoutRequirements:
     @property
     def name(self) -> str:
         """
-        name 동작을 수행한다.
+        name Performs the operation.
 
-        반환값:
-            str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            str: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return "dummy"
 
     def list_datasets(self) -> list[DatasetRef]:
         """
-        list datasets 동작을 수행한다.
+        list datasets Performs the operation.
 
-        반환값:
-            list[DatasetRef]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            list[DatasetRef]: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return []
 
     def search_datasets(self, _text: str) -> list[DatasetRef]:
         """
-        search datasets 동작을 수행한다.
+        search datasets Performs the operation.
 
-        매개변수:
-            _text (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            _text (str): Input value provided by caller.
 
-        반환값:
-            list[DatasetRef]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            list[DatasetRef]: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return []
 
     def get_dataset(self, dataset_key: str) -> DatasetRef:
         """
-        get dataset 동작을 수행한다.
+        get dataset Performs the operation.
 
-        매개변수:
-            dataset_key (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset_key (str): Input value provided by caller.
 
-        반환값:
-            DatasetRef: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            DatasetRef: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         raise LookupError(dataset_key)
 
     def query_records(self, dataset: DatasetRef, _query: Query) -> RecordBatch:
         """
-        query records 동작을 수행한다.
+        query records Performs the operation.
 
-        매개변수:
-            dataset (DatasetRef): 호출자가 제공하는 입력 값이다.
-            _query (Query): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset (DatasetRef): Input value provided by caller.
+            _query (Query): Input value provided by caller.
 
-        반환값:
-            RecordBatch: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            RecordBatch: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return RecordBatch(items=[], dataset=dataset)
 
     def get_schema(self, _dataset: DatasetRef) -> SchemaDescriptor | None:
         """
-        get schema 동작을 수행한다.
+        get schema Performs the operation.
 
-        매개변수:
-            _dataset (DatasetRef): 호출자가 제공하는 입력 값이다.
+        Args:
+            _dataset (DatasetRef): Input value provided by caller.
 
-        반환값:
-            SchemaDescriptor | None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            SchemaDescriptor | None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return None
 
     def call_raw(self, _dataset: DatasetRef, _operation: str, _params: dict[str, object]) -> object:
         """
-        call raw 동작을 수행한다.
+        call raw Performs the operation.
 
-        매개변수:
-            _dataset (DatasetRef): 호출자가 제공하는 입력 값이다.
-            _operation (str): 호출자가 제공하는 입력 값이다.
-            _params (dict[str, object]): 호출자가 제공하는 입력 값이다.
+        Args:
+            _dataset (DatasetRef): Input value provided by caller.
+            _operation (str): Input value provided by caller.
+            _params (dict[str, object]): Input value provided by caller.
 
-        반환값:
-            object: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            object: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return None
 
 
 class _AdapterWithRequirements:
     """
-    _AdapterWithRequirements 관련 역할을 캡슐화하는 클래스.
+    _AdapterWithRequirements Class encapsulating related operations.
 
-    이 클래스는 ``tests/unit/test_client_transport_requirements.py`` 모듈 안에서 _AdapterWithRequirements의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__, name, transport_requirements, list_datasets, search_datasets.
+    This class in ``tests/unit/test_client_transport_requirements.py`` module manages _AdapterWithRequirementsstate and behavior.
+    Key methods: __init__, name, transport_requirements, list_datasets, search_datasets.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attributes:
+        Properties defined in constructor and class body are reused as shared context by methods.
     """
 
     instances: list[object] = []
 
     def __init__(self, *, config: object, transport: HttpTransport) -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize internal state for the instance.
 
-        매개변수:
-            config (object): 호출자가 제공하는 입력 값이다.
-            transport (HttpTransport): 호출자가 제공하는 입력 값이다.
+        Args:
+            config (object): Input value provided by caller.
+            transport (HttpTransport): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         self.config: object = config
         self.transport: HttpTransport = transport
@@ -187,138 +187,138 @@ class _AdapterWithRequirements:
     @property
     def name(self) -> str:
         """
-        name 동작을 수행한다.
+        name Performs the operation.
 
-        반환값:
-            str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            str: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return "dummy"
 
     @property
     def transport_requirements(self) -> TransportRequirements | None:
         """
-        transport requirements 동작을 수행한다.
+        transport requirements Performs the operation.
 
-        반환값:
-            TransportRequirements | None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            TransportRequirements | None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return TransportRequirements(headers={"X-Provider": "dummy"}, verify_ssl=False)
 
     def list_datasets(self) -> list[DatasetRef]:
         """
-        list datasets 동작을 수행한다.
+        list datasets Performs the operation.
 
-        반환값:
-            list[DatasetRef]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            list[DatasetRef]: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return []
 
     def search_datasets(self, _text: str) -> list[DatasetRef]:
         """
-        search datasets 동작을 수행한다.
+        search datasets Performs the operation.
 
-        매개변수:
-            _text (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            _text (str): Input value provided by caller.
 
-        반환값:
-            list[DatasetRef]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            list[DatasetRef]: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return []
 
     def get_dataset(self, dataset_key: str) -> DatasetRef:
         """
-        get dataset 동작을 수행한다.
+        get dataset Performs the operation.
 
-        매개변수:
-            dataset_key (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset_key (str): Input value provided by caller.
 
-        반환값:
-            DatasetRef: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            DatasetRef: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         raise LookupError(dataset_key)
 
     def query_records(self, dataset: DatasetRef, _query: Query) -> RecordBatch:
         """
-        query records 동작을 수행한다.
+        query records Performs the operation.
 
-        매개변수:
-            dataset (DatasetRef): 호출자가 제공하는 입력 값이다.
-            _query (Query): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset (DatasetRef): Input value provided by caller.
+            _query (Query): Input value provided by caller.
 
-        반환값:
-            RecordBatch: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            RecordBatch: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return RecordBatch(items=[], dataset=dataset)
 
     def get_schema(self, _dataset: DatasetRef) -> SchemaDescriptor | None:
         """
-        get schema 동작을 수행한다.
+        get schema Performs the operation.
 
-        매개변수:
-            _dataset (DatasetRef): 호출자가 제공하는 입력 값이다.
+        Args:
+            _dataset (DatasetRef): Input value provided by caller.
 
-        반환값:
-            SchemaDescriptor | None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            SchemaDescriptor | None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return None
 
     def call_raw(self, _dataset: DatasetRef, _operation: str, _params: dict[str, object]) -> object:
         """
-        call raw 동작을 수행한다.
+        call raw Performs the operation.
 
-        매개변수:
-            _dataset (DatasetRef): 호출자가 제공하는 입력 값이다.
-            _operation (str): 호출자가 제공하는 입력 값이다.
-            _params (dict[str, object]): 호출자가 제공하는 입력 값이다.
+        Args:
+            _dataset (DatasetRef): Input value provided by caller.
+            _operation (str): Input value provided by caller.
+            _params (dict[str, object]): Input value provided by caller.
 
-        반환값:
-            object: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            object: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return None
 
 
-# test builtin provider without transport requirements uses shared transport 테스트가 검증하는 시나리오를 설명한다.
+# test builtin provider without transport requirements uses shared transport Describes scenario being tested.
 def test_builtin_provider_without_transport_requirements_uses_shared_transport(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """
-    test builtin provider without transport requirements uses shared transport 시나리오를 검증한다.
+    test builtin provider without transport requirements uses shared transport Verifies scenario.
 
-    매개변수:
-        monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Returns the result or return value from downstream calls.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Propagates exceptions from implementation or dependencies.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Examples:
+        Verifies expected behavior matches test name without regression.
     """
     _AdapterWithoutRequirements.instances.clear()
     monkeypatch.setattr(
@@ -339,24 +339,24 @@ def test_builtin_provider_without_transport_requirements_uses_shared_transport(
     assert len(_AdapterWithoutRequirements.instances) == 1
 
 
-# test builtin provider with transport requirements builds custom transport 테스트가 검증하는 시나리오를 설명한다.
+# test builtin provider with transport requirements builds custom transport Describes scenario being tested.
 def test_builtin_provider_with_transport_requirements_builds_custom_transport(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """
-    test builtin provider with transport requirements builds custom transport 시나리오를 검증한다.
+    test builtin provider with transport requirements builds custom transport Verifies scenario.
 
-    매개변수:
-        monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Returns the result or return value from downstream calls.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Propagates exceptions from implementation or dependencies.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Examples:
+        Verifies expected behavior matches test name without regression.
     """
     _AdapterWithRequirements.instances.clear()
     monkeypatch.setattr(
@@ -385,25 +385,25 @@ def test_builtin_provider_with_transport_requirements_builds_custom_transport(
     )
 
 
-# test custom transport inherits cache settings 테스트가 검증하는 시나리오를 설명한다.
+# test custom transport inherits cache settings Describes scenario being tested.
 def test_custom_transport_inherits_cache_settings(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """
-    test custom transport inherits cache settings 시나리오를 검증한다.
+    test custom transport inherits cache settings Verifies scenario.
 
-    매개변수:
-        monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
-        tmp_path (Path): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Input value provided by caller.
+        tmp_path (Path): Input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Returns the result or return value from downstream calls.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Propagates exceptions from implementation or dependencies.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Examples:
+        Verifies expected behavior matches test name without regression.
     """
     _AdapterWithRequirements.instances.clear()
     monkeypatch.setattr(

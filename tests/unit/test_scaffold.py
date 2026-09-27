@@ -1,8 +1,8 @@
-"""Provider scaffolding 도구 (#61)에 대한 단위 테스트.
+"""Unit tests for provider scaffolding tool (#61).
 
-scaffold_provider가 다음 파일 세트를 만들고, 만들어진 결과물이 실제로
-adapter contract와 호환되는지(시드 데이터셋이 등록되고 list_datasets에
-나타나는지)까지 확인한다.
+Verifies scaffold_provider creates a file set and result is actually
+compatible with adapter contract (seed dataset registers and appears in
+list_datasets).
 """
 
 from __future__ import annotations
@@ -17,11 +17,10 @@ from kpubdata.scaffold import scaffold_provider
 
 
 def _shared_repo_root(tmp_path: Path) -> Path:
-    """스캐폴드가 기대하는 디렉터리(`src/kpubdata/providers`, `tests/contract`,
-    `tests/fixtures`)만 미리 만들어 둔 임시 repo root를 반환한다.
+    """Return temp repo root with directories scaffold expects.
 
-    `__init__.py`를 비롯한 파이썬 파일은 생성하지 않는다 — 스캐폴드 자체가
-    필요한 파일을 다 만들어내는지 확인하기 위해서다.
+    Only creates src/kpubdata/providers, tests/contract, tests/fixtures.
+    Does not create Python files—scaffold must create them all.
     """
     (tmp_path / "src" / "kpubdata" / "providers").mkdir(parents=True)
     (tmp_path / "tests" / "contract").mkdir(parents=True)
@@ -31,7 +30,7 @@ def _shared_repo_root(tmp_path: Path) -> Path:
 
 class TestScaffoldProvider:
     def test_creates_expected_file_set(self, tmp_path: Path) -> None:
-        # scaffold가 적어도 adapter / __init__ / catalogue / fixture / contract test를 만든다.
+        # Scaffold creates adapter / __init__ / catalogue / fixture / contract test.
         repo = _shared_repo_root(tmp_path)
 
         result = scaffold_provider("my_prov", repo_root=repo, dataset_key="sample")
@@ -50,7 +49,7 @@ class TestScaffoldProvider:
         }
 
     def test_catalogue_seed_is_valid_json_with_dataset_key(self, tmp_path: Path) -> None:
-        # 시드 catalogue는 파싱 가능하고 요청한 dataset_key를 가진다.
+        # Seed catalogue is parseable and contains requested dataset_key.
         repo = _shared_repo_root(tmp_path)
 
         result = scaffold_provider("my_prov", repo_root=repo, dataset_key="weather")
@@ -62,7 +61,7 @@ class TestScaffoldProvider:
         assert "raw" in entries[0]["operations"]
 
     def test_init_exports_adapter_class_with_camel_case(self, tmp_path: Path) -> None:
-        # __init__.py가 "MyProvAdapter" 형태의 클래스를 export한다.
+        # __init__.py exports class in MyProvAdapter form.
         repo = _shared_repo_root(tmp_path)
 
         result = scaffold_provider("my_prov", repo_root=repo)
@@ -71,9 +70,9 @@ class TestScaffoldProvider:
         assert "MyProvAdapter" in init_text
 
     def test_generated_adapter_loads_and_lists_seed_dataset(self, tmp_path: Path) -> None:
-        # 생성된 adapter.py를 spec_from_file_location으로 직접 로드해서,
-        # list_datasets가 시드 dataset_key를 노출하는지 확인한다 — 스캐폴드
-        # 결과가 adapter contract 일부(discovery)를 즉시 만족함을 보장한다.
+        # Load generated adapter via spec_from_file_location, verify list_datasets
+        # exposes seed dataset_key—ensures scaffold output satisfies adapter
+        # contract discovery immediately.
         import importlib.util
 
         repo = _shared_repo_root(tmp_path)
@@ -103,7 +102,7 @@ class TestScaffoldProvider:
     def test_force_replaces_existing_files(self, tmp_path: Path) -> None:
         repo = _shared_repo_root(tmp_path)
         first = scaffold_provider("dup_prov", repo_root=repo, dataset_key="first")
-        # catalogue를 수정해 두고, force로 재생성하면 원래 시드로 돌아간다.
+        # Modify catalogue, force regenerate returns to original seed.
         first.catalogue_path.write_text("[]\n", encoding="utf-8")
 
         second = scaffold_provider("dup_prov", repo_root=repo, dataset_key="second", overwrite=True)
@@ -112,7 +111,7 @@ class TestScaffoldProvider:
         assert entries[0]["dataset_key"] == "second"
 
     def test_rejects_invalid_provider_name(self, tmp_path: Path) -> None:
-        # 워크스페이스를 벗어나거나 파이썬 식별자가 아닌 이름은 거부.
+        # Reject names escaping workspace or not Python identifiers.
         repo = _shared_repo_root(tmp_path)
 
         with pytest.raises(ValueError, match="provider name must match"):
@@ -125,8 +124,8 @@ class TestScaffoldProvider:
             scaffold_provider("ok_name", repo_root=repo, dataset_key="Bad-Key")
 
     def test_rejects_python_keyword_as_provider_name(self, tmp_path: Path) -> None:
-        # 정규식은 통과하지만 파이썬 예약어("class")는 생성된 코드의 import 문에서
-        # SyntaxError를 일으키므로 별도로 거부해야 한다.
+        # Regex passes but Python keywords like "class" cause SyntaxError in
+        # generated code import—must reject separately.
         repo = _shared_repo_root(tmp_path)
 
         with pytest.raises(ValueError, match="Python keyword"):
@@ -316,7 +315,7 @@ class TestScaffoldCli:
         tmp_path: Path,
         capsys: pytest.CaptureFixture[str],
     ) -> None:
-        # `kpubdata scaffold provider <name>` 가 동작하고 exit 0를 반환한다.
+        # kpubdata scaffold provider <name> works and returns exit 0.
         from kpubdata.cli import main
 
         repo = _shared_repo_root(tmp_path)
