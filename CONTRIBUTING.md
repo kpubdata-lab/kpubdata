@@ -1,5 +1,10 @@
 # KPubData 기여 가이드 (CONTRIBUTING.md)
 
+> **프로젝트 관리·리뷰 정책의 정본은 [POLICY.md](./docs/governance/POLICY.md) 하나다.**
+> Epic · Issue · Priority · Review Level · Verification · Release 규칙은 그 문서를 따른다.
+> 이 문서에는 이 저장소 고유의 절차(빌드 명령, 디렉터리 규칙)만 남긴다.
+> 충돌하면 POLICY.md 가 우선한다.
+
 KPubData 프로젝트에 관심을 가져주셔서 감사합니다! 이 프로젝트는 대학생을 포함한 모든 초보 개발자의 첫 기여를 환영합니다. 오픈소스 기여가 처음이라도 괜찮습니다. 이 가이드를 따라 차근차근 시작해 보세요.
 
 ## 1. 환영 인사 및 프로젝트 소개

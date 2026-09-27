@@ -1,5 +1,10 @@
 # AGENTS.md
 
+> **프로젝트 관리·리뷰 정책의 정본은 [POLICY.md](./docs/governance/POLICY.md) 하나다.**
+> Epic · Issue · Priority · Review Level · Verification · Release 규칙은 그 문서를 따른다.
+> 이 문서에는 이 저장소 고유의 절차(빌드 명령, 디렉터리 규칙)만 남긴다.
+> 충돌하면 POLICY.md 가 우선한다.
+
 ## 목적
 
 이 저장소는 에이전트 중심 코딩과 Codex 비중이 큰 개발을 위해 구축되었다.
