@@ -83,6 +83,7 @@ nav:
       - "0002: UX 표준화": adrs/0002-standardize-ux-not-native-shape.md
       - "0003: 언어 정책": adrs/0003-language-policy.md
       - "0004: 버전 정책": adrs/0004-versioning-and-release.md
+      - "0005: 관대한 기본, 드러나는 불일치": adrs/0005-lenient-by-default-loud-on-mismatch.md
   - 튜토리얼:
       - AI 에이전트 워크플로우: tutorial-ai-agent-workflow.md
   - 기여:

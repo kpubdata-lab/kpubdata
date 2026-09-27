@@ -175,6 +175,71 @@ class Query:
                 )
 
 
+@_dataclass(slots=True, frozen=True)
+class FieldIssue:
+    """One disagreement between a spec's ``fields[]`` and the data that arrived.
+
+    Casting is per column and only when every value succeeds: the apartment-trade
+    ``aptDong`` is mostly ``"105"`` but some rows carry a neighbourhood name, and
+    casting row by row would leave int and str in one column. That policy is right and
+    unchanged — what was wrong is that it happened silently, so a spec could disagree
+    with reality for months without anyone learning.
+
+    Attributes:
+        field: The declared field name.
+        declared_type: The type the spec declares.
+        kind: ``uncastable`` when values do not fit the declared type, ``missing``
+            when the response omits the field, ``undeclared`` when the response
+            carries a key the spec does not mention. The last one is drift: the
+            provider added something.
+        failed_count: How many values were affected. Counting means walking the whole
+            column rather than stopping at the first failure.
+        sample_values: Up to three offending values, so a reader can see what the data
+            actually looks like without fetching it again.
+    """
+
+    field: str
+    declared_type: str
+    kind: str
+    failed_count: int
+    sample_values: tuple[object, ...] = ()
+
+
+@_dataclass(slots=True)
+class ValidationReport:
+    """What normalisation found while applying a spec to a response.
+
+    Always produced, never raised on its own. The default stays lenient — a
+    mismatch does not fail a query — but it stops being invisible.
+
+    Attributes:
+        checked_fields: How many declared fields were examined.
+        issues: Every disagreement found, in declaration order.
+    """
+
+    checked_fields: int = 0
+    issues: list[FieldIssue] = field(default_factory=list)
+
+    @property
+    def ok(self) -> bool:
+        """Whether the data matched the spec in every respect."""
+        return not self.issues
+
+    def issues_of(self, kind: str) -> list[FieldIssue]:
+        """The issues of one kind, so callers do not filter by hand."""
+        return [issue for issue in self.issues if issue.kind == kind]
+
+    def __repr__(self) -> str:
+        """Summarise rather than dump every issue."""
+        if self.ok:
+            return f"ValidationReport(ok=True, checked_fields={self.checked_fields})"
+        counts: dict[str, int] = {}
+        for issue in self.issues:
+            counts[issue.kind] = counts.get(issue.kind, 0) + 1
+        detail = ", ".join(f"{kind}={count}" for kind, count in sorted(counts.items()))
+        return f"ValidationReport(ok=False, checked_fields={self.checked_fields}, {detail})"
+
+
 @_dataclass(slots=True)
 class RecordBatch:
     """Normalized record batch returned from dataset query.
@@ -184,6 +249,9 @@ class RecordBatch:
         next_cursor: Opaque cursor token for cursor-based pagination.
         raw: Provider-specific response payload used to derive this batch.
         meta: Additional adapter metadata not fitting canonical fields.
+        validation: What normalisation found while applying the spec, or None for a
+            batch that did not go through the spec executor — the hand-written
+            adapters do not, so None means "not examined", never "no problems".
     """
 
     items: list[dict[str, object]]
@@ -193,6 +261,7 @@ class RecordBatch:
     next_cursor: str | None = None
     raw: object | None = None
     meta: dict[str, object] = field(default_factory=dict)
+    validation: ValidationReport | None = None
 
     def __len__(self) -> int:
         """Return the number of records in the batch."""

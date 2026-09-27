@@ -25,7 +25,14 @@ from typing import cast
 from kpubdata._hosts import extra_hosts_env_var, host_is_allowed
 from kpubdata.config import KPubDataConfig
 from kpubdata.core.capability import Operation, PaginationMode, QuerySupport
-from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
+from kpubdata.core.models import (
+    DatasetRef,
+    FieldIssue,
+    Query,
+    RecordBatch,
+    SchemaDescriptor,
+    ValidationReport,
+)
 from kpubdata.core.representation import Representation
 from kpubdata.core.spec import SpecDefinition
 from kpubdata.exceptions import (
@@ -45,6 +52,9 @@ logger = logging.getLogger("kpubdata.core.executor")
 _AUTH_ERROR_CODES = frozenset({"30", "31", "20", "32"})
 _SERVICE_UNAVAILABLE_CODES = frozenset({"01", "02"})
 _DEFAULT_PAGE_SIZE = 100
+
+# Three is enough to recognise a pattern and short enough to log.
+_ISSUE_SAMPLE_LIMIT = 3
 # To avoid importing providers from core, generalize the datago 403 hint.
 _FORBIDDEN_HINT = (
     "Provider returned 403. This usually means the specific API has not been activated "
@@ -483,7 +493,7 @@ class SpecExecutor:
 
     def _normalize_fields(
         self, spec: SpecDefinition, items: list[dict[str, object]]
-    ) -> list[dict[str, object]]:
+    ) -> tuple[list[dict[str, object]], ValidationReport]:
         """Apply rename/transform/casting only when a fields[] declaration exists.
 
         Casting applies **per column, and only when every value succeeds**.
@@ -495,18 +505,47 @@ class SpecExecutor:
         If even one value fails to cast, the column stays as-is — even when
         the spec's type declaration disagrees with the real data,
         downstream does not break.
+
+        That policy is unchanged. What changed is that it used to happen in
+        silence: a ``logger.debug`` line was the only trace, so a spec could
+        disagree with reality for months and nobody would learn. Every
+        disagreement is now collected into a :class:`ValidationReport` that
+        rides along on the batch.
+
+        Returns:
+            The normalised records and the report. The report is always
+            produced, even when there is nothing to say — an empty report
+            means "examined and clean", which is not the same as the absent
+            report a hand-written adapter produces.
         """
+        report = ValidationReport()
         if not spec.fields:
-            return items
+            return items, report
+        report.checked_fields = len(spec.fields)
 
         # Stage 1: apply rename and transform only (casting waits until the
         # whole column has been seen).
         staged: list[dict[str, object]] = []
+        missing_counts: dict[str, int] = {}
+        declared_sources = {field.source_name or field.name for field in spec.fields}
+        declared_names = {field.name for field in spec.fields}
+        undeclared_counts: dict[str, int] = {}
+        undeclared_samples: dict[str, list[object]] = {}
         for item in items:
             record: dict[str, object] = dict(item)
+            for key, value in item.items():
+                if key in declared_sources or key in declared_names:
+                    continue
+                # A key the spec never mentioned. Not an error — the provider added
+                # something, and that is exactly the drift worth surfacing.
+                undeclared_counts[key] = undeclared_counts.get(key, 0) + 1
+                samples = undeclared_samples.setdefault(key, [])
+                if len(samples) < _ISSUE_SAMPLE_LIMIT:
+                    samples.append(value)
             for field in spec.fields:
                 source_name = field.source_name or field.name
                 if source_name not in record:
+                    missing_counts[field.name] = missing_counts.get(field.name, 0) + 1
                     continue
                 record[field.name] = _apply_transform(record[source_name], field.transform or "")
                 if source_name != field.name:
@@ -516,25 +555,68 @@ class SpecExecutor:
         # Stage 2: per-column casting — applied only when all values succeed.
         for field in spec.fields:
             casts: list[tuple[dict[str, object], object]] = []
-            castable = True
+            failures: list[object] = []
+            failed_count = 0
             for record in staged:
                 if field.name not in record:
                     continue
                 succeeded, coerced = _try_cast_field(record[field.name], field.type)
                 if not succeeded:
-                    castable = False
-                    break
+                    # The column is already lost at the first failure, but the count
+                    # and the samples are the whole point of the report, so the loop
+                    # runs to the end instead of breaking. Someone reading "3 of 500"
+                    # decides differently from someone reading "300 of 500".
+                    failed_count += 1
+                    if len(failures) < _ISSUE_SAMPLE_LIMIT:
+                        failures.append(record[field.name])
+                    continue
                 casts.append((record, coerced))
-            if not castable:
-                logger.debug(
-                    "leaving column uncast: a value does not match the declared type",
-                    extra={"dataset_id": spec.id, "field": field.name, "type": field.type},
+            if failed_count:
+                report.issues.append(
+                    FieldIssue(
+                        field=field.name,
+                        declared_type=field.type,
+                        kind="uncastable",
+                        failed_count=failed_count,
+                        sample_values=tuple(failures),
+                    )
                 )
                 continue
             for record, coerced in casts:
                 record[field.name] = coerced
 
-        return staged
+        for name, count in missing_counts.items():
+            declared = next(f for f in spec.fields if f.name == name)
+            report.issues.append(
+                FieldIssue(
+                    field=name,
+                    declared_type=declared.type,
+                    kind="missing",
+                    failed_count=count,
+                )
+            )
+        for name, count in sorted(undeclared_counts.items()):
+            report.issues.append(
+                FieldIssue(
+                    field=name,
+                    declared_type="",
+                    kind="undeclared",
+                    failed_count=count,
+                    sample_values=tuple(undeclared_samples.get(name, ())),
+                )
+            )
+
+        if report.issues:
+            # Promoted from debug because a report nobody reads is the situation this
+            # replaced. One line per query, not per field, so a wide spec with a drifted
+            # provider does not bury the log.
+            logger.info(
+                "spec and response disagree: %s",
+                report,
+                extra={"dataset_id": spec.id, "issues": len(report.issues)},
+            )
+
+        return staged, report
 
     # ------------------------------------------------------------------
     # Public API
@@ -553,7 +635,7 @@ class SpecExecutor:
         payload = self._request(spec, params)
         self._check_error(spec, payload)
 
-        items = self._normalize_fields(spec, self._extract_items(spec, payload))
+        items, validation = self._normalize_fields(spec, self._extract_items(spec, payload))
         total_count = self._extract_total_count(spec, payload)
 
         page = query.page or 1
@@ -574,6 +656,7 @@ class SpecExecutor:
             total_count=total_count,
             next_page=next_page,
             raw=payload,
+            validation=validation,
         )
 
     def fetch(

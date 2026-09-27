@@ -24,7 +24,7 @@ from kpubdata.core.executor import (
     extract_items,
     extract_total_count,
 )
-from kpubdata.core.models import DatasetRef, Query
+from kpubdata.core.models import DatasetRef, Query, RecordBatch
 from kpubdata.core.spec import SpecDefinition, load_spec_file
 from kpubdata.exceptions import (
     AuthError,
@@ -390,10 +390,10 @@ def test_query_fields_normalization() -> None:
     assert item["년"] == "2024"
 
 
-def _valid_full_batch(
+def _valid_full_result(
     records: list[dict[str, object]], field_type: str = "integer"
-) -> list[dict[str, object]]:
-    """Normalize given records using valid_full spec and return result."""
+) -> RecordBatch:
+    """Normalize given records using valid_full spec and return the whole batch."""
     spec = load_spec_file(FIXTURES_DIR / "specs" / "valid_full.yaml")
     spec = replace(spec, fields=(replace(spec.fields[0], type=field_type),))
     payload = {
@@ -404,7 +404,14 @@ def _valid_full_batch(
     }
     transport = FakeTransport([FakeResponse(json.dumps(payload).encode())])
     executor = _make_executor(transport)
-    return list(executor.query(spec, _ref(spec), Query()).items)
+    return executor.query(spec, _ref(spec), Query())
+
+
+def _valid_full_batch(
+    records: list[dict[str, object]], field_type: str = "integer"
+) -> list[dict[str, object]]:
+    """Normalize given records using valid_full spec and return result."""
+    return list(_valid_full_result(records, field_type).items)
 
 
 class TestColumnConsistentCasting:
@@ -420,12 +427,21 @@ class TestColumnConsistentCasting:
 
     def test_one_uncastable_value_leaves_the_whole_column_alone(self) -> None:
         # Real case like apt_trade: most rows are numbers but some have names.
-        items = _valid_full_batch(
+        batch = _valid_full_result(
             [{"거래금액": "120,000"}, {"거래금액": "협의"}, {"거래금액": "98,000"}]
         )
-        values = [item["deal_amount"] for item in items]
+        values = [item["deal_amount"] for item in batch.items]
         assert values == ["120000", "협의", "98000"]
         assert {type(value) for value in values} == {str}
+
+        # The policy is unchanged and now visible (#0005).
+        assert batch.validation is not None
+        assert batch.validation.ok is False
+        issue = batch.validation.issues_of("uncastable")[0]
+        assert issue.field == "deal_amount"
+        assert issue.declared_type == "integer"
+        assert issue.failed_count == 1
+        assert issue.sample_values == ("협의",)
 
     def test_nulls_do_not_block_casting(self) -> None:
         items = _valid_full_batch([{"거래금액": "120,000"}, {"거래금액": None}])
@@ -865,3 +881,101 @@ class TestSpecExecutorRecognisesGatewayRejections:
         from kpubdata.core.executor import check_payload_error
 
         check_payload_error(self._spec(), {"response": {"header": {"resultCode": "00"}}})
+
+
+class TestTheReportSaysWhatNormalisationFound:
+    """Normalisation used to disagree with a spec in silence (ADR 0005).
+
+    A ``logger.debug`` line was the only trace, so a spec could be wrong for months.
+    The casting policy is unchanged — per column, all-or-nothing — and the report is
+    what makes it visible.
+    """
+
+    def test_a_clean_batch_reports_ok(self) -> None:
+        batch = _valid_full_result([{"거래금액": "120,000"}, {"거래금액": "98,000"}])
+
+        assert batch.validation is not None
+        assert batch.validation.ok is True
+        assert batch.validation.issues == []
+        assert batch.validation.checked_fields == 1
+
+    def test_an_empty_report_is_not_an_absent_one(self) -> None:
+        """ "Examined and clean" and "never examined" must not look alike.
+
+        A hand-written adapter produces ``validation=None`` because it does not go
+        through the spec executor. Reading that as "no problems" would report a
+        dataset as verified that nobody checked.
+        """
+        batch = _valid_full_result([{"거래금액": "120,000"}])
+
+        assert batch.validation is not None
+        assert batch.validation.ok is True
+        assert RecordBatch(items=[], dataset=batch.dataset).validation is None
+
+    def test_every_failure_is_counted_not_just_the_first(self) -> None:
+        """The count is the point: "3 of 500" and "300 of 500" are different problems."""
+        batch = _valid_full_result(
+            [
+                {"거래금액": "120,000"},
+                {"거래금액": "협의"},
+                {"거래금액": "미정"},
+                {"거래금액": "98,000"},
+                {"거래금액": "별도"},
+            ]
+        )
+
+        issue = batch.validation.issues_of("uncastable")[0]
+        assert issue.failed_count == 3
+        assert issue.sample_values == ("협의", "미정", "별도")
+
+    def test_samples_are_capped(self) -> None:
+        """A sample is for recognising a pattern, not for carrying the column."""
+        batch = _valid_full_result([{"거래금액": f"값{n}"} for n in range(10)])
+
+        issue = batch.validation.issues_of("uncastable")[0]
+        assert issue.failed_count == 10
+        assert len(issue.sample_values) == 3
+
+    def test_a_field_the_response_omits_is_reported_as_missing(self) -> None:
+        batch = _valid_full_result([{"거래금액": "120,000"}, {"년": "2024"}])
+
+        # Casting still succeeds for the rows that have the field.
+        assert batch.items[0]["deal_amount"] == 120000
+        missing = batch.validation.issues_of("missing")
+        assert len(missing) == 1
+        assert missing[0].field == "deal_amount"
+        assert missing[0].failed_count == 1
+
+    def test_a_key_the_spec_does_not_declare_is_reported_as_undeclared(self) -> None:
+        """Drift in the other direction: the provider added something.
+
+        Not an error — the response is still usable — but it is the signal that a spec
+        has fallen behind, which is the case nothing detected before.
+        """
+        batch = _valid_full_result(
+            [{"거래금액": "120,000", "신규필드": "값"}, {"거래금액": "98,000", "신규필드": "값2"}]
+        )
+
+        assert batch.items[0]["deal_amount"] == 120000  # still cast
+        undeclared = batch.validation.issues_of("undeclared")
+        assert [issue.field for issue in undeclared] == ["신규필드"]
+        assert undeclared[0].failed_count == 2
+        assert undeclared[0].sample_values == ("값", "값2")
+        assert undeclared[0].declared_type == ""
+
+    def test_a_spec_without_fields_reports_nothing_checked(self) -> None:
+        """No declaration means nothing to disagree with, not a clean bill of health."""
+        spec = load_spec_file(FIXTURES_DIR / "specs" / "valid_full.yaml")
+        spec = replace(spec, fields=())
+        payload = {
+            "response": {
+                "header": {"resultCode": "00"},
+                "body": {"items": {"item": [{"거래금액": "120,000"}]}, "totalCount": "1"},
+            }
+        }
+        transport = FakeTransport([FakeResponse(json.dumps(payload).encode())])
+        batch = _make_executor(transport).query(spec, _ref(spec), Query())
+
+        assert batch.validation is not None
+        assert batch.validation.checked_fields == 0
+        assert batch.validation.ok is True
