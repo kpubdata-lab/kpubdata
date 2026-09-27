@@ -8,8 +8,8 @@
 
 > Code, comments, docstrings, commit messages, **issue and PR titles** and
 > CHANGELOG are English. Issue bodies, PR bodies and review comments may be
-> written in Korean or English. **README is Korean first, with an English section
-> following in the same file.** Korean-language documentation is kept where the subject matter is
+> written in Korean or English. **README is two files: `README.md` in Korean and
+> `README.en.md` in English, kept structurally in step by a CI check.** Korean-language documentation is kept where the subject matter is
 > Korean (provider procedures, KOGL terms), and user-visible strings are out of
 > scope — their language is runtime behaviour, decided separately.
 >
@@ -75,7 +75,7 @@ konlpy 3% 는 학술 인용을 목적으로 영어를 택한 예외에 가깝다
 | 커밋 메시지 | **영어** |
 | **PR 제목** | **영어** (Conventional Commits) |
 | CHANGELOG · 릴리스 노트 | **영어** |
-| **README** | **한국어 기본 + 같은 파일에 영어 절** |
+| **README** | `README.md` 한국어 · `README.en.md` 영어 (2026-09-27 개정) |
 | **이슈 제목** | **영어** |
 | 이슈 본문 | 한국어 또는 영어 |
 | PR 본문, 리뷰 코멘트 | 한국어 또는 영어 |
@@ -91,6 +91,26 @@ konlpy 3% 는 학술 인용을 목적으로 영어를 택한 예외에 가깝다
 `help()` 와 API 문서로 나간다. **전부 밖으로 나가거나 오래 남는다.**
 
 본문은 논의다.
+
+### README 를 두 파일로 나눈 이유 — 2026-09-27 개정
+
+이 ADR 은 처음 `README.en.md` 를 **기각했다.** 사유는 이렇게 적혀 있었다.
+
+> 별도 파일(`README.en.md`)이 아니라 같은 파일의 뒤쪽 절로 둔다. 번역을 별도 파일로
+> 두면 유지되지 않는다.
+
+**그 걱정은 사실이고 없어지지 않았다.** 방향을 바꾼 것은 한 파일 방식이 다른 방식으로
+실패하고 있었기 때문이다 — 영어 절이 553줄 README 의 **490행부터** 시작했다. 영어권
+독자가 그 줄까지 내려갈 이유가 없으므로, 유지는 됐지만 읽히지 않았다.
+
+그래서 사유를 문서로 반박하지 않고 **장치로 무력화한다.**
+
+`scripts/check_readme_parity.py` 가 두 파일의 `##` 절 개수·순서를 대조하고, 한쪽에만
+절이 생기면 CI 가 실패한다. 내용 동일성은 검사하지 않는다 — 불가능하고 필요하지도
+않다. 실제로 갈라지는 것은 **한쪽에만 추가된 절**이고 그것만 막으면 된다.
+
+같은 검사가 **150줄 상한**도 강제한다. 553줄 85제목 상태에서는 절 대조가 유지될 수
+없었다 — 구조 정리가 분리의 전제였다(`#546`).
 
 ### Governance 문서는 왜 영어인가 — 2026-09-27 추가
 
