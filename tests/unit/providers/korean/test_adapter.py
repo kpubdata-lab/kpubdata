@@ -1,4 +1,4 @@
-"""국립국어원 어댑터 단위 테스트 (#222)."""
+"""National Institute of Korean Language adapter unit tests (#222)."""
 
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ def _build_adapter(fixture_names: list[str]) -> tuple[KoreanAdapter, object]:
 
 
 def test_query_records_builds_stdict_url() -> None:
-    """stdict search.do URL 형상(key/type_search/req_type/start/num/q)을 검증한다."""
+    """Verifies the stdict search.do URL shape (key/type_search/req_type/start/num/q)."""
     adapter, transport = _build_adapter(["dict_search.json"])
     dataset = adapter.get_dataset("dict_search")
 
@@ -54,7 +54,7 @@ def test_query_records_builds_stdict_url() -> None:
     assert "num=10" in url
     assert "q=" in url
 
-    # 다의어가 sense 단위로 펼쳐진다(나무 2 sense + 나무꾼 1 sense = 3 records)
+    # Polysemy words expand per sense (a two-sense word plus its one-sense compound = 3 records)
     assert len(batch.items) == 3
     assert batch.items[0]["word"] == "나무"
     assert "줄기와 가지" in str(batch.items[0]["sense"]["definition"])
@@ -63,7 +63,7 @@ def test_query_records_builds_stdict_url() -> None:
 
 
 def test_query_records_missing_q_raises() -> None:
-    """필수 filter q 누락 시 InvalidRequestError."""
+    """Missing the required q filter raises InvalidRequestError."""
     adapter, _ = _build_adapter(["dict_search.json"])
     dataset = adapter.get_dataset("dict_search")
 
@@ -76,7 +76,7 @@ def test_query_records_missing_q_raises() -> None:
 
 
 def test_auth_error_maps_to_auth_error() -> None:
-    """statusCode 019(인증 오류)는 AuthError로 매핑된다."""
+    """statusCode 019 (auth error) maps to AuthError."""
     adapter, _ = _build_adapter(["auth_error.json"])
     dataset = adapter.get_dataset("dict_search")
 
@@ -89,7 +89,7 @@ def test_auth_error_maps_to_auth_error() -> None:
 
 
 def test_pagination_next_page_from_total() -> None:
-    """total이 페이지 범위를 넘으면 next_page가 계산된다."""
+    """next_page is computed when total crosses the page window."""
     adapter, _ = _build_adapter(["dict_search.json"])
     dataset = adapter.get_dataset("dict_search")
 
@@ -100,7 +100,7 @@ def test_pagination_next_page_from_total() -> None:
 
 
 def test_call_raw_returns_full_envelope() -> None:
-    """call_raw가 channel 엔벨로프 전체를 반환한다."""
+    """call_raw returns the whole channel envelope."""
     adapter, _ = _build_adapter(["dict_search.json"])
     dataset = adapter.get_dataset("dict_search")
 

@@ -1,12 +1,14 @@
-"""localdata·semas 어댑터의 파라미터 매핑과 오류 응답 회귀 테스트 (#454).
+"""Parameter-mapping and error-response regression tests for the localdata/semas adapters (#454).
 
-두 어댑터는 data.go.kr 인증 체계를 공유하고 envelope·result code 처리 구조가 거의
-같다. 한 곳을 고치고 다른 곳을 잊는 일이 생기기 쉬우므로, 공통 계약은 같은
-파라미터 세트로 두 어댑터에 동시에 건다.
+The two adapters share the data.go.kr auth scheme and have nearly identical
+envelope/result-code handling. Fixing one and forgetting the other is an
+easy mistake, so the shared contract is applied to both adapters with the
+same parameter set.
 
-기존 `tests/unit/providers/{localdata,semas}/test_adapter.py` 는 fixture 기반 성공
-경로를 다룬다. 여기서는 그 바깥 — **요청을 어떻게 만드는가**와 **잘못된 응답을 어떤
-예외로 분류하는가** — 를 고정한다.
+The existing `tests/unit/providers/{localdata,semas}/test_adapter.py`
+covers the fixture-based success paths. This file pins what lies outside
+them — **how the request is built** and **how a malformed response is
+classified**.
 """
 
 from __future__ import annotations
@@ -39,9 +41,10 @@ _ADAPTERS = [
     pytest.param(SemasAdapter, "semas", id="semas"),
 ]
 
-# data.go.kr 키가 붙을 수 있는 env var. ``KPubDataConfig(provider_keys={})`` 는 키가
-# "없는" 설정이 아니다 — ``get_provider_key`` 가 이 둘을 차례로 본다(config.py). 지우지
-# 않으면 키를 export 해 둔 개발자 머신에서만 "요청 전에 막는다" 테스트가 실패한다.
+# Env vars a data.go.kr key may live in. ``KPubDataConfig(provider_keys={})``
+# is NOT a "no key" configuration — ``get_provider_key`` consults both of
+# these in order (config.py). Without deleting them, the "blocked before
+# request" test fails only on developer machines that export a key.
 _KEY_ENV_VARS = ("KPUBDATA_DATAGO_API_KEY", "DATAGO_API_KEY")
 
 
@@ -95,7 +98,7 @@ def _envelope(code: str, *, msg: str = "결과", items: object = None) -> dict[s
     return {"response": {"header": {"resultCode": code, "resultMsg": msg}, "body": body}}
 
 
-# --- API 키 요구 -----------------------------------------------------------
+# --- API key requirements --------------------------------------------------
 
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
@@ -105,13 +108,13 @@ def test_adapter_declares_it_requires_an_api_key(cls: Any, provider: str) -> Non
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
 def test_missing_api_key_fails_before_any_request(cls: Any, provider: str) -> None:
-    """두 어댑터 모두 data.go.kr 키 하나(``datago``)를 공유한다 — 없으면 요청 전에 막는다."""
+    """Both adapters share one data.go.kr key (``datago``) — absent means blocked before any request."""
     adapter = _adapter(cls, api_key=None)
     with pytest.raises(ConfigError):
         adapter._build_base_params(_ref(provider, base_url="https://api.test/svc"))
 
 
-# --- 요청 URL 구성 ---------------------------------------------------------
+# --- Request URL construction ----------------------------------------------
 
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
@@ -152,13 +155,13 @@ def test_unusable_operation_metadata_falls_back_to_the_base_url(
 def test_missing_base_url_is_a_provider_response_error(
     cls: Any, provider: str, base_url: object
 ) -> None:
-    """카탈로그 메타데이터가 비면 엉뚱한 URL 로 요청하지 말고 즉시 실패해야 한다."""
+    """With empty catalogue metadata it must fail immediately, not request some odd URL."""
     adapter = _adapter(cls)
     with pytest.raises(ProviderResponseError, match="missing base_url"):
         adapter._build_request_url(_ref(provider, base_url=base_url))
 
 
-# --- 기본 파라미터 매핑 ----------------------------------------------------
+# --- Default parameter mapping ---------------------------------------------
 
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
@@ -169,7 +172,7 @@ def test_default_parameter_names_are_used_when_metadata_is_silent(cls: Any, prov
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
 def test_metadata_can_rename_the_key_and_format_parameters(cls: Any, provider: str) -> None:
-    """서비스마다 파라미터 이름이 다르다 — 카탈로그가 이름을 갈아끼울 수 있어야 한다."""
+    """Parameter names differ per service — the catalogue must be able to swap them."""
     params = _adapter(cls)._build_base_params(
         _ref(
             provider,
@@ -192,7 +195,7 @@ def test_unusable_parameter_name_metadata_falls_back_to_defaults(
     assert params == {"serviceKey": "test-key", "type": "json"}
 
 
-# --- 응답 디코딩 -----------------------------------------------------------
+# --- Response decoding -----------------------------------------------------
 
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
@@ -205,7 +208,7 @@ def test_json_response_is_decoded(cls: Any, provider: str) -> None:
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
 def test_request_parameters_are_stringified(cls: Any, provider: str) -> None:
-    """transport 는 문자열 파라미터를 받는다 — 숫자/불리언이 그대로 새면 안 된다."""
+    """The transport takes string parameters — numbers/booleans must not leak through as-is."""
     adapter = _adapter(cls, _FakeResponse({"response": {}}))
     adapter._request_and_decode("https://api.test/svc", {"page": 1, "all": True}, "d")
     call = adapter._transport.calls[0]
@@ -234,13 +237,13 @@ def test_unparsable_body_raises_parse_error_tagged_with_the_provider(
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
 def test_non_object_payload_raises_parse_error(cls: Any, provider: str) -> None:
-    """최상위가 배열이면 envelope 검증이 불가능하다 — 빈 결과로 넘기지 않는다."""
+    """A top-level array cannot be envelope-validated — it must not pass as an empty result."""
     adapter = _adapter(cls, _FakeResponse([1, 2, 3]))
     with pytest.raises(ParseError, match="not an object"):
         adapter._request_and_decode("https://api.test/svc", {}, "d")
 
 
-# --- envelope 검증 ---------------------------------------------------------
+# --- envelope validation ---------------------------------------------------
 
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
@@ -257,7 +260,7 @@ def test_missing_header_is_rejected(cls: Any, provider: str) -> None:
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
 def test_missing_result_code_is_rejected(cls: Any, provider: str) -> None:
-    """resultCode 가 없으면 성공 여부를 알 수 없다 — 성공으로 가정하지 않는다."""
+    """Without a resultCode success cannot be known — never assume success."""
     with pytest.raises(ProviderResponseError, match="missing resultCode"):
         _adapter(cls)._validate_envelope({"response": {"header": {}, "body": {}}}, "d")
 
@@ -277,7 +280,7 @@ def test_non_string_result_message_gets_a_placeholder(cls: Any, provider: str) -
         _adapter(cls)._validate_envelope(payload, "d")
 
 
-# --- result code 분류 ------------------------------------------------------
+# --- result code classification --------------------------------------------
 
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
@@ -291,7 +294,7 @@ def test_auth_codes_raise_auth_error(cls: Any, provider: str, code: str) -> None
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
 def test_quota_code_raises_a_non_retryable_rate_limit_error(cls: Any, provider: str) -> None:
-    """22 는 일일 한도 초과다 — 재시도해도 풀리지 않으므로 retryable 이 아니어야 한다."""
+    """22 is a daily-quota overrun — retrying does not clear it, so it must not be retryable."""
     with pytest.raises(RateLimitError) as exc:
         _adapter(cls)._validate_envelope(_envelope("22"), "d")
     assert exc.value.retryable is False
@@ -319,7 +322,7 @@ def test_service_codes_raise_service_unavailable(cls: Any, provider: str, code: 
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
 def test_unmapped_failure_code_still_raises(cls: Any, provider: str) -> None:
-    """분류표에 없는 코드를 성공으로 흘리면 빈 결과가 조용히 내려간다."""
+    """Letting unmapped codes flow through as success silently returns empty results."""
     with pytest.raises(ProviderResponseError) as exc:
         _adapter(cls)._validate_envelope(_envelope("77", msg="알 수 없음"), "d")
     assert exc.value.provider_code == "77"
@@ -328,7 +331,7 @@ def test_unmapped_failure_code_still_raises(cls: Any, provider: str) -> None:
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
 @pytest.mark.parametrize("code", ["00", "0", "000"])
 def test_numerically_zero_codes_are_success(cls: Any, provider: str, code: str) -> None:
-    """성공 코드는 문자열 비교가 아니라 숫자 0 판정이다 — '0'/'00'/'000' 이 모두 성공이다."""
+    """The success code is judged numerically zero, not string-equality — '0'/'00'/'000' all succeed."""
     _, items = _adapter(cls)._validate_envelope(_envelope(code, items={"item": [{"a": 1}]}), "d")
     assert items == [{"a": 1}]
 
@@ -339,7 +342,7 @@ def test_non_numeric_code_is_not_treated_as_success(cls: Any, provider: str) -> 
         _adapter(cls)._validate_envelope(_envelope("OK"), "d")
 
 
-# --- items 정규화 ----------------------------------------------------------
+# --- items normalization ---------------------------------------------------
 
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
@@ -350,7 +353,7 @@ def test_items_absent_yields_no_rows(cls: Any, provider: str) -> None:
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
 def test_single_item_object_is_wrapped_in_a_list(cls: Any, provider: str) -> None:
-    """행이 하나면 data.go.kr 이 item 을 dict 로 준다 — 목록으로 정규화해야 한다."""
+    """With a single row data.go.kr delivers item as a dict — it must be normalized into a list."""
     _, items = _adapter(cls)._validate_envelope(_envelope("00", items={"item": {"a": 1}}), "d")
     assert items == [{"a": 1}]
 
@@ -376,7 +379,7 @@ def test_unusable_items_payload_yields_no_rows(cls: Any, provider: str, items: o
     assert parsed == []
 
 
-# --- 카탈로그 조회 ---------------------------------------------------------
+# --- catalogue lookup ------------------------------------------------------
 
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
@@ -418,7 +421,7 @@ def test_unknown_dataset_key_raises_with_the_qualified_id(cls: Any, provider: st
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
 def test_schema_comes_from_catalogue_metadata(cls: Any, provider: str) -> None:
     adapter = _adapter(cls)
-    # 메타데이터에 필드 정보가 없으면 None 이어야 한다 — 빈 스키마를 지어내지 않는다.
+    # No field info in the metadata means None — never invent an empty schema.
     assert adapter.get_schema(_ref(provider, base_url="https://api.test/svc")) is None
 
 
@@ -443,7 +446,7 @@ def test_call_raw_merges_caller_params_and_returns_the_whole_payload(
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
 def test_call_raw_never_lets_a_caller_override_the_service_key(cls: Any, provider: str) -> None:
-    """호출자가 serviceKey 를 넘겨도 설정된 키가 이긴다 — 키 주입 경로를 열지 않는다."""
+    """Even when the caller passes serviceKey, the configured key wins — no key-injection path."""
     adapter = _adapter(cls, _FakeResponse(_envelope("00")))
     dataset = _ref(provider, base_url="https://api.test/svc")
 
@@ -464,7 +467,7 @@ def test_call_raw_respects_a_renamed_service_key_parameter(cls: Any, provider: s
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
 def test_call_raw_propagates_an_error_envelope(cls: Any, provider: str) -> None:
-    """raw 호출이라도 오류 응답을 그대로 돌려주지 않는다 — 호출부가 실패를 못 본다."""
+    """Even a raw call must not hand back an error envelope as-is — callers would miss the failure."""
     adapter = _adapter(cls, _FakeResponse(_envelope("30", msg="인증 실패")))
     dataset = _ref(provider, base_url="https://api.test/svc")
 
@@ -472,19 +475,20 @@ def test_call_raw_propagates_an_error_envelope(cls: Any, provider: str) -> None:
         adapter.call_raw(dataset, "getList", {})
 
 
-# --- 갈라져 있던 세 지점 (#470) -------------------------------------------
+# --- The three spots that had diverged (#470) ------------------------------
 #
-# PR #457 이 이 파일로 공통 계약을 걸었지만, 이미 갈라진 세 곳은 덮지 않았다.
-# 여기에 넣어 두 어댑터가 다시 갈라지면 즉시 드러나게 한다.
+# PR #457 put the shared contract into this file, but three already-diverged
+# spots were not covered.
+# Placed here so a future divergence between the two adapters shows up immediately.
 
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
 def test_no_data_result_code_is_an_empty_result_not_an_error(cls: Any, provider: str) -> None:
-    """``03``(NODATA_ERROR)은 정상 응답이다.
+    """``03`` (NODATA_ERROR) is a normal response.
 
-    조건에 맞는 데이터가 없다는 뜻이지 호출이 실패한 것이 아니다. localdata 만
-    이 분기가 없어서, 필터를 걸어 조회했는데 결과가 없는 흔한 경우가 예외로
-    올라왔다.
+    It means no data matches the filter, not that the call failed. Only
+    localdata lacked this branch, so the common case of a filtered query
+    with no results raised an exception there.
     """
     adapter = _adapter(cls, _FakeResponse(_envelope("03", msg="데이터없음")))
     dataset = _ref(provider, base_url="https://api.test/svc", default_operation="getList")
@@ -496,7 +500,7 @@ def test_no_data_result_code_is_an_empty_result_not_an_error(cls: Any, provider:
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
 def test_a_trailing_slash_in_base_url_does_not_double(cls: Any, provider: str) -> None:
-    """카탈로그에 끝 슬래시가 들어오는 날 드러나는 종류의 차이였다."""
+    """The kind of difference that only shows up the day the catalogue grows a trailing slash."""
     adapter = _adapter(cls)
     dataset = _ref(provider, base_url="https://api.test/svc/", default_operation="getList")
 
@@ -505,10 +509,11 @@ def test_a_trailing_slash_in_base_url_does_not_double(cls: Any, provider: str) -
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
 def test_an_empty_items_wrapper_is_zero_records(cls: Any, provider: str) -> None:
-    """``{"items": {}}`` 는 0건이다.
+    """``{"items": {}}`` means zero records.
 
-    #470 이 "``item`` 키가 없는 dict 는 단건" 규칙을 넣으면서 빈 래퍼까지
-    승격시켰다 — **유령 1행** 이 생겼다. datago 본가는 처음부터 ``[]`` 였다.
+    #470, while adding the "a dict without an ``item`` key is a single
+    record" rule, also promoted the empty wrapper — producing a **ghost
+    row**. Upstream datago had always returned ``[]`` here.
     """
     adapter = _adapter(cls, _FakeResponse(_envelope("00", items={})))
     dataset = _ref(provider, base_url="https://api.test/svc", default_operation="getList")
@@ -518,7 +523,7 @@ def test_an_empty_items_wrapper_is_zero_records(cls: Any, provider: str) -> None
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
 def test_an_empty_xml_item_element_is_zero_records(cls: Any, provider: str) -> None:
-    """XML ``<items><item/></items>`` 는 ``{"item": None}`` 으로 디코딩된다."""
+    """XML ``<items><item/></items>`` decodes to ``{"item": None}``."""
     adapter = _adapter(cls, _FakeResponse(_envelope("00", items={"item": None})))
     dataset = _ref(provider, base_url="https://api.test/svc", default_operation="getList")
 
@@ -527,7 +532,7 @@ def test_an_empty_xml_item_element_is_zero_records(cls: Any, provider: str) -> N
 
 @pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
 def test_an_unwrapped_single_record_is_still_one_record(cls: Any, provider: str) -> None:
-    # #470 이 고치려던 것은 그대로 유지한다.
+    # Keeps what #470 set out to fix.
     adapter = _adapter(cls, _FakeResponse(_envelope("00", items={"bizNm": "테스트"})))
     dataset = _ref(provider, base_url="https://api.test/svc", default_operation="getList")
 

@@ -135,9 +135,8 @@ def test_pagination_next_page_computed_from_total() -> None:
     assert batch.next_page == 2
 
 
-# Verifies scenario tested by test_school_info_parses_without_required_filters.
 def test_school_info_parses_without_required_filters() -> None:
-    """School info is queried by education office code only, no required filters (#218)."""
+    """School basic info is queried with just an education-office code — no required filters (#218)."""
     adapter, _ = _build_adapter(["school_info.json"])
     dataset = adapter.get_dataset("school_info")
 

@@ -1,12 +1,14 @@
-"""localdata 와 semas 가 같은 규약을 실제로 공유하는지 (#470 회귀 방지).
+"""Pin the fact that localdata and semas genuinely share one contract (#470 regression guard).
 
-두 어댑터는 375줄짜리 사본 두 벌이었다. 이름 문자열을 맞춰 비교하면 코드 차이가
-0줄이었는데, 그 상태가 바로 #470 을 만들었다 — data.go.kr 의 ``"03"``(NODATA)을
-정상으로 다루는 분기가 semas 에만 있어서, 결과가 없는 흔한 조회가 localdata
-에서만 예외로 올라왔다. 한쪽을 고치면 다른 쪽도 고쳐야 한다는 사실이 코드
-어디에도 없었다.
+The two adapters were two 375-line copies. A name-normalized comparison
+showed zero lines of difference — and that exact state is what created
+#470: the branch treating data.go.kr ``"03"`` (NODATA) as success existed
+only in semas, so a common no-result query raised an exception in
+localdata alone. Nowhere in the code said "fix one and you must fix the
+other".
 
-이제 공용 base 하나를 상속한다. 이 테스트는 그 사실을 계약으로 고정한다.
+They now inherit one shared base. This test locks that fact in as a
+contract.
 """
 
 from __future__ import annotations
@@ -42,11 +44,11 @@ class TestBothShareTheImplementation:
 
 
 class TestTheEnvelopeRulesMatch:
-    """#470 의 핵심 — 두 provider 가 같은 resultCode 에 같은 반응을 해야 한다."""
+    """The heart of #470 — both providers must react identically to the same resultCode."""
 
     @pytest.mark.parametrize("adapter_cls", _ADAPTERS)
     def test_nodata_is_a_success(self, adapter_cls: type[Any]) -> None:
-        """``03`` 은 "조건에 맞는 데이터가 없다" 이지 호출 실패가 아니다."""
+        """``03`` means "no data matches the filter" — not a failed call."""
         _body, items = adapter_cls()._validate_envelope(_envelope("03", [{"x": 1}]), "x")
 
         assert items == []
@@ -65,14 +67,14 @@ class TestTheEnvelopeRulesMatch:
     def test_real_errors_still_raise(
         self, adapter_cls: type[Any], code: str, exception_name: str
     ) -> None:
-        with pytest.raises(Exception) as excinfo:  # noqa: B017 - 타입 이름만 비교한다
+        with pytest.raises(Exception) as excinfo:  # noqa: B017 - compares type names only
             _ = adapter_cls()._validate_envelope(_envelope(code), "x")
 
         assert type(excinfo.value).__name__ == exception_name
 
 
 class TestItemNormalisationMatches:
-    """#482 에서 한쪽만 고쳐 유령 행이 생겼던 지점 (#483 에서 되돌림)."""
+    """The spot where #482 fixed only one side and grew a ghost row (reverted in #483)."""
 
     @pytest.mark.parametrize("adapter_cls", _ADAPTERS)
     @pytest.mark.parametrize(
@@ -92,10 +94,10 @@ class TestItemNormalisationMatches:
 
 
 class TestLoggingStaysPerProvider:
-    """공용 구현이어도 로그는 provider 단위로 남아야 한다.
+    """A shared implementation must still log under each provider's own logger.
 
-    운영자는 ``kpubdata.provider.localdata`` 로 필터한다. base 를 뽑아내면서
-    logger 하나를 공유하면 그 필터가 조용히 비어 버린다.
+    Operators filter by ``kpubdata.provider.localdata``. Sharing one logger
+    while extracting the base silently empties that filter.
     """
 
     @pytest.mark.parametrize("adapter_cls", _ADAPTERS)
@@ -113,7 +115,7 @@ class TestLoggingStaysPerProvider:
         adapter = adapter_cls()
         caplog.set_level(logging.DEBUG, logger=f"kpubdata.provider.{adapter_cls.provider_name}")
 
-        with pytest.raises(Exception):  # noqa: B017 - 로그만 확인한다
+        with pytest.raises(Exception):  # noqa: B017 - only checks logging
             _ = adapter.get_dataset("does-not-exist")
 
         expected = f"{adapter_cls.provider_name.capitalize()} dataset not found"

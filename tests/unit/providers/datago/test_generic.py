@@ -1,7 +1,6 @@
-"""테스트 모듈.
+"""Test module.
 
-이 파일은 ``tests/unit/providers/datago/test_generic.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
+This module defines tests and helpers for the surrounding test suite.
 """
 
 from __future__ import annotations
@@ -19,90 +18,72 @@ from kpubdata.transport.http import HttpTransport
 
 
 class FakeResponse:
-    """
-    FakeResponse 관련 역할을 캡슐화하는 클래스.
+    """Tests for FakeResponse.
 
-    이 클래스는 ``tests/unit/providers/datago/test_generic.py`` 모듈 안에서 FakeResponse의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__.
-
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    This class groups related test cases and helpers for FakeResponse.
     """
 
     def __init__(self, payload: object, content_type: str = "application/json") -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize with payload.
 
-        매개변수:
-            payload (object): 호출자가 제공하는 입력 값이다.
-            content_type (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            payload (object): Input parameter.
+            content_type (str): Input parameter.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        Raises:
+            Exceptions propagated."""
         self.headers: dict[str, str] = {"content-type": content_type}
         self.text: str = json.dumps(payload)
         self.content: bytes = self.text.encode()
 
 
 class FakeTransport:
-    """
-    FakeTransport 관련 역할을 캡슐화하는 클래스.
+    """Tests for FakeTransport.
 
-    이 클래스는 ``tests/unit/providers/datago/test_generic.py`` 모듈 안에서 FakeTransport의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__, request.
-
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    This class groups related test cases and helpers for FakeTransport.
     """
 
     def __init__(self, responses: list[FakeResponse]) -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize with payload.
 
-        매개변수:
-            responses (list[FakeResponse]): 호출자가 제공하는 입력 값이다.
+        Args:
+            responses (list[FakeResponse]): Input parameter.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        Raises:
+            Exceptions propagated."""
         self._responses: list[FakeResponse] = list(responses)
         self.calls: list[dict[str, object]] = []
 
     def request(self, method: str, url: str, **kwargs: object) -> FakeResponse:
         """
-        request 동작을 수행한다.
+        Execute a mock HTTP request.
 
-        매개변수:
-            method (str): 호출자가 제공하는 입력 값이다.
-            url (str): 호출자가 제공하는 입력 값이다.
-            **kwargs (object): 호출자가 제공하는 입력 값이다.
+        Args:
+            method (str): Input parameter.
+            url (str): Input parameter.
+            **kwargs (object): Input parameter.
 
-        반환값:
-            FakeResponse: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            FakeResponse: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        Raises:
+            Exceptions propagated."""
         self.calls.append({"method": method, "url": url, **kwargs})
         return self._responses.pop(0)
 
 
 def _success_envelope() -> dict[str, object]:
-    """
-    내부 헬퍼로서 success envelope 처리를 담당한다.
+    """_success_envelope
 
-    반환값:
-        dict[str, object]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Validates the scenario described by the test name.
     """
     return {
         "response": {
@@ -113,17 +94,9 @@ def _success_envelope() -> dict[str, object]:
 
 
 def _build_adapter(responses: list[FakeResponse]) -> tuple[DataGoAdapter, FakeTransport]:
-    """
-    내부 헬퍼로서 build adapter 처리를 담당한다.
+    """_build_adapter
 
-    매개변수:
-        responses (list[FakeResponse]): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        tuple[DataGoAdapter, FakeTransport]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Validates the scenario described by the test name.
     """
     transport = FakeTransport(responses)
     config = KPubDataConfig(provider_keys={"datago": "test-key"})
@@ -135,30 +108,21 @@ def _build_adapter(responses: list[FakeResponse]) -> tuple[DataGoAdapter, FakeTr
 
 
 class TestDataGoGenericDataset:
-    """
-    TestDataGoGenericDataset 관련 역할을 캡슐화하는 클래스.
+    """Tests for TestDataGoGenericDataset.
 
-    이 클래스는 ``tests/unit/providers/datago/test_generic.py`` 모듈 안에서 TestDataGoGenericDataset의 상태와 동작을 함께 관리한다.
-    주요 메서드: test_generic_dataset_in_catalogue, test_call_raw_with_base_url_builds_url, test_call_raw_strips_trailing_slash_from_base_url, test_call_raw_missing_base_url_raises, test_call_raw_missing_base_url_logs_debug.
-
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    This class groups related test cases and helpers for TestDataGoGenericDataset.
     """
 
-    # test generic dataset in catalogue 테스트가 검증하는 시나리오를 설명한다.
+    # test generic dataset in catalogue Describes the scenario verified by the test.
     def test_generic_dataset_in_catalogue(self) -> None:
         """
-        test generic dataset in catalogue 시나리오를 검증한다.
+        test generic dataset in catalogue Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter = DataGoAdapter()
 
         dataset = adapter.get_dataset("generic")
@@ -167,20 +131,16 @@ class TestDataGoGenericDataset:
         assert dataset.dataset_key == "generic"
         assert dataset.raw_metadata.get("generic") is True
 
-    # test call raw with base url builds url 테스트가 검증하는 시나리오를 설명한다.
+    # test call raw with base url builds url Describes the scenario verified by the test.
     def test_call_raw_with_base_url_builds_url(self) -> None:
         """
-        test call raw with base url builds url 시나리오를 검증한다.
+        test call raw with base url builds url Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter, transport = _build_adapter([FakeResponse(_success_envelope())])
         dataset = adapter.get_dataset("generic")
 
@@ -204,20 +164,16 @@ class TestDataGoGenericDataset:
         assert params["nx"] == "55"
         assert "_base_url" not in params
 
-    # test call raw strips trailing slash from base url 테스트가 검증하는 시나리오를 설명한다.
+    # test call raw strips trailing slash from base url Describes the scenario verified by the test.
     def test_call_raw_strips_trailing_slash_from_base_url(self) -> None:
         """
-        test call raw strips trailing slash from base url 시나리오를 검증한다.
+        test call raw strips trailing slash from base url Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter, transport = _build_adapter([FakeResponse(_success_envelope())])
         dataset = adapter.get_dataset("generic")
 
@@ -229,43 +185,35 @@ class TestDataGoGenericDataset:
 
         assert transport.calls[0]["url"] == "http://apis.data.go.kr/foo/bar/getX"
 
-    # test call raw missing base url raises 테스트가 검증하는 시나리오를 설명한다.
+    # test call raw missing base url raises Describes the scenario verified by the test.
     def test_call_raw_missing_base_url_raises(self) -> None:
         """
-        test call raw missing base url raises 시나리오를 검증한다.
+        test call raw missing base url raises Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter, _ = _build_adapter([])
         dataset = adapter.get_dataset("generic")
 
         with pytest.raises(InvalidRequestError, match="_base_url"):
             adapter.call_raw(dataset, "getX", {})
 
-    # test call raw missing base url logs debug 테스트가 검증하는 시나리오를 설명한다.
+    # test call raw missing base url logs debug Describes the scenario verified by the test.
     def test_call_raw_missing_base_url_logs_debug(self, caplog: pytest.LogCaptureFixture) -> None:
         """
-        test call raw missing base url logs debug 시나리오를 검증한다.
+        test call raw missing base url logs debug Validates the scenario described by the test name.
 
-        매개변수:
-            caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+        Args:
+            caplog (pytest.LogCaptureFixture): Input parameter.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter, _ = _build_adapter([])
         dataset = adapter.get_dataset("generic")
 
@@ -280,20 +228,16 @@ class TestDataGoGenericDataset:
         )
         assert record.__dict__["dataset_id"] == dataset.id
 
-    # test call raw envelope skip allows non standard payload 테스트가 검증하는 시나리오를 설명한다.
+    # test call raw envelope skip allows non standard payload Describes the scenario verified by the test.
     def test_call_raw_envelope_skip_allows_non_standard_payload(self) -> None:
         """
-        test call raw envelope skip allows non standard payload 시나리오를 검증한다.
+        test call raw envelope skip allows non standard payload Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         non_standard = {"items": [{"a": 1}]}
         adapter, _ = _build_adapter([FakeResponse(non_standard)])
         dataset = adapter.get_dataset("generic")
@@ -309,20 +253,16 @@ class TestDataGoGenericDataset:
 
         assert result == non_standard
 
-    # test call raw with service key param override 테스트가 검증하는 시나리오를 설명한다.
+    # test call raw with service key param override Describes the scenario verified by the test.
     def test_call_raw_with_service_key_param_override(self) -> None:
         """
-        test call raw with service key param override 시나리오를 검증한다.
+        test call raw with service key param override Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter, transport = _build_adapter([FakeResponse(_success_envelope())])
         dataset = adapter.get_dataset("generic")
 
@@ -339,23 +279,19 @@ class TestDataGoGenericDataset:
         assert params["ServiceKey"] == "test-key"
         assert "serviceKey" not in params
 
-    # test call raw requires api key 테스트가 검증하는 시나리오를 설명한다.
+    # test call raw requires api key Describes the scenario verified by the test.
     def test_call_raw_requires_api_key(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """
-        test call raw requires api key 시나리오를 검증한다.
+        test call raw requires api key Validates the scenario described by the test name.
 
-        매개변수:
-            monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
+        Args:
+            monkeypatch (pytest.MonkeyPatch): Input parameter.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         monkeypatch.delenv("KPUBDATA_DATAGO_API_KEY", raising=False)
         transport = FakeTransport([])
         adapter = DataGoAdapter(
@@ -371,20 +307,16 @@ class TestDataGoGenericDataset:
                 {"_base_url": "http://apis.data.go.kr/foo/bar"},
             )
 
-    # test list on generic raises 테스트가 검증하는 시나리오를 설명한다.
+    # test list on generic raises Describes the scenario verified by the test.
     def test_list_on_generic_raises(self) -> None:
         """
-        test list on generic raises 시나리오를 검증한다.
+        test list on generic raises Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         from kpubdata.core.models import Query
 
         adapter, _ = _build_adapter([])
@@ -393,20 +325,16 @@ class TestDataGoGenericDataset:
         with pytest.raises(InvalidRequestError, match="generic"):
             adapter.query_records(dataset, Query())
 
-    # test envelope must be bool 테스트가 검증하는 시나리오를 설명한다.
+    # test envelope must be bool Describes the scenario verified by the test.
     def test_envelope_must_be_bool(self) -> None:
         """
-        test envelope must be bool 시나리오를 검증한다.
+        test envelope must be bool Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter, _ = _build_adapter([FakeResponse(_success_envelope())])
         dataset = adapter.get_dataset("generic")
 
@@ -420,20 +348,16 @@ class TestDataGoGenericDataset:
                 },
             )
 
-    # test envelope rejects int 테스트가 검증하는 시나리오를 설명한다.
+    # test envelope rejects int Describes the scenario verified by the test.
     def test_envelope_rejects_int(self) -> None:
         """
-        test envelope rejects int 시나리오를 검증한다.
+        test envelope rejects int Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter, _ = _build_adapter([FakeResponse(_success_envelope())])
         dataset = adapter.get_dataset("generic")
 
@@ -447,9 +371,9 @@ class TestDataGoGenericDataset:
                 },
             )
 
-    # test non data go kr host logs warning 테스트가 검증하는 시나리오를 설명한다.
+    # test non data go kr host logs warning Describes the scenario verified by the test.
     def test_non_allowlisted_host_is_blocked(self, caplog: pytest.LogCaptureFixture) -> None:
-        """비허용 호스트는 호출되지 않고 InvalidRequestError로 차단된다(#261)."""
+        """non-whitelisted hosts not called InvalidRequestErrorblocked with(#261)."""
         import logging
 
         from kpubdata.exceptions import InvalidRequestError
@@ -467,13 +391,13 @@ class TestDataGoGenericDataset:
                 {"_base_url": "http://example.com/foo"},
             )
 
-        # URL 원문은 로그에 남지 않고(host만) — serviceKey query 누출 방지(#260).
+        # URL raw not in logs(hostonly) — serviceKey query leakage prevention(#260).
         assert any("blocked non-allowlisted host" in record.message for record in caplog.records)
         for record in caplog.records:
             assert "http://example.com/foo" not in record.getMessage()
 
     def test_extra_hosts_env_extends_allowlist(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """KPUBDATA_DATAGO_EXTRA_HOSTS로 확장한 호스트는 허용된다(#261)."""
+        """KPUBDATA_DATAGO_EXTRA_HOSTShosts expanded via allow(#261)."""
         adapter, transport = _build_adapter([FakeResponse(_success_envelope())])
         dataset = adapter.get_dataset("generic")
         monkeypatch.setenv("KPUBDATA_DATAGO_EXTRA_HOSTS", "proxy.internal.example")
@@ -482,23 +406,19 @@ class TestDataGoGenericDataset:
 
         assert transport.calls[0]["url"].startswith("http://proxy.internal.example/api/")
 
-    # test data go kr host no warning 테스트가 검증하는 시나리오를 설명한다.
+    # test data go kr host no warning Describes the scenario verified by the test.
     def test_data_go_kr_host_no_warning(self, caplog: pytest.LogCaptureFixture) -> None:
         """
-        test data go kr host no warning 시나리오를 검증한다.
+        test data go kr host no warning Validates the scenario described by the test name.
 
-        매개변수:
-            caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+        Args:
+            caplog (pytest.LogCaptureFixture): Input parameter.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         import logging
 
         adapter, _ = _build_adapter([FakeResponse(_success_envelope())])
