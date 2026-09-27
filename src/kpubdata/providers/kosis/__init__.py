@@ -1,4 +1,4 @@
-"""통계청 KOSIS Provider 어댑터."""
+"""Statistics Korea KOSIS Provider adapter."""
 
 from __future__ import annotations
 

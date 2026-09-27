@@ -1,4 +1,4 @@
-"""서울 API 응답 envelope 파서."""
+"""Seoul API response envelope parser."""
 
 from __future__ import annotations
 

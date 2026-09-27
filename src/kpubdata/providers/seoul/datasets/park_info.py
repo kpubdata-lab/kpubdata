@@ -1,4 +1,4 @@
-"""서울 공영주차장 정보 데이터셋."""
+"""Seoul public parking lot information dataset."""
 
 DATASET_KEY = "park_info"
 DEFAULT_OPERATION = "GetParkInfo"
