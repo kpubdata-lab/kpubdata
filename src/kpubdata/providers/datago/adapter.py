@@ -1,4 +1,4 @@
-"""선별된 데이터셋 카탈로그를 포함한 data.go.kr 어댑터."""
+"""data.go.kr adapter with a curated dataset catalogue."""
 
 from __future__ import annotations
 
@@ -48,9 +48,10 @@ def _is_allowed_datago_host(host: str) -> bool:
 
 
 class DataGoAdapter:
-    """data.go.kr(공공데이터포털)용 어댑터.
+    """Adapter for data.go.kr (the Korean public-data portal).
 
-    apis.data.go.kr 엔드포인트 계열에서 지원하는 데이터셋의 선별된 카탈로그를 제공한다.
+    Provides a curated catalogue of the datasets supported by the
+    apis.data.go.kr endpoint family.
     """
 
     requires_api_key: bool = True
@@ -62,7 +63,7 @@ class DataGoAdapter:
         transport: HttpTransport | None = None,
         catalogue: Sequence[DatasetRef] | None = None,
     ) -> None:
-        """인스턴스가 사용할 내부 상태를 초기화한다."""
+        """Initialize the internal state for the instance."""
         self._config: KPubDataConfig = config or KPubDataConfig()
         transport_config = TransportConfig(
             timeout=self._config.timeout,
@@ -79,17 +80,17 @@ class DataGoAdapter:
 
     @property
     def name(self) -> str:
-        """정규 Provider 키를 반환한다."""
+        """Return the canonical provider key."""
 
         return "datago"
 
     def list_datasets(self) -> list[DatasetRef]:
-        """data.go.kr에서 사용 가능한 데이터셋 목록을 반환한다."""
+        """Return the datasets available on data.go.kr."""
 
         return list(self._datasets)
 
     def search_datasets(self, text: str) -> list[DatasetRef]:
-        """data.go.kr에서 사용 가능한 데이터셋을 검색한다."""
+        """Search the datasets available on data.go.kr."""
 
         needle = text.casefold()
         return [
@@ -99,7 +100,7 @@ class DataGoAdapter:
         ]
 
     def get_dataset(self, dataset_key: str) -> DatasetRef:
-        """data.go.kr용 Provider 로컬 데이터셋 키를 해석한다."""
+        """Resolve a provider-local dataset key for data.go.kr."""
 
         dataset = self._datasets_by_key.get(dataset_key)
         if dataset is not None:
@@ -116,7 +117,7 @@ class DataGoAdapter:
         )
 
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
-        """data.go.kr 데이터셋에서 레코드를 조회한다."""
+        """Query records from a data.go.kr dataset."""
 
         if self._is_generic(dataset):
             logger.debug(
@@ -149,7 +150,8 @@ class DataGoAdapter:
         page_param = "pageNo"
         page_size_param = "numOfRows"
         if is_odcloud:
-            # odcloud 계열은 pageNo/numOfRows 대신 메타데이터에 정의된 페이지 파라미터 이름을 쓴다.
+            # odcloud-family services use the page-parameter names defined in
+            # metadata instead of pageNo/numOfRows.
             pagination_params = dataset.raw_metadata.get("pagination_params")
             if isinstance(pagination_params, Mapping):
                 pagination_params_dict = cast(Mapping[str, object], pagination_params)
@@ -166,7 +168,8 @@ class DataGoAdapter:
         reserved = {params_key.lower() for params_key in params}
         reserved.update({page_param.lower(), page_size_param.lower()})
         for key, raw_value in query.filters.items():
-            # 인증키·포맷·페이지 파라미터는 이미 채웠으므로 사용자 필터로 덮어쓰지 않는다.
+            # The auth key, format and page parameters are already filled —
+            # user filters must not overwrite them.
             if key.lower() not in reserved:
                 value: object = raw_value
                 params[key] = str(value)
@@ -181,7 +184,8 @@ class DataGoAdapter:
         if (total_count and page * page_size < total_count) or (
             not total_count and len(items) == page_size
         ):
-            # totalCount가 없을 때는 현재 페이지가 꽉 찼는지를 다음 페이지 존재 신호로 사용한다.
+            # Without totalCount, a full current page is the signal that a next
+            # page exists.
             computed_next = page + 1
         else:
             computed_next = None
@@ -206,29 +210,34 @@ class DataGoAdapter:
         )
 
     def get_schema(self, dataset: DatasetRef) -> SchemaDescriptor | None:
-        """data.go.kr 데이터셋의 스키마 메타데이터를 반환한다.
+        """Return schema metadata for a data.go.kr dataset.
 
-        가능하면 선별된 카탈로그 메타데이터에서 스키마를 반환한다.
-        data.go.kr에는 실시간 스키마 탐색 엔드포인트가 없으므로, 카탈로그에
-        명시적으로 선별된 필드 정의가 없는 데이터셋은 ``None``을 반환한다.
+        Returns a schema from the curated catalogue metadata when possible.
+        data.go.kr has no live schema-discovery endpoint, so datasets whose
+        catalogue entry carries no explicitly curated field definitions
+        return ``None``.
         """
         return build_schema_from_metadata(dataset)
 
     def call_raw(self, dataset: DatasetRef, operation: str, params: dict[str, object]) -> object:
-        """data.go.kr 고유 API 작업을 호출한다.
+        """Call a data.go.kr-specific API operation.
 
-        ``datago.generic``는 선별된 카탈로그에 없는 data.go.kr 엔드포인트를 위한
-        raw 전용 비상구다. 정규화, 페이지네이션, 스키마 처리 없이 디코딩된 원시
-        응답(dict)을 그대로 반환한다. 호출자는 다음을 전달해야 한다:
-          * ``_base_url`` (str, 필수): 작업 이름을 제외한 엔드포인트 기본 URL.
-          * ``_envelope`` (bool, 기본값 True): True이면 표준
-            ``response.header.resultCode`` 엔벌로프를 검증한다. 실제 bool 값이어야 하며
-            문자열/정수는 허용되지 않는다.
-          * ``_service_key_param`` (str): service key 파라미터 이름을 재정의한다.
-          * ``_format_param`` (str): 응답 형식 파라미터 이름을 재정의한다.
+        ``datago.generic`` is a raw-only escape hatch for data.go.kr
+        endpoints absent from the curated catalogue. It returns the decoded
+        raw response (dict) as-is, with no normalization, pagination or
+        schema handling. The caller must pass:
+          * ``_base_url`` (str, required): endpoint base URL without the
+            operation name.
+          * ``_envelope`` (bool, default True): when True, validates the
+            standard ``response.header.resultCode`` envelope. Must be an
+            actual bool — strings/integers are rejected.
+          * ``_service_key_param`` (str): overrides the service key
+            parameter name.
+          * ``_format_param`` (str): overrides the response format
+            parameter name.
 
-        ``_base_url``이 ``*.data.go.kr`` 호스트를 가리키지 않으면 경고를 기록한다.
-        호출은 계속 진행되며, 이는 완화된 점검이다.
+        When ``_base_url`` does not point at a ``*.data.go.kr`` host, a
+        warning is logged. The call proceeds — this is a relaxed check.
         """
 
         logger.debug(
@@ -270,8 +279,9 @@ class DataGoAdapter:
 
             host = urlparse(base_url_override).hostname or ""
             if not _is_allowed_datago_host(host):
-                # 비표준 호스트는 fail-closed로 차단한다(#261) — 호스트만 로그에
-                # 남기고 URL 원문은 남기지 않는다(query에 serviceKey가 있을 수 있음).
+                # Non-allowlisted hosts are blocked fail-closed (#261) — only the
+                # host is logged, never the raw URL (the query may carry the
+                # serviceKey).
                 logger.warning(
                     "datago.generic blocked non-allowlisted host",
                     extra={
@@ -313,7 +323,8 @@ class DataGoAdapter:
                 if isinstance(service_key_param_override, str) and service_key_param_override
                 else str(dataset.raw_metadata.get("service_key_param", "serviceKey"))
             )
-            # 제어용 magic key는 소비하고, 실제 Provider 파라미터만 원격 엔드포인트로 전달한다.
+            # Consume the control magic keys and forward only real provider
+            # parameters to the remote endpoint.
             magic_keys = {
                 "_base_url",
                 "_envelope",
@@ -348,17 +359,17 @@ class DataGoAdapter:
 
     @staticmethod
     def _is_generic(dataset: DatasetRef) -> bool:
-        """데이터셋이 datago.generic 비상구인지 반환한다."""
+        """Return whether the dataset is the datago.generic escape hatch."""
         return bool(dataset.raw_metadata.get("generic"))
 
     @staticmethod
     def _is_odcloud(dataset: DatasetRef) -> bool:
-        """데이터셋이 odcloud 계열 응답 형식을 쓰는지 반환한다."""
+        """Return whether the dataset uses an odcloud-family response shape."""
         return dataset.raw_metadata.get("provider_family") == "odcloud"
 
     @staticmethod
     def _get_fixed_query_params(dataset: DatasetRef) -> dict[str, str]:
-        """카탈로그의 operation-fixed 비밀 아닌 query 상수를 반환한다."""
+        """Return the catalogue's non-secret, operation-fixed query constants."""
         raw_params = dataset.raw_metadata.get("fixed_query_params")
         if not isinstance(raw_params, Mapping):
             return {}
@@ -372,11 +383,11 @@ class DataGoAdapter:
         return fixed_params
 
     def _require_api_key(self) -> str:
-        """data.go.kr 호출에 사용할 API 키를 설정에서 읽는다."""
+        """Read the API key for data.go.kr calls from configuration."""
         return self._config.require_provider_key("datago")
 
     def _build_request_url(self, dataset: DatasetRef, operation: str | None = None) -> str:
-        """데이터셋 메타데이터와 operation 값으로 호출 URL을 구성한다."""
+        """Build the call URL from dataset metadata and the operation value."""
         base_url_raw = dataset.raw_metadata.get("base_url")
         if not isinstance(base_url_raw, str) or not base_url_raw:
             raise ProviderResponseError(
@@ -391,10 +402,12 @@ class DataGoAdapter:
 
     @staticmethod
     def _apply_default_filters(params: dict[str, str], dataset: DatasetRef) -> dict[str, str]:
-        """카탈로그 default_filters 중 아직 채워지지 않은 키만 기본값으로 채운다.
+        """Fill only the not-yet-provided catalogue default_filters keys with defaults.
 
-        Provider가 요구하는 필수 파라미터(예: 조달청 inqryDiv)를 사용자가 지정하지 않은 경우
-        카탈로그에 기록된 기본값으로 채운다. 이미 사용자 필터 등으로 채워진 키는 덮어쓰지 않는다.
+        When the user did not specify a required provider parameter (e.g.
+        the procurement-office inqryDiv), it is filled from the default
+        recorded in the catalogue. Keys already provided (via user filters
+        and the like) are not overwritten.
         """
         default_filters_raw = dataset.raw_metadata.get("default_filters")
         if not isinstance(default_filters_raw, Mapping):
@@ -413,7 +426,7 @@ class DataGoAdapter:
         service_key_param_override: str | None = None,
         format_param_override: str | None = None,
     ) -> dict[str, str]:
-        """서비스 키와 응답 형식 파라미터를 포함한 기본 쿼리를 만든다."""
+        """Build the base query including the service key and format parameters."""
         api_key = self._require_api_key()
         service_key_param_raw = (
             service_key_param_override
@@ -445,7 +458,7 @@ class DataGoAdapter:
     def _request_and_decode(
         self, url: str, params: Mapping[str, object], dataset_id: str = ""
     ) -> dict[str, object]:
-        """data.go.kr API를 호출하고 응답 본문을 dict로 디코딩한다."""
+        """Call the data.go.kr API and decode the response body into a dict."""
         string_params = {key: str(value) for key, value in params.items()}
         try:
             response = self._transport.request(
@@ -491,18 +504,20 @@ class DataGoAdapter:
 
     @staticmethod
     def _is_http_403(exc: TransportError) -> bool:
-        """TransportError가 HTTP 403 응답에서 나온 것인지 확인한다.
+        """Return whether the TransportError came from an HTTP 403 response.
 
-        ``__cause__`` 가 아니라 ``status_code`` 를 본다. transport 는 요청에
-        credential 이 실려 있으면 예외 체인을 끊는데(끊지 않으면 httpx 메시지에
-        담긴 최종 URL로 키가 샌다), datago 는 키를 ``params`` 로 보내므로 이
-        판정이 체인에 의존하면 마스킹이 켜지는 순간 403 힌트가 사라진다.
+        Looks at ``status_code``, not ``__cause__``. The transport breaks
+        the exception chain when a request carries credentials (otherwise
+        the key leaks through the final URL embedded in the httpx message),
+        and datago sends its key in ``params`` — so if this verdict relied
+        on the chain, the 403 hint would vanish the moment masking turns
+        on.
         """
         return exc.status_code == 403
 
     @staticmethod
     def _load_default_catalogue() -> tuple[DatasetRef, ...]:
-        """패키지에 포함된 data.go.kr 기본 카탈로그를 로드한다."""
+        """Load the bundled default data.go.kr catalogue."""
         return load_catalogue("kpubdata.providers.datago", "datago")
 
 
