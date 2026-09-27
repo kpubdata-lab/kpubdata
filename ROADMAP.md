@@ -1,7 +1,9 @@
 # Roadmap — KPubData
 
 > **이 문서는 작업 진행상태의 정본이 아니다.** 방향(NOW / NEXT / LATER)만 적는다.
-> Issue 의 Status · Priority · Epic · Target Release 는 GitHub Project 에서 관리한다 — [POLICY.md](./docs/governance/POLICY.md) 2.1절.
+> Issue 의 **Epic 과 Priority 는 `epic:*` · `priority:*` 라벨**로 관리한다 —
+> [POLICY.md](./docs/governance/POLICY.md) 2.1.1절 · 2.1.2절. Status 와
+> Target Release 는 GitHub Project 필드가 생기면 그쪽으로 간다(2.1절).
 > 데이터셋 지원 상태는 여기에 손으로 적지 않는다 — spec 과 evidence 에서 생성되는 `SUPPORTED_DATA.md` · `docs/status.md` 가 기준이다(3절).
 
 > kpubdata는 **한국 공공데이터 접근 코어 프레임워크**에 집중합니다.
