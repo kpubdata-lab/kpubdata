@@ -1,4 +1,4 @@
-"""국립국어원 어댑터 계약 테스트 (#222)."""
+"""National Institute of Korean Language adapter contract tests (#222)."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def _build_adapter(fixture_names: list[str]) -> ProviderAdapter:
 
 
 class TestKoreanDictSearchContract(ProviderAdapterContract):
-    """표준국어대사전 검색 계약 (#222)."""
+    """Standard Korean Dictionary search contract (#222)."""
 
     @pytest.fixture()
     def adapter(self) -> ProviderAdapter:

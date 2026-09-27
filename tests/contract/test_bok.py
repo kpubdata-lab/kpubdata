@@ -1,7 +1,8 @@
-"""테스트 모듈.
+"""Test module.
 
-이 파일은 ``tests/contract/test_bok.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
+This file defines test scenarios and helper objects at ``tests/contract/test_bok.py````.
+It verifies core flows, exceptions, and edge cases for regression prevention and
+public contract validation.
 """
 
 from __future__ import annotations
@@ -21,60 +22,62 @@ from tests.contract.provider_adapter import ProviderAdapterContract
 
 def _fixture_path(name: str) -> Path:
     """
-    내부 헬퍼로서 fixture path 처리를 담당한다.
+    Internal helper for fixture path handling.
 
-    매개변수:
-        name (str): 호출자가 제공하는 입력 값이다.
+    Args:
+        name (str): Input value provided by caller.
 
-    반환값:
-        Path: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        Path: Computation result or return value from subordinate call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exception from implementation or subordinate dependencies may
+        propagate unchanged.
     """
     return Path(__file__).resolve().parents[1] / "fixtures" / "bok" / name
 
 
 def _load_fixture_bytes(name: str) -> bytes:
     """
-    내부 헬퍼로서 load fixture bytes 처리를 담당한다.
+    Internal helper for load fixture bytes handling.
 
-    매개변수:
-        name (str): 호출자가 제공하는 입력 값이다.
+    Args:
+        name (str): Input value provided by caller.
 
-    반환값:
-        bytes: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        bytes: Computation result or return value from subordinate call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exception from implementation or subordinate dependencies may
+        propagate unchanged.
     """
     return _fixture_path(name).read_bytes()
 
 
 class _FakeResponse:
     """
-    _FakeResponse 관련 역할을 캡슐화하는 클래스.
+    _FakeResponse class that encapsulates its role.
 
-    이 클래스는 ``tests/contract/test_bok.py`` 모듈 안에서 _FakeResponse의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__.
+    This class manages state and behavior within ``tests/contract/test_bok.py`` module. _FakeResponseKey methods: __init__..
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attribute descriptions:
+        Properties defined in constructor and class body are reused by
+        subordinate methods as common context.
     """
 
     def __init__(self, data: bytes, content_type: str = "application/json") -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initializes internal state for the object.
 
-        매개변수:
-            data (bytes): 호출자가 제공하는 입력 값이다.
-            content_type (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            data (bytes): Input value provided by caller.
+            content_type (str): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Computation result or return value from subordinate call.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exception from implementation or subordinate dependencies may propagate unchanged.
         """
         self.headers: dict[str, str] = {"content-type": content_type}
         self.content: bytes = data
@@ -83,27 +86,27 @@ class _FakeResponse:
 
 class _FixtureTransport:
     """
-    _FixtureTransport 관련 역할을 캡슐화하는 클래스.
+    _FixtureTransport class that encapsulates its role.
 
-    이 클래스는 ``tests/contract/test_bok.py`` 모듈 안에서 _FixtureTransport의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__, request.
+    This class manages state and behavior within ``tests/contract/test_bok.py`` module. _FixtureTransportKey methods: __init__, request..
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attribute descriptions:
+        Properties defined in constructor and class body are reused by
+        subordinate methods as common context.
     """
 
     def __init__(self, fixture_names: list[str]) -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initializes internal state for the object.
 
-        매개변수:
-            fixture_names (list[str]): 호출자가 제공하는 입력 값이다.
+        Args:
+            fixture_names (list[str]): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Computation result or return value from subordinate call.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exception from implementation or subordinate dependencies may propagate unchanged.
         """
         self._responses: list[_FakeResponse] = [
             _FakeResponse(_load_fixture_bytes(name)) for name in fixture_names
@@ -112,18 +115,18 @@ class _FixtureTransport:
 
     def request(self, method: str, url: str, **kwargs: object) -> _FakeResponse:
         """
-        request 동작을 수행한다.
+        Performs HTTP request operation.
 
-        매개변수:
-            method (str): 호출자가 제공하는 입력 값이다.
-            url (str): 호출자가 제공하는 입력 값이다.
-            **kwargs (object): 호출자가 제공하는 입력 값이다.
+        Args:
+            method (str): Input value provided by caller.
+            url (str): Input value provided by caller.
+            **kwargs (object): Input value provided by caller.
 
-        반환값:
-            _FakeResponse: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            _FakeResponse: Computation result or return value from subordinate call.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exception from implementation or subordinate dependencies may propagate unchanged.
         """
         self.calls.append({"method": method, "url": url, **kwargs})
         if not self._responses:
@@ -133,13 +136,13 @@ class _FixtureTransport:
 
 class _AdapterFactory(Protocol):
     """
-    _AdapterFactory 관련 역할을 캡슐화하는 클래스.
+    _AdapterFactory class that encapsulates its role.
 
-    이 클래스는 ``tests/contract/test_bok.py`` 모듈 안에서 _AdapterFactory의 상태와 동작을 함께 관리한다.
-    주요 메서드: __call__.
+    This class manages state and behavior within ``tests/contract/test_bok.py`` module. _AdapterFactoryKey methods: __call__..
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attribute descriptions:
+        Properties defined in constructor and class body are reused by
+        subordinate methods as common context.
     """
 
     def __call__(
@@ -154,16 +157,17 @@ def _build_adapter_with_transport(
     fixture_names: list[str],
 ) -> tuple[ProviderAdapter, _FixtureTransport]:
     """
-    내부 헬퍼로서 build adapter with transport 처리를 담당한다.
+    Internal helper to build adapter with custom transport.
 
-    매개변수:
-        fixture_names (list[str]): 호출자가 제공하는 입력 값이다.
+    Args:
+        fixture_names (list[str]): Input value provided by caller.
 
-    반환값:
-        tuple[ProviderAdapter, _FixtureTransport]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        tuple[ProviderAdapter, _FixtureTransport]: Computation result or return value from subordinate call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exception from implementation or subordinate dependencies may
+        propagate unchanged.
     """
     transport = _FixtureTransport(fixture_names)
     config = KPubDataConfig(provider_keys={"bok": "test-key"})
@@ -181,16 +185,17 @@ def _build_adapter_with_transport(
 
 def _build_adapter(fixture_names: list[str]) -> ProviderAdapter:
     """
-    내부 헬퍼로서 build adapter 처리를 담당한다.
+    Internal helper to build adapter.
 
-    매개변수:
-        fixture_names (list[str]): 호출자가 제공하는 입력 값이다.
+    Args:
+        fixture_names (list[str]): Input value provided by caller.
 
-    반환값:
-        ProviderAdapter: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        ProviderAdapter: Computation result or return value from subordinate call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exception from implementation or subordinate dependencies may
+        propagate unchanged.
     """
     adapter, _ = _build_adapter_with_transport(fixture_names)
     return adapter
@@ -198,93 +203,93 @@ def _build_adapter(fixture_names: list[str]) -> ProviderAdapter:
 
 class TestBokAdapterContract(ProviderAdapterContract):
     """
-    TestBokAdapterContract 관련 역할을 캡슐화하는 클래스.
+    TestBokAdapterContract class that encapsulates its role.
 
-    이 클래스는 ``tests/contract/test_bok.py`` 모듈 안에서 TestBokAdapterContract의 상태와 동작을 함께 관리한다.
-    주요 메서드: adapter, valid_dataset_key, invalid_dataset_key, sample_dataset, sample_query.
+    This class manages state and behavior within ``tests/contract/test_bok.py`` module. TestBokAdapterContractKey methods: adapter, valid_dataset_key, invalid_dataset_key, sample_dataset, sample_query..
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attribute descriptions:
+        Properties defined in constructor and class body are reused by
+        subordinate methods as common context.
     """
 
     @pytest.fixture()
     def adapter(self) -> ProviderAdapter:
         """
-        adapter 동작을 수행한다.
+        Performs adapter fixture operation.
 
-        반환값:
-            ProviderAdapter: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            ProviderAdapter: Computation result or return value from subordinate call.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exception from implementation or subordinate dependencies may propagate unchanged.
         """
         return _build_adapter(["success_single_page.json"] * 5)
 
     @pytest.fixture()
     def valid_dataset_key(self) -> str:
         """
-        valid dataset key 동작을 수행한다.
+        Returns valid dataset key.
 
-        반환값:
-            str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            str: Computation result or return value from subordinate call.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exception from implementation or subordinate dependencies may propagate unchanged.
         """
         return "base_rate"
 
     @pytest.fixture()
     def invalid_dataset_key(self) -> str:
         """
-        invalid dataset key 동작을 수행한다.
+        inReturns valid dataset key.
 
-        반환값:
-            str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            str: Computation result or return value from subordinate call.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exception from implementation or subordinate dependencies may propagate unchanged.
         """
         return "nonexistent_dataset_key_xyz"
 
     @pytest.fixture()
     def sample_dataset(self, adapter: ProviderAdapter) -> DatasetRef:
         """
-        sample dataset 동작을 수행한다.
+        Returns sample dataset.
 
-        매개변수:
-            adapter (ProviderAdapter): 호출자가 제공하는 입력 값이다.
+        Args:
+            adapter (ProviderAdapter): Input value provided by caller.
 
-        반환값:
-            DatasetRef: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            DatasetRef: Computation result or return value from subordinate call.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exception from implementation or subordinate dependencies may propagate unchanged.
         """
         return adapter.get_dataset("base_rate")
 
     @pytest.fixture()
     def sample_query(self) -> Query:
         """
-        sample query 동작을 수행한다.
+        Returns sample query.
 
-        반환값:
-            Query: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            Query: Computation result or return value from subordinate call.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exception from implementation or subordinate dependencies may propagate unchanged.
         """
         return Query(start_date="202401", end_date="202403")
 
     @pytest.fixture()
     def raw_operation(self) -> tuple[str, dict[str, object]]:
         """
-        raw operation 동작을 수행한다.
+        Returns raw operation parameters.
 
-        반환값:
-            tuple[str, dict[str, object]]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            tuple[str, dict[str, object]]: Computation result or return value from subordinate call.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exception from implementation or subordinate dependencies may propagate unchanged.
         """
         return (
             "StatisticSearch",
@@ -292,19 +297,19 @@ class TestBokAdapterContract(ProviderAdapterContract):
         )
 
 
-# test usd krw query records builds daily ecos url and parses fixture 테스트가 검증하는 시나리오를 설명한다.
+# test usd krw query records builds daily ecos url and parses fixture test scenario.
 def test_usd_krw_query_records_builds_daily_ecos_url_and_parses_fixture() -> None:
     """
-    test usd krw query records builds daily ecos url and parses fixture 시나리오를 검증한다.
+    Verifies USD/KRW query builds daily ECOS URL and parses fixture.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Computation result or return value from subordinate call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exception from implementation or subordinate dependencies may propagate unchanged.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Examples:
+        Verifies expected behavior described by test name is maintained without regression.
     """
     adapter, transport = _build_adapter_with_transport(["usd_krw_success.json"])
     dataset = adapter.get_dataset("usd_krw")
@@ -330,19 +335,19 @@ def test_usd_krw_query_records_builds_daily_ecos_url_and_parses_fixture() -> Non
     ]
 
 
-# test bond yield 3y query records builds daily ecos url and parses fixture 테스트가 검증하는 시나리오를 설명한다.
+# test bond yield 3y query records builds daily ecos url and parses fixture test scenario.
 def test_bond_yield_3y_query_records_builds_daily_ecos_url_and_parses_fixture() -> None:
     """
-    test bond yield 3y query records builds daily ecos url and parses fixture 시나리오를 검증한다.
+    Verifies 3Y bond yield query builds daily ECOS URL and parses fixture.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Computation result or return value from subordinate call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exception from implementation or subordinate dependencies may propagate unchanged.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Examples:
+        Verifies expected behavior described by test name is maintained without regression.
     """
     adapter, transport = _build_adapter_with_transport(["bond_yield_3y_success.json"])
     dataset = adapter.get_dataset("bond_yield_3y")
@@ -369,19 +374,19 @@ def test_bond_yield_3y_query_records_builds_daily_ecos_url_and_parses_fixture() 
     ]
 
 
-# test money supply query records builds monthly ecos url and parses fixture 테스트가 검증하는 시나리오를 설명한다.
+# test money supply query records builds monthly ecos url and parses fixture test scenario.
 def test_money_supply_query_records_builds_monthly_ecos_url_and_parses_fixture() -> None:
     """
-    test money supply query records builds monthly ecos url and parses fixture 시나리오를 검증한다.
+    Verifies money supply query builds monthly ECOS URL and parses fixture.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Computation result or return value from subordinate call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exception from implementation or subordinate dependencies may propagate unchanged.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Examples:
+        Verifies expected behavior described by test name is maintained without regression.
     """
     adapter, transport = _build_adapter_with_transport(["money_supply_success.json"])
     dataset = adapter.get_dataset("money_supply")

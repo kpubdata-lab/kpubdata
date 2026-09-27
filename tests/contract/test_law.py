@@ -1,7 +1,8 @@
-"""테스트 모듈.
+"""Test module.
 
-이 파일은 ``tests/contract/test_law.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
+This file defines test scenarios and helper objects in the
+``tests/contract/test_law.py`` path. It verifies core flows, exceptions, and
+edge conditions for regression prevention and public contract validation.
 """
 
 from __future__ import annotations
@@ -21,60 +22,66 @@ from tests.contract.provider_adapter import ProviderAdapterContract
 
 def _fixture_path(name: str) -> Path:
     """
-    내부 헬퍼로서 fixture path 처리를 담당한다.
+    Internal helper that handles fixture path resolution.
 
-    매개변수:
-        name (str): 호출자가 제공하는 입력 값이다.
+    Args:
+        name (str): The input value provided by the caller.
 
-    반환값:
-        Path: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        Path: The computed result or the return value from downstream calls.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exception from internal implementation or downstream dependencies
+        can be raised as-is.
     """
     return Path(__file__).resolve().parents[1] / "fixtures" / "law" / name
 
 
 def _load_fixture_bytes(name: str) -> bytes:
     """
-    내부 헬퍼로서 load fixture bytes 처리를 담당한다.
+    Internal helper that handles loading fixture bytes.
 
-    매개변수:
-        name (str): 호출자가 제공하는 입력 값이다.
+    Args:
+        name (str): The input value provided by the caller.
 
-    반환값:
-        bytes: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        bytes: The computed result or the return value from downstream calls.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exception from internal implementation or downstream dependencies
+        can be raised as-is.
     """
     return _fixture_path(name).read_bytes()
 
 
 class _FakeResponse:
     """
-    _FakeResponse 관련 역할을 캡슐화하는 클래스.
+    Class that encapsulates roles related to _FakeResponse.
 
-    이 클래스는 ``tests/contract/test_law.py`` 모듈 안에서 _FakeResponse의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__.
+    This class manages state and behavior of _FakeResponse within the
+    ``tests/contract/test_law.py`` module.
+    Key method: __init__.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attribute description:
+        Properties defined in the constructor and class body are reused
+        as shared context by downstream methods.
     """
 
     def __init__(self, data: bytes, content_type: str = "application/json") -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize instance state for internal use.
 
-        매개변수:
-            data (bytes): 호출자가 제공하는 입력 값이다.
-            content_type (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            data (bytes): The input value provided by the caller.
+            content_type (str): The input value provided by the caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: The computed result or the return value from downstream
+            calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exception from internal implementation or downstream dependencies
+            can be raised as-is.
         """
         self.headers: dict[str, str] = {"content-type": content_type}
         self.content: bytes = data
@@ -83,27 +90,31 @@ class _FakeResponse:
 
 class _FixtureTransport:
     """
-    _FixtureTransport 관련 역할을 캡슐화하는 클래스.
+    Class that encapsulates roles related to _FixtureTransport.
 
-    이 클래스는 ``tests/contract/test_law.py`` 모듈 안에서 _FixtureTransport의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__, request.
+    This class manages state and behavior of _FixtureTransport within the
+    ``tests/contract/test_law.py`` module.
+    Key methods: __init__, request.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attribute description:
+        Properties defined in the constructor and class body are reused
+        as shared context by downstream methods.
     """
 
     def __init__(self, fixture_names: list[str]) -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize instance state for internal use.
 
-        매개변수:
-            fixture_names (list[str]): 호출자가 제공하는 입력 값이다.
+        Args:
+            fixture_names (list[str]): The input value provided by the caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: The computed result or the return value from downstream
+            calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exception from internal implementation or downstream dependencies
+            can be raised as-is.
         """
         self._responses: list[_FakeResponse] = [
             _FakeResponse(_load_fixture_bytes(name)) for name in fixture_names
@@ -112,18 +123,20 @@ class _FixtureTransport:
 
     def request(self, method: str, url: str, **kwargs: object) -> _FakeResponse:
         """
-        request 동작을 수행한다.
+        Perform request operation.
 
-        매개변수:
-            method (str): 호출자가 제공하는 입력 값이다.
-            url (str): 호출자가 제공하는 입력 값이다.
-            **kwargs (object): 호출자가 제공하는 입력 값이다.
+        Args:
+            method (str): The input value provided by the caller.
+            url (str): The input value provided by the caller.
+            **kwargs (object): The input value provided by the caller.
 
-        반환값:
-            _FakeResponse: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            _FakeResponse: The computed result or the return value from
+            downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exception from internal implementation or downstream dependencies
+            can be raised as-is.
         """
         self.calls.append({"method": method, "url": url, **kwargs})
         if not self._responses:
@@ -133,13 +146,15 @@ class _FixtureTransport:
 
 class _AdapterFactory(Protocol):
     """
-    _AdapterFactory 관련 역할을 캡슐화하는 클래스.
+    Class that encapsulates roles related to _AdapterFactory.
 
-    이 클래스는 ``tests/contract/test_law.py`` 모듈 안에서 _AdapterFactory의 상태와 동작을 함께 관리한다.
-    주요 메서드: __call__.
+    This class manages state and behavior of _AdapterFactory within the
+    ``tests/contract/test_law.py`` module.
+    Key method: __call__.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attribute description:
+        Properties defined in the constructor and class body are reused
+        as shared context by downstream methods.
     """
 
     def __call__(
@@ -152,16 +167,18 @@ class _AdapterFactory(Protocol):
 
 def _build_adapter(fixture_names: list[str]) -> tuple[ProviderAdapter, _FixtureTransport]:
     """
-    내부 헬퍼로서 build adapter 처리를 담당한다.
+    Internal helper that handles adapter building.
 
-    매개변수:
-        fixture_names (list[str]): 호출자가 제공하는 입력 값이다.
+    Args:
+        fixture_names (list[str]): The input value provided by the caller.
 
-    반환값:
-        tuple[ProviderAdapter, _FixtureTransport]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        tuple[ProviderAdapter, _FixtureTransport]: The computed result or
+        the return value from downstream calls.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exception from internal implementation or downstream dependencies
+        can be raised as-is.
     """
     transport = _FixtureTransport(fixture_names)
     config = KPubDataConfig(provider_keys={"law": "test-law-key"})
@@ -177,25 +194,30 @@ def _build_adapter(fixture_names: list[str]) -> tuple[ProviderAdapter, _FixtureT
 
 class TestLawAdapterContract(ProviderAdapterContract):
     """
-    TestLawAdapterContract 관련 역할을 캡슐화하는 클래스.
+    Class that encapsulates roles related to TestLawAdapterContract.
 
-    이 클래스는 ``tests/contract/test_law.py`` 모듈 안에서 TestLawAdapterContract의 상태와 동작을 함께 관리한다.
-    주요 메서드: adapter, valid_dataset_key, invalid_dataset_key, sample_dataset, sample_query.
+    This class manages state and behavior of TestLawAdapterContract within
+    the ``tests/contract/test_law.py`` module.
+    Key methods: adapter, valid_dataset_key, invalid_dataset_key,
+    sample_dataset, sample_query.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attribute description:
+        Properties defined in the constructor and class body are reused
+        as shared context by downstream methods.
     """
 
     @pytest.fixture()
     def adapter(self) -> ProviderAdapter:
         """
-        adapter 동작을 수행한다.
+        Perform adapter operation.
 
-        반환값:
-            ProviderAdapter: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            ProviderAdapter: The computed result or the return value from
+            downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exception from internal implementation or downstream dependencies
+            can be raised as-is.
         """
         adapter, _ = _build_adapter(["success_law_search.json"] * 5)
         return adapter
@@ -203,84 +225,97 @@ class TestLawAdapterContract(ProviderAdapterContract):
     @pytest.fixture()
     def valid_dataset_key(self) -> str:
         """
-        valid dataset key 동작을 수행한다.
+        Perform valid dataset key operation.
 
-        반환값:
-            str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            str: The computed result or the return value from downstream
+            calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exception from internal implementation or downstream dependencies
+            can be raised as-is.
         """
         return "law_search"
 
     @pytest.fixture()
     def invalid_dataset_key(self) -> str:
         """
-        invalid dataset key 동작을 수행한다.
+        Perform invalid dataset key operation.
 
-        반환값:
-            str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            str: The computed result or the return value from downstream
+            calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exception from internal implementation or downstream dependencies
+            can be raised as-is.
         """
         return "nonexistent_dataset_key_xyz"
 
     @pytest.fixture()
     def sample_dataset(self, adapter: ProviderAdapter) -> DatasetRef:
         """
-        sample dataset 동작을 수행한다.
+        Perform sample dataset operation.
 
-        매개변수:
-            adapter (ProviderAdapter): 호출자가 제공하는 입력 값이다.
+        Args:
+            adapter (ProviderAdapter): The input value provided by the caller.
 
-        반환값:
-            DatasetRef: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            DatasetRef: The computed result or the return value from
+            downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exception from internal implementation or downstream dependencies
+            can be raised as-is.
         """
         return adapter.get_dataset("law_search")
 
     @pytest.fixture()
     def sample_query(self) -> Query:
         """
-        sample query 동작을 수행한다.
+        Perform sample query operation.
 
-        반환값:
-            Query: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            Query: The computed result or the return value from downstream
+            calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exception from internal implementation or downstream dependencies
+            can be raised as-is.
         """
         return Query(filters={"query": "임대차", "search": "1"})
 
     @pytest.fixture()
     def raw_operation(self) -> tuple[str, dict[str, object]]:
         """
-        raw operation 동작을 수행한다.
+        Perform raw operation operation.
 
-        반환값:
-            tuple[str, dict[str, object]]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            tuple[str, dict[str, object]]: The computed result or the return
+            value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exception from internal implementation or downstream dependencies
+            can be raised as-is.
         """
         return ("lawSearch", {"query": "임대차", "search": "1"})
 
-    # test query records uses law search url and oc param 테스트가 검증하는 시나리오를 설명한다.
+    # test query records uses law search url and oc param - Verifies the scenario tested by this method.
     def test_query_records_uses_law_search_url_and_oc_param(self) -> None:
         """
-        test query records uses law search url and oc param 시나리오를 검증한다.
+        Verify test query records uses law search url and oc param scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: The computed result or the return value from downstream
+            calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exception from internal implementation or downstream dependencies
+            can be raised as-is.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Example:
+            Ensures the expected behavior described by the test name is
+            maintained without regression.
         """
         adapter, transport = _build_adapter(["success_law_search.json"])
 
@@ -295,19 +330,22 @@ class TestLawAdapterContract(ProviderAdapterContract):
         assert "display=100" in request_url
         assert "page=1" in request_url
 
-    # test call raw supports law detail endpoint 테스트가 검증하는 시나리오를 설명한다.
+    # test call raw supports law detail endpoint - Verifies the scenario tested by this method.
     def test_call_raw_supports_law_detail_endpoint(self) -> None:
         """
-        test call raw supports law detail endpoint 시나리오를 검증한다.
+        Verify test call raw supports law detail endpoint scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: The computed result or the return value from downstream
+            calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exception from internal implementation or downstream dependencies
+            can be raised as-is.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Example:
+            Ensures the expected behavior described by the test name is
+            maintained without regression.
         """
         adapter, transport = _build_adapter(["success_law_detail.json"])
 
