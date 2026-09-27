@@ -104,19 +104,7 @@ class FakeTransport:
 
 
 def _success_payload(*, items: object, total_count: object) -> dict[str, object]:
-    """
-    Internal helper to process success payload.
-
-    매개변수:
-        items (object): 호출자가 제공하는 입력 값이다.
-        total_count (object): 호출자가 제공하는 입력 값이다.
-
-    Returns:
-        dict[str, object]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    Raises:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-    """
+    """"""
     return {
         "AJGCF": [
             {
@@ -158,18 +146,7 @@ def _build_adapter_with_transport(
 
 # Verifies scenario tested by test_query_records_returns_single_page_and_sets_next_page.
 def test_query_records_returns_single_page_and_sets_next_page() -> None:
-    """
-    Verify test_query_records_returns_single_page_and_sets_next_page scenario.
-
-    Returns:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    Raises:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     payload = _success_payload(items=[{"id": 1}, {"id": 2}], total_count=5)
     adapter, dataset, transport = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -184,18 +161,7 @@ def test_query_records_returns_single_page_and_sets_next_page() -> None:
 
 # Verifies scenario tested by test_query_records_uses_default_page_size_100.
 def test_query_records_uses_default_page_size_100() -> None:
-    """
-    Verify test_query_records_uses_default_page_size_100 scenario.
-
-    Returns:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    Raises:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     payload = _success_payload(items=[{"id": 1}], total_count=1)
     adapter, dataset, transport = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -207,18 +173,7 @@ def test_query_records_uses_default_page_size_100() -> None:
 
 # Verifies scenario tested by test_query_records_uses_heuristic_next_page_without_total_count.
 def test_query_records_uses_heuristic_next_page_without_total_count() -> None:
-    """
-    Verify test_query_records_uses_heuristic_next_page_without_total_count scenario.
-
-    Returns:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    Raises:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     payload = _success_payload(items=[{"id": 1}, {"id": 2}], total_count=None)
     adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -230,21 +185,7 @@ def test_query_records_uses_heuristic_next_page_without_total_count() -> None:
 
 # Verifies scenario tested by test_build_request_url_missing_base_url_logs_debug.
 def test_build_request_url_missing_base_url_logs_debug(caplog: pytest.LogCaptureFixture) -> None:
-    """
-    Verify test_build_request_url_missing_base_url_logs_debug scenario.
-
-    매개변수:
-        caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
-
-    Returns:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    Raises:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     adapter, dataset, _ = _build_adapter_with_transport([])
     dataset = DatasetRef(
         id=dataset.id,
@@ -273,21 +214,7 @@ def test_build_request_url_missing_base_url_logs_debug(caplog: pytest.LogCapture
 
 # Verifies scenario tested by test_query_records_zero_items_logs_debug.
 def test_query_records_zero_items_logs_debug(caplog: pytest.LogCaptureFixture) -> None:
-    """
-    Verify test_query_records_zero_items_logs_debug scenario.
-
-    매개변수:
-        caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
-
-    Returns:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    Raises:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     payload = _success_payload(items=[], total_count=0)
     adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -340,12 +267,7 @@ def test_client_applies_lofin_ssl_context() -> None:
 
 
 class TestLofinVerifiesCertificates:
-    """Verify Lofin context does not disable certificate validation.
-
-    ``check_hostname = False`` + ``CERT_NONE`` 이었다. 이 요청에는 API 키가 함께
-    나가므로, 중간자가 인증서를 갈아끼우면 응답을 조작하는 데서 끝나지 않고 키를
-    가져간다. 실제로 필요했던 건 cipher 완화뿐이었다.
-    """
+    """Verify Lofin context does not disable certificate validation."""
 
     def test_hostname_checking_stays_on(self) -> None:
         import ssl

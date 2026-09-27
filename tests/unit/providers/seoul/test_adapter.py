@@ -144,19 +144,7 @@ def _build_adapter(
     *,
     config: KPubDataConfig | None = None,
 ) -> tuple[SeoulAdapter, FakeTransport]:
-    """
-    Internal helper to process build adapter.
-
-    매개변수:
-        responses (list[FakeResponse]): 호출자가 제공하는 입력 값이다.
-        config (KPubDataConfig | None): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        tuple[SeoulAdapter, FakeTransport]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-    """
+    """"""
     transport = FakeTransport(responses)
     adapter = SeoulAdapter(
         config=config or KPubDataConfig(provider_keys={"seoul": "test-seoul-key"}),
@@ -167,18 +155,7 @@ def _build_adapter(
 
 # Verifies scenario tested by test_query_records_builds_subway_url_with_path_key.
 def test_query_records_builds_subway_url_with_path_key() -> None:
-    """
-    Verify test_query_records_builds_subway_url_with_path_key scenario.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     adapter, transport = _build_adapter(
         [FakeResponse(_load_fixture("subway_realtime_arrival_success.json"))]
     )
@@ -194,18 +171,7 @@ def test_query_records_builds_subway_url_with_path_key() -> None:
 
 # Verifies scenario tested by test_query_records_builds_bike_url_with_path_key.
 def test_query_records_builds_bike_url_with_path_key() -> None:
-    """
-    Verify test_query_records_builds_bike_url_with_path_key scenario.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     adapter, transport = _build_adapter(
         [FakeResponse(_load_fixture("bike_rent_month_success.json"))]
     )
@@ -220,18 +186,7 @@ def test_query_records_builds_bike_url_with_path_key() -> None:
 
 # Verifies scenario tested by test_query_records_parses_successful_envelope.
 def test_query_records_parses_successful_envelope() -> None:
-    """
-    Verify test_query_records_parses_successful_envelope scenario.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     adapter, _ = _build_adapter(
         [FakeResponse(_load_fixture("subway_realtime_arrival_success.json"))]
     )
@@ -249,18 +204,7 @@ def test_query_records_parses_successful_envelope() -> None:
 
 # Verifies scenario tested by test_info_100_raises_auth_error.
 def test_info_100_raises_auth_error() -> None:
-    """
-    Verify test_info_100_raises_auth_error scenario.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     adapter, _ = _build_adapter([FakeResponse(_load_fixture("error_auth.json"))])
     dataset = adapter.get_dataset("subway_realtime_arrival")
 
@@ -272,18 +216,7 @@ def test_info_100_raises_auth_error() -> None:
 
 # Verifies scenario tested by test_info_200_returns_empty_record_batch.
 def test_info_200_returns_empty_record_batch() -> None:
-    """
-    Verify test_info_200_returns_empty_record_batch scenario.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     adapter, _ = _build_adapter([FakeResponse(_load_fixture("empty_response.json"))])
     dataset = adapter.get_dataset("subway_realtime_arrival")
 
@@ -296,18 +229,7 @@ def test_info_200_returns_empty_record_batch() -> None:
 
 # Verifies scenario tested by test_call_raw_returns_raw_payload.
 def test_call_raw_returns_raw_payload() -> None:
-    """
-    Verify test_call_raw_returns_raw_payload scenario.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     payload = _load_fixture("bike_rent_month_success.json")
     adapter, _ = _build_adapter([FakeResponse(payload)])
     dataset = adapter.get_dataset("bike_rent_month")
@@ -323,18 +245,7 @@ def test_call_raw_returns_raw_payload() -> None:
 
 # Verifies scenario tested by test_pagination_uses_index_window_in_url.
 def test_pagination_uses_index_window_in_url() -> None:
-    """
-    Verify test_pagination_uses_index_window_in_url scenario.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     adapter, transport = _build_adapter(
         [FakeResponse(_load_fixture("bike_rent_month_success.json"))]
     )
@@ -359,22 +270,7 @@ def test_pagination_uses_index_window_in_url() -> None:
     ],
 )
 def test_error_code_mapping_table(code: str, expected_exception: type[Exception]) -> None:
-    """
-    Verify test_error_code_mapping_table scenario.
-
-    매개변수:
-        code (str): 호출자가 제공하는 입력 값이다.
-        expected_exception (type[Exception]): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     payload: dict[str, object] = {
         "realtimeStationArrival": {
             "list_total_count": 0,
@@ -394,21 +290,7 @@ def test_error_code_mapping_table(code: str, expected_exception: type[Exception]
 
 # Verifies scenario tested by test_config_from_env_injects_seoul_api_key.
 def test_config_from_env_injects_seoul_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
-    """
-    Verify test_config_from_env_injects_seoul_api_key scenario.
-
-    매개변수:
-        monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     monkeypatch.setenv("KPUBDATA_SEOUL_API_KEY", "env-seoul-key")
     adapter, transport = _build_adapter(
         [FakeResponse(_load_fixture("subway_realtime_arrival_success.json"))],
@@ -423,18 +305,7 @@ def test_config_from_env_injects_seoul_api_key(monkeypatch: pytest.MonkeyPatch) 
 
 # Verifies scenario tested by test_page_size_over_1000_raises_invalid_request.
 def test_page_size_over_1000_raises_invalid_request() -> None:
-    """
-    Verify test_page_size_over_1000_raises_invalid_request scenario.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     adapter, _ = _build_adapter([])
     dataset = adapter.get_dataset("bike_rent_month")
 
@@ -444,18 +315,7 @@ def test_page_size_over_1000_raises_invalid_request() -> None:
 
 # Verifies scenario tested by test_query_records_builds_park_info_url.
 def test_query_records_builds_park_info_url() -> None:
-    """
-    Verify test_query_records_builds_park_info_url scenario.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     adapter, transport = _build_adapter([FakeResponse(_load_fixture("park_info.json"))])
     dataset = adapter.get_dataset("park_info")
 
@@ -468,18 +328,7 @@ def test_query_records_builds_park_info_url() -> None:
 
 # Verifies scenario tested by test_query_records_parses_park_info_response.
 def test_query_records_parses_park_info_response() -> None:
-    """
-    Verify test_query_records_parses_park_info_response scenario.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """"""
     adapter, _ = _build_adapter([FakeResponse(_load_fixture("park_info.json"))])
     dataset = adapter.get_dataset("park_info")
 
