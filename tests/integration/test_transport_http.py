@@ -1,8 +1,5 @@
-"""테스트 모듈.
-
-이 파일은 ``tests/integration/test_transport_http.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
-"""
+"""Test module.
+transport http tests."""
 
 from __future__ import annotations
 
@@ -24,15 +21,7 @@ from kpubdata.transport.http import HttpTransport, TransportConfig
 
 
 class Scenario(TypedDict, total=False):
-    """
-    Scenario 관련 역할을 캡슐화하는 클래스.
-
-    이 클래스는 ``tests/integration/test_transport_http.py`` 모듈 안에서 Scenario의 상태와 동작을 함께 관리한다.
-    주요 메서드: 없음.
-
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
+    """Scenario encapsulates scenario."""
 
     status: int
     body: str | bytes
@@ -42,15 +31,7 @@ class Scenario(TypedDict, total=False):
 
 
 class MockThreadingHTTPServer(http.server.ThreadingHTTPServer):
-    """
-    MockThreadingHTTPServer 관련 역할을 캡슐화하는 클래스.
-
-    이 클래스는 ``tests/integration/test_transport_http.py`` 모듈 안에서 MockThreadingHTTPServer의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__.
-
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
+    """MockThreadingHTTPServer encapsulates HTTP server."""
 
     hit_count: int
     hit_lock: threading.Lock
@@ -62,19 +43,7 @@ class MockThreadingHTTPServer(http.server.ThreadingHTTPServer):
         server_address: tuple[str, int],
         request_handler: type[http.server.BaseHTTPRequestHandler],
     ) -> None:
-        """
-        인스턴스가 사용할 내부 상태를 초기화한다.
-
-        매개변수:
-            server_address (tuple[str, int]): 호출자가 제공하는 입력 값이다.
-            request_handler (type[http.server.BaseHTTPRequestHandler]): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        """Initialize instance state."""
         super().__init__(server_address, request_handler)
         self.scenarios: list[Scenario] = []
         self.hit_count = 0
@@ -84,51 +53,23 @@ class MockThreadingHTTPServer(http.server.ThreadingHTTPServer):
 
 
 class MockHandler(http.server.BaseHTTPRequestHandler):
-    """
-    MockHandler 관련 역할을 캡슐화하는 클래스.
-
-    이 클래스는 ``tests/integration/test_transport_http.py`` 모듈 안에서 MockHandler의 상태와 동작을 함께 관리한다.
-    주요 메서드: log_message, do_GET, do_POST, _handle_request.
-
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
+    """MockHandler encapsulates HTTP handler."""
 
     def log_message(self, format: str, *args: object) -> None:  # noqa: A002, ARG002
-        """
-        기본 HTTP 서버의 표준 출력 로그를 비활성화한다.
-
-        매개변수:
-            format (str): BaseHTTPRequestHandler가 전달하는 로그 포맷 문자열이다.
-            *args (object): 포맷 문자열에 주입할 위치 인자들이다.
-
-        반환값:
-            None: 별도 로그를 남기지 않고 즉시 반환한다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        """Suppress HTTP server logging."""
         return
 
     def do_GET(self) -> None:  # noqa: N802
-        """GET 요청을 공통 핸들러로 위임한다."""
+        """Delegate GET to common handler."""
         self._handle_request()
 
     def do_POST(self) -> None:  # noqa: N802
-        """POST 요청을 공통 핸들러로 위임한다."""
+        """Delegate POST to common handler."""
         self._handle_request()
 
     def _handle_request(self) -> None:
-        """
-        내부 헬퍼로서 handle request 처리를 담당한다.
-
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
-        # 시나리오 큐에서 현재 요청에 대응하는 응답 정의를 가져오고, 관측 가능한 서버 상태를 갱신한다.
+        """Helper for handling requests."""
+        # Get response for current request, update observable server state
         server = cast(MockThreadingHTTPServer, self.server)
         length = int(self.headers.get("Content-Length", "0"))
         request_body = self.rfile.read(length) if length else b""
@@ -139,12 +80,12 @@ class MockHandler(http.server.BaseHTTPRequestHandler):
             server.last_headers = {k.lower(): v for k, v in self.headers.items()}
             scenario: Scenario = server.scenarios.pop(0) if server.scenarios else {}
 
-        # 지연 응답 시나리오를 통해 timeout 및 retry 동작을 재현한다.
+        # Simulate timeout and retry via delayed responses
         delay = scenario.get("delay", 0.0)
         if delay > 0:
             time.sleep(delay)
 
-        # 응답 본문과 헤더를 구성한 뒤 간단한 in-process 테스트 서버처럼 결과를 반환한다.
+        # Construct response body and headers, return as in-process server
         status = scenario.get("status", 200)
         body = scenario.get("body", "")
         payload = body if isinstance(body, bytes) else body.encode("utf-8")
@@ -164,15 +105,7 @@ class MockHandler(http.server.BaseHTTPRequestHandler):
 
 @dataclass
 class MockServer:
-    """
-    MockServer 관련 역할을 캡슐화하는 클래스.
-
-    이 클래스는 ``tests/integration/test_transport_http.py`` 모듈 안에서 MockServer의 상태와 동작을 함께 관리한다.
-    주요 메서드: hit_count, last_body, last_headers.
-
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
+    """MockServer encapsulates server control."""
 
     base_url: str
     scenarios: list[Scenario]
@@ -180,55 +113,23 @@ class MockServer:
 
     @property
     def hit_count(self) -> int:
-        """
-        hit count 동작을 수행한다.
-
-        반환값:
-            int: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        """Get hit count."""
         return self.server.hit_count
 
     @property
     def last_body(self) -> bytes:
-        """
-        last body 동작을 수행한다.
-
-        반환값:
-            bytes: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        """Get last request body."""
         return self.server.last_body
 
     @property
     def last_headers(self) -> dict[str, str]:
-        """
-        last headers 동작을 수행한다.
-
-        반환값:
-            dict[str, str]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        """Get last request headers."""
         return self.server.last_headers
 
 
 @pytest.fixture
 def mock_server() -> Generator[MockServer, None, None]:
-    """
-    mock server 동작을 수행한다.
-
-    반환값:
-        Generator[MockServer, None, None]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-    """
+    """Setup mock server."""
     server = MockThreadingHTTPServer(("127.0.0.1", 0), MockHandler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -247,36 +148,13 @@ def mock_server() -> Generator[MockServer, None, None]:
 
 @pytest.fixture
 def transport_config() -> TransportConfig:
-    """
-    transport config 동작을 수행한다.
-
-    반환값:
-        TransportConfig: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-    """
+    """Setup transport config."""
     return TransportConfig(timeout=2.0, max_retries=2, retry_backoff_factor=0)
 
 
-# test get success 테스트가 검증하는 시나리오를 설명한다.
+# test get success scenario
 def test_get_success(mock_server: MockServer, transport_config: TransportConfig) -> None:
-    """
-    test get success 시나리오를 검증한다.
-
-    매개변수:
-        mock_server (MockServer): 호출자가 제공하는 입력 값이다.
-        transport_config (TransportConfig): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify test get success scenario."""
     mock_server.scenarios.append(
         {
             "status": 200,
@@ -294,24 +172,9 @@ def test_get_success(mock_server: MockServer, transport_config: TransportConfig)
     assert decode_json(response.text) == {"ok": True}
 
 
-# test post with json body 테스트가 검증하는 시나리오를 설명한다.
+# test post with json body scenario
 def test_post_with_json_body(mock_server: MockServer, transport_config: TransportConfig) -> None:
-    """
-    test post with json body 시나리오를 검증한다.
-
-    매개변수:
-        mock_server (MockServer): 호출자가 제공하는 입력 값이다.
-        transport_config (TransportConfig): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify test post with json body scenario."""
     mock_server.scenarios.append({"status": 200, "body": "ok"})
 
     with HttpTransport(transport_config) as transport:
@@ -326,26 +189,11 @@ def test_post_with_json_body(mock_server: MockServer, transport_config: Transpor
     assert mock_server.last_headers["content-type"].startswith("application/json")
 
 
-# test retry on 500 then success 테스트가 검증하는 시나리오를 설명한다.
+# test retry on 500 then success scenario
 def test_retry_on_500_then_success(
     mock_server: MockServer, transport_config: TransportConfig
 ) -> None:
-    """
-    test retry on 500 then success 시나리오를 검증한다.
-
-    매개변수:
-        mock_server (MockServer): 호출자가 제공하는 입력 값이다.
-        transport_config (TransportConfig): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify test retry on 500 then success scenario."""
     mock_server.scenarios.extend(
         [
             {"status": 500, "body": "server error"},
@@ -360,26 +208,11 @@ def test_retry_on_500_then_success(
     assert mock_server.hit_count == 2
 
 
-# test retry on 429 then success 테스트가 검증하는 시나리오를 설명한다.
+# test retry on 429 then success scenario
 def test_retry_on_429_then_success(
     mock_server: MockServer, transport_config: TransportConfig
 ) -> None:
-    """
-    test retry on 429 then success 시나리오를 검증한다.
-
-    매개변수:
-        mock_server (MockServer): 호출자가 제공하는 입력 값이다.
-        transport_config (TransportConfig): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify test retry on 429 then success scenario."""
     mock_server.scenarios.extend(
         [
             {"status": 429, "body": "rate limited"},
@@ -394,24 +227,9 @@ def test_retry_on_429_then_success(
     assert mock_server.hit_count == 2
 
 
-# test no retry on 404 테스트가 검증하는 시나리오를 설명한다.
+# test no retry on 404 scenario
 def test_no_retry_on_404(mock_server: MockServer, transport_config: TransportConfig) -> None:
-    """
-    test no retry on 404 시나리오를 검증한다.
-
-    매개변수:
-        mock_server (MockServer): 호출자가 제공하는 입력 값이다.
-        transport_config (TransportConfig): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify test no retry on 404 scenario."""
     mock_server.scenarios.append({"status": 404, "body": "not found"})
 
     with HttpTransport(transport_config) as transport, pytest.raises(TransportError):
@@ -446,23 +264,9 @@ def test_streamed_body_over_limit_raises_transport_error(mock_server: MockServer
     assert mock_server.hit_count == 1
 
 
-# test timeout then success 테스트가 검증하는 시나리오를 설명한다.
+# test timeout then success scenario
 def test_timeout_then_success(mock_server: MockServer) -> None:
-    """
-    test timeout then success 시나리오를 검증한다.
-
-    매개변수:
-        mock_server (MockServer): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify test timeout then success scenario."""
     mock_server.scenarios.extend(
         [
             {"status": 200, "body": "slow", "delay": 5.0},
@@ -479,23 +283,9 @@ def test_timeout_then_success(mock_server: MockServer) -> None:
     assert mock_server.hit_count == 2
 
 
-# test timeout exhausted 테스트가 검증하는 시나리오를 설명한다.
+# test timeout exhausted scenario
 def test_timeout_exhausted(mock_server: MockServer) -> None:
-    """
-    test timeout exhausted 시나리오를 검증한다.
-
-    매개변수:
-        mock_server (MockServer): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify test timeout exhausted scenario."""
     mock_server.scenarios.extend(
         [
             {"status": 200, "body": "slow-1", "delay": 5.0},
@@ -511,26 +301,11 @@ def test_timeout_exhausted(mock_server: MockServer) -> None:
     assert mock_server.hit_count == 3
 
 
-# test retryable status exhausted 테스트가 검증하는 시나리오를 설명한다.
+# test retryable status exhausted scenario
 def test_retryable_status_exhausted(
     mock_server: MockServer, transport_config: TransportConfig
 ) -> None:
-    """
-    test retryable status exhausted 시나리오를 검증한다.
-
-    매개변수:
-        mock_server (MockServer): 호출자가 제공하는 입력 값이다.
-        transport_config (TransportConfig): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify test retryable status exhausted scenario."""
     mock_server.scenarios.extend(
         [
             {"status": 500, "body": "boom-1"},
@@ -545,26 +320,11 @@ def test_retryable_status_exhausted(
     assert mock_server.hit_count == 3
 
 
-# test context manager lifecycle 테스트가 검증하는 시나리오를 설명한다.
+# test context manager lifecycle scenario
 def test_context_manager_lifecycle(
     mock_server: MockServer, transport_config: TransportConfig
 ) -> None:
-    """
-    test context manager lifecycle 시나리오를 검증한다.
-
-    매개변수:
-        mock_server (MockServer): 호출자가 제공하는 입력 값이다.
-        transport_config (TransportConfig): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify test context manager lifecycle scenario."""
     mock_server.scenarios.append({"status": 200, "body": "ok"})
 
     transport = HttpTransport(transport_config)

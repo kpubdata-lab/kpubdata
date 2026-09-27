@@ -1,7 +1,8 @@
-"""테스트 모듈.
+"""Test module for conftest configuration.
 
-이 파일은 ``tests/integration/conftest.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
+Defines test scenarios and helper functions in ``tests/integration/conftest.py``.
+Verifies core flows, exceptions, and edge cases to prevent regressions and validate
+the public contract.
 """
 
 from __future__ import annotations
@@ -17,13 +18,13 @@ from kpubdata.client import Client
 @pytest.fixture(scope="session")
 def require_datago_key() -> str:
     """
-    require datago key 동작을 수행한다.
+    Require data.go.kr API key fixture.
 
-    반환값:
-        str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        str: API key from environment or raises skip if not set.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        pytest.skip: If KPUBDATA_DATAGO_API_KEY is not set.
     """
     key = os.getenv("KPUBDATA_DATAGO_API_KEY", "")
     if not key:
@@ -34,13 +35,13 @@ def require_datago_key() -> str:
 @pytest.fixture
 def require_realestate_key() -> Generator[None, None, None]:
     """
-    require realestate key 동작을 수행한다.
+    Require real-estate scope approval on API key fixture.
 
-    반환값:
-        Generator[None, None, None]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        Generator[None, None, None]: Yields after checking approval flag.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        pytest.skip: If KPUBDATA_DATAGO_REALESTATE_ENABLED is not "1".
     """
     if os.environ.get("KPUBDATA_DATAGO_REALESTATE_ENABLED") != "1":
         pytest.skip(
@@ -53,13 +54,13 @@ def require_realestate_key() -> Generator[None, None, None]:
 @pytest.fixture(scope="session")
 def require_bok_key() -> str:
     """
-    require bok key 동작을 수행한다.
+    Require Bank of Korea API key fixture.
 
-    반환값:
-        str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        str: API key from environment or raises skip if not set.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        pytest.skip: If KPUBDATA_BOK_API_KEY is not set.
     """
     key = os.getenv("KPUBDATA_BOK_API_KEY", "")
     if not key:
@@ -70,13 +71,13 @@ def require_bok_key() -> str:
 @pytest.fixture(scope="session")
 def require_kosis_key() -> str:
     """
-    require kosis key 동작을 수행한다.
+    Require KOSIS (Korean Statistical Information System) API key fixture.
 
-    반환값:
-        str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        str: API key from environment or raises skip if not set.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        pytest.skip: If KPUBDATA_KOSIS_API_KEY is not set.
     """
     key = os.getenv("KPUBDATA_KOSIS_API_KEY", "")
     if not key:
@@ -87,13 +88,13 @@ def require_kosis_key() -> str:
 @pytest.fixture(scope="session")
 def require_lofin_key() -> str:
     """
-    require lofin key 동작을 수행한다.
+    Require LOFIN (Local Finance 365) API key fixture.
 
-    반환값:
-        str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        str: API key from environment or raises skip if not set.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        pytest.skip: If KPUBDATA_LOFIN_API_KEY is not set.
     """
     key = os.getenv("KPUBDATA_LOFIN_API_KEY", "")
     if not key:
@@ -104,13 +105,13 @@ def require_lofin_key() -> str:
 @pytest.fixture(scope="session")
 def require_localdata_key() -> str:
     """
-    require localdata key 동작을 수행한다.
+    Require LocalData API key fixture.
 
-    반환값:
-        str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        str: API key from environment or raises skip if not set.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        pytest.skip: If KPUBDATA_LOCALDATA_API_KEY is not set.
     """
     key = os.getenv("KPUBDATA_LOCALDATA_API_KEY", "")
     if not key:
@@ -121,13 +122,13 @@ def require_localdata_key() -> str:
 @pytest.fixture(scope="session")
 def require_seoul_key() -> str:
     """
-    require seoul key 동작을 수행한다.
+    Require Seoul Open Data API key fixture.
 
-    반환값:
-        str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        str: API key from environment or raises skip if not set.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        pytest.skip: If KPUBDATA_SEOUL_API_KEY is not set.
     """
     key = os.getenv("KPUBDATA_SEOUL_API_KEY", "")
     if not key:
@@ -138,13 +139,13 @@ def require_seoul_key() -> str:
 @pytest.fixture(scope="session")
 def require_semas_key() -> str:
     """
-    require semas key 동작을 수행한다.
+    Require SEMAS API key fixture.
 
-    반환값:
-        str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        str: API key from environment or raises skip if not set.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        pytest.skip: If KPUBDATA_SEMAS_API_KEY is not set.
     """
     key = os.getenv("KPUBDATA_SEMAS_API_KEY", "")
     if not key:
@@ -155,13 +156,13 @@ def require_semas_key() -> str:
 @pytest.fixture(scope="session")
 def require_sgis_key() -> str:
     """
-    require sgis key 동작을 수행한다.
+    Require SGIS (Spatial Information Platform) API key fixture.
 
-    반환값:
-        str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        str: API key from environment or raises skip if not set.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        pytest.skip: If KPUBDATA_SGIS_API_KEY is not set.
     """
     key = os.getenv("KPUBDATA_SGIS_API_KEY", "")
     if not key:
@@ -172,13 +173,13 @@ def require_sgis_key() -> str:
 @pytest.fixture(scope="session")
 def live_client() -> Client:
     """
-    live client 동작을 수행한다.
+    Create a live Client fixture for integration tests.
 
-    반환값:
-        Client: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        Client: Initialized client using environment variables.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        pytest.skip: If no API keys are set.
     """
     if not any(
         os.getenv(name, "")

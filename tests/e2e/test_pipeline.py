@@ -1,9 +1,10 @@
-"""kpubdata 내부 E2E — 실API 전 경로 검증 (#282 Phase 1).
+"""KPubData end-to-end pipeline validation (#282 Phase 1).
 
-하나의 데이터셋에 대해: Client 조회 → RecordBatch 구조 → fields[] 정규화 →
-페이지네이션 next_page 계산 → fixture 재생一致性まで 한 번에 검증한다.
+For a single dataset: Client query → RecordBatch structure → fields[] normalization →
+pagination next_page calculation → fixture replay consistency are all validated
+in one integrated flow.
 
-실API 키가 필요하므로 `@pytest.mark.integration` marker를 사용한다.
+Requires live API keys; marked with `@pytest.mark.integration`.
 """
 
 from __future__ import annotations
@@ -18,10 +19,11 @@ from kpubdata.core.models import RecordBatch
 
 @pytest.mark.integration
 class TestKpubdataPipelineE2E:
-    """kpubdata 단일 데이터셋 E2E — fetch에서 normalization까지."""
+    """KPubData single dataset E2E — fetch to normalization."""
 
     def test_hospital_info_full_pipeline(self) -> None:
-        """병원정보: 필터 없음 → 표준 envelope → fields 정규화 → 페이지네이션."""
+        """Hospital info: no filter → standard envelope → fields normalization →
+        pagination."""
         api_key = os.environ.get("KPUBDATA_DATAGO_API_KEY")
         if not api_key:
             pytest.skip("KPUBDATA_DATAGO_API_KEY not set")
@@ -30,28 +32,28 @@ class TestKpubdataPipelineE2E:
         dataset = client.dataset("datago.hospital_info")
         batch = dataset.list(page=1, page_size=5)
 
-        # 1. RecordBatch 구조
+        # 1. RecordBatch structure
         assert isinstance(batch, RecordBatch)
         assert batch.items, "최소 1개 레코드 필요"
         assert batch.total_count is not None and batch.total_count > 0
 
-        # 2. 레코드 필드 검증 (fields[] 메타데이터와 일치)
+        # 2. Record field validation (match fields[] metadata)
         first = batch.items[0]
         assert isinstance(first, dict)
         assert len(first) >= 5, f"병원 레코드는 5+ 필드여야 함: {sorted(first)[:5]}"
 
-        # 3. 페이지네이션
+        # 3. Pagination
         assert batch.next_page is not None, "전체 건수 > 페이지 크기 → next_page 필요"
         page2 = dataset.list(page=2, page_size=5)
         assert isinstance(page2, RecordBatch)
         assert len(page2.items) > 0
 
-        # 4. raw 비상구
+        # 4. Raw escape hatch
         raw = dataset.call_raw("getHospBasisList")
         assert isinstance(raw, dict)
 
     def test_apt_trade_filtered_query(self) -> None:
-        """아파트매매: LAWD_CD/DEAL_YMD 필터 → 필터 준수 검증."""
+        """Apartment trade: LAWD_CD/DEAL_YMD filter → filter compliance validation."""
         api_key = os.environ.get("KPUBDATA_DATAGO_API_KEY")
         if not api_key:
             pytest.skip("KPUBDATA_DATAGO_API_KEY not set")
@@ -67,7 +69,7 @@ class TestKpubdataPipelineE2E:
             )
 
     def test_air_station_station_filter(self) -> None:
-        """측정소별 대기: station 필터 → 측정소 일치 검증."""
+        """Air quality by station: station filter → station match validation."""
         api_key = os.environ.get("KPUBDATA_DATAGO_API_KEY")
         if not api_key:
             pytest.skip("KPUBDATA_DATAGO_API_KEY not set")

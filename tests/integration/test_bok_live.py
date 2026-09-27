@@ -219,25 +219,11 @@ def test_usage_single_month_query(live_client: Client) -> None:
     assert str(result.items[0]["TIME"]) == "202406"
 
 
-# test usd krw daily returns record batch 테스트가 검증하는 시나리오를 설명한다.
+# test usd krw daily returns record batch scenario
 @pytest.mark.integration
 @pytest.mark.usefixtures("require_bok_key")
 def test_usd_krw_daily_returns_record_batch(live_client: Client) -> None:
-    """
-    test usd krw daily returns record batch 시나리오를 검증한다.
-
-    매개변수:
-        live_client (Client): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify test usd krw daily returns record batch scenario."""
     ds = live_client.dataset("bok.usd_krw")
 
     result = ds.list(start_date="20240101", end_date="20240105", frequency="D")
@@ -246,25 +232,11 @@ def test_usd_krw_daily_returns_record_batch(live_client: Client) -> None:
     assert len(result.items) > 0
 
 
-# test bond yield 3y daily returns record batch 테스트가 검증하는 시나리오를 설명한다.
+# test bond yield 3y daily returns record batch scenario
 @pytest.mark.integration
 @pytest.mark.usefixtures("require_bok_key")
 def test_bond_yield_3y_daily_returns_record_batch(live_client: Client) -> None:
-    """
-    test bond yield 3y daily returns record batch 시나리오를 검증한다.
-
-    매개변수:
-        live_client (Client): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify test bond yield 3y daily returns record batch scenario."""
     ds = live_client.dataset("bok.bond_yield_3y")
 
     result = ds.list(start_date="20240102", end_date="20240108", frequency="D")

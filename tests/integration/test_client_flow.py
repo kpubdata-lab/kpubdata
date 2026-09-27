@@ -1,7 +1,7 @@
-"""테스트 모듈.
+"""Test module for integration tests.
 
-이 파일은 ``tests/integration/test_client_flow.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
+Defines test scenarios and helper functions in ``tests/integration/test_client_flow.py``.
+Verifies core flows, exceptions, and edge cases to prevent regressions and validate the public contract..
 """
 
 from __future__ import annotations
@@ -21,24 +21,24 @@ from kpubdata.exceptions import (
 
 class FakeAdapter:
     """
-    FakeAdapter 관련 역할을 캡슐화하는 클래스.
+    FakeAdapter encapsulates the class definition and state.
 
-    이 클래스는 ``tests/integration/test_client_flow.py`` 모듈 안에서 FakeAdapter의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__, name, list_datasets, search_datasets, get_dataset.
+    This class manages FakeAdapter state and operations within the test_client_flow module.
+    Key methods: __init__, name, list_datasets, search_datasets, get_dataset.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Property descriptions:
+        Attributes defined in __init__ and class body are reused by methods as shared context.
     """
 
     def __init__(self) -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize instance state.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exceptions from implementation or dependencies propagate.
         """
         self._datasets: dict[str, DatasetRef] = {
             "weather": DatasetRef(
@@ -64,40 +64,40 @@ class FakeAdapter:
     @property
     def name(self) -> str:
         """
-        name 동작을 수행한다.
+        Provider name.
 
-        반환값:
-            str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            str: provider name.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exceptions from implementation or dependencies propagate.
         """
         return "fake"
 
     def list_datasets(self) -> list[DatasetRef]:
         """
-        list datasets 동작을 수행한다.
+        List all available datasets.
 
-        반환값:
-            list[DatasetRef]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            list[DatasetRef]: dataset list.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exceptions from implementation or dependencies propagate.
         """
         return [self._datasets["weather"], self._datasets["stations"]]
 
     def search_datasets(self, text: str) -> list[DatasetRef]:
         """
-        search datasets 동작을 수행한다.
+        Search datasets by text.
 
-        매개변수:
-            text (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            text (str): search text.
 
-        반환값:
-            list[DatasetRef]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            list[DatasetRef]: dataset list.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exceptions from implementation or dependencies propagate.
         """
         needle = text.casefold()
         return [
@@ -108,16 +108,16 @@ class FakeAdapter:
 
     def get_dataset(self, dataset_key: str) -> DatasetRef:
         """
-        get dataset 동작을 수행한다.
+        Get dataset by key.
 
-        매개변수:
-            dataset_key (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset_key (str): dataset key.
 
-        반환값:
-            DatasetRef: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            DatasetRef: the dataset reference.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exceptions from implementation or dependencies propagate.
         """
         try:
             return self._datasets[dataset_key]
@@ -126,17 +126,17 @@ class FakeAdapter:
 
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
         """
-        query records 동작을 수행한다.
+        Query records from dataset.
 
-        매개변수:
-            dataset (DatasetRef): 호출자가 제공하는 입력 값이다.
-            query (Query): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset (DatasetRef): target dataset.
+            query (Query): query parameters.
 
-        반환값:
-            RecordBatch: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            RecordBatch: result records.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exceptions from implementation or dependencies propagate.
         """
         self.last_query = (dataset, query)
         return RecordBatch(
@@ -150,33 +150,33 @@ class FakeAdapter:
 
     def get_schema(self, _dataset: DatasetRef) -> None:
         """
-        get schema 동작을 수행한다.
+        Get dataset schema.
 
-        매개변수:
-            _dataset (DatasetRef): 호출자가 제공하는 입력 값이다.
+        Args:
+            _dataset (DatasetRef): target dataset.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exceptions from implementation or dependencies propagate.
         """
         return None
 
     def call_raw(self, dataset: DatasetRef, operation: str, params: dict[str, object]) -> object:
         """
-        call raw 동작을 수행한다.
+        Call raw provider operation.
 
-        매개변수:
-            dataset (DatasetRef): 호출자가 제공하는 입력 값이다.
-            operation (str): 호출자가 제공하는 입력 값이다.
-            params (dict[str, object]): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset (DatasetRef): target dataset.
+            operation (str): operation name.
+            params (dict[str, object]): operation parameters.
 
-        반환값:
-            object: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            object: raw operation result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Exceptions from implementation or dependencies propagate.
         """
         self.last_raw_call = (dataset, operation, params)
         return {"ok": True, "dataset": dataset.id, "operation": operation, "params": params}
@@ -184,13 +184,13 @@ class FakeAdapter:
 
 def _build_client() -> tuple[Client, FakeAdapter]:
     """
-    내부 헬퍼로서 build client 처리를 담당한다.
+    Build client and FakeAdapter for testing.
 
-    반환값:
-        tuple[Client, FakeAdapter]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        tuple[Client, FakeAdapter]: initialized client and adapter.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from implementation or dependencies propagate.
     """
     client = Client(provider_keys={"fake": "test-key"})
     fake = FakeAdapter()
@@ -198,19 +198,16 @@ def _build_client() -> tuple[Client, FakeAdapter]:
     return client, fake
 
 
-# test register and list datasets 테스트가 검증하는 시나리오를 설명한다.
+# # test register and list datasets scenario
 def test_register_and_list_datasets() -> None:
     """
-    test register and list datasets 시나리오를 검증한다.
+    Verify test register and list datasets scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Raises:
+        Exceptions from implementation or dependencies propagate.
     """
     client, _fake = _build_client()
 
@@ -221,19 +218,16 @@ def test_register_and_list_datasets() -> None:
     assert {ref.id for ref in fake_refs} == {"fake.weather", "fake.stations"}
 
 
-# test register and search datasets 테스트가 검증하는 시나리오를 설명한다.
+# # test register and search datasets scenario
 def test_register_and_search_datasets() -> None:
     """
-    test register and search datasets 시나리오를 검증한다.
+    Verify test register and search datasets scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Raises:
+        Exceptions from implementation or dependencies propagate.
     """
     client, _fake = _build_client()
 
@@ -243,19 +237,16 @@ def test_register_and_search_datasets() -> None:
     assert "fake.weather" in matched_ids
 
 
-# test dataset resolves to bound dataset 테스트가 검증하는 시나리오를 설명한다.
+# # test dataset resolves to bound dataset scenario
 def test_dataset_resolves_to_bound_dataset() -> None:
     """
-    test dataset resolves to bound dataset 시나리오를 검증한다.
+    Verify test dataset resolves to bound dataset scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Raises:
+        Exceptions from implementation or dependencies propagate.
     """
     client, _fake = _build_client()
 
@@ -268,19 +259,16 @@ def test_dataset_resolves_to_bound_dataset() -> None:
     assert dataset.operations == frozenset({Operation.LIST, Operation.RAW})
 
 
-# test dataset list delegates to query records 테스트가 검증하는 시나리오를 설명한다.
+# # test dataset list delegates to query records scenario
 def test_dataset_list_delegates_to_query_records() -> None:
     """
-    test dataset list delegates to query records 시나리오를 검증한다.
+    Verify test dataset list delegates to query records scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Raises:
+        Exceptions from implementation or dependencies propagate.
     """
     client, fake = _build_client()
 
@@ -294,19 +282,16 @@ def test_dataset_list_delegates_to_query_records() -> None:
     assert query.filters == {"stationName": "종로구"}
 
 
-# test dataset call raw delegates to adapter 테스트가 검증하는 시나리오를 설명한다.
+# # test dataset call raw delegates to adapter scenario
 def test_dataset_call_raw_delegates_to_adapter() -> None:
     """
-    test dataset call raw delegates to adapter 시나리오를 검증한다.
+    Verify test dataset call raw delegates to adapter scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Raises:
+        Exceptions from implementation or dependencies propagate.
     """
     client, fake = _build_client()
 
@@ -325,19 +310,16 @@ def test_dataset_call_raw_delegates_to_adapter() -> None:
     assert raw_params == {"param1": "value1"}
 
 
-# test dataset schema returns none 테스트가 검증하는 시나리오를 설명한다.
+# # test dataset schema returns none scenario
 def test_dataset_schema_returns_none() -> None:
     """
-    test dataset schema returns none 시나리오를 검증한다.
+    Verify test dataset schema returns none scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Raises:
+        Exceptions from implementation or dependencies propagate.
     """
     client, _fake = _build_client()
 
@@ -346,19 +328,16 @@ def test_dataset_schema_returns_none() -> None:
     assert result is None
 
 
-# test unknown provider raises 테스트가 검증하는 시나리오를 설명한다.
+# # test unknown provider raises scenario
 def test_unknown_provider_raises() -> None:
     """
-    test unknown provider raises 시나리오를 검증한다.
+    Verify test unknown provider raises scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Raises:
+        Exceptions from implementation or dependencies propagate.
     """
     client = Client(provider_keys={"fake": "test-key"})
 
@@ -366,19 +345,16 @@ def test_unknown_provider_raises() -> None:
         _ = client.dataset("unknown.ds")
 
 
-# test unknown dataset raises 테스트가 검증하는 시나리오를 설명한다.
+# # test unknown dataset raises scenario
 def test_unknown_dataset_raises() -> None:
     """
-    test unknown dataset raises 시나리오를 검증한다.
+    Verify test unknown dataset raises scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Raises:
+        Exceptions from implementation or dependencies propagate.
     """
     client, _fake = _build_client()
 
@@ -386,23 +362,9 @@ def test_unknown_dataset_raises() -> None:
         _ = client.dataset("fake.nonexistent")
 
 
-# test from env creates client 테스트가 검증하는 시나리오를 설명한다.
+# # test from env creates client scenario
 def test_from_env_creates_client(monkeypatch: pytest.MonkeyPatch) -> None:
-    """
-    test from env creates client 시나리오를 검증한다.
-
-    매개변수:
-        monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify test from env creates client scenario."""
     monkeypatch.setenv("KPUBDATA_TIMEOUT", "15")
     client = Client.from_env()
     fake = FakeAdapter()
