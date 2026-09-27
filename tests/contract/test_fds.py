@@ -1,4 +1,4 @@
-"""식약처(FDS) 어댑터 계약 테스트 (#165)."""
+"""FDS(Food and Drug Safety) adapter contract tests (#165)."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def _build_adapter(fixture_names: list[str]) -> ProviderAdapter:
 
 
 class TestFdsTraceabilityItemContract(ProviderAdapterContract):
-    """식품이력추적 관리품목 등록정보 계약 (#165)."""
+    """Traceability item registration contract (#165)."""
 
     @pytest.fixture()
     def adapter(self) -> ProviderAdapter:

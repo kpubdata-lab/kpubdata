@@ -1,4 +1,4 @@
-"""특허청(KIPI) 어댑터 계약 테스트 (#223)."""
+"""KIPRIS (Korean Intellectual Property Rights Information Service) adapter contract tests (#223)."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def _build_adapter(fixture_names: list[str]) -> ProviderAdapter:
 
 
 class TestKiprisPatentFamilyContract(ProviderAdapterContract):
-    """특허패밀리정보 검색 계약 (#223)."""
+    """Patent family information search contract (#223)."""
 
     @pytest.fixture()
     def adapter(self) -> ProviderAdapter:

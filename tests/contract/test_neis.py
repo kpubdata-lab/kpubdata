@@ -1,4 +1,4 @@
-"""나이스(NEIS) 어댑터 계약 테스트 (#164)."""
+"""NEIS (Nice) adapter contract tests (#164)."""
 
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ def _build_adapter(fixture_names: list[str]) -> ProviderAdapter:
 
 
 class TestNeisMealDietContract(ProviderAdapterContract):
-    """급식식단정보 계약 (#164)."""
+    """School meal diet information contract (#164)."""
 
     @pytest.fixture()
     def adapter(self) -> ProviderAdapter:
@@ -76,7 +76,7 @@ class TestNeisMealDietContract(ProviderAdapterContract):
 
 
 class TestNeisSchoolInfoContract(ProviderAdapterContract):
-    """학교기본정보 계약 (#218)."""
+    """School basic information contract (#218)."""
 
     @pytest.fixture()
     def adapter(self) -> ProviderAdapter:
