@@ -1,4 +1,4 @@
-"""응답 본문을 디스크에 저장하고 만료를 관리하는 파일 기반 캐시 구현."""
+"""File-based cache storing response bodies on disk with TTL expiration."""
 
 from __future__ import annotations
 
@@ -20,14 +20,21 @@ logger = logging.getLogger("kpubdata.transport")
 
 
 class _CachePayload(TypedDict, total=False):
-    """캐시 파일에 저장되는 직렬화 payload 구조다."""
+    """Serialized payload structure stored in cache files.
+
+    Args:
+        created_at: Unix timestamp when payload was created.
+        ttl_seconds: Time-to-live in seconds.
+        body_b64: Base64-encoded response body.
+        content_type: Content-Type header at storage time. Previous versions
+            stored only the body, so cache hits re-inferred the type and JSON
+            could decode XML responses — the same request yielded different
+            results depending on cache state.
+    """
 
     created_at: float
     ttl_seconds: float
     body_b64: str
-    #: 저장 당시의 Content-Type. 예전에는 본문만 저장해서, 캐시 히트에서는 타입
-    #: 추론이 다시 돌았고 XML 응답이 JSON 으로 디코딩되는 경로가 생겼다 — 같은
-    #: 요청이 캐시 여부에 따라 다른 결과를 냈다.
     content_type: str
 
 
@@ -35,24 +42,25 @@ _REDACTED_VALUE = "[REDACTED]"
 
 
 class ResponseCache:
-    """HTTP 응답 본문을 디스크에 저장하고 TTL로 만료를 관리한다."""
+    """HTTP response body cache on disk with TTL expiration."""
 
     def __init__(self, base_dir: str | Path | None = None) -> None:
-        """기본 응답 캐시 디렉터리를 초기화한다."""
+        """Initialize the default response cache directory."""
         self._base_dir: Path = Path(base_dir) if base_dir is not None else _default_cache_dir()
 
     @property
     def base_dir(self) -> Path:
-        """캐시 파일을 저장하는 기본 디렉터리를 반환한다."""
+        """Return the base directory where cache files are stored."""
         return self._base_dir
 
     def get(self, key: str) -> tuple[bytes, str] | None:
-        """캐시 엔트리를 읽고 유효하면 ``(본문, content_type)`` 을 반환한다.
+        """Read cache entry and return ``(body, content_type)`` if valid.
 
-        content_type 을 함께 돌려주는 것이 요점이다. 본문만 돌려주던 시절에는
-        캐시 히트에서 타입 추론이 다시 돌아 XML 이 JSON 으로 디코딩될 수 있었다.
-        content_type 키가 없는 **예전 엔트리**는 빈 문자열을 준다 — 그 경우
-        호출자는 예전처럼 추론하면 된다(하위 호환).
+        Returning content_type together is essential. Without it, cache hits
+        would re-infer the type and JSON could decode XML responses, so the
+        same request could yield different results depending on cache state.
+        Old entries without stored type return empty string to preserve backward
+        compatibility (caller re-infers as before).
         """
         payload_path = self._payload_path(key)
         try:
@@ -86,7 +94,7 @@ class ResponseCache:
             return None
 
     def set(self, key: str, value: bytes, ttl_seconds: int, content_type: str = "") -> None:
-        """응답 바이트·TTL·Content-Type 을 캐시 파일로 저장한다."""
+        """Cache response bytes, TTL, and Content-Type to a file."""
         payload_path = self._payload_path(key)
         try:
             payload_path.parent.mkdir(parents=True, exist_ok=True)
@@ -96,8 +104,9 @@ class ResponseCache:
                 "body_b64": base64.b64encode(value).decode("ascii"),
                 "content_type": content_type,
             }
-            # 임시 파일에 쓰고 교체한다. 직접 쓰면 중간에 끊긴 파일이 완성된
-            # 캐시 엔트리로 읽히고, 그 뒤로는 만료될 때까지 계속 깨진 값이 나온다.
+            # Write to temp file then replace. Direct write can leave
+            # incomplete files that are read as valid cache entries, and that
+            # broken value persists until expiration.
             fd, tmp_name = tempfile.mkstemp(dir=payload_path.parent, suffix=".tmp")
             try:
                 with os.fdopen(fd, "w", encoding="utf-8") as handle:
@@ -118,7 +127,7 @@ class ResponseCache:
             )
 
     def clear(self) -> None:
-        """저장된 캐시 엔트리를 모두 삭제한다."""
+        """Delete all stored cache entries."""
         try:
             if not self._base_dir.exists():
                 return
@@ -131,7 +140,7 @@ class ResponseCache:
             )
 
     def clear_expired(self) -> None:
-        """만료된 캐시 엔트리만 찾아 삭제한다."""
+        """Find and delete expired cache entries only."""
         try:
             if not self._base_dir.exists():
                 return
@@ -155,11 +164,11 @@ class ResponseCache:
             )
 
     def _payload_path(self, key: str) -> Path:
-        """캐시 키에 대응하는 JSON 파일 경로를 반환한다."""
+        """Return the JSON file path for a cache key."""
         return self._base_dir / f"{key}.json"
 
     def _delete_entry(self, key: str) -> None:
-        """지정한 캐시 키의 파일을 조용히 삭제한다."""
+        """Silently delete a cache file."""
         try:
             self._payload_path(key).unlink(missing_ok=True)
         except Exception as exc:
@@ -179,7 +188,7 @@ def make_cache_key(
     params: Mapping[str, object] | None,
     headers_subset: Mapping[str, object] | None,
 ) -> str:
-    """메서드, URL, 파라미터 조합으로 안정적인 캐시 키를 만든다."""
+    """Build a stable cache key from method, URL, params, and headers."""
     normalized_payload = {
         "method": method.upper(),
         "url": url,
@@ -193,7 +202,7 @@ def make_cache_key(
 
 
 def _default_cache_dir() -> Path:
-    """환경 변수와 홈 디렉터리를 바탕으로 기본 캐시 경로를 정한다."""
+    """Determine the default cache path from env vars and home directory."""
     xdg_cache_home = os.environ.get("XDG_CACHE_HOME")
     if xdg_cache_home:
         return Path(xdg_cache_home) / "kpubdata" / "responses"
@@ -201,12 +210,12 @@ def _default_cache_dir() -> Path:
 
 
 def _normalize_mapping(values: Mapping[str, object] | None) -> list[tuple[str, str]]:
-    """민감한 값을 자격별 지문으로 바꾼 뒤 매핑을 정렬 가능한 키-값 목록으로 만든다.
+    """Normalize mapping into sortable key-value list with fingerprinted credentials.
 
-    민감 값(credential)은 원문 대신 값 자체의 sha256 지문을 쓴다(#263) — 캐시
-    키 어디에도 원문이 남지 않으면서, 다른 credential끼리는 다른 캐시 엔트리를
-    갖게 격리된다. 예전처럼 상수로 가리면 서로 다른 키가 같은 캐시 키를 공유해
-    이전 사용자의 응답이 반환되는 오염이 생긴다.
+    Sensitive values (credentials) use sha256 fingerprints instead of plaintext
+    (#263) — no plaintext appears in cache keys and caches are isolated per
+    credential. If all keys used a constant, different credentials would share
+    cache entries, polluting with responses from previous users.
     """
     if values is None:
         return []
@@ -224,13 +233,13 @@ def _normalize_mapping(values: Mapping[str, object] | None) -> list[tuple[str, s
 
 
 def _credential_fingerprint(value: str) -> str:
-    """credential 원문 대신 캐시 키에 쓸 단방향 지문을 반환한다 (#263)."""
+    """Return a one-way fingerprint for credentials in cache keys (#263)."""
     digest = hashlib.sha256(value.encode("utf-8")).hexdigest()
     return f"{_REDACTED_VALUE}:sha256:{digest[:16]}"
 
 
 def _is_expired(payload: _CachePayload) -> bool:
-    """캐시 payload가 만료되었거나 형식이 깨졌는지 판단한다."""
+    """Check if cache payload is expired or malformed."""
     created_at = payload.get("created_at")
     ttl_seconds = payload.get("ttl_seconds")
     if not isinstance(created_at, int | float) or not isinstance(ttl_seconds, int | float):
@@ -241,7 +250,7 @@ def _is_expired(payload: _CachePayload) -> bool:
 
 
 def _load_payload(payload_path: Path) -> _CachePayload | None:
-    """캐시 JSON 파일을 읽어 검증된 payload 딕셔너리로 반환한다."""
+    """Read and validate a cache JSON file as a payload dict."""
     raw_payload = cast(object, json.loads(payload_path.read_text(encoding="utf-8")))
     if not isinstance(raw_payload, dict):
         return None

@@ -1,10 +1,10 @@
-"""간결한 HTTP 전송 계층 — 세션 관리, 재시도, 타임아웃, 디코딩.
+"""Concise HTTP transport layer—session management, retry, timeout, decoding.
 
-이 계층은 다음을 처리하지 않는다:
-- 인증 주입(어댑터 책임)
-- 파라미터 이름 규칙(어댑터 책임)
-- 응답 엔벌로프 파싱(어댑터 책임)
-- Provider별 에러 매핑(어댑터 책임)
+This layer does not handle:
+- Authentication injection (adapter responsibility)
+- Parameter naming convention (adapter responsibility)
+- Response envelope parsing (adapter responsibility)
+- Provider-specific error mapping (adapter responsibility)
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ _DEFAULT_MAX_RESPONSE_BYTES = 50 * 1024 * 1024
 
 @dataclass
 class TransportConfig:
-    """전송 계층 설정."""
+    """Transport layer configuration."""
 
     timeout: float = 30.0
     max_retries: int = 3
@@ -46,16 +46,17 @@ class TransportConfig:
     cache: ResponseCache | None = None
     cache_ttl_seconds: int = 86400
     max_response_bytes: int | None = _DEFAULT_MAX_RESPONSE_BYTES
-    #: ``Retry-After`` 힌트를 그대로 따를 최대 초. 서버가 이보다 긴 대기를
-    #: 요구하면 기다리지 않고 RateLimitError로 즉시 되돌려, 호출자가 언제
-    #: 다시 시도할지 스스로 정하게 한다. 상한이 없던 시절에는 서버가 3600을
-    #: 주면 라이브러리가 스레드를 한 시간 붙잡고 잤다.
+    #: Maximum seconds to honor a ``Retry-After`` hint. If the server asks
+    #: for a longer wait, do not sleep; instead raise RateLimitError
+    #: immediately, letting the caller decide when to retry. Without an upper
+    #: bound, the library would block the thread for hours when a server
+    #: returned 3600.
     max_retry_delay: float = 60.0
 
 
 @dataclass(frozen=True)
 class TransportRequirements:
-    """제공자 어댑터를 위한 선언적 전송 커스터마이징."""
+    """Declarative transport customization for provider adapters."""
 
     verify_ssl: bool | None = None
     headers: Mapping[str, str] | None = None
@@ -63,7 +64,7 @@ class TransportRequirements:
 
 
 class HttpTransport:
-    """재시도, 타임아웃, 구조화 로깅을 갖춘 관리형 httpx 클라이언트."""
+    """Managed httpx client with retry, timeout, and structured logging."""
 
     def __init__(
         self,
@@ -73,15 +74,15 @@ class HttpTransport:
         cache_ttl_seconds: int = 86400,
         sleep: Callable[[float], None] | None = None,
     ) -> None:
-        """선택적 명시 설정으로 전송 계층을 초기화한다."""
+        """Initialize the transport layer with optional explicit configuration."""
         self._config: TransportConfig = config or TransportConfig()
         self._requirements: TransportRequirements | None = requirements
         self._cache: ResponseCache | None = self._config.cache if cache is None else cache
         self._cache_ttl_seconds: int = (
             self._config.cache_ttl_seconds if cache_ttl_seconds == 86400 else cache_ttl_seconds
         )
-        # 재시도 대기 함수(#270): 기본은 호출 시점의 time.sleep(모듈 패치 가능),
-        # 테스트·async 임베딩은 명시적으로 주입한다.
+        # Retry sleep function (#270): default is time.sleep at call time (module-patchable);
+        # tests and async embedding inject explicitly.
         self._sleep: Callable[[float], None] = sleep or (lambda delay: time.sleep(delay))
         self._client: httpx.Client | None = None
 
@@ -91,7 +92,7 @@ class HttpTransport:
         config: TransportConfig,
         requirements: TransportRequirements,
     ) -> HttpTransport:
-        """기본 전송 설정에 Provider 요구사항을 합친 새 HttpTransport를 만든다."""
+        """Build a new HttpTransport merging base config with provider requirements."""
         return cls(
             config=TransportConfig(
                 timeout=config.timeout,
@@ -106,17 +107,17 @@ class HttpTransport:
         )
 
     def __enter__(self) -> HttpTransport:
-        """컨텍스트 관리자에 진입하며 클라이언트를 즉시 초기화한다."""
+        """Enter context manager and initialize client immediately."""
         self._client = self._build_client()
         return self
 
     def __exit__(self, *exc: object) -> None:
-        """컨텍스트 관리자를 종료하고 관리 중인 클라이언트를 닫는다."""
+        """Exit context manager and close the managed client."""
         self.close()
 
     @override
     def __repr__(self) -> str:
-        """간결한 디버그 표현을 반환한다."""
+        """Return a concise debug representation."""
         return (
             "HttpTransport("
             f"timeout={self._config.timeout}, "
@@ -127,13 +128,13 @@ class HttpTransport:
         )
 
     def _build_client(self, requirements: TransportRequirements | None = None) -> httpx.Client:
-        """현재 설정과 요구사항을 반영한 httpx.Client를 생성한다."""
+        """Create an httpx.Client reflecting current config and requirements."""
         effective_requirements = requirements or self._requirements
         return httpx.Client(
             timeout=self._config.timeout,
             headers=_merge_headers(
                 self._config.headers,
-                # Provider 전용 헤더가 있으면 공용 헤더 위에 덮어쓴다.
+                # Provider-specific headers override common headers.
                 None if effective_requirements is None else effective_requirements.headers,
             )
             or {},
@@ -142,41 +143,42 @@ class HttpTransport:
         )
 
     def _resolve_verify(self, requirements: TransportRequirements | None) -> bool | ssl.SSLContext:
-        """SSL 검증 여부와 SSLContext의 최종 적용 값을 결정한다."""
-        # 명시적 SSLContext는 verify_ssl 불리언보다 구체적이므로 최우선으로 사용한다.
+        """Determine final SSL verification setting and SSLContext."""
+        # Explicit SSLContext is more specific than verify_ssl boolean, so take precedence.
         if self._config.ssl_context is not None:
             return self._config.ssl_context
         if requirements is None:
             return self._config.verify_ssl
-        # Provider가 SSLContext factory를 제공하면 요청 직전에 전용 컨텍스트를 생성한다.
+        # If provider supplies an SSLContext factory, create a dedicated context
+        # just before the request.
         if requirements.ssl_context_factory is not None:
             return requirements.ssl_context_factory()
-        # 마지막으로 Provider별 verify_ssl override가 있으면 기본 설정을 덮어쓴다.
+        # Finally, apply provider-specific verify_ssl override if present.
         if requirements.verify_ssl is not None:
             return requirements.verify_ssl
         return self._config.verify_ssl
 
     def close(self) -> None:
-        """클라이언트가 초기화되었으면 닫는다."""
+        """Close the client if initialized."""
         if self._client is not None:
             self._client.close()
             self._client = None
 
     @property
     def client(self) -> httpx.Client:
-        """지연 초기화되는 공유 ``httpx.Client`` 인스턴스를 반환한다."""
+        """Return the lazily-initialized shared ``httpx.Client`` instance."""
         if self._client is None:
             self._client = self._build_client()
         return self._client
 
     @property
     def cache(self) -> ResponseCache | None:
-        """현재 전송 인스턴스에 연결된 응답 캐시를 반환한다."""
+        """Return the response cache attached to this transport instance."""
         return self._cache
 
     @property
     def cache_ttl_seconds(self) -> int:
-        """응답 캐시에 적용할 기본 TTL 초 값을 반환한다."""
+        """Return the default TTL seconds applied to cached responses."""
         return self._cache_ttl_seconds
 
     def request(
@@ -193,17 +195,18 @@ class HttpTransport:
         secret_values: tuple[str, ...] = (),
         no_store: bool = False,
     ) -> httpx.Response:
-        """HTTP 요청을 실행한다. 자격이 실린 요청의 예외 체인은 여기서 끊는다.
+        """Execute an HTTP request, breaking the exception chain for requests
+        with credentials.
 
-        ``raise ... from None`` 은 ``__suppress_context__`` 만 True 로 만들고
-        ``__context__`` 에는 원본 httpx 예외를 그대로 남긴다. 표준 traceback 출력과
-        Sentry 는 그 플래그를 존중하므로 대개는 보이지 않지만,
-        ``exc.__context__.request.url`` 을 직접 읽는 로거에는 키가 그대로 보인다.
+        ``raise ... from None`` sets only ``__suppress_context__`` to True and
+        leaves the original httpx exception in ``__context__``. Standard traceback
+        output and Sentry honor that flag, so it is usually hidden, but loggers
+        that read ``exc.__context__.request.url`` directly still see the key.
 
-        ``__context__`` 는 raise 시점에 다시 채워지므로 raise 앞에서 지워도 소용이
-        없다. 그래서 예외가 이 경계를 빠져나갈 때 한 번만 벗겨낸다 — bare ``raise``
-        는 지금 처리 중인 예외를 그대로 다시 던지므로 ``__context__`` 를 덮어쓰지
-        않는다.
+        ``__context__`` is refilled at raise time, so clearing it before raise
+        is pointless. We strip it once as the exception leaves this boundary.
+        Bare ``raise`` re-raises the current exception without overwriting
+        ``__context__``.
         """
         try:
             return self._request(
@@ -238,14 +241,14 @@ class HttpTransport:
         secret_values: tuple[str, ...] = (),
         no_store: bool = False,
     ) -> httpx.Response:
-        """재시도 로직과 함께 HTTP 요청을 실행한다.
+        """Execute HTTP request with retry logic.
 
-        반환값:
-            원시 ``httpx.Response``.
+        Returns:
+            Raw ``httpx.Response``.
 
-        예외:
-            TransportError: 타임아웃이 아닌 전송 실패가 발생한 경우.
-            TransportTimeoutError: 타임아웃 실패가 발생한 경우.
+        Raises:
+            TransportError: Non-timeout transport failure.
+            TransportTimeoutError: Timeout failure.
         """
         if self._config.max_retries < 0:
             msg = "max_retries must be >= 0"
@@ -257,8 +260,9 @@ class HttpTransport:
             msg = "max_response_bytes must be >= 1 or None"
             raise ValueError(msg)
 
-        # replay 모드(#379): 환경 변수가 켜져 있으면 기록된 fixture로 응답을 대체한다.
-        # 실호출·캐시·재시도 전 최상단에 둔다 — 검증 파이프라인의 결정성 보장.
+        # Replay mode (#379): if env var is set, replace response with recorded
+        # fixture. Check before actual call, cache, or retry to ensure
+        # validation pipeline determinism.
         if os.environ.get("KPUBDATA_MODE") == "replay":
             from kpubdata.transport.replay import replay_response
 
@@ -273,31 +277,30 @@ class HttpTransport:
                 return replayed
 
         total_attempts = self._config.max_retries + 1
-        # 메서드/URL/헤더 조합이 안전할 때만 캐시 키를 만들고 GET 응답을 재사용한다.
-        # ``no_store`` 는 응답 자체가 credential 인 요청을 위한 것이다 (sgis 토큰).
-        # 캐시에 넣으면 토큰이 ~/.cache 에 평문으로 남고, 그보다 나쁘게는
-        # force_refresh 가 그 캐시를 다시 읽어 **옛 토큰을 돌려준다** —
-        # 갱신이라는 이름의 no-op 이 된다.
+        # Build cache key only for safe method/URL/header combinations; reuse
+        # GET responses. ``no_store`` is for requests where the response body
+        # itself is a credential (sgis token). Caching it stores the token in
+        # plaintext in ~/.cache, and worse: force_refresh then reads that stale
+        # cache and returns the **old token** — a no-op called "refresh".
         cache_key = (
             None
             if no_store
             else self._make_cache_key(method=method, url=url, params=params, headers=headers)
         )
         request_context = _request_context(dataset_id=dataset_id, provider=provider)
-        # 로그/예외에는 API 키가 query parameter로 포함될 수 있는 원본 URL 대신
-        # 민감 파라미터를 가린 URL만 사용한다.
-        # 경로 세그먼트에 실제 값으로 키를 싣는 Provider(seoul 등)를 위해
-        # 어댑터가 secret 값을 넘겨줄 수 있다(#354) — 값 기반 치환이라 휴리스틱이 없다.
+        # Log/exceptions use a masked URL with sensitive params hidden instead of
+        # the original URL that may carry API keys as query parameters.
+        # Adapters can pass secret values for providers that embed keys in path
+        # segments (seoul, etc.) (#354) — value-based substitution without heuristics.
         log_url = _mask_url(url, secret_values=secret_values)
-        # 원본 httpx 예외를 __cause__에 남기면 예외 체인(traceback/에러 트래커)을
-        # 통해 민감 URL이 새어나간다. httpx는 예외 메시지에 **최종** URL을 넣는데,
-        # 그 URL은 params를 합쳐서 만들어진다.
+        # Original httpx exceptions left in __cause__ leak credential URLs through
+        # exception chains (traceback/error trackers). httpx puts the **final** URL
+        # in exception messages, and that URL is built by merging params.
         #
-        # 예전에는 ``log_url != url`` 로만 판정했다. 그래서 키를 URL 문자열에 박아
-        # 넘기는 경우만 막혔고, ``params=`` 로 넘기는 경우는 URL이 바뀌지 않아
-        # 체인이 그대로 유지됐다 — datago·localdata·semas·sgis와 spec executor가
-        # 전부 그 방식이다. 즉 실제로 키를 쓰는 거의 모든 경로에서 마스킹이
-        # 적용되지 않았다. #475/#484의 마스킹 작업도 테스트도 URL 문자열 쪽만 봤다.
+        # Previously we only checked ``log_url != url``, catching URL-string
+        # embedding but not params= passing. Most key-carrying paths pass via
+        # params= (datago, localdata, semas, sgis, spec executor), so masking did
+        # not apply. Work in #475/#484 and tests also only looked at URL strings.
         credential_in_request = (
             log_url != url
             or bool(secret_values)
@@ -316,11 +319,11 @@ class HttpTransport:
                         **request_context,
                     },
                 )
-                # 저장 당시의 Content-Type 을 그대로 복원한다. 없이 돌려주던
-                # 시절에는 캐시 히트에서 타입 추론이 다시 돌아 XML 응답이 JSON
-                # 으로 디코딩될 수 있었다 — 같은 요청이 캐시 여부에 따라 다른
-                # 결과를 냈다. 예전 엔트리(타입 미저장)는 빈 문자열이므로 헤더를
-                # 붙이지 않고 예전 동작 그대로 둔다.
+                # Restore Content-Type from when it was stored. Without it, cache
+                # hits would re-infer the type and JSON-decode XML responses, so
+                # the same request could yield different results depending on
+                # cache state. Old entries (no stored type) return empty string,
+                # preserving the old behavior without headers.
                 return httpx.Response(
                     status_code=200,
                     content=cached_body,
@@ -328,9 +331,9 @@ class HttpTransport:
                     request=httpx.Request(method.upper(), url, params=params, headers=headers),
                 )
 
-        # 일부 한국 공공 API(예: 한국관광공사 KorService2)는 Content-Encoding: gzip을
-        # 선언하고 gzip이 아닌 본문을 보내는 결함이 있다. 디코딩 실패 시 1회만
-        # Accept-Encoding: identity로 재시도한다(#414).
+        # Some Korean public APIs (e.g., Korea Tourism Org's KorService2) declare
+        # Content-Encoding: gzip but send non-gzip body. On decode failure, retry
+        # once with Accept-Encoding: identity (#414).
         effective_headers = headers
         identity_retry_used = False
 
@@ -405,12 +408,12 @@ class HttpTransport:
                         },
                     )
 
-                # 200 이라고 다 캐시하지 않는다. 한국 공공 API 다수는 실패를
-                # 상태 코드가 아니라 본문 envelope 으로 알린다 — 한도 초과(22),
-                # 미등록 키(30), 게이트웨이 거부가 모두 200 으로 온다. 상태만
-                # 보던 시절에는 일시적인 한도 초과가 24시간 장애로 굳었고, 그
-                # 캐시가 builder 의 Bronze fetch 로 전파돼 스케줄 빌드가 빈
-                # 데이터를 "성공" 으로 게시할 수 있었다.
+                # Do not cache every 200. Many Korean public APIs report failure
+                # in the body envelope, not HTTP status — quota exceeded (22),
+                # unregistered key (30), gateway denial all arrive as 200. Checking
+                # status alone froze a momentary quota overrun into a 24-hour outage,
+                # and that cache reached builder's Bronze fetch, so scheduled builds
+                # could publish empty data as "success".
                 cacheable = (
                     cache_key is not None
                     and self._cache is not None
@@ -425,8 +428,8 @@ class HttpTransport:
                         extra={"url": log_url, **request_context},
                     )
                     cacheable = False
-                # 두 조건은 cacheable 이 이미 보장하지만, 타입 검사기가
-                # boolean 을 통해 좁히지는 못하므로 여기서 다시 적는다.
+                # Both conditions are guaranteed by cacheable, but the type checker
+                # cannot narrow through boolean, so we re-assert here.
                 if cacheable and self._cache is not None and cache_key is not None:
                     self._cache.set(
                         cache_key,
@@ -464,7 +467,7 @@ class HttpTransport:
 
             except httpx.DecodingError as exc:
                 if not identity_retry_used:
-                    # identity 재시도는 재시도 횟수를 소모하지 않는 즉시 1회 재시도다.
+                    # Identity retry is an immediate 1-shot, not consuming a retry count.
                     identity_retry_used = True
                     merged = dict(effective_headers or {})
                     merged["Accept-Encoding"] = "identity"
@@ -494,9 +497,10 @@ class HttpTransport:
                     },
                 )
                 if not _is_retryable_status(status_code) or attempt >= total_attempts:
-                    # status_code 를 실어 보낸다. 마스킹 때문에 예외 체인을 끊는
-                    # 경우(from None) 원래 응답이 함께 사라져, 호출자가 401 과
-                    # 503 을 구분할 방법이 메시지 문자열밖에 없었다.
+                    # Include status_code in the error. Masking breaks the
+                    # exception chain (from None), losing the original response,
+                    # so the caller cannot distinguish 401 from 503 except by
+                    # parsing the message string.
                     error_type = RateLimitError if status_code == 429 else TransportError
                     status_error = error_type(
                         f"HTTP status error {status_code} for {method} {log_url}",
@@ -531,11 +535,10 @@ class HttpTransport:
 
             delay: float
             if retry_delay is not None:
-                # 서버가 Retry-After를 주면 지수 백오프보다 서버 힌트를 우선한다.
-                # 다만 무한정 따르지는 않는다 — 상한을 넘는 힌트는 "지금은 쓸 수
-                # 없다"는 신호이지 "여기서 잠들라"는 지시가 아니다. 기다리는 대신
-                # retryable한 RateLimitError로 즉시 돌려주어, 호출자가 재시도
-                # 시점을 스스로 정할 수 있게 한다.
+                # Prefer server Retry-After over exponential backoff, but do not
+                # follow indefinitely. A delay exceeding the cap signals "not
+                # available now", not "sleep here". Return RateLimitError
+                # immediately instead, letting the caller choose when to retry.
                 max_delay = self._config.max_retry_delay
                 if max_delay is not None and retry_delay > max_delay:
                     raise RateLimitError(
@@ -573,7 +576,7 @@ class HttpTransport:
         params: dict[str, str] | None,
         headers: dict[str, str] | None,
     ) -> str | None:
-        """캐시 가능한 GET 요청에 대해서만 캐시 키를 계산한다."""
+        """Compute cache key only for cacheable GET requests."""
         if self._cache is None:
             return None
         if method.upper() != "GET":
@@ -584,7 +587,7 @@ class HttpTransport:
 
 
 def _is_retryable_status(status_code: int) -> bool:
-    """HTTP 상태 코드가 재시도 대상인지 반환한다."""
+    """Check if HTTP status code should trigger a retry."""
     return status_code == 429 or 500 <= status_code <= 599
 
 
@@ -595,7 +598,7 @@ def _read_limited_response(
     method: str,
     url: str,
 ) -> httpx.Response:
-    """응답 본문을 크기 제한 안에서 읽은 뒤 content-loaded Response로 반환한다."""
+    """Read response body within size limit; return as content-loaded Response."""
     if max_response_bytes is not None:
         content_length = response.headers.get("Content-Length")
         if content_length is not None and _content_length_exceeds(
@@ -624,7 +627,7 @@ def _read_limited_response(
 
 
 def _content_length_exceeds(content_length: str, max_response_bytes: int) -> bool:
-    """유효한 Content-Length가 제한보다 큰지 반환한다."""
+    """Check if valid Content-Length header exceeds the limit."""
     try:
         return int(content_length) > max_response_bytes
     except ValueError:
@@ -632,7 +635,7 @@ def _content_length_exceeds(content_length: str, max_response_bytes: int) -> boo
 
 
 def _request_context(*, dataset_id: str | None, provider: str | None) -> dict[str, str]:
-    """로그 extra에 넣을 dataset/provider 문맥 딕셔너리를 만든다."""
+    """Build dataset/provider context dict for log extra."""
     context: dict[str, str] = {}
     if dataset_id is not None:
         context["dataset_id"] = dataset_id
@@ -645,7 +648,7 @@ def _merge_headers(
     base_headers: Mapping[str, str] | None,
     override_headers: Mapping[str, str] | None,
 ) -> dict[str, str] | None:
-    """기본 헤더와 재정의 헤더를 병합한 새 딕셔너리를 반환한다."""
+    """Return merged dict of base and override headers."""
     if base_headers is None and override_headers is None:
         return None
 
@@ -658,7 +661,7 @@ def _merge_headers(
 
 
 def _sanitize_params(params: dict[str, str] | None) -> dict[str, str]:
-    """민감한 파라미터 값을 가린 로그용 파라미터 사본을 만든다."""
+    """Build a copy of params with sensitive values masked for logging."""
     if params is None:
         return {}
 
@@ -672,18 +675,19 @@ def _sanitize_params(params: dict[str, str] | None) -> dict[str, str]:
 
 
 def _mask_url(url: str, *, secret_values: tuple[str, ...] = ()) -> str:
-    """민감한 값을 가린 로그/예외용 URL 문자열을 만든다.
+    """Build a log/exception URL string with sensitive values masked.
 
-    API 키 등이 query parameter로 전달되는 Provider(datago 등)의 경우,
-    URL 자체를 로그나 예외 메시지에 그대로 포함하면 키가 노출된다.
-    민감한 키가 없으면 원본 URL을 그대로 돌려주고, 있을 때만 마스킹된 URL을
-    재구성한다. 파싱할 수 없는 URL은 키 노출을 막기 위해 ``"[invalid url]"``로
-    대체한다.
+    For providers passing API keys as query parameters (e.g., datago), including
+    the URL as-is in logs or exceptions exposes the key. If no sensitive keys
+    are present, return the URL unchanged; otherwise reconstruct with masking.
+    URLs that cannot be parsed are replaced with ``"[invalid url]"`` to prevent
+    key exposure.
 
-    ``secret_values``에는 경로 세그먼트에 실제 값으로 싣는 Provider(seoul 등)의
-    키 원문을 넘긴다(#354) — 경로 세그먼트 중 값이 정확히 일치하는 것만
-    ``[REDACTED]``로 치환한다(값 기반이라 서비스명·페이지 인덱스를 오인하지
-    않는다). query 마스킹과 달리 비밀 값 자체를 아는 호출자만 사용할 수 있다.
+    ``secret_values`` holds the plaintext key for providers embedding keys in
+    path segments (seoul, etc.) (#354) — only exact matches in path segments
+    are replaced with ``[REDACTED]`` (value-based, so no false positives on
+    service names or page indices). Unlike query masking, the caller must know
+    the secret value.
     """
     try:
         parts = urlsplit(url)
@@ -709,12 +713,12 @@ def _mask_url(url: str, *, secret_values: tuple[str, ...] = ()) -> str:
 
 
 def _cache_headers_subset(headers: dict[str, str] | None) -> dict[str, str]:
-    """캐시 키 계산에 쓸 헤더를 추려 반환한다.
+    """Return headers to use for cache key calculation.
 
-    민감 헤더(Authorization 등)도 포함한다(#263) — ``make_cache_key``가 값을
-    원문 대신 sha256 지문으로 정규화하므로 키 어디에도 원문이 남지 않으면서
-    credential별로 캐시가 격리된다. 제외하면 다른 Bearer token이 같은 캐시
-    엔트리를 공유하는 오염이 생긴다.
+    Include sensitive headers (Authorization, etc.) (#263) — ``make_cache_key``
+    normalizes values to sha256 fingerprints, so no plaintext appears in cache
+    keys and caches are isolated per credential. Excluding them causes
+    pollution: different Bearer tokens share the same cache entry.
     """
     if headers is None:
         return {}
@@ -722,27 +726,28 @@ def _cache_headers_subset(headers: dict[str, str] | None) -> dict[str, str]:
 
 
 def _contains_sensitive_headers(headers: dict[str, str] | None) -> bool:
-    """헤더에 민감한 키가 포함되어 있는지 확인한다."""
+    """Check if headers contain any sensitive keys."""
     if headers is None:
         return False
     return any(key.casefold() in SENSITIVE_PARAM_KEYS for key in headers)
 
 
 def _mark_credential_bearing(error: Exception, credential_in_request: bool) -> None:
-    """이 예외가 credential 이 실린 요청에서 나왔다고 표시한다.
+    """Mark that this exception came from a request carrying credentials.
 
-    ``HttpTransport.request`` 가 경계에서 이 표시를 보고 ``__context__`` 를
-    벗겨낸다. raise 시점에는 지울 수 없어서(다시 채워진다) 표시만 남긴다.
+    ``HttpTransport.request`` checks this flag at the boundary and strips
+    ``__context__``. We cannot delete it at raise time (it is refilled), so we
+    mark it for deletion once the exception exits this boundary.
     """
     if credential_in_request:
         error._credential_in_request = True  # type: ignore[attr-defined]
 
 
 def _contains_sensitive_params(params: dict[str, str] | None) -> bool:
-    """query parameter에 민감한 키가 포함되어 있는지 확인한다.
+    """Check if query parameters contain any sensitive keys.
 
-    URL 문자열이 아니라 ``params`` 에 실려 있어도 httpx는 최종 URL에 합쳐서
-    예외 메시지에 담는다 — 그래서 URL만 보는 판정으로는 부족하다.
+    httpx merges params into the final URL in exception messages, so checking
+    the URL string alone is insufficient; params must be checked separately.
     """
     if params is None:
         return False
@@ -750,7 +755,7 @@ def _contains_sensitive_params(params: dict[str, str] | None) -> bool:
 
 
 def _response_preview(response: httpx.Response, max_chars: int = 500) -> str:
-    """응답 본문을 디버그 로그용 짧은 미리보기 문자열로 만든다."""
+    """Build a short preview of response body for debug logs."""
     content_type = cast(str, response.headers.get("content-type", "")).casefold()
     is_text = (
         content_type.startswith("text/")
@@ -769,10 +774,10 @@ def _response_preview(response: httpx.Response, max_chars: int = 500) -> str:
 
 
 def _parse_retry_after(header_value: str) -> float | None:
-    """``Retry-After`` 헤더 값을 초 단위 지연으로 파싱한다.
+    """Parse Retry-After header value to delay seconds.
 
-    RFC 7231 §7.1.3에 따라 delta-seconds와 HTTP-date 형식을 모두 지원한다.
-    값을 파싱할 수 없으면 None을 반환한다.
+    Follow RFC 7231 §7.1.3, supporting both delta-seconds and HTTP-date formats.
+    Return None if the value cannot be parsed.
     """
 
     normalized = header_value.strip()
