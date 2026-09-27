@@ -545,32 +545,12 @@ class SpecExecutor:
     # Normalization
     # ------------------------------------------------------------------
 
-    def _normalize_fields(
+    def _stage_fields(
         self, spec: SpecDefinition, items: list[dict[str, object]]
-    ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
-        """Apply rename/transform/casting only when a fields[] declaration exists.
-
-        Casting applies **per column, and only when every value succeeds**.
-        Deciding row by row would mix cast values with originals in one
-        column, breaking the type for consumers working in tabular form —
-        for example, the apartment-trade ``aptDong`` is mostly ``"105"`` but
-        some rows carry a dong *name* (a Korean neighborhood string), so
-        row-wise casting would produce a column where int and str coexist.
-        If even one value fails to cast, the column stays as-is — even when
-        the spec's type declaration disagrees with the real data,
-        downstream does not break.
-
-        Returns (normalized_items, cast_fallback_diagnostics) — the second
-        element lists fields that stayed string despite a numeric/typed
-        declaration (#461).
-        """
+    ) -> list[dict[str, object]]:
+        """Stage 1 only: rename + transform (no casting) (#481)."""
         if not spec.fields:
-            return items, []
-
-        cast_fallbacks: list[dict[str, object]] = []
-
-        # Stage 1: apply rename and transform only (casting waits until the
-        # whole column has been seen).
+            return items
         staged: list[dict[str, object]] = []
         for item in items:
             record: dict[str, object] = dict(item)
@@ -582,8 +562,20 @@ class SpecExecutor:
                 if source_name != field.name:
                     record.pop(source_name, None)
             staged.append(record)
+        return staged
 
-        # Stage 2: per-column casting — applied only when all values succeed.
+    def _finalize_casting(
+        self, spec: SpecDefinition, staged: list[dict[str, object]]
+    ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+        """Stage 2 only: column-level all-or-nothing casting (#481).
+
+        Returns (items_with_casting_applied, cast_fallback_diagnostics).
+        """
+        if not spec.fields:
+            return staged, []
+
+        cast_fallbacks: list[dict[str, object]] = []
+
         for field in spec.fields:
             casts: list[tuple[dict[str, object], object]] = []
             failed_count = 0
@@ -625,6 +617,30 @@ class SpecExecutor:
                 record[field.name] = coerced
 
         return staged, cast_fallbacks
+
+    def _normalize_fields(
+        self, spec: SpecDefinition, items: list[dict[str, object]]
+    ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+        """Apply rename/transform/casting only when a fields[] declaration exists.
+
+        Casting applies **per column, and only when every value succeeds**.
+        Deciding row by row would mix cast values with originals in one
+        column, breaking the type for consumers working in tabular form —
+        for example, the apartment-trade ``aptDong`` is mostly ``"105"`` but
+        some rows carry a dong *name* (a Korean neighborhood string), so
+        row-wise casting would produce a column where int and str coexist.
+        If even one value fails to cast, the column stays as-is — even when
+        the spec's type declaration disagrees with the real data,
+        downstream does not break.
+
+        Returns (normalized_items, cast_fallback_diagnostics) — the second
+        element lists fields that stayed string despite a numeric/typed
+        declaration (#461).
+        """
+        if not spec.fields:
+            return items, []
+        staged = self._stage_fields(spec, items)
+        return self._finalize_casting(spec, staged)
 
     # ------------------------------------------------------------------
     # Public API
@@ -956,6 +972,73 @@ class SpecDatasetAdapter:
             msg = f"Unknown dataset key for spec adapter: {dataset.id}"
             raise DatasetNotFoundError(msg, provider=self._provider, dataset_id=dataset.id)
         return self._executor.query(spec, dataset, query)
+
+    def query_records_all(
+        self, dataset: DatasetRef, query: Query, *, max_pages: int | None = None
+    ) -> list[RecordBatch]:
+        """Multi-page query with global column casting (#481).
+
+        Collects all pages first, then applies all-or-nothing column casting
+        once across the full result set. This prevents mixed types when
+        page 1 casts a column but page 2 cannot.
+        """
+        spec = self._specs.get(dataset.dataset_key)
+        if spec is None:
+            msg = f"Unknown dataset key for spec adapter: {dataset.id}"
+            raise DatasetNotFoundError(msg, provider=self._provider, dataset_id=dataset.id)
+
+        effective_max = max_pages if max_pages is not None else 1000
+        all_staged: list[dict[str, object]] = []
+        page_boundaries: list[int] = []
+        total_count: int | None = None
+        page = query.page or 1
+        page_size = query.page_size or _DEFAULT_PAGE_SIZE
+
+        while len(page_boundaries) < effective_max:
+            self._require_supported_envelope(spec)
+            params = self._executor.build_params(spec, query, format_hint=None)
+            payload = self._executor._request(spec, params)
+            self._executor._check_error(spec, payload)
+
+            items = self._executor._extract_items(spec, payload)
+            staged = self._executor._stage_fields(spec, items)
+            all_staged.extend(staged)
+            page_boundaries.append(len(staged))
+
+            tc = self._executor._extract_total_count(spec, payload)
+            if total_count is None:
+                total_count = tc
+
+            has_next = (tc and page * page_size < tc) or (not tc and len(staged) == page_size)
+            if not has_next:
+                break
+            page += 1
+            query = Query(filters=query.filters, page=page, page_size=query.page_size)
+
+        # Global casting decision across all pages (#481).
+        finalized, cast_fallbacks = self._executor._finalize_casting(spec, all_staged)
+
+        meta: dict[str, object] = {}
+        if cast_fallbacks:
+            meta["normalization"] = {"cast_fallbacks": cast_fallbacks, "scope": "list_all"}
+
+        # Re-slice into per-page RecordBatch objects.
+        result: list[RecordBatch] = []
+        start = 0
+        for batch_len in page_boundaries:
+            page_items = finalized[start : start + batch_len]
+            result.append(
+                RecordBatch(
+                    items=page_items,
+                    dataset=dataset,
+                    total_count=total_count,
+                    next_page=None,
+                    meta=meta,
+                    raw=None,
+                )
+            )
+            start += batch_len
+        return result
 
     def get_schema(self, dataset: DatasetRef) -> SchemaDescriptor | None:
         """Schema metadata is not supported yet (an honest declaration)."""
