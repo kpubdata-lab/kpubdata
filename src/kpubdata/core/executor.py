@@ -19,6 +19,7 @@ but don't depend on it (verified: tests/unit/core/test_executor.py).
 from __future__ import annotations
 
 import logging
+import re
 from types import MappingProxyType
 from typing import cast
 
@@ -99,6 +100,94 @@ def _to_int(value: object) -> int | None:
     return None
 
 
+#: Numeric null markers — after whitespace trimming, these count as None for
+#: integer/number casting and do NOT block all-or-nothing fallback (#461).
+#: "-" is a very common Korean public-data missing-value marker.  String fields
+#: are unaffected: "-" can carry meaning there, so null recognition is scoped
+#: to numeric casting.
+_DEFAULT_NULL_MARKERS: frozenset[str] = frozenset({"", "-"})
+
+#: Valid thousands-separator pattern (e.g. "1,200", "12,345,678", "-1,200.5").
+#: Malformed grouping like "12,34" does NOT match and will fail the cast.
+_GROUPED_NUMERIC_RE = re.compile(r"^[+-]?\d{1,3}(,\d{3})*(\.\d+)?$")
+
+
+def _normalize_numeric_lexeme(value: object) -> object:
+    """Normalize a string for numeric casting (#461).
+
+    Steps (in order):
+    1. Trim surrounding whitespace.
+    2. Map null markers ("", "-") to None — these are cast successes.
+    3. Remove thousands separators only when the grouping is valid.
+    4. For integer fields, accept integral decimal strings like "3.0" → 3.
+
+    Units ("85㎡"), arbitrary text, and malformed grouping are left as-is
+    so they still trigger all-or-nothing fallback.
+    """
+    if not isinstance(value, str):
+        return value
+    stripped = value.strip()
+    if stripped in _DEFAULT_NULL_MARKERS:
+        return None
+    if _GROUPED_NUMERIC_RE.match(stripped):
+        stripped = stripped.replace(",", "")
+    return stripped
+
+
+#: Exact integer-string patterns — plain digits or integral decimals like "3.0".
+#: Rejects scientific notation ("1e3"), NaN/inf, and non-integral decimals (#461).
+_PLAIN_INTEGER_RE = re.compile(r"^[+-]?\d+$")
+_INTEGRAL_DECIMAL_RE = re.compile(r"^[+-]?\d+\.0+$")
+
+
+def _try_cast_field(value: object, field_type: str) -> tuple[bool, object]:
+    """Attempt cast to declared type; return (success, value).
+
+    Even on failure, return the original value—caller examines the entire column
+    to decide whether to apply the result (see _normalize_fields).
+    """
+    if value is None:
+        return True, None
+    if field_type in ("integer", "number"):
+        normalized = _normalize_numeric_lexeme(value)
+        if normalized is None:
+            return True, None
+        value = normalized
+    if field_type == "integer":
+        if isinstance(value, bool):
+            return False, value
+        if isinstance(value, int):
+            return True, value
+        if isinstance(value, float):
+            return (True, int(value)) if value.is_integer() else (False, value)
+        if isinstance(value, str):
+            # Exact string parsing — no float() round-trip, which would
+            # silently corrupt large integers like 9007199254740993 (#461).
+            if _PLAIN_INTEGER_RE.match(value):
+                return True, int(value)
+            if _INTEGRAL_DECIMAL_RE.match(value):
+                return True, int(value.split(".")[0])
+            return False, value
+        return False, value
+    if field_type == "number":
+        if isinstance(value, bool):
+            return False, value
+        if isinstance(value, (int, float)):
+            return True, value
+        if isinstance(value, str):
+            # Reject NaN/inf — they are not valid normalized public-data values.
+            if value.lower() in ("nan", "inf", "-inf", "+inf", "infinity", "-infinity"):
+                return False, value
+            if "e" in value.lower():
+                return False, value
+            try:
+                return True, float(value)
+            except ValueError:
+                return False, value
+        return False, value
+    return True, value
+
+
 def _normalize_item_list(value: object) -> list[dict[str, object]]:
     """Normalize items leaf value to record dict list (single dict → 1-item list)."""
     if isinstance(value, dict):
@@ -129,31 +218,6 @@ def _apply_transform(value: object, transform: str) -> object:
     ):
         return f"{value[:4]}-{value[4:]}"
     return value
-
-
-def _try_cast_field(value: object, field_type: str) -> tuple[bool, object]:
-    """Attempt cast to declared type; return (success, value).
-
-    Even on failure, return the original value—caller examines the entire column
-    to decide whether to apply the result (see _normalize_fields).
-    """
-    if value is None:
-        return True, None
-    if field_type == "integer":
-        coerced = _to_int(value)
-        return (True, coerced) if coerced is not None else (False, value)
-    if field_type == "number":
-        if isinstance(value, bool):
-            return False, value
-        if isinstance(value, (int, float)):
-            return True, value
-        if isinstance(value, str):
-            try:
-                return True, float(value)
-            except ValueError:
-                return False, value
-        return False, value
-    return True, value
 
 
 def _cast_field(value: object, field_type: str) -> object:
@@ -483,7 +547,7 @@ class SpecExecutor:
 
     def _normalize_fields(
         self, spec: SpecDefinition, items: list[dict[str, object]]
-    ) -> list[dict[str, object]]:
+    ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
         """Apply rename/transform/casting only when a fields[] declaration exists.
 
         Casting applies **per column, and only when every value succeeds**.
@@ -495,9 +559,15 @@ class SpecExecutor:
         If even one value fails to cast, the column stays as-is — even when
         the spec's type declaration disagrees with the real data,
         downstream does not break.
+
+        Returns (normalized_items, cast_fallback_diagnostics) — the second
+        element lists fields that stayed string despite a numeric/typed
+        declaration (#461).
         """
         if not spec.fields:
-            return items
+            return items, []
+
+        cast_fallbacks: list[dict[str, object]] = []
 
         # Stage 1: apply rename and transform only (casting waits until the
         # whole column has been seen).
@@ -516,16 +586,36 @@ class SpecExecutor:
         # Stage 2: per-column casting — applied only when all values succeed.
         for field in spec.fields:
             casts: list[tuple[dict[str, object], object]] = []
+            failed_count = 0
+            null_count = 0
+            sample_failures: list[str] = []
             castable = True
             for record in staged:
                 if field.name not in record:
                     continue
-                succeeded, coerced = _try_cast_field(record[field.name], field.type)
+                raw_value = record[field.name]
+                succeeded, coerced = _try_cast_field(raw_value, field.type)
+                if coerced is None and succeeded:
+                    null_count += 1
                 if not succeeded:
                     castable = False
-                    break
+                    failed_count += 1
+                    if len(sample_failures) < 3:
+                        sample_failures.append(repr(raw_value)[:60])
+                    continue
                 casts.append((record, coerced))
             if not castable:
+                non_null = sum(1 for r in staged if field.name in r and r[field.name] is not None)
+                cast_fallbacks.append(
+                    {
+                        "field": field.name,
+                        "declared_type": field.type,
+                        "failed_count": failed_count,
+                        "non_null_count": non_null,
+                        "null_count": null_count,
+                        "sample_values": sample_failures,
+                    }
+                )
                 logger.debug(
                     "leaving column uncast: a value does not match the declared type",
                     extra={"dataset_id": spec.id, "field": field.name, "type": field.type},
@@ -534,7 +624,7 @@ class SpecExecutor:
             for record, coerced in casts:
                 record[field.name] = coerced
 
-        return staged
+        return staged, cast_fallbacks
 
     # ------------------------------------------------------------------
     # Public API
@@ -553,7 +643,7 @@ class SpecExecutor:
         payload = self._request(spec, params)
         self._check_error(spec, payload)
 
-        items = self._normalize_fields(spec, self._extract_items(spec, payload))
+        items, cast_fallbacks = self._normalize_fields(spec, self._extract_items(spec, payload))
         total_count = self._extract_total_count(spec, payload)
 
         page = query.page or 1
@@ -568,11 +658,16 @@ class SpecExecutor:
         if not items:
             logger.debug("Spec executor: zero items", extra={"dataset_id": spec.id, "page": page})
 
+        meta: dict[str, object] = {}
+        if cast_fallbacks:
+            meta["normalization"] = {"cast_fallbacks": cast_fallbacks}
+
         return RecordBatch(
             items=items,
             dataset=dataset,
             total_count=total_count,
             next_page=next_page,
+            meta=meta,
             raw=payload,
         )
 
