@@ -1,15 +1,19 @@
-"""모든 provider 어댑터에 공통으로 거는 계약 테스트 (#455).
+"""Contract tests applied uniformly to every provider adapter (#455).
 
-`PROVIDER_ADAPTER_CONTRACT.md` §2 가 규정한 책임 중 **어댑터마다 달라지지 않는 것**을
-한 곳에서 파라미터라이즈로 건다. 어댑터별 테스트 파일에는 방언 차이(envelope 형상,
-파라미터 이름 매핑, provider 고유 오류 코드)만 남는다.
+Parametrizes, in one place, the parts of `PROVIDER_ADAPTER_CONTRACT.md` §2
+that **do not vary per adapter**. Per-adapter test files keep only the
+dialect differences (envelope shapes, parameter-name mapping, provider
+error codes).
 
-왜 이렇게 묶나: 어댑터가 14개인데 같은 계약을 각자 다시 쓰면, 어댑터가 하나 늘 때마다
-같은 테스트가 한 벌씩 복제된다(이슈 시점 테스트 코드가 소스의 2.8배). 여기 한 줄을 추가하면
-14개 전부에 즉시 적용되고, 새 어댑터는 ``_ADAPTERS`` 에 한 줄만 더하면 계약 전체를 상속한다.
+Why bundle them this way: with 14 adapters each rewriting the same
+contract, every new adapter duplicates the whole test set (at issue time
+test code was 2.8x the source). Adding one line here applies immediately
+to all 14, and a new adapter inherits the entire contract by adding a
+single line to ``_ADAPTERS``.
 
-**커버리지가 아니라 회귀 방지선이다** — 새 provider 를 붙일 때 "이건 당연히 되겠지" 하고
-넘어가는 지점을 기계가 대신 확인한다.
+**This is a regression tripwire, not a coverage metric** — the machine
+checks the spots one tends to skip as "surely this works" when wiring up
+a new provider.
 """
 
 from __future__ import annotations
@@ -24,7 +28,7 @@ from kpubdata.core.capability import Operation
 from kpubdata.core.models import DatasetRef
 from kpubdata.exceptions import DatasetNotFoundError
 
-# (모듈 이름, 클래스 이름). 새 어댑터를 추가하면 이 줄만 늘리면 된다.
+# (module name, class name). Adding a new adapter means adding one line here.
 _ADAPTER_SPECS: list[tuple[str, str]] = [
     ("bok", "BokAdapter"),
     ("datago", "DataGoAdapter"),
@@ -49,7 +53,7 @@ def _load(module_name: str, class_name: str) -> Any:
 
 
 def _adapter(module_name: str, class_name: str) -> Any:
-    """키 없이 어댑터를 만든다 — 카탈로그 조회는 credential 을 요구하면 안 된다."""
+    """Build the adapter with no key — catalogue lookup must not demand credentials."""
     return _load(module_name, class_name)(config=KPubDataConfig(provider_keys={}))
 
 
@@ -60,12 +64,12 @@ def _adapter_params(func: Any) -> Any:
     return pytest.mark.parametrize(("module_name", "class_name"), _PARAMS)(func)
 
 
-# --- 기본 표면 -------------------------------------------------------------
+# --- Basic surface ---------------------------------------------------------
 
 
 @_adapter_params
 def test_adapter_exposes_the_required_surface(module_name: str, class_name: str) -> None:
-    """Client 가 호출하는 메서드가 전부 있어야 한다 (계약 §2)."""
+    """Every method the Client calls must exist (contract §2)."""
     cls = _load(module_name, class_name)
     for attribute in (
         "name",
@@ -81,7 +85,7 @@ def test_adapter_exposes_the_required_surface(module_name: str, class_name: str)
 
 @_adapter_params
 def test_adapter_declares_whether_it_needs_a_key(module_name: str, class_name: str) -> None:
-    """``requires_api_key`` 는 bool 이어야 한다 — Client 가 이 값으로 분기한다."""
+    """``requires_api_key`` must be a bool — the Client branches on it."""
     cls = _load(module_name, class_name)
     assert isinstance(cls.requires_api_key, bool)
 
@@ -93,18 +97,18 @@ def test_provider_name_matches_the_module(module_name: str, class_name: str) -> 
 
 @_adapter_params
 def test_catalogue_loads_without_any_credential(module_name: str, class_name: str) -> None:
-    """탐색은 키 없이 가능해야 한다 — 키가 있어야 목록도 못 보면 발견성이 죽는다."""
+    """Discovery must work without a key — if listing needs a key, discoverability dies."""
     datasets = _adapter(module_name, class_name).list_datasets()
     assert datasets, f"{module_name} has an empty catalogue"
     assert all(isinstance(d, DatasetRef) for d in datasets)
 
 
-# --- 카탈로그 무결성 -------------------------------------------------------
+# --- Catalogue integrity ---------------------------------------------------
 
 
 @_adapter_params
 def test_dataset_keys_are_unique(module_name: str, class_name: str) -> None:
-    """키가 겹치면 ``get_dataset`` 이 어느 쪽을 주는지 정의되지 않는다."""
+    """With duplicate keys, which one ``get_dataset`` returns is undefined."""
     keys = [d.dataset_key for d in _adapter(module_name, class_name).list_datasets()]
     duplicates = {k for k in keys if keys.count(k) > 1}
     assert not duplicates, f"{module_name} has duplicate dataset keys: {sorted(duplicates)}"
@@ -112,7 +116,7 @@ def test_dataset_keys_are_unique(module_name: str, class_name: str) -> None:
 
 @_adapter_params
 def test_dataset_ids_are_provider_qualified(module_name: str, class_name: str) -> None:
-    """``id`` 는 provider 로 한정돼야 cross-provider 로 섞이지 않는다."""
+    """``id`` must be provider-qualified so cross-provider results do not mix."""
     for dataset in _adapter(module_name, class_name).list_datasets():
         assert dataset.provider == module_name
         assert dataset.id.startswith(f"{module_name}."), dataset.id
@@ -120,7 +124,7 @@ def test_dataset_ids_are_provider_qualified(module_name: str, class_name: str) -
 
 @_adapter_params
 def test_every_dataset_declares_at_least_one_operation(module_name: str, class_name: str) -> None:
-    """빈 operations 는 "아무것도 못 한다"는 뜻이다 — 정직한 선언을 강제한다(계약 §2)."""
+    """Empty operations means "can do nothing" — enforce honest declarations (contract §2)."""
     for dataset in _adapter(module_name, class_name).list_datasets():
         assert dataset.operations, f"{dataset.id} declares no operations"
         assert all(isinstance(op, Operation) for op in dataset.operations)
@@ -139,7 +143,7 @@ def test_datasets_have_human_readable_names(module_name: str, class_name: str) -
         assert dataset.name.strip(), f"{dataset.id} has a blank name"
 
 
-# --- 조회 ------------------------------------------------------------------
+# --- Lookup ----------------------------------------------------------------
 
 
 @_adapter_params
@@ -151,12 +155,12 @@ def test_get_dataset_returns_the_catalogue_entry(module_name: str, class_name: s
 
 @_adapter_params
 def test_unknown_dataset_key_raises_not_found(module_name: str, class_name: str) -> None:
-    """조용히 None 을 돌려주면 호출부가 빈 결과와 오타를 구분하지 못한다."""
+    """Returning None silently leaves callers unable to tell an empty result from a typo."""
     adapter = _adapter(module_name, class_name)
     with pytest.raises(DatasetNotFoundError) as exc:
         adapter.get_dataset("no-such-dataset-key-xyz")
     assert exc.value.provider == module_name
-    # 오류에 provider 로 한정된 id 가 실려야 사용자가 어디를 고칠지 안다.
+    # The error must carry the provider-qualified id so the user knows what to fix.
     assert "no-such-dataset-key-xyz" in str(exc.value)
 
 
@@ -181,19 +185,19 @@ def test_search_with_no_match_returns_empty(module_name: str, class_name: str) -
 
 @_adapter_params
 def test_list_datasets_returns_a_fresh_list(module_name: str, class_name: str) -> None:
-    """호출자가 받은 목록을 바꿔도 어댑터 내부 카탈로그가 오염되면 안 된다."""
+    """Mutating the list a caller receives must not pollute the adapter's internal catalogue."""
     adapter = _adapter(module_name, class_name)
     first = adapter.list_datasets()
     first.clear()
     assert adapter.list_datasets(), f"{module_name} leaked its internal catalogue list"
 
 
-# --- 스키마 선언 -----------------------------------------------------------
+# --- Schema declarations ---------------------------------------------------
 
 
 @_adapter_params
 def test_get_schema_is_honest_about_what_it_knows(module_name: str, class_name: str) -> None:
-    """스키마를 모르면 ``None`` 이어야 한다 — 빈 스키마를 지어내면 안 된다(계약 §2)."""
+    """Unknown schema means ``None`` — never invent an empty schema (contract §2)."""
     adapter = _adapter(module_name, class_name)
     for dataset in adapter.list_datasets():
         schema = adapter.get_schema(dataset)
