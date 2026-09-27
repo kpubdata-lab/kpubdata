@@ -58,7 +58,11 @@ record:
 # 이제 실행 전후로 내용 스냅샷을 떠서 차이만 실패로 본다.
 verify:
 	@set +e; \
-	snapshot=$$(mktemp -t kpubdata-verify); \
+	# mktemp -t <prefix> 는 BSD(macOS)에서만 동작한다. GNU coreutils 는 템플릿이
+	# XXXXXX 로 끝나기를 요구하고, 그래서 Linux 러너에서 "too few X's in template"
+	# 로 죽었다. 로컬에서 make verify 를 돌릴 수 없어(uv 가 PyPI 에 닿지 못한다)
+	# CI 가 먼저 잡았다.
+	snapshot=$$(mktemp "$${TMPDIR:-/tmp}/kpubdata-verify.XXXXXX"); \
 	trap 'rm -f "$$snapshot"' EXIT; \
 	uv run python scripts/verify_guard.py snapshot > "$$snapshot" || exit 2; \
 	if [ -n "$(DATASET)" ]; then \
