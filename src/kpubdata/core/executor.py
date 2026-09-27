@@ -995,7 +995,7 @@ class SpecDatasetAdapter:
         page_size = query.page_size or _DEFAULT_PAGE_SIZE
 
         while len(page_boundaries) < effective_max:
-            self._require_supported_envelope(spec)
+            self._executor._require_supported_envelope(spec)
             params = self._executor.build_params(spec, query, format_hint=None)
             payload = self._executor._request(spec, params)
             self._executor._check_error(spec, payload)
