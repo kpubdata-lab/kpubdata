@@ -90,7 +90,7 @@ Milestone 계층은 만들지 않는다.
 |---|---|---|
 | Status (15절) | GitHub Project 필드 | 사람·자동화 (Done은 사람만) |
 | Priority (8절) | Project 필드 | 사람 (High 승격은 사람만) |
-| Epic (5절) | Project 필드 + Epic 이슈의 sub-issue | 사람 |
+| Epic (5절) | **`epic:*` 라벨** (2.1.1절) | 사람 |
 | Required Verification (18절) | Project 필드 + 이슈 본문 | 이슈 작성자, triage에서 확정 |
 | Target Release (33절) | Project 필드 | 사람 |
 | 유형 (bug / feat / docs / chore) | 라벨 | 누구나 |
@@ -103,7 +103,44 @@ Milestone 계층은 만들지 않는다.
 - **Blocked · Needs Human 은 Status 필드로만 관리하고 라벨로 중복하지 않는다.**
   같은 정보를 두 곳에 두면 한쪽이 반드시 뒤처진다.
 - 위 표에 없는 라벨은 새로 만들지 않는다.
-- 라벨 추가는 EPIC-F를 거친다.
+- 라벨 추가는 `epic:governance` 를 거친다.
+
+## 2.1.1 Epic 을 라벨로 옮긴 이유 — 2026-09-27 개정
+
+이 절은 원래 Epic 을 *Project 필드 + Epic 이슈의 sub-issue* 로 기록하라고 했다.
+그 방식은 채택되지 않았고, 다음 세 가지가 이유다.
+
+- **Project 가 없다.** 세 저장소를 묶는 Project 를 만들려면 `gh` 의 `project`
+  scope 가 필요하고, 그것이 아직 없다. Epic 을 Project 필드에 두라는 규칙은
+  Project 가 생기기 전까지 **아무것도 기록하지 못한다.**
+- **Epic 이슈가 없었다.** `EPIC-A` ~ `EPIC-G` 는 5절의 표에만 있었고 이슈로
+  만들어진 적이 없다. 57개 이슈 본문이 `EPIC-G` 를 적고 있었지만 sub-issue 로
+  연결된 것은 0건이다. 규칙이 아니라 **관례가 존재하지 않았다.**
+- **`EPIC-A` 는 이름이 아니다.** 읽는 사람이 5절 표를 찾아야 뜻을 안다.
+
+그래서 `epic:*` 라벨 9개를 만들고 **열린 이슈 전부에 붙였다.** 이름이 곧 뜻이고,
+검색·필터가 되고, 저장소를 넘나들어도 같은 이름이다.
+
+| 라벨 | 담는 것 |
+|---|---|
+| `epic:trust` | 검증·증거·drift·provenance |
+| `epic:warehouse` | table · snapshot · SQL · query run |
+| `epic:governance` | 정책·라벨·CI 강제 |
+| `epic:byok` | credential·격리·누출 |
+| `epic:policy` | 약관·라이선스·PII·publish gate |
+| `epic:datasets` | catalogue → spec, provider 온보딩 |
+| `epic:distribution` | 버전·이미지·릴리스·공급망 |
+| `epic:brand` | 브랜드·용어 |
+| `epic:onboarding` | 키 입력·probe·첫 경험 |
+
+5절의 `EPIC-A` ~ `EPIC-G` 는 이 라벨들로 **대체된다.** 이 표가 정본이다.
+
+**Blocked · Needs Human 은 여전히 라벨로 만들지 않는다.** 위의 근거는 Epic 에만
+해당한다 — Epic 은 Project 가 없으면 기록할 곳이 아예 없지만, Blocked 는 이슈
+본문의 `Blocked by:` 절이 이미 담고 있고 라벨을 더하면 두 곳이 어긋난다.
+
+Project 가 생기면 Status·Priority·Target Release 는 표대로 Project 필드로 간다.
+Epic 은 라벨로 남긴다 — 위의 세 번째 이유는 Project 가 생겨도 사라지지 않는다.
 
 ---
 
@@ -148,13 +185,56 @@ Epic은 하나의 사용자 가치 또는 제품 위험을 해결한다.
 - Issue 약 3~15개
 - 여러 저장소 포함 가능
 
-Epic 자체에는 구현 코드를 넣지 않는다.
+## 4.1 Epic 이슈는 만들지 않는다 — 2026-09-27 개정
 
-Epic은 사람만 만들고 닫는다.
+Epic 은 **라벨이다**(2.1.1절). Epic 이슈를 따로 만들지 않는다.
+
+그래서 "Epic 은 사람만 만들고 닫는다" 는 원래 문장은 이렇게 바뀐다.
+
+- **`epic:*` 라벨을 새로 만드는 것은 사람만 한다.** 에이전트는 기존 라벨만 붙인다.
+- **Epic 을 닫는다는 개념은 없다.** 라벨이 붙은 열린 이슈가 0건이 되면 그 Epic 이
+  끝난 것이다. 닫을 대상이 없다.
+
+Epic 이슈를 만들지 않는 이유는 그것이 **낡을 두 번째 장소**이기 때문이다. Epic
+이슈의 체크리스트와 실제로 그 라벨이 붙은 이슈 목록은 반드시 갈라진다. 목록은
+라벨 필터가 언제나 정확하게 답한다.
+
+Epic 의 목표·범위·순서는 커밋되는 파일 한 곳에 둔다 —
+[BACKLOG.md](BACKLOG.md). PR 리뷰를 거쳐야 바뀐다.
+
+`kpubdata#1`~`#4` 처럼 과거에 만들어진 `[Epic]` 이슈 9건은 모두 닫혀 있고, 그
+방식으로 돌아가지 않는다.
+
+## 4.2 권장 크기는 라벨의 점검 기준이 된다
+
+위의 "Issue 약 3~15개" 는 이제 **라벨이 너무 넓은지 재는 자**다. 한 라벨에 이슈가
+계속 쌓이면 그 Epic 이 여러 개를 담고 있다는 뜻이다.
+
+`EPIC-G` 가 온보딩·브랜드·i18n 을 다 담아 15건이 몰렸던 것이 그 예이고, 그래서
+`epic:brand` 를 분리했다. 현재 `epic:governance` 가 18건으로 권장 범위를 넘는다 —
+정책·라벨·CI 강제가 한 칸에 있다. 다음 점검 대상이다.
 
 ---
 
 # 5. 현재 권장 Epic
+
+> **이 절의 `EPIC-A` ~ `EPIC-G` 코드는 2.1.1절의 `epic:*` 라벨로 대체됐다.**
+> 아래 서술은 각 Epic 이 *무엇을 하는지* 를 설명하는 부분만 유효하다. 코드로
+> 이슈를 분류하지 않는다.
+>
+> | 이 절의 코드 | 지금 쓰는 라벨 |
+> |---|---|
+> | EPIC-A | `epic:trust` |
+> | EPIC-B | `epic:byok` |
+> | EPIC-C | `epic:policy` |
+> | EPIC-D | `epic:distribution` |
+> | EPIC-E | `epic:datasets` |
+> | EPIC-F | `epic:governance` |
+> | EPIC-G | `epic:onboarding` · `epic:brand` |
+>
+> `EPIC-G` 하나가 온보딩·브랜드·i18n 을 다 담고 있었다. 15건이 그 코드에 몰린
+> 것이 칸이 부족했다는 증거다. `epic:warehouse` 는 대응하는 코드가 없다 — 그
+> 작업이 trust 와 distribution 으로 흩어져 있었다.
 
 ## EPIC-A — Trust & Evidence
 
