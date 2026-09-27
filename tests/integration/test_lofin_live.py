@@ -204,25 +204,11 @@ def test_usage_fiscal_independence_rates(live_client: Client) -> None:
 # ---------------------------------------------------------------------------
 
 
-# test revenue by source returns record batch 테스트가 검증하는 시나리오를 설명한다.
+# test revenue by source returns record batch scenario
 @pytest.mark.integration
 @pytest.mark.usefixtures("require_lofin_key")
 def test_revenue_by_source_returns_record_batch(live_client: Client) -> None:
-    """
-    test revenue by source returns record batch 시나리오를 검증한다.
-
-    매개변수:
-        live_client (Client): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify test revenue by source returns record batch scenario."""
     ds = live_client.dataset("lofin.revenue_by_source")
     result = ds.list(fyr="2023")
 
@@ -232,25 +218,11 @@ def test_revenue_by_source_returns_record_batch(live_client: Client) -> None:
     assert "tott_sum_amt" in result.items[0]
 
 
-# test revenue by source raw returns envelope 테스트가 검증하는 시나리오를 설명한다.
+# test revenue by source raw returns envelope scenario
 @pytest.mark.integration
 @pytest.mark.usefixtures("require_lofin_key")
 def test_revenue_by_source_raw_returns_envelope(live_client: Client) -> None:
-    """
-    test revenue by source raw returns envelope 시나리오를 검증한다.
-
-    매개변수:
-        live_client (Client): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify test revenue by source raw returns envelope scenario."""
     ds = live_client.dataset("lofin.revenue_by_source")
     result = ds.call_raw("list", pIndex="1", pSize="5", fyr="2023")
 
@@ -258,25 +230,11 @@ def test_revenue_by_source_raw_returns_envelope(live_client: Client) -> None:
     assert "FIACRV" in result
 
 
-# test revenue by source has hierarchy levels 테스트가 검증하는 시나리오를 설명한다.
+# test revenue by source has hierarchy levels scenario
 @pytest.mark.integration
 @pytest.mark.usefixtures("require_lofin_key")
 def test_revenue_by_source_has_hierarchy_levels(live_client: Client) -> None:
-    """
-    test revenue by source has hierarchy levels 시나리오를 검증한다.
-
-    매개변수:
-        live_client (Client): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify test revenue by source has hierarchy levels scenario."""
     ds = live_client.dataset("lofin.revenue_by_source")
     result = ds.list(fyr="2023", wa_laf_cd="1100000", page_size=50)
 

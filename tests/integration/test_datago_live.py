@@ -1,7 +1,8 @@
-"""테스트 모듈.
+"""Test module for data.go.kr integration tests.
 
-이 파일은 ``tests/integration/test_datago_live.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
+Defines test scenarios and helper functions in ``tests/integration/test_datago_live.py``.
+Verifies core flows, exceptions, and edge cases to prevent regressions and validate
+the public contract.
 """
 
 from __future__ import annotations
@@ -17,48 +18,48 @@ from kpubdata.core.models import RecordBatch
 
 def _yesterday_kst_ymd() -> str:
     """
-    내부 헬퍼로서 yesterday kst ymd 처리를 담당한다.
+    Helper to compute yesterday's date as KST YYYYMMDD string.
 
-    반환값:
-        str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        str: Yesterday's date in YYYYMMDD format (KST).
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
     """
     return (datetime.now(ZoneInfo("Asia/Seoul")) - timedelta(days=1)).strftime("%Y%m%d")
 
 
 def _latest_mid_fcst_kst() -> str:
-    """KST 기준 최근 중기예보 발표시각을 반환한다 (06시/18시, 반영 지연 1시간 고려)."""
+    """Return the latest KST mid-range forecast publication time (06:00/18:00, -1h delay)."""
     now = datetime.now(ZoneInfo("Asia/Seoul"))
-    # 중기예보는 06시, 18시에 발표. 반영 지연 ~1시간을 고려.
+    # Mid-range forecast published at 06:00, 18:00. Account for ~1-hour reflection delay.
     if now.hour >= 19:
         return now.strftime("%Y%m%d") + "1800"
     if now.hour >= 7:
         return now.strftime("%Y%m%d") + "0600"
-    # 07시 이전이면 전날 18시 발표본 사용
+    # Before 07:00, use yesterday's 18:00 forecast
     yesterday = (now - timedelta(days=1)).strftime("%Y%m%d")
     return yesterday + "1800"
 
 
-# test datago village fcst 테스트가 검증하는 시나리오를 설명한다.
+# Verify village forecast scenario.
 @pytest.mark.integration
 def test_datago_village_fcst(require_datago_key: None, live_client: Client) -> None:
     """
-    test datago village fcst 시나리오를 검증한다.
+    Verify datago.village_fcst scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     ds = live_client.dataset("datago.village_fcst")
@@ -70,24 +71,24 @@ def test_datago_village_fcst(require_datago_key: None, live_client: Client) -> N
     assert isinstance(result.items[0], dict)
 
 
-# test datago ultra srt ncst 테스트가 검증하는 시나리오를 설명한다.
+# Verify ultra short-range nowcast scenario.
 @pytest.mark.integration
 def test_datago_ultra_srt_ncst(require_datago_key: None, live_client: Client) -> None:
     """
-    test datago ultra srt ncst 시나리오를 검증한다.
+    Verify datago.ultra_srt_ncst scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     ds = live_client.dataset("datago.ultra_srt_ncst")
@@ -101,7 +102,7 @@ def test_datago_ultra_srt_ncst(require_datago_key: None, live_client: Client) ->
 
 @pytest.mark.integration
 def test_datago_mid_fcst(require_datago_key: None, live_client: Client) -> None:
-    """최근 KST 06시 발표시각으로 중기전망 API를 호출한다."""
+    """Call mid-range forecast API with latest KST 06:00 publication time."""
     _ = require_datago_key
     ds = live_client.dataset("datago.mid_fcst")
 
@@ -112,24 +113,24 @@ def test_datago_mid_fcst(require_datago_key: None, live_client: Client) -> None:
     assert isinstance(result.items[0], dict)
 
 
-# test datago air quality 테스트가 검증하는 시나리오를 설명한다.
+# Verify air quality scenario.
 @pytest.mark.integration
 def test_datago_air_quality(require_datago_key: None, live_client: Client) -> None:
     """
-    test datago air quality 시나리오를 검증한다.
+    Verify datago.air_quality scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     ds = live_client.dataset("datago.air_quality")
@@ -140,7 +141,7 @@ def test_datago_air_quality(require_datago_key: None, live_client: Client) -> No
     assert "response" in result
 
 
-# test datago bus arrival 테스트가 검증하는 시나리오를 설명한다.
+# Verify bus arrival scenario.
 @pytest.mark.integration
 def test_datago_bus_arrival(
     require_datago_key: None,
@@ -148,21 +149,21 @@ def test_datago_bus_arrival(
     live_client: Client,
 ) -> None:
     """
-    test datago bus arrival 시나리오를 검증한다.
+    Verify datago.bus_arrival scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        require_realestate_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        require_realestate_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     _ = require_realestate_key
@@ -174,24 +175,24 @@ def test_datago_bus_arrival(
     assert "response" in result
 
 
-# test datago hospital info 테스트가 검증하는 시나리오를 설명한다.
+# Verify hospital info scenario.
 @pytest.mark.integration
 def test_datago_hospital_info(require_datago_key: None, live_client: Client) -> None:
     """
-    test datago hospital info 시나리오를 검증한다.
+    Verify datago.hospital_info scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     ds = live_client.dataset("datago.hospital_info")
@@ -202,24 +203,24 @@ def test_datago_hospital_info(require_datago_key: None, live_client: Client) -> 
     assert "response" in result
 
 
-# test datago apt trade 테스트가 검증하는 시나리오를 설명한다.
+# Verify apartment trade scenario.
 @pytest.mark.integration
 def test_datago_apt_trade(require_datago_key: None, live_client: Client) -> None:
     """
-    test datago apt trade 시나리오를 검증한다.
+    Verify datago.apt_trade scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     ds = live_client.dataset("datago.apt_trade")
@@ -230,7 +231,7 @@ def test_datago_apt_trade(require_datago_key: None, live_client: Client) -> None
     assert isinstance(result.items, list)
 
 
-# test datago apt rent 테스트가 검증하는 시나리오를 설명한다.
+# Verify apartment rent scenario.
 @pytest.mark.integration
 def test_datago_apt_rent(
     require_datago_key: None,
@@ -238,21 +239,21 @@ def test_datago_apt_rent(
     live_client: Client,
 ) -> None:
     """
-    test datago apt rent 시나리오를 검증한다.
+    Verify datago.apt_rent scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        require_realestate_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        require_realestate_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     _ = require_realestate_key
@@ -264,7 +265,7 @@ def test_datago_apt_rent(
     assert isinstance(result.items, list)
 
 
-# test datago offi trade 테스트가 검증하는 시나리오를 설명한다.
+# Verify office building trade scenario.
 @pytest.mark.integration
 def test_datago_offi_trade(
     require_datago_key: None,
@@ -272,21 +273,21 @@ def test_datago_offi_trade(
     live_client: Client,
 ) -> None:
     """
-    test datago offi trade 시나리오를 검증한다.
+    Verify datago.offi_trade scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        require_realestate_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        require_realestate_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     _ = require_realestate_key
@@ -298,7 +299,7 @@ def test_datago_offi_trade(
     assert isinstance(result.items, list)
 
 
-# test datago offi rent 테스트가 검증하는 시나리오를 설명한다.
+# Verify office building rent scenario.
 @pytest.mark.integration
 def test_datago_offi_rent(
     require_datago_key: None,
@@ -306,21 +307,21 @@ def test_datago_offi_rent(
     live_client: Client,
 ) -> None:
     """
-    test datago offi rent 시나리오를 검증한다.
+    Verify datago.offi_rent scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        require_realestate_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        require_realestate_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     _ = require_realestate_key
@@ -332,7 +333,7 @@ def test_datago_offi_rent(
     assert isinstance(result.items, list)
 
 
-# test datago rh trade 테스트가 검증하는 시나리오를 설명한다.
+# Verify rowhouse/studio trade scenario.
 @pytest.mark.integration
 def test_datago_rh_trade(
     require_datago_key: None,
@@ -340,21 +341,21 @@ def test_datago_rh_trade(
     live_client: Client,
 ) -> None:
     """
-    test datago rh trade 시나리오를 검증한다.
+    Verify datago.rh_trade scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        require_realestate_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        require_realestate_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     _ = require_realestate_key
@@ -366,7 +367,7 @@ def test_datago_rh_trade(
     assert isinstance(result.items, list)
 
 
-# test datago rh rent 테스트가 검증하는 시나리오를 설명한다.
+# Verify rowhouse/studio rent scenario.
 @pytest.mark.integration
 def test_datago_rh_rent(
     require_datago_key: None,
@@ -374,21 +375,21 @@ def test_datago_rh_rent(
     live_client: Client,
 ) -> None:
     """
-    test datago rh rent 시나리오를 검증한다.
+    Verify datago.rh_rent scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        require_realestate_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        require_realestate_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     _ = require_realestate_key
@@ -400,7 +401,7 @@ def test_datago_rh_rent(
     assert isinstance(result.items, list)
 
 
-# test datago sh trade 테스트가 검증하는 시나리오를 설명한다.
+# Verify subdivision/land trade scenario.
 @pytest.mark.integration
 def test_datago_sh_trade(
     require_datago_key: None,
@@ -408,21 +409,21 @@ def test_datago_sh_trade(
     live_client: Client,
 ) -> None:
     """
-    test datago sh trade 시나리오를 검증한다.
+    Verify datago.sh_trade scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        require_realestate_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        require_realestate_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     _ = require_realestate_key
@@ -434,7 +435,7 @@ def test_datago_sh_trade(
     assert isinstance(result.items, list)
 
 
-# test datago sh rent 테스트가 검증하는 시나리오를 설명한다.
+# Verify subdivision/land rent scenario.
 @pytest.mark.integration
 def test_datago_sh_rent(
     require_datago_key: None,
@@ -442,21 +443,21 @@ def test_datago_sh_rent(
     live_client: Client,
 ) -> None:
     """
-    test datago sh rent 시나리오를 검증한다.
+    Verify datago.sh_rent scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        require_realestate_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        require_realestate_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     _ = require_realestate_key
@@ -468,24 +469,24 @@ def test_datago_sh_rent(
     assert isinstance(result.items, list)
 
 
-# test datago tour kor area 테스트가 검증하는 시나리오를 설명한다.
+# Verify Korean tourism area scenario.
 @pytest.mark.integration
 def test_datago_tour_kor_area(require_datago_key: None, live_client: Client) -> None:
     """
-    test datago tour kor area 시나리오를 검증한다.
+    Verify datago.tour_kor_area scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     ds = live_client.dataset("datago.tour_kor_area")
@@ -503,24 +504,24 @@ def test_datago_tour_kor_area(require_datago_key: None, live_client: Client) -> 
     assert "response" in result
 
 
-# test datago tour kor location 테스트가 검증하는 시나리오를 설명한다.
+# Verify Korean tourism location scenario.
 @pytest.mark.integration
 def test_datago_tour_kor_location(require_datago_key: None, live_client: Client) -> None:
     """
-    test datago tour kor location 시나리오를 검증한다.
+    Verify datago.tour_kor_location scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     ds = live_client.dataset("datago.tour_kor_location")
@@ -540,24 +541,24 @@ def test_datago_tour_kor_location(require_datago_key: None, live_client: Client)
     assert "response" in result
 
 
-# test datago tour kor keyword 테스트가 검증하는 시나리오를 설명한다.
+# Verify Korean tourism keyword scenario.
 @pytest.mark.integration
 def test_datago_tour_kor_keyword(require_datago_key: None, live_client: Client) -> None:
     """
-    test datago tour kor keyword 시나리오를 검증한다.
+    Verify datago.tour_kor_keyword scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     ds = live_client.dataset("datago.tour_kor_keyword")
@@ -575,24 +576,24 @@ def test_datago_tour_kor_keyword(require_datago_key: None, live_client: Client) 
     assert "response" in result
 
 
-# test datago tour kor festival 테스트가 검증하는 시나리오를 설명한다.
+# Verify Korean tourism festival scenario.
 @pytest.mark.integration
 def test_datago_tour_kor_festival(require_datago_key: None, live_client: Client) -> None:
     """
-    test datago tour kor festival 시나리오를 검증한다.
+    Verify datago.tour_kor_festival scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     ds = live_client.dataset("datago.tour_kor_festival")
@@ -615,20 +616,20 @@ def test_datago_tour_kor_festival(require_datago_key: None, live_client: Client)
 )
 def test_datago_metro_fare(require_datago_key: None, live_client: Client) -> None:
     """
-    test datago metro fare 시나리오를 검증한다.
+    Verify datago.metro_fare scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     ds = live_client.dataset("datago.metro_fare")
@@ -650,20 +651,20 @@ def test_datago_metro_fare(require_datago_key: None, live_client: Client) -> Non
 )
 def test_datago_metro_path(require_datago_key: None, live_client: Client) -> None:
     """
-    test datago metro path 시나리오를 검증한다.
+    Verify datago.metro_path scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     ds = live_client.dataset("datago.metro_path")
@@ -685,20 +686,20 @@ def test_datago_metro_path(require_datago_key: None, live_client: Client) -> Non
 )
 def test_datago_road_traffic(require_datago_key: None, live_client: Client) -> None:
     """
-    test datago road traffic 시나리오를 검증한다.
+    Verify datago.road_traffic scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     ds = live_client.dataset("datago.road_traffic")
@@ -709,24 +710,24 @@ def test_datago_road_traffic(require_datago_key: None, live_client: Client) -> N
     assert "resultCode" in result
 
 
-# test datago g2b contract 테스트가 검증하는 시나리오를 설명한다.
+# Verify social enterprise scenario.
 @pytest.mark.integration
 def test_datago_social_enterprise(require_datago_key: None, live_client: Client) -> None:
     """
-    test datago social enterprise 시나리오를 검증한다.
+    Verify datago.social_enterprise scenario.
 
-    매개변수:
-        require_datago_key (None): 호출자가 제공하는 입력 값이다.
-        live_client (Client): 호출자가 제공하는 입력 값이다.
+    Args:
+        require_datago_key (None): Input provided by caller.
+        live_client (Client): Input provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Test passes if result assertions succeed.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Exceptions from internal implementation or dependencies may propagate.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Test verifies expected behavior described by test name persists without regression.
     """
     _ = require_datago_key
     ds = live_client.dataset("datago.social_enterprise")

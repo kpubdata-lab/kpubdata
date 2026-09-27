@@ -163,7 +163,7 @@ def test_prd_de_format(live_client: Client) -> None:
 @pytest.mark.integration
 @pytest.mark.usefixtures("require_kosis_key")
 def test_unit_is_person(live_client: Client) -> None:
-    """Unit should be '명' (Person) for migration data."""
+    """Unit should be person (named) for migration data."""
     ds = live_client.dataset("kosis.population_migration")
     result = ds.list(start_date="202401", end_date="202401")
 
@@ -211,7 +211,7 @@ def test_usage_seoul_migration(live_client: Client) -> None:
 @pytest.mark.integration
 @pytest.mark.usefixtures("require_kosis_key")
 def test_usage_net_migration(live_client: Client) -> None:
-    """Realistic usage: extract net migration (순이동자수) data."""
+    """Realistic usage: extract net migration data."""
     ds = live_client.dataset("kosis.population_migration")
     result = ds.list(start_date="202401", end_date="202401")
 
@@ -239,25 +239,11 @@ def test_usage_region_ranking(live_client: Client) -> None:
     assert isinstance(top_region, str)
 
 
-# test industrial production returns record batch 테스트가 검증하는 시나리오를 설명한다.
+# # test industrial production returns record batch scenario
 @pytest.mark.integration
 @pytest.mark.usefixtures("require_kosis_key")
 def test_industrial_production_returns_record_batch(live_client: Client) -> None:
-    """
-    test industrial production returns record batch 시나리오를 검증한다.
-
-    매개변수:
-        live_client (Client): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify test industrial production returns record batch scenario."""
     ds = live_client.dataset("kosis.industrial_production")
 
     result = ds.list(start_date="202401", end_date="202401")
