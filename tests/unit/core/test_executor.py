@@ -441,7 +441,7 @@ class TestColumnConsistentCasting:
         assert issue.field == "deal_amount"
         assert issue.declared_type == "integer"
         assert issue.failed_count == 1
-        assert issue.sample_values == ("협의",)
+        assert issue.sample_values == ("'협의'",)
 
     def test_nulls_do_not_block_casting(self) -> None:
         items = _valid_full_batch([{"거래금액": "120,000"}, {"거래금액": None}])
@@ -926,7 +926,7 @@ class TestTheReportSaysWhatNormalisationFound:
 
         issue = batch.validation.issues_of("uncastable")[0]
         assert issue.failed_count == 3
-        assert issue.sample_values == ("협의", "미정", "별도")
+        assert issue.sample_values == ("'협의'", "'미정'", "'별도'")
 
     def test_samples_are_capped(self) -> None:
         """A sample is for recognising a pattern, not for carrying the column."""
@@ -960,7 +960,7 @@ class TestTheReportSaysWhatNormalisationFound:
         undeclared = batch.validation.issues_of("undeclared")
         assert [issue.field for issue in undeclared] == ["신규필드"]
         assert undeclared[0].failed_count == 2
-        assert undeclared[0].sample_values == ("값", "값2")
+        assert undeclared[0].sample_values == ("값", "값2")  # undeclared keeps raw
         assert undeclared[0].declared_type == ""
 
     def test_a_spec_without_fields_reports_nothing_checked(self) -> None:

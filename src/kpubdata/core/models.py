@@ -194,8 +194,14 @@ class FieldIssue:
             provider added something.
         failed_count: How many values were affected. Counting means walking the whole
             column rather than stopping at the first failure.
-        sample_values: Up to three offending values, so a reader can see what the data
-            actually looks like without fetching it again.
+        sample_values: Up to three offending values as ``repr`` strings, truncated to
+            60 characters. Truncated rather than raw because the report is logged, and
+            an unbounded value from a provider response would go with it.
+        non_null_count: How many values were present at all. "10 failed of 12 non-null"
+            reads differently from "10 failed of 500", and the ratio is what tells a
+            wrong declaration apart from a few dirty rows.
+        null_count: How many values were null. A column that is mostly null and fails
+            on the rest is a different problem from one that is mostly populated.
     """
 
     field: str
@@ -203,6 +209,8 @@ class FieldIssue:
     kind: str
     failed_count: int
     sample_values: tuple[object, ...] = ()
+    non_null_count: int | None = None
+    null_count: int | None = None
 
 
 @_dataclass(slots=True)

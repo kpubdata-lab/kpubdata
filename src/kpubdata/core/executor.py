@@ -19,6 +19,7 @@ but don't depend on it (verified: tests/unit/core/test_executor.py).
 from __future__ import annotations
 
 import logging
+import re
 from types import MappingProxyType
 from typing import cast
 
@@ -49,12 +50,12 @@ from kpubdata.transport.http import HttpTransport
 
 logger = logging.getLogger("kpubdata.core.executor")
 
+# Three is enough to recognise a pattern and short enough to log.
+_ISSUE_SAMPLE_LIMIT = 3
+
 _AUTH_ERROR_CODES = frozenset({"30", "31", "20", "32"})
 _SERVICE_UNAVAILABLE_CODES = frozenset({"01", "02"})
 _DEFAULT_PAGE_SIZE = 100
-
-# Three is enough to recognise a pattern and short enough to log.
-_ISSUE_SAMPLE_LIMIT = 3
 # To avoid importing providers from core, generalize the datago 403 hint.
 _FORBIDDEN_HINT = (
     "Provider returned 403. This usually means the specific API has not been activated "
@@ -109,6 +110,94 @@ def _to_int(value: object) -> int | None:
     return None
 
 
+#: Numeric null markers — after whitespace trimming, these count as None for
+#: integer/number casting and do NOT block all-or-nothing fallback (#461).
+#: "-" is a very common Korean public-data missing-value marker.  String fields
+#: are unaffected: "-" can carry meaning there, so null recognition is scoped
+#: to numeric casting.
+_DEFAULT_NULL_MARKERS: frozenset[str] = frozenset({"", "-"})
+
+#: Valid thousands-separator pattern (e.g. "1,200", "12,345,678", "-1,200.5").
+#: Malformed grouping like "12,34" does NOT match and will fail the cast.
+_GROUPED_NUMERIC_RE = re.compile(r"^[+-]?\d{1,3}(,\d{3})*(\.\d+)?$")
+
+
+def _normalize_numeric_lexeme(value: object) -> object:
+    """Normalize a string for numeric casting (#461).
+
+    Steps (in order):
+    1. Trim surrounding whitespace.
+    2. Map null markers ("", "-") to None — these are cast successes.
+    3. Remove thousands separators only when the grouping is valid.
+    4. For integer fields, accept integral decimal strings like "3.0" → 3.
+
+    Units ("85㎡"), arbitrary text, and malformed grouping are left as-is
+    so they still trigger all-or-nothing fallback.
+    """
+    if not isinstance(value, str):
+        return value
+    stripped = value.strip()
+    if stripped in _DEFAULT_NULL_MARKERS:
+        return None
+    if _GROUPED_NUMERIC_RE.match(stripped):
+        stripped = stripped.replace(",", "")
+    return stripped
+
+
+#: Exact integer-string patterns — plain digits or integral decimals like "3.0".
+#: Rejects scientific notation ("1e3"), NaN/inf, and non-integral decimals (#461).
+_PLAIN_INTEGER_RE = re.compile(r"^[+-]?\d+$")
+_INTEGRAL_DECIMAL_RE = re.compile(r"^[+-]?\d+\.0+$")
+
+
+def _try_cast_field(value: object, field_type: str) -> tuple[bool, object]:
+    """Attempt cast to declared type; return (success, value).
+
+    Even on failure, return the original value—caller examines the entire column
+    to decide whether to apply the result (see _normalize_fields).
+    """
+    if value is None:
+        return True, None
+    if field_type in ("integer", "number"):
+        normalized = _normalize_numeric_lexeme(value)
+        if normalized is None:
+            return True, None
+        value = normalized
+    if field_type == "integer":
+        if isinstance(value, bool):
+            return False, value
+        if isinstance(value, int):
+            return True, value
+        if isinstance(value, float):
+            return (True, int(value)) if value.is_integer() else (False, value)
+        if isinstance(value, str):
+            # Exact string parsing — no float() round-trip, which would
+            # silently corrupt large integers like 9007199254740993 (#461).
+            if _PLAIN_INTEGER_RE.match(value):
+                return True, int(value)
+            if _INTEGRAL_DECIMAL_RE.match(value):
+                return True, int(value.split(".")[0])
+            return False, value
+        return False, value
+    if field_type == "number":
+        if isinstance(value, bool):
+            return False, value
+        if isinstance(value, (int, float)):
+            return True, value
+        if isinstance(value, str):
+            # Reject NaN/inf — they are not valid normalized public-data values.
+            if value.lower() in ("nan", "inf", "-inf", "+inf", "infinity", "-infinity"):
+                return False, value
+            if "e" in value.lower():
+                return False, value
+            try:
+                return True, float(value)
+            except ValueError:
+                return False, value
+        return False, value
+    return True, value
+
+
 def _normalize_item_list(value: object) -> list[dict[str, object]]:
     """Normalize items leaf value to record dict list (single dict → 1-item list)."""
     if isinstance(value, dict):
@@ -139,31 +228,6 @@ def _apply_transform(value: object, transform: str) -> object:
     ):
         return f"{value[:4]}-{value[4:]}"
     return value
-
-
-def _try_cast_field(value: object, field_type: str) -> tuple[bool, object]:
-    """Attempt cast to declared type; return (success, value).
-
-    Even on failure, return the original value—caller examines the entire column
-    to decide whether to apply the result (see _normalize_fields).
-    """
-    if value is None:
-        return True, None
-    if field_type == "integer":
-        coerced = _to_int(value)
-        return (True, coerced) if coerced is not None else (False, value)
-    if field_type == "number":
-        if isinstance(value, bool):
-            return False, value
-        if isinstance(value, (int, float)):
-            return True, value
-        if isinstance(value, str):
-            try:
-                return True, float(value)
-            except ValueError:
-                return False, value
-        return False, value
-    return True, value
 
 
 def _cast_field(value: object, field_type: str) -> object:
@@ -508,15 +572,13 @@ class SpecExecutor:
 
         That policy is unchanged. What changed is that it used to happen in
         silence: a ``logger.debug`` line was the only trace, so a spec could
-        disagree with reality for months and nobody would learn. Every
-        disagreement is now collected into a :class:`ValidationReport` that
-        rides along on the batch.
+        disagree with reality for months and nobody would learn.
 
         Returns:
-            The normalised records and the report. The report is always
-            produced, even when there is nothing to say — an empty report
-            means "examined and clean", which is not the same as the absent
-            report a hand-written adapter produces.
+            The normalised records and a :class:`ValidationReport`. The report is
+            always produced, even when there is nothing to say — an empty report
+            means "examined and clean", which is not the same as the absent report
+            a hand-written adapter produces.
         """
         report = ValidationReport()
         if not spec.fields:
@@ -527,17 +589,17 @@ class SpecExecutor:
         # whole column has been seen).
         staged: list[dict[str, object]] = []
         missing_counts: dict[str, int] = {}
-        declared_sources = {field.source_name or field.name for field in spec.fields}
-        declared_names = {field.name for field in spec.fields}
+        declared = {field.source_name or field.name for field in spec.fields}
+        declared |= {field.name for field in spec.fields}
         undeclared_counts: dict[str, int] = {}
         undeclared_samples: dict[str, list[object]] = {}
         for item in items:
             record: dict[str, object] = dict(item)
             for key, value in item.items():
-                if key in declared_sources or key in declared_names:
+                if key in declared:
                     continue
                 # A key the spec never mentioned. Not an error — the provider added
-                # something, and that is exactly the drift worth surfacing.
+                # something, and that is the drift nothing detected before.
                 undeclared_counts[key] = undeclared_counts.get(key, 0) + 1
                 samples = undeclared_samples.setdefault(key, [])
                 if len(samples) < _ISSUE_SAMPLE_LIMIT:
@@ -555,30 +617,35 @@ class SpecExecutor:
         # Stage 2: per-column casting — applied only when all values succeed.
         for field in spec.fields:
             casts: list[tuple[dict[str, object], object]] = []
-            failures: list[object] = []
             failed_count = 0
+            null_count = 0
+            sample_failures: list[str] = []
+            castable = True
             for record in staged:
                 if field.name not in record:
                     continue
-                succeeded, coerced = _try_cast_field(record[field.name], field.type)
+                raw_value = record[field.name]
+                succeeded, coerced = _try_cast_field(raw_value, field.type)
+                if coerced is None and succeeded:
+                    null_count += 1
                 if not succeeded:
-                    # The column is already lost at the first failure, but the count
-                    # and the samples are the whole point of the report, so the loop
-                    # runs to the end instead of breaking. Someone reading "3 of 500"
-                    # decides differently from someone reading "300 of 500".
+                    castable = False
                     failed_count += 1
-                    if len(failures) < _ISSUE_SAMPLE_LIMIT:
-                        failures.append(record[field.name])
+                    if len(sample_failures) < 3:
+                        sample_failures.append(repr(raw_value)[:60])
                     continue
                 casts.append((record, coerced))
-            if failed_count:
+            if not castable:
+                non_null = sum(1 for r in staged if field.name in r and r[field.name] is not None)
                 report.issues.append(
                     FieldIssue(
                         field=field.name,
                         declared_type=field.type,
                         kind="uncastable",
                         failed_count=failed_count,
-                        sample_values=tuple(failures),
+                        sample_values=tuple(sample_failures),
+                        non_null_count=non_null,
+                        null_count=null_count,
                     )
                 )
                 continue
@@ -586,11 +653,11 @@ class SpecExecutor:
                 record[field.name] = coerced
 
         for name, count in missing_counts.items():
-            declared = next(f for f in spec.fields if f.name == name)
+            spec_field = next(f for f in spec.fields if f.name == name)
             report.issues.append(
                 FieldIssue(
                     field=name,
-                    declared_type=declared.type,
+                    declared_type=spec_field.type,
                     kind="missing",
                     failed_count=count,
                 )
@@ -607,9 +674,9 @@ class SpecExecutor:
             )
 
         if report.issues:
-            # Promoted from debug because a report nobody reads is the situation this
-            # replaced. One line per query, not per field, so a wide spec with a drifted
-            # provider does not bury the log.
+            # Promoted from debug because a report nobody reads is what this replaced.
+            # One line per query, not per field, so a wide spec against a changed
+            # provider does not bury its own signal.
             logger.info(
                 "spec and response disagree: %s",
                 report,
@@ -655,8 +722,8 @@ class SpecExecutor:
             dataset=dataset,
             total_count=total_count,
             next_page=next_page,
-            raw=payload,
             validation=validation,
+            raw=payload,
         )
 
     def fetch(
