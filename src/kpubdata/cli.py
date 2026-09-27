@@ -139,6 +139,9 @@ def _build_parser() -> argparse.ArgumentParser:
     _ = probe_parser.add_argument(
         "--report-apply", action="store_true", help="Print the 활용신청 checklist"
     )
+    _ = probe_parser.add_argument(
+        "--output", help="Write the report here instead of the default location"
+    )
 
     scaffold_parser = subparsers.add_parser(
         "scaffold", help="Generate skeleton files for a new provider adapter"
@@ -223,7 +226,16 @@ def _run_command(args: argparse.Namespace) -> int:
 
 def _handle_probe_command(args: argparse.Namespace) -> int:
     """``kpubdata probe`` — 도달성 분류와 활용신청 체크리스트 (#499)."""
-    from kpubdata._probe import probe_all, render_apply_report, summarize, write_report
+    from pathlib import Path
+
+    from kpubdata._probe import (
+        DEFAULT_REPORT_PATH,
+        merge_with_existing,
+        probe_all,
+        render_apply_report,
+        summarize,
+        write_report,
+    )
 
     results = probe_all(
         provider=getattr(args, "provider", None),
@@ -233,7 +245,17 @@ def _handle_probe_command(args: argparse.Namespace) -> int:
         print("프로브 대상이 없습니다.", file=sys.stderr)
         return 1
 
-    write_report(results)
+    output = getattr(args, "output", None)
+    report_path = Path(output) if output else DEFAULT_REPORT_PATH
+    filtered = bool(getattr(args, "provider", None) or getattr(args, "dataset", None))
+    # A partial probe merges: erasing the other verdicts would mean calling every
+    # provider again to get them back (#514).
+    #
+    # A full probe replaces. It *is* the whole picture, so merging would keep rows
+    # for specs that have since been removed or renamed, and the report would go
+    # on naming a dataset that no longer exists.
+    rows = merge_with_existing(results, report_path) if filtered else results
+    write_report(rows, report_path)
     counts = summarize(results)
     print(
         "프로브 "

@@ -5,12 +5,10 @@
 에이전트는 spec 작업을 시작한 **뒤에야** 403 으로 알게 된다. 되돌릴 작업을 먼저 하는
 셈이다.
 
-이 모듈은 그 판정을 앞으로 당긴다 — 데이터셋마다 1회 호출해 네 가지로 나눈다.
-
-``ok``           호출된다
-``auth-403``     활용신청 필요
-``params-400``   필수 파라미터 미확인
-``gone``         폐기·DNS·5xx
+이 모듈은 그 판정을 앞으로 당긴다 — 데이터셋마다 1회 호출해 분류한다. 분류
+어휘는 ``PROBE_STATUSES`` 이고, 예전 네 갈래보다 넓다: **폐기와 일시 장애를
+구분하지 못하면 한도 초과가 폐기로 읽혀** 기다리면 되는 것을 포기하라고 알려
+준다 (#514).
 
 ``batch_record.py`` 와 같은 fast-fail 전송 설정을 쓴다(timeout 15s·재시도 0) —
 실패 데이터셋이 전체를 늦추지 않아야 하고, 여기서는 실패가 정상 결과다.
@@ -19,6 +17,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -31,10 +30,12 @@ from kpubdata.exceptions import (
     AuthError,
     DatasetNotFoundError,
     InvalidRequestError,
+    ParseError,
     PublicDataError,
     RateLimitError,
     ServiceUnavailableError,
     TransportError,
+    TransportTimeoutError,
 )
 from kpubdata.transport.http import HttpTransport, TransportConfig
 
@@ -45,7 +46,43 @@ DEFAULT_REPORT_PATH = REPO_ROOT / "docs" / "status" / "key-scope.json"
 PROBE_TIMEOUT_SECONDS = 15
 PROBE_RETRIES = 0
 
-ProbeStatus = str  # "ok" | "auth-403" | "params-400" | "gone"
+#: Probe outcomes (#514). The earlier four-way split could not tell a retired
+#: dataset from a transient outage, so a quota overrun read as retirement --
+#: which told a user to give up on something they only needed to wait for.
+#:
+#: ``application_required`` also covers what would be "awaiting approval".
+#: data.go.kr returns the same access-denied code whether no application was ever
+#: made or one is pending, and no documented code distinguishes them, so inventing
+#: the distinction would mean guessing. Splitting them later needs a record of
+#: submitted applications, which does not exist yet.
+PROBE_STATUSES: tuple[str, ...] = (
+    "available",
+    "auth_unknown",
+    "application_required",
+    "params_invalid",
+    "rate_limited",
+    "temporarily_unavailable",
+    "network_error",
+    "insufficient_metadata",
+    "retired",
+)
+
+ProbeStatus = str
+
+#: data.go.kr standard result codes, as mapped in ``core/executor.py``.
+#: ``raise_for_code`` already turns these into typed exceptions, so the codes are
+#: read off ``provider_code`` rather than re-deriving them from the body.
+_CODE_STATUS: Mapping[str, ProbeStatus] = {
+    "01": "temporarily_unavailable",
+    "02": "temporarily_unavailable",
+    "10": "params_invalid",
+    "12": "retired",  # NO_OPENAPI_SERVICE -- the service is not there
+    "20": "application_required",  # SERVICE_ACCESS_DENIED
+    "22": "rate_limited",  # quota exceeded -- reachable, so not an application matter
+    "30": "application_required",  # SERVICE_KEY_IS_NOT_REGISTERED
+    "31": "application_required",  # expired
+    "32": "auth_unknown",  # UNREGISTERED_IP -- the key is fine, the caller is not
+}
 
 
 @dataclass(frozen=True)
@@ -73,32 +110,80 @@ def service_id_of(spec: SpecDefinition) -> str:
 
 
 def classify(error: BaseException | None) -> tuple[ProbeStatus, str]:
-    """호출 결과를 네 분류 중 하나로 옮긴다.
+    """Map a call outcome onto one of ``PROBE_STATUSES``.
 
-    상태 코드가 아니라 **예외 타입**으로 판정한다 — executor 가 provider envelope 을
-    이미 표준 예외로 매핑해 두었으므로, 여기서 코드 표를 한 벌 더 들고 있을 이유가
-    없다(그런 표는 갈라진다).
+    The provider result code is consulted first where there is one. ``executor``
+    already maps the data.go.kr table onto typed exceptions and records the code
+    on ``provider_code``, and the code carries more than the exception type does
+    -- a 403 can mean "not applied for" (30) or "your IP is not registered" (32),
+    and those need different advice.
+
+    Where no code is available the exception type decides. Subclass order matters:
+    ``RateLimitError`` and ``TransportTimeoutError`` both subclass
+    ``TransportError``, so checking the base first would bury them. A quota
+    overrun previously classified as retirement, which told a user to abandon
+    something they only had to wait for.
     """
     if error is None:
-        return "ok", ""
+        return "available", ""
     detail = f"{type(error).__name__}: {str(error)[:120]}"
-    if isinstance(error, AuthError):
-        return "auth-403", detail
-    if isinstance(error, InvalidRequestError):
-        return "params-400", detail
-    # RateLimitError 를 TransportError 보다 **먼저** 본다. 전자가 후자의 하위라서
-    # 순서를 뒤집으면 한도 초과가 gone 으로 분류된다 — 한도 초과는 "도달은 된다" 는
-    # 뜻이므로 활용신청 대상이 아니다.
+
+    code = getattr(error, "provider_code", None)
+    if isinstance(code, str) and code.strip() in _CODE_STATUS:
+        return _CODE_STATUS[code.strip()], detail
+
+    # Narrowest first. RateLimitError and TransportTimeoutError are
+    # TransportError subclasses.
     if isinstance(error, RateLimitError):
-        return "ok", detail
-    if isinstance(error, (DatasetNotFoundError, ServiceUnavailableError)):
-        return "gone", detail
+        return "rate_limited", detail
+    if isinstance(error, TransportTimeoutError):
+        return "network_error", detail
+    if isinstance(error, AuthError):
+        return "application_required", detail
+    if isinstance(error, InvalidRequestError):
+        return "params_invalid", detail
+    if isinstance(error, DatasetNotFoundError):
+        return "retired", detail
+    if isinstance(error, ServiceUnavailableError):
+        return "temporarily_unavailable", detail
+    if isinstance(error, ParseError):
+        # The endpoint answered with something undecodable. That is not a
+        # reachability verdict, and calling it retired would be wrong.
+        return "insufficient_metadata", detail
     if isinstance(error, TransportError):
-        # 403 이 AuthError 로 올라오지 않는 경로가 있으면 여기서 잡는다.
-        if getattr(error, "status_code", None) == 403:
-            return "auth-403", detail
-        return "gone", detail
-    return "gone", detail
+        status = getattr(error, "status_code", None)
+        if status == 403:
+            return "application_required", detail
+        if status == 400:
+            return "params_invalid", detail
+        if status == 401:
+            # A credential problem, not an outage. Falling through to
+            # temporarily_unavailable would tell the caller to retry, when what
+            # is needed is a different key.
+            return "auth_unknown", detail
+        if status == 429:
+            return "rate_limited", detail
+        if isinstance(status, int) and 500 <= status < 600:
+            return "temporarily_unavailable", detail
+        if status is None:
+            # No HTTP exchange completed: DNS, TLS, connection refused.
+            return "network_error", detail
+        return "temporarily_unavailable", detail
+    return "network_error", detail
+
+
+def _now() -> str:
+    return datetime.now(tz=timezone.utc).isoformat(timespec="seconds")
+
+
+def _missing_credential(spec: SpecDefinition, config: KPubDataConfig) -> str | None:
+    """The provider whose key is absent, or None when nothing is needed."""
+    if spec.auth.type == "none":
+        return None
+    provider = spec.auth.provider_key or spec.provider
+    # ``get_provider_key`` returns None rather than raising, so no guard is
+    # needed -- ``require_provider_key`` is the one that raises.
+    return None if config.get_provider_key(provider) else provider
 
 
 def probe_dataset(
@@ -113,6 +198,21 @@ def probe_dataset(
         return None
 
     resolved_config = config or KPubDataConfig.from_env()
+
+    # Stop before calling when there is no key to call with. Sending a request
+    # that is certain to fail costs the provider a request against the quota and
+    # tells us nothing -- and it would come back as application_required, which
+    # is the wrong advice: nothing needs applying for, a key needs configuring.
+    missing = _missing_credential(spec, resolved_config)
+    if missing is not None:
+        return ProbeResult(
+            dataset_id=spec.id,
+            service_id=service_id_of(spec),
+            status="auth_unknown",
+            probed_at=_now(),
+            detail=f"no credential configured for provider {missing!r}",
+        )
+
     resolved_transport = transport or HttpTransport(
         config=TransportConfig(timeout=PROBE_TIMEOUT_SECONDS, max_retries=PROBE_RETRIES, cache=None)
     )
@@ -139,7 +239,7 @@ def probe_dataset(
         dataset_id=spec.id,
         service_id=service_id_of(spec),
         status=status,
-        probed_at=datetime.now(tz=timezone.utc).isoformat(timespec="seconds"),
+        probed_at=_now(),
         detail=detail,
     )
 
@@ -186,7 +286,7 @@ def render_apply_report(results: list[ProbeResult]) -> str:
     묶는 것이 이 보고서의 요점이다 — 데이터셋 단위로 나열하면 같은 서비스를 여러 번
     신청해야 하는 것처럼 보인다.
     """
-    pending = [r for r in results if r.status == "auth-403"]
+    pending = [r for r in results if r.status == "application_required"]
     if not pending:
         return "# 활용신청 대기\n\n없습니다.\n"
 
@@ -211,14 +311,69 @@ def render_apply_report(results: list[ProbeResult]) -> str:
     return "\n".join(lines)
 
 
+def merge_with_existing(results: list[ProbeResult], path: Path) -> list[ProbeResult]:
+    """Fold ``results`` into whatever the report already holds.
+
+    Probing one dataset with ``--dataset`` used to overwrite the report with a
+    single row, discarding every other verdict. The point of the report is the
+    whole picture, and rebuilding it means calling every provider again.
+
+    Rows for the same ``dataset_id`` are replaced by the new verdict; everything
+    else is kept.
+    """
+    existing: dict[str, ProbeResult] = {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        payload = None
+    rows = payload.get("results") if isinstance(payload, dict) else None
+    if isinstance(rows, list):
+        for row in rows:
+            if not isinstance(row, dict) or "dataset_id" not in row:
+                continue
+            status = str(row.get("status", ""))
+            if status not in PROBE_STATUSES:
+                # A report written by the previous implementation holds statuses
+                # like "ok" or "auth-403". Keeping them would produce a mixed
+                # report whose values are not in the vocabulary, and guessing a
+                # translation would invent a verdict nobody measured. Drop the
+                # row; the next full probe fills it in.
+                continue
+            try:
+                existing[str(row["dataset_id"])] = ProbeResult(
+                    dataset_id=str(row["dataset_id"]),
+                    service_id=str(row.get("service_id", "")),
+                    status=status,
+                    probed_at=str(row.get("probed_at", "")),
+                    detail=str(row.get("detail", "")),
+                )
+            except (TypeError, ValueError):
+                continue
+    for result in results:
+        existing[result.dataset_id] = result
+    return sorted(existing.values(), key=lambda r: r.dataset_id)
+
+
 def write_report(results: list[ProbeResult], path: Path = DEFAULT_REPORT_PATH) -> Path:
-    """프로브 결과를 JSON 으로 저장한다."""
+    """Write the report atomically.
+
+    A crash midway through a plain ``write_text`` leaves a truncated JSON file,
+    and the next run reads it as "no previous verdicts" -- so a partial write
+    silently erases the report it was extending.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
-        "probed_at": datetime.now(tz=timezone.utc).isoformat(timespec="seconds"),
+        "probed_at": _now(),
         "results": [asdict(r) for r in sorted(results, key=lambda r: r.dataset_id)],
     }
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    rendered = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    temporary = path.with_name(f"{path.name}.tmp")
+    try:
+        temporary.write_text(rendered, encoding="utf-8")
+        temporary.replace(path)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
     return path
 
 
