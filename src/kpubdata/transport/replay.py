@@ -103,10 +103,10 @@ def replay_response(
 
     if not candidates:
         available = sorted({f"{did}.{ex}" for did, ex, _, _ in index})
-        hint = f" — 사용 가능: {', '.join(available[:10])}" if available else ""
+        hint = f" — Available: {', '.join(available[:10])}" if available else ""
         msg = (
-            f"replay 매칭 실패: {dataset_id} ({method} {url}, params={signature}). "
-            f"`make record DATASET=...` 로 fixture를 먼저 기록하세요{hint}"
+            f"replay match failed: {dataset_id} ({method} {url}, params={signature}). "
+            f"Use `make record DATASET=...` to record fixture first{hint}"
         )
         raise InvalidRequestError(msg, provider=provider, dataset_id=dataset_id)
 

@@ -1,4 +1,4 @@
-"""HTTP, 재시도, 콘텐츠 디코딩을 위한 전송 유틸리티."""
+"""Transport utilities for HTTP, retry, and content decoding."""
 
 from __future__ import annotations
 
