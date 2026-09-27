@@ -1,7 +1,9 @@
-"""테스트 모듈.
+"""Test module.
 
-이 파일은 ``tests/unit/providers/bok/test_bok_adapter.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
+This file defines test scenarios and helper objects for the
+tests/unit/providers/bok/test_bok_adapter.py path. It validates core flows,
+exceptions, and edge conditions to prevent regressions and verify the
+public contract.
 """
 
 from __future__ import annotations
@@ -21,28 +23,13 @@ from kpubdata.transport.http import HttpTransport
 
 
 class FakeResponse:
-    """
-    FakeResponse 관련 역할을 캡슐화하는 클래스.
-
-    이 클래스는 ``tests/unit/providers/bok/test_bok_adapter.py`` 모듈 안에서 FakeResponse의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__.
-
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
+    """Mock HTTP response object for testing."""
 
     def __init__(self, payload: dict[str, object]) -> None:
-        """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        """Initialize FakeResponse with payload.
 
-        매개변수:
-            payload (dict[str, object]): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Args:
+            payload (dict[str, object]): Response body.
         """
         self.headers: dict[str, str] = {"content-type": "application/json"}
         self.text: str = json.dumps(payload)
@@ -50,64 +37,41 @@ class FakeResponse:
 
 
 class FakeTransport:
-    """
-    FakeTransport 관련 역할을 캡슐화하는 클래스.
-
-    이 클래스는 ``tests/unit/providers/bok/test_bok_adapter.py`` 모듈 안에서 FakeTransport의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__, request.
-
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
+    """Mock HTTP transport for testing."""
 
     def __init__(self, responses: list[FakeResponse]) -> None:
-        """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        """Initialize FakeTransport with responses.
 
-        매개변수:
-            responses (list[FakeResponse]): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Args:
+            responses (list[FakeResponse]): Queue of responses.
         """
         self._responses: list[FakeResponse] = list(responses)
         self.calls: list[dict[str, object]] = []
 
     def request(self, method: str, url: str, **kwargs: object) -> FakeResponse:
-        """
-        request 동작을 수행한다.
+        """Execute a mocked HTTP request.
 
-        매개변수:
-            method (str): 호출자가 제공하는 입력 값이다.
-            url (str): 호출자가 제공하는 입력 값이다.
-            **kwargs (object): 호출자가 제공하는 입력 값이다.
+        Args:
+            method (str): HTTP method.
+            url (str): Request URL.
+            **kwargs (object): Additional request parameters.
 
-        반환값:
-            FakeResponse: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Returns:
+            FakeResponse: Next response from queue.
         """
         self.calls.append({"method": method, "url": url, **kwargs})
         return self._responses.pop(0)
 
 
 def _success_payload(*, items: object, total_count: object) -> dict[str, object]:
-    """
-    내부 헬퍼로서 success payload 처리를 담당한다.
+    """Build success response payload.
 
-    매개변수:
-        items (object): 호출자가 제공하는 입력 값이다.
-        total_count (object): 호출자가 제공하는 입력 값이다.
+    Args:
+        items (object): Response items.
+        total_count (object): Total count value.
 
-    반환값:
-        dict[str, object]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Returns:
+        dict[str, object]: Payload dict.
     """
     return {
         "StatisticSearch": {
@@ -120,18 +84,14 @@ def _success_payload(*, items: object, total_count: object) -> dict[str, object]
 def _build_adapter_with_transport(
     responses: list[FakeResponse], *, dataset_key: str = "base_rate"
 ) -> tuple[BokAdapter, DatasetRef, FakeTransport]:
-    """
-    내부 헬퍼로서 build adapter with transport 처리를 담당한다.
+    """Build adapter with mock transport.
 
-    매개변수:
-        responses (list[FakeResponse]): 호출자가 제공하는 입력 값이다.
-        dataset_key (str): 호출자가 제공하는 입력 값이다.
+    Args:
+        responses (list[FakeResponse]): Response queue.
+        dataset_key (str): Dataset key to load.
 
-    반환값:
-        tuple[BokAdapter, DatasetRef, FakeTransport]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Returns:
+        tuple: (adapter, dataset, transport) triple.
     """
     transport = FakeTransport(responses)
     adapter = BokAdapter(
@@ -142,19 +102,11 @@ def _build_adapter_with_transport(
     return adapter, dataset, transport
 
 
-# test catalogue includes usd krw daily dataset 테스트가 검증하는 시나리오를 설명한다.
+# Verify catalogue includes USD/KRW daily dataset.
 def test_catalogue_includes_usd_krw_daily_dataset() -> None:
-    """
-    test catalogue includes usd krw daily dataset 시나리오를 검증한다.
+    """Verify USD/KRW daily dataset is in the catalogue.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    The test name describes the expected behavior verified by the test.
     """
     _, dataset, _ = _build_adapter_with_transport([], dataset_key="usd_krw")
     catalogue = cast(
@@ -190,20 +142,9 @@ def test_catalogue_includes_usd_krw_daily_dataset() -> None:
     ]
 
 
-# test catalogue includes bond yield 3y daily dataset 테스트가 검증하는 시나리오를 설명한다.
+# Verify catalogue includes Treasury Bond 3Y daily dataset.
 def test_catalogue_includes_bond_yield_3y_daily_dataset() -> None:
-    """
-    test catalogue includes bond yield 3y daily dataset 시나리오를 검증한다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify Treasury Bond 3Y yield dataset is in the catalogue."""
     _, dataset, _ = _build_adapter_with_transport([], dataset_key="bond_yield_3y")
     catalogue = cast(
         list[dict[str, object]],
@@ -240,20 +181,9 @@ def test_catalogue_includes_bond_yield_3y_daily_dataset() -> None:
     ]
 
 
-# test catalogue includes money supply monthly dataset 테스트가 검증하는 시나리오를 설명한다.
+# Verify catalogue includes Money Supply M2 monthly dataset.
 def test_catalogue_includes_money_supply_monthly_dataset() -> None:
-    """
-    test catalogue includes money supply monthly dataset 시나리오를 검증한다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify Money Supply M2 dataset is in the catalogue."""
     _, dataset, _ = _build_adapter_with_transport([], dataset_key="money_supply")
     catalogue = cast(
         list[dict[str, object]],
@@ -293,20 +223,9 @@ def test_catalogue_includes_money_supply_monthly_dataset() -> None:
     ]
 
 
-# test query records returns single page and sets next page 테스트가 검증하는 시나리오를 설명한다.
+# Verify query_records returns single page and sets next_page correctly.
 def test_query_records_returns_single_page_and_sets_next_page() -> None:
-    """
-    test query records returns single page and sets next page 시나리오를 검증한다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify query_records returns paginated results and next_page."""
     payload = _success_payload(items=[{"id": 1}, {"id": 2}], total_count=5)
     adapter, dataset, transport = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -322,20 +241,9 @@ def test_query_records_returns_single_page_and_sets_next_page() -> None:
     assert len(transport.calls) == 1
 
 
-# test query records uses default page size 100 테스트가 검증하는 시나리오를 설명한다.
+# Verify query_records uses default page size of 100.
 def test_query_records_uses_default_page_size_100() -> None:
-    """
-    test query records uses default page size 100 시나리오를 검증한다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify default page size is 100."""
     payload = _success_payload(items=[{"id": 1}], total_count=1)
     adapter, dataset, transport = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -345,20 +253,9 @@ def test_query_records_uses_default_page_size_100() -> None:
     assert "/1/100/" in request_url
 
 
-# test query records uses heuristic next page without total count 테스트가 검증하는 시나리오를 설명한다.
+# Verify heuristic next_page computation works without total_count.
 def test_query_records_uses_heuristic_next_page_without_total_count() -> None:
-    """
-    test query records uses heuristic next page without total count 시나리오를 검증한다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify next_page calculated heuristically when total_count is None."""
     payload = _success_payload(items=[{"id": 1}, {"id": 2}], total_count=None)
     adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -371,23 +268,9 @@ def test_query_records_uses_heuristic_next_page_without_total_count() -> None:
     assert batch.next_page == 2
 
 
-# test query records missing dates logs debug 테스트가 검증하는 시나리오를 설명한다.
+# Verify missing dates are logged at debug level.
 def test_query_records_missing_dates_logs_debug(caplog: pytest.LogCaptureFixture) -> None:
-    """
-    test query records missing dates logs debug 시나리오를 검증한다.
-
-    매개변수:
-        caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify InvalidRequestError logged when start/end dates missing."""
     adapter, dataset, _ = _build_adapter_with_transport([])
 
     caplog.set_level(logging.DEBUG, logger="kpubdata.provider.bok")
@@ -402,23 +285,9 @@ def test_query_records_missing_dates_logs_debug(caplog: pytest.LogCaptureFixture
     assert record.__dict__["dataset_id"] == dataset.id
 
 
-# test query records zero items logs debug 테스트가 검증하는 시나리오를 설명한다.
+# Verify zero items response is logged at debug level.
 def test_query_records_zero_items_logs_debug(caplog: pytest.LogCaptureFixture) -> None:
-    """
-    test query records zero items logs debug 시나리오를 검증한다.
-
-    매개변수:
-        caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    """Verify empty result logged with dataset and pagination info."""
     payload = _success_payload(items=[], total_count=0)
     adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -438,48 +307,49 @@ def test_query_records_zero_items_logs_debug(caplog: pytest.LogCaptureFixture) -
     assert record.__dict__["total_count"] == 0
 
 
-# test raise for result returns none when no result field 테스트가 검증하는 시나리오를 설명한다.
+# Verify _raise_for_result returns None when no RESULT field present.
 def test_raise_for_result_returns_none_when_no_result_field() -> None:
-    """RESULT 필드 없는 정상 응답에서 _raise_for_result가 None을 반환하는지 검증한다."""
+    """Verify normal response without RESULT field does not raise."""
     adapter, dataset, _ = _build_adapter_with_transport([])
     result = adapter._raise_for_result({"StatisticSearch": {}}, dataset.id)
     assert result is None
 
 
-# test raise for result raises on non error code in result field 테스트가 검증하는 시나리오를 설명한다.
+# Verify _raise_for_result raises on non-ERROR codes in RESULT field.
 def test_raise_for_result_raises_on_non_error_code_in_result_field() -> None:
-    """RESULT에 ERROR 외 코드가 있는 경우에도 예외가 발생하는지 검증한다."""
+    """Verify any code in RESULT field raises error (not just ERROR)."""
     adapter, dataset, _ = _build_adapter_with_transport([])
-    # 이전 구현: ERROR 외 코드는 성공으로 처리해 예외 미발생
-    # 수정 후: RESULT 필드 있으면 항상 오류 처리
+    # Previous implementation: non-ERROR codes treated as success, no exception.
+    # After fix: any RESULT field is treated as error.
     with pytest.raises(ProviderResponseError):
-        adapter._raise_for_result({"RESULT": {"CODE": "INFO-100", "MESSAGE": "경고"}}, dataset.id)
+        adapter._raise_for_result({"RESULT": {"CODE": "INFO-100", "MESSAGE": "warning"}}, dataset.id)
 
 
-# test raise for result raises when result code absent 테스트가 검증하는 시나리오를 설명한다.
+# Verify _raise_for_result raises when RESULT CODE field is absent.
 def test_raise_for_result_raises_when_result_code_absent() -> None:
-    """RESULT가 있지만 CODE 필드가 없는 예외 케이스를 오류로 처리하는지 검증한다."""
+    """Verify missing CODE in RESULT field raises ProviderResponseError."""
     adapter, dataset, _ = _build_adapter_with_transport([])
     with pytest.raises(ProviderResponseError):
-        adapter._raise_for_result({"RESULT": {"MESSAGE": "코드 없음"}}, dataset.id)
+        adapter._raise_for_result({"RESULT": {"MESSAGE": "missing code"}}, dataset.id)
 
 
-# test raise for result raises auth error on auth message 테스트가 검증하는 시나리오를 설명한다.
+# Verify _raise_for_result raises AuthError for invalid credentials.
 def test_raise_for_result_raises_auth_error_on_auth_message() -> None:
-    """RESULT CODE=ERROR에 인증 메시지일 때 AuthError가 발생하는지 검증한다."""
+    """Verify AuthError raised when RESULT CODE=ERROR with auth message."""
     adapter, dataset, _ = _build_adapter_with_transport([])
     with pytest.raises(AuthError):
         adapter._raise_for_result(
-            {"RESULT": {"CODE": "ERROR", "MESSAGE": "인증키가 유효하지 않습니다."}}, dataset.id
+            {"RESULT": {"CODE": "ERROR", "MESSAGE": "invalid API key"}}, dataset.id
         )
 
 
 def test_query_records_passes_the_path_key_as_a_secret_value() -> None:
-    """bok은 API 키를 URL 경로 세그먼트로 싣는다 (#354).
+    """BOK embeds API key in URL path segment for all requests (#354).
 
-    쿼리 파라미터 이름 기반 마스킹은 경로에 박힌 키를 가리지 못한다. 실제 키
-    원문을 transport에 넘겨야 로그와 예외 메시지의 URL에서 값이 치환된다 —
-    그러지 않으면 전송 오류 하나가 API 키를 평문으로 흘린다.
+    Query parameter-based masking cannot hide path-embedded keys.
+    The raw key must be passed to transport as secret_values so that
+    logs and error messages can sanitize URLs correctly. Otherwise,
+    a single transport error exposes the raw API key.
     """
     payload = _success_payload(items=[{"id": 1}], total_count=1)
     adapter, dataset, transport = _build_adapter_with_transport([FakeResponse(payload)])
@@ -491,7 +361,7 @@ def test_query_records_passes_the_path_key_as_a_secret_value() -> None:
 
 
 def test_the_bok_request_url_still_carries_the_key_in_its_path() -> None:
-    # secret_values가 필요한 이유를 고정한다 — 키는 실제로 경로에 있다.
+    # Verify the reason secret_values is needed — key is actually in the path.
     payload = _success_payload(items=[{"id": 1}], total_count=1)
     adapter, dataset, transport = _build_adapter_with_transport([FakeResponse(payload)])
 

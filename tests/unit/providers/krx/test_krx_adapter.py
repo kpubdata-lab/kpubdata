@@ -1,7 +1,6 @@
-"""테스트 모듈.
+"""Test module.
 
-이 파일은 ``tests/unit/providers/krx/test_krx_adapter.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
+This module defines tests and helpers for the surrounding test suite.
 """
 
 from __future__ import annotations
@@ -29,101 +28,56 @@ from kpubdata.providers.krx.adapter import KrxAdapter
 
 
 class _ExposedKrxAdapter(KrxAdapter):
-    """
-    _ExposedKrxAdapter 관련 역할을 캡슐화하는 클래스.
+    """Tests for _ExposedKrxAdapter.
 
-    이 클래스는 ``tests/unit/providers/krx/test_krx_adapter.py`` 모듈 안에서 _ExposedKrxAdapter의 상태와 동작을 함께 관리한다.
-    주요 메서드: load_pykrx_for_test.
-
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
+This class groups related test cases and helpers for _ExposedKrxAdapter.
+"""
 
     def load_pykrx_for_test(self) -> object:
-        """
-        load pykrx for test 동작을 수행한다.
+        """load_pykrx_for_test
 
-        반환값:
-            object: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+Validates the scenario described by the test name.
+"""
         return self._load_pykrx()
 
 
 def _fixture_path(name: str) -> Path:
-    """
-    내부 헬퍼로서 fixture path 처리를 담당한다.
+    """_fixture_path
 
-    매개변수:
-        name (str): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        Path: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-    """
+Validates the scenario described by the test name.
+"""
     return Path(__file__).resolve().parents[3] / "fixtures" / "krx" / name
 
 
 def _load_snapshot(name: str) -> list[dict[str, object]]:
-    """
-    내부 헬퍼로서 load snapshot 처리를 담당한다.
+    """_load_snapshot
 
-    매개변수:
-        name (str): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        list[dict[str, object]]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-    """
+Validates the scenario described by the test name.
+"""
     return json.loads(_fixture_path(name).read_text(encoding="utf-8"))
 
 
 def _build_adapter() -> KrxAdapter:
-    """
-    내부 헬퍼로서 build adapter 처리를 담당한다.
+    """_build_adapter
 
-    반환값:
-        KrxAdapter: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-    """
+Validates the scenario described by the test name.
+"""
     return KrxAdapter(config=KPubDataConfig())
 
 
 def _set_pykrx(adapter: KrxAdapter, **stock_methods: object) -> None:
-    """
-    내부 헬퍼로서 set pykrx 처리를 담당한다.
+    """_set_pykrx
 
-    매개변수:
-        adapter (KrxAdapter): 호출자가 제공하는 입력 값이다.
-        **stock_methods (object): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-    """
+Validates the scenario described by the test name.
+"""
     adapter._pykrx = SimpleNamespace(stock=SimpleNamespace(**stock_methods))
 
 
 def _kospi_index_frame() -> pd.DataFrame:
-    """
-    내부 헬퍼로서 kospi index frame 처리를 담당한다.
+    """_kospi_index_frame
 
-    반환값:
-        pd.DataFrame: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-    """
+Validates the scenario described by the test name.
+"""
     return pd.DataFrame(
         {
             "시가": [2650.0, 2661.0, 2644.0, 2632.0, 2629.0],
@@ -154,18 +108,10 @@ def _kospi_index_frame() -> pd.DataFrame:
 
 
 def _investor_frame(multiplier: int) -> pd.DataFrame:
-    """
-    내부 헬퍼로서 investor frame 처리를 담당한다.
+    """_investor_frame
 
-    매개변수:
-        multiplier (int): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        pd.DataFrame: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-    """
+Validates the scenario described by the test name.
+"""
     return (
         pd.DataFrame(
             {
@@ -191,18 +137,10 @@ def _investor_frame(multiplier: int) -> pd.DataFrame:
 
 
 def _market_fundamental_frame(day: str) -> pd.DataFrame:
-    """
-    내부 헬퍼로서 market fundamental frame 처리를 담당한다.
+    """_market_fundamental_frame
 
-    매개변수:
-        day (str): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        pd.DataFrame: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-    """
+Validates the scenario described by the test name.
+"""
     rows = {
         "20240102": [(100.0, 1.0, 2.0, 1000, 5000), (200.0, 2.0, 4.0, 2000, 7000)],
         "20240103": [(110.0, 1.1, 2.2, 1100, 5100), (210.0, 2.1, 4.2, 2100, 7100)],
@@ -224,20 +162,16 @@ def _market_fundamental_frame(day: str) -> pd.DataFrame:
     )
 
 
-# test catalogue includes three krx datasets 테스트가 검증하는 시나리오를 설명한다.
+# test catalogue includes three krx datasets Describes the scenario verified by the test.
 def test_catalogue_includes_three_krx_datasets() -> None:
     """
-    test catalogue includes three krx datasets 시나리오를 검증한다.
+    test catalogue includes three krx datasets Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
 
     datasets = adapter.list_datasets()
@@ -252,59 +186,41 @@ def test_catalogue_includes_three_krx_datasets() -> None:
     )
 
 
-# test get dataset unknown key raises dataset not found 테스트가 검증하는 시나리오를 설명한다.
+# test get dataset unknown key raises dataset not found Describes the scenario verified by the test.
 def test_get_dataset_unknown_key_raises_dataset_not_found() -> None:
     """
-    test get dataset unknown key raises dataset not found 시나리오를 검증한다.
+    test get dataset unknown key raises dataset not found Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
 
     with pytest.raises(DatasetNotFoundError, match="krx.unknown"):
         _ = adapter.get_dataset("unknown")
 
 
-# test query records kospi index normalizes snapshot 테스트가 검증하는 시나리오를 설명한다.
+# test query records kospi index normalizes snapshot Describes the scenario verified by the test.
 def test_query_records_kospi_index_normalizes_snapshot() -> None:
     """
-    test query records kospi index normalizes snapshot 시나리오를 검증한다.
+    test query records kospi index normalizes snapshot Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dataset = adapter.get_dataset("kospi_index")
     calls: list[tuple[str, str, str]] = []
 
     def _get_index_ohlcv(start_date: str, end_date: str, ticker: str) -> pd.DataFrame:
-        """
-        내부 헬퍼로서 get index ohlcv 처리를 담당한다.
+        """_get_index_ohlcv
 
-        매개변수:
-            start_date (str): 호출자가 제공하는 입력 값이다.
-            end_date (str): 호출자가 제공하는 입력 값이다.
-            ticker (str): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            pd.DataFrame: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+Validates the scenario described by the test name.
+"""
         calls.append((start_date, end_date, ticker))
         return _kospi_index_frame()
 
@@ -317,39 +233,25 @@ def test_query_records_kospi_index_normalizes_snapshot() -> None:
     assert calls == [("20240102", "20240108", "1001")]
 
 
-# test query records kospi index supports custom ticker filter 테스트가 검증하는 시나리오를 설명한다.
+# test query records kospi index supports custom ticker filter Describes the scenario verified by the test.
 def test_query_records_kospi_index_supports_custom_ticker_filter() -> None:
     """
-    test query records kospi index supports custom ticker filter 시나리오를 검증한다.
+    test query records kospi index supports custom ticker filter Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dataset = adapter.get_dataset("kospi_index")
     tickers: list[str] = []
 
     def _get_index_ohlcv(start_date: str, end_date: str, ticker: str) -> pd.DataFrame:
-        """
-        내부 헬퍼로서 get index ohlcv 처리를 담당한다.
+        """_get_index_ohlcv
 
-        매개변수:
-            start_date (str): 호출자가 제공하는 입력 값이다.
-            end_date (str): 호출자가 제공하는 입력 값이다.
-            ticker (str): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            pd.DataFrame: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+Validates the scenario described by the test name.
+"""
         _ = start_date, end_date
         tickers.append(ticker)
         return _kospi_index_frame()
@@ -364,20 +266,16 @@ def test_query_records_kospi_index_supports_custom_ticker_filter() -> None:
     assert tickers == ["2001"]
 
 
-# test call raw kospi index returns raw dataframe records 테스트가 검증하는 시나리오를 설명한다.
+# test call raw kospi index returns raw dataframe records Describes the scenario verified by the test.
 def test_call_raw_kospi_index_returns_raw_dataframe_records() -> None:
     """
-    test call raw kospi index returns raw dataframe records 시나리오를 검증한다.
+    test call raw kospi index returns raw dataframe records Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dataset = adapter.get_dataset("kospi_index")
     _set_pykrx(adapter, get_index_ohlcv=lambda *_args: _kospi_index_frame())
@@ -442,37 +340,25 @@ def test_call_raw_kospi_index_returns_raw_dataframe_records() -> None:
     ]
 
 
-# test query records kospi index uses get index ohlcv by date fallback 테스트가 검증하는 시나리오를 설명한다.
+# test query records kospi index uses get index ohlcv by date fallback Describes the scenario verified by the test.
 def test_query_records_kospi_index_uses_get_index_ohlcv_by_date_fallback() -> None:
     """
-    test query records kospi index uses get index ohlcv by date fallback 시나리오를 검증한다.
+    test query records kospi index uses get index ohlcv by date fallback Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dataset = adapter.get_dataset("kospi_index")
     fallback_calls: list[tuple[str, str, str, bool]] = []
 
     def _raise_index_error(*_args: object) -> pd.DataFrame:
-        """
-        내부 헬퍼로서 raise index error 처리를 담당한다.
+        """_raise_index_error
 
-        매개변수:
-            *_args (object): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            pd.DataFrame: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+Validates the scenario described by the test name.
+"""
         raise ValueError("primary failed")
 
     def _get_index_ohlcv_by_date(
@@ -482,21 +368,8 @@ def test_query_records_kospi_index_uses_get_index_ohlcv_by_date_fallback() -> No
         *,
         name_display: bool,
     ) -> pd.DataFrame:
-        """
-        내부 헬퍼로서 get index ohlcv by date 처리를 담당한다.
-
-        매개변수:
-            start_date (str): 호출자가 제공하는 입력 값이다.
-            end_date (str): 호출자가 제공하는 입력 값이다.
-            ticker (str): 호출자가 제공하는 입력 값이다.
-            name_display (bool): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            pd.DataFrame: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        """Validates the scenario described by the test name.
+"""
         fallback_calls.append((start_date, end_date, ticker, name_display))
         return _kospi_index_frame()
 
@@ -512,20 +385,16 @@ def test_query_records_kospi_index_uses_get_index_ohlcv_by_date_fallback() -> No
     assert fallback_calls == [("20240102", "20240108", "1001", False)]
 
 
-# test query records investor flow normalizes snapshot 테스트가 검증하는 시나리오를 설명한다.
+# test query records investor flow normalizes snapshot Describes the scenario verified by the test.
 def test_query_records_investor_flow_normalizes_snapshot() -> None:
     """
-    test query records investor flow normalizes snapshot 시나리오를 검증한다.
+    test query records investor flow normalizes snapshot Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dataset = adapter.get_dataset("investor_flow")
     calls: list[tuple[str, str, str, str]] = []
@@ -538,22 +407,8 @@ def test_query_records_investor_flow_normalizes_snapshot() -> None:
         on: str = "순매수",
         **_kwargs: object,
     ) -> pd.DataFrame:
-        """
-        내부 헬퍼로서 get market trading value by date 처리를 담당한다.
-
-        매개변수:
-            start_date (str): 호출자가 제공하는 입력 값이다.
-            end_date (str): 호출자가 제공하는 입력 값이다.
-            market (str): 호출자가 제공하는 입력 값이다.
-            on (str): 호출자가 제공하는 입력 값이다.
-            **_kwargs (object): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            pd.DataFrame: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        """Validates the scenario described by the test name.
+"""
         calls.append((start_date, end_date, market, on))
         frames = {
             "매수": _investor_frame(10),
@@ -573,20 +428,16 @@ def test_query_records_investor_flow_normalizes_snapshot() -> None:
     ]
 
 
-# test query records investor flow supports custom market filter 테스트가 검증하는 시나리오를 설명한다.
+# test query records investor flow supports custom market filter Describes the scenario verified by the test.
 def test_query_records_investor_flow_supports_custom_market_filter() -> None:
     """
-    test query records investor flow supports custom market filter 시나리오를 검증한다.
+    test query records investor flow supports custom market filter Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dataset = adapter.get_dataset("investor_flow")
     markets: list[str] = []
@@ -599,22 +450,8 @@ def test_query_records_investor_flow_supports_custom_market_filter() -> None:
         on: str = "순매수",
         **_kwargs: object,
     ) -> pd.DataFrame:
-        """
-        내부 헬퍼로서 get market trading value by date 처리를 담당한다.
-
-        매개변수:
-            start_date (str): 호출자가 제공하는 입력 값이다.
-            end_date (str): 호출자가 제공하는 입력 값이다.
-            market (str): 호출자가 제공하는 입력 값이다.
-            on (str): 호출자가 제공하는 입력 값이다.
-            **_kwargs (object): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            pd.DataFrame: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        """Validates the scenario described by the test name.
+"""
         _ = start_date, end_date, on
         markets.append(market)
         return _investor_frame(1)
@@ -629,20 +466,16 @@ def test_query_records_investor_flow_supports_custom_market_filter() -> None:
     assert markets == ["KOSDAQ", "KOSDAQ"]
 
 
-# test call raw investor flow uses requested on parameter 테스트가 검증하는 시나리오를 설명한다.
+# test call raw investor flow uses requested on parameter Describes the scenario verified by the test.
 def test_call_raw_investor_flow_uses_requested_on_parameter() -> None:
     """
-    test call raw investor flow uses requested on parameter 시나리오를 검증한다.
+    test call raw investor flow uses requested on parameter Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dataset = adapter.get_dataset("investor_flow")
     calls: list[tuple[str, str, str, str]] = []
@@ -655,22 +488,8 @@ def test_call_raw_investor_flow_uses_requested_on_parameter() -> None:
         on: str = "순매수",
         **_kwargs: object,
     ) -> pd.DataFrame:
-        """
-        내부 헬퍼로서 get market trading value by date 처리를 담당한다.
-
-        매개변수:
-            start_date (str): 호출자가 제공하는 입력 값이다.
-            end_date (str): 호출자가 제공하는 입력 값이다.
-            market (str): 호출자가 제공하는 입력 값이다.
-            on (str): 호출자가 제공하는 입력 값이다.
-            **_kwargs (object): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            pd.DataFrame: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        """Validates the scenario described by the test name.
+"""
         calls.append((start_date, end_date, market, on))
         return _investor_frame(1)
 
@@ -687,20 +506,16 @@ def test_call_raw_investor_flow_uses_requested_on_parameter() -> None:
     assert payload[0]["날짜"] == "2024-01-02"
 
 
-# test call raw empty dataframe returns empty list 테스트가 검증하는 시나리오를 설명한다.
+# test call raw empty dataframe returns empty list Describes the scenario verified by the test.
 def test_call_raw_empty_dataframe_returns_empty_list() -> None:
     """
-    test call raw empty dataframe returns empty list 시나리오를 검증한다.
+    test call raw empty dataframe returns empty list Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dataset = adapter.get_dataset("investor_flow")
     _set_pykrx(adapter, get_market_trading_value_by_date=lambda *_args, **_kwargs: pd.DataFrame())
@@ -714,38 +529,25 @@ def test_call_raw_empty_dataframe_returns_empty_list() -> None:
     assert payload == []
 
 
-# test query records market valuation normalizes snapshot 테스트가 검증하는 시나리오를 설명한다.
+# test query records market valuation normalizes snapshot Describes the scenario verified by the test.
 def test_query_records_market_valuation_normalizes_snapshot() -> None:
     """
-    test query records market valuation normalizes snapshot 시나리오를 검증한다.
+    test query records market valuation normalizes snapshot Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dataset = adapter.get_dataset("market_valuation")
     days_called: list[str] = []
 
     def _get_market_fundamental_by_ticker(date: str, market: str = "KOSPI") -> pd.DataFrame:
-        """
-        내부 헬퍼로서 get market fundamental by ticker 처리를 담당한다.
+        """_get_market_fundamental_by_ticker
 
-        매개변수:
-            date (str): 호출자가 제공하는 입력 값이다.
-            market (str): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            pd.DataFrame: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+Validates the scenario described by the test name.
+"""
         _ = market
         days_called.append(date)
         if date in {"20240106", "20240107"}:
@@ -772,38 +574,25 @@ def test_query_records_market_valuation_normalizes_snapshot() -> None:
     ]
 
 
-# test query records market valuation supports custom market filter 테스트가 검증하는 시나리오를 설명한다.
+# test query records market valuation supports custom market filter Describes the scenario verified by the test.
 def test_query_records_market_valuation_supports_custom_market_filter() -> None:
     """
-    test query records market valuation supports custom market filter 시나리오를 검증한다.
+    test query records market valuation supports custom market filter Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dataset = adapter.get_dataset("market_valuation")
     markets: list[str] = []
 
     def _get_market_fundamental_by_ticker(date: str, market: str = "KOSPI") -> pd.DataFrame:
-        """
-        내부 헬퍼로서 get market fundamental by ticker 처리를 담당한다.
+        """_get_market_fundamental_by_ticker
 
-        매개변수:
-            date (str): 호출자가 제공하는 입력 값이다.
-            market (str): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            pd.DataFrame: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+Validates the scenario described by the test name.
+"""
         _ = date
         markets.append(market)
         return _market_fundamental_frame("20240102")
@@ -819,37 +608,24 @@ def test_query_records_market_valuation_supports_custom_market_filter() -> None:
     assert markets == ["KOSDAQ"]
 
 
-# test market valuation skips days with missing columns and zero rows 테스트가 검증하는 시나리오를 설명한다.
+# test market valuation skips days with missing columns and zero rows Describes the scenario verified by the test.
 def test_market_valuation_skips_days_with_missing_columns_and_zero_rows() -> None:
     """
-    test market valuation skips days with missing columns and zero rows 시나리오를 검증한다.
+    test market valuation skips days with missing columns and zero rows Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dataset = adapter.get_dataset("market_valuation")
 
     def _get_market_fundamental_by_ticker(date: str, market: str = "KOSPI") -> pd.DataFrame:
-        """
-        내부 헬퍼로서 get market fundamental by ticker 처리를 담당한다.
+        """_get_market_fundamental_by_ticker
 
-        매개변수:
-            date (str): 호출자가 제공하는 입력 값이다.
-            market (str): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            pd.DataFrame: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+Validates the scenario described by the test name.
+"""
         _ = market
         if date == "20240102":
             return pd.DataFrame(columns=["PER"])
@@ -873,37 +649,24 @@ def test_market_valuation_skips_days_with_missing_columns_and_zero_rows() -> Non
     assert [item["date"] for item in batch.items] == ["2024-01-04"]
 
 
-# test market valuation returns empty when all days are skipped 테스트가 검증하는 시나리오를 설명한다.
+# test market valuation returns empty when all days are skipped Describes the scenario verified by the test.
 def test_market_valuation_returns_empty_when_all_days_are_skipped() -> None:
     """
-    test market valuation returns empty when all days are skipped 시나리오를 검증한다.
+    test market valuation returns empty when all days are skipped Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dataset = adapter.get_dataset("market_valuation")
 
     def _get_market_fundamental_by_ticker(date: str, market: str = "KOSPI") -> pd.DataFrame:
-        """
-        내부 헬퍼로서 get market fundamental by ticker 처리를 담당한다.
+        """_get_market_fundamental_by_ticker
 
-        매개변수:
-            date (str): 호출자가 제공하는 입력 값이다.
-            market (str): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            pd.DataFrame: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+Validates the scenario described by the test name.
+"""
         _ = date, market
         return pd.DataFrame(columns=["PER", "PBR", "DIV", "EPS", "BPS"])
 
@@ -914,20 +677,16 @@ def test_market_valuation_returns_empty_when_all_days_are_skipped() -> None:
     assert batch.items == []
 
 
-# test fetch market valuation returns empty frame when aggregation is empty 테스트가 검증하는 시나리오를 설명한다.
+# test fetch market valuation returns empty frame when aggregation is empty Describes the scenario verified by the test.
 def test_fetch_market_valuation_returns_empty_frame_when_aggregation_is_empty() -> None:
     """
-    test fetch market valuation returns empty frame when aggregation is empty 시나리오를 검증한다.
+    test fetch market valuation returns empty frame when aggregation is empty Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dataset = adapter.get_dataset("market_valuation")
     _set_pykrx(adapter, get_market_fundamental_by_ticker=lambda *_args, **_kwargs: pd.DataFrame())
@@ -939,25 +698,21 @@ def test_fetch_market_valuation_returns_empty_frame_when_aggregation_is_empty() 
     assert frame.empty
 
 
-# test fetch market valuation returns passthrough frame when columns are missing 테스트가 검증하는 시나리오를 설명한다.
+# test fetch market valuation returns passthrough frame when columns are missing Describes the scenario verified by the test.
 def test_fetch_market_valuation_returns_passthrough_frame_when_columns_are_missing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """
-    test fetch market valuation returns passthrough frame when columns are missing 시나리오를 검증한다.
+    test fetch market valuation returns passthrough frame when columns are missing Validates the scenario described by the test name.
 
-    매개변수:
-        monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Input parameter.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dataset = adapter.get_dataset("market_valuation")
 
@@ -967,21 +722,8 @@ def test_fetch_market_valuation_returns_passthrough_frame_when_columns_are_missi
         _end_date: str,
         _market: str,
     ) -> pd.DataFrame:
-        """
-        내부 헬퍼로서 fake fetch by day 처리를 담당한다.
-
-        매개변수:
-            _stock (object): 호출자가 제공하는 입력 값이다.
-            _start_date (str): 호출자가 제공하는 입력 값이다.
-            _end_date (str): 호출자가 제공하는 입력 값이다.
-            _market (str): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            pd.DataFrame: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        """Validates the scenario described by the test name.
+"""
         return pd.DataFrame({"date": [pd.Timestamp("2024-01-02")], "close": [100.0]}).set_index(
             "date"
         )
@@ -995,7 +737,7 @@ def test_fetch_market_valuation_returns_passthrough_frame_when_columns_are_missi
     assert list(frame.columns) == ["close"]
 
 
-# test empty dataframe returns empty record batch 테스트가 검증하는 시나리오를 설명한다.
+# test empty dataframe returns empty record batch Describes the scenario verified by the test.
 @pytest.mark.parametrize(
     ("dataset_key", "methods"),
     [
@@ -1018,21 +760,17 @@ def test_empty_dataframe_returns_empty_record_batch(
     methods: dict[str, object],
 ) -> None:
     """
-    test empty dataframe returns empty record batch 시나리오를 검증한다.
+    test empty dataframe returns empty record batch Validates the scenario described by the test name.
 
-    매개변수:
-        dataset_key (str): 호출자가 제공하는 입력 값이다.
-        methods (dict[str, object]): 호출자가 제공하는 입력 값이다.
+    Args:
+        dataset_key (str): Input parameter.
+        methods (dict[str, object]): Input parameter.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dataset = adapter.get_dataset(dataset_key)
     _set_pykrx(adapter, **methods)
@@ -1044,7 +782,7 @@ def test_empty_dataframe_returns_empty_record_batch(
     assert batch.next_page is None
 
 
-# test pykrx exception is wrapped with cause 테스트가 검증하는 시나리오를 설명한다.
+# test pykrx exception is wrapped with cause Describes the scenario verified by the test.
 @pytest.mark.parametrize(
     ("dataset_key", "methods"),
     [
@@ -1075,21 +813,17 @@ def test_pykrx_exception_is_wrapped_with_cause(
     methods: dict[str, object],
 ) -> None:
     """
-    test pykrx exception is wrapped with cause 시나리오를 검증한다.
+    test pykrx exception is wrapped with cause Validates the scenario described by the test name.
 
-    매개변수:
-        dataset_key (str): 호출자가 제공하는 입력 값이다.
-        methods (dict[str, object]): 호출자가 제공하는 입력 값이다.
+    Args:
+        dataset_key (str): Input parameter.
+        methods (dict[str, object]): Input parameter.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dataset = adapter.get_dataset(dataset_key)
     _set_pykrx(adapter, **methods)
@@ -1102,20 +836,16 @@ def test_pykrx_exception_is_wrapped_with_cause(
     assert isinstance(excinfo.value.__cause__, RuntimeError)
 
 
-# test get schema builds from catalogue metadata 테스트가 검증하는 시나리오를 설명한다.
+# test get schema builds from catalogue metadata Describes the scenario verified by the test.
 def test_get_schema_builds_from_catalogue_metadata() -> None:
     """
-    test get schema builds from catalogue metadata 시나리오를 검증한다.
+    test get schema builds from catalogue metadata Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dataset = adapter.get_dataset("market_valuation")
 
@@ -1133,20 +863,16 @@ def test_get_schema_builds_from_catalogue_metadata() -> None:
     ]
 
 
-# test search datasets matches tags and description 테스트가 검증하는 시나리오를 설명한다.
+# test search datasets matches tags and description Describes the scenario verified by the test.
 def test_search_datasets_matches_tags_and_description() -> None:
     """
-    test search datasets matches tags and description 시나리오를 검증한다.
+    test search datasets matches tags and description Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
 
     assert [dataset.id for dataset in adapter.search_datasets("valuation")] == [
@@ -1155,20 +881,16 @@ def test_search_datasets_matches_tags_and_description() -> None:
     assert [dataset.id for dataset in adapter.search_datasets("ohlcv")] == ["krx.kospi_index"]
 
 
-# test query records uses query extra for filters 테스트가 검증하는 시나리오를 설명한다.
+# test query records uses query extra for filters Describes the scenario verified by the test.
 def test_query_records_uses_query_extra_for_filters() -> None:
     """
-    test query records uses query extra for filters 시나리오를 검증한다.
+    test query records uses query extra for filters Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dataset = adapter.get_dataset("investor_flow")
     calls: list[tuple[str, str, str, str]] = []
@@ -1181,22 +903,8 @@ def test_query_records_uses_query_extra_for_filters() -> None:
         on: str = "순매수",
         **_kwargs: object,
     ) -> pd.DataFrame:
-        """
-        내부 헬퍼로서 get market trading value by date 처리를 담당한다.
-
-        매개변수:
-            start_date (str): 호출자가 제공하는 입력 값이다.
-            end_date (str): 호출자가 제공하는 입력 값이다.
-            market (str): 호출자가 제공하는 입력 값이다.
-            on (str): 호출자가 제공하는 입력 값이다.
-            **_kwargs (object): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            pd.DataFrame: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        """Validates the scenario described by the test name.
+"""
         calls.append((start_date, end_date, market, on))
         return _investor_frame(1)
 
@@ -1213,20 +921,16 @@ def test_query_records_uses_query_extra_for_filters() -> None:
     ]
 
 
-# test query records requires start and end dates 테스트가 검증하는 시나리오를 설명한다.
+# test query records requires start and end dates Describes the scenario verified by the test.
 def test_query_records_requires_start_and_end_dates() -> None:
     """
-    test query records requires start and end dates 시나리오를 검증한다.
+    test query records requires start and end dates Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dataset = adapter.get_dataset("kospi_index")
 
@@ -1234,20 +938,16 @@ def test_query_records_requires_start_and_end_dates() -> None:
         _ = adapter.query_records(dataset, Query())
 
 
-# test query records raises when default query param metadata is missing 테스트가 검증하는 시나리오를 설명한다.
+# test query records raises when default query param metadata is missing Describes the scenario verified by the test.
 def test_query_records_raises_when_default_query_param_metadata_is_missing() -> None:
     """
-    test query records raises when default query param metadata is missing 시나리오를 검증한다.
+    test query records raises when default query param metadata is missing Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     dataset = build_dataset_ref(
         "krx",
         {
@@ -1265,20 +965,16 @@ def test_query_records_raises_when_default_query_param_metadata_is_missing() -> 
         _ = adapter.query_records(dataset, Query(start_date="20240102", end_date="20240108"))
 
 
-# test aggregate market valuation frame handles date column and passthrough 테스트가 검증하는 시나리오를 설명한다.
+# test aggregate market valuation frame handles date column and passthrough Describes the scenario verified by the test.
 def test_aggregate_market_valuation_frame_handles_date_column_and_passthrough() -> None:
     """
-    test aggregate market valuation frame handles date column and passthrough 시나리오를 검증한다.
+    test aggregate market valuation frame handles date column and passthrough Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dated = pd.DataFrame(
         {
@@ -1299,20 +995,16 @@ def test_aggregate_market_valuation_frame_handles_date_column_and_passthrough() 
     assert passthrough_result is passthrough
 
 
-# test combine investor frames skips missing columns and can return empty 테스트가 검증하는 시나리오를 설명한다.
+# test combine investor frames skips missing columns and can return empty Describes the scenario verified by the test.
 def test_combine_investor_frames_skips_missing_columns_and_can_return_empty() -> None:
     """
-    test combine investor frames skips missing columns and can return empty 시나리오를 검증한다.
+    test combine investor frames skips missing columns and can return empty Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     buy_frame = pd.DataFrame({"개인": [100]}, index=pd.DatetimeIndex(["2024-01-02"], name="날짜"))
     sell_frame = pd.DataFrame({"전체": [0]}, index=pd.DatetimeIndex(["2024-01-02"], name="날짜"))
@@ -1322,20 +1014,16 @@ def test_combine_investor_frames_skips_missing_columns_and_can_return_empty() ->
     assert frame.empty
 
 
-# test format date handles iso string and invalid value 테스트가 검증하는 시나리오를 설명한다.
+# test format date handles iso string and invalid value Describes the scenario verified by the test.
 def test_format_date_handles_iso_string_and_invalid_value() -> None:
     """
-    test format date handles iso string and invalid value 시나리오를 검증한다.
+    test format date handles iso string and invalid value Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     assert KrxAdapter._format_date("2024-01-02") == "2024-01-02"
     assert KrxAdapter._format_date("20240102") == "2024-01-02"
     assert KrxAdapter._format_date(pd.Timestamp("2024-01-02")) == "2024-01-02"
@@ -1344,40 +1032,32 @@ def test_format_date_handles_iso_string_and_invalid_value() -> None:
         _ = KrxAdapter._format_date(123)
 
 
-# test to python value formats timestamps 테스트가 검증하는 시나리오를 설명한다.
+# test to python value formats timestamps Describes the scenario verified by the test.
 def test_to_python_value_formats_timestamps() -> None:
     """
-    test to python value formats timestamps 시나리오를 검증한다.
+    test to python value formats timestamps Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
 
     assert adapter._to_python_value(pd.Timestamp("2024-01-02")) == "2024-01-02"
     assert adapter._to_python_value(1) == 1
 
 
-# test coerce numeric value handles numeric and invalid values 테스트가 검증하는 시나리오를 설명한다.
+# test coerce numeric value handles numeric and invalid values Describes the scenario verified by the test.
 def test_coerce_numeric_value_handles_numeric_and_invalid_values() -> None:
     """
-    test coerce numeric value handles numeric and invalid values 시나리오를 검증한다.
+    test coerce numeric value handles numeric and invalid values Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     assert KrxAdapter._coerce_numeric_value(1) == 1
     assert KrxAdapter._coerce_numeric_value(1.5) == 1.5
     assert KrxAdapter._coerce_numeric_value(True) == 1
@@ -1386,20 +1066,16 @@ def test_coerce_numeric_value_handles_numeric_and_invalid_values() -> None:
         _ = KrxAdapter._coerce_numeric_value("1")
 
 
-# test dispatch dataframe raises dataset not found for unknown handler 테스트가 검증하는 시나리오를 설명한다.
+# test dispatch dataframe raises dataset not found for unknown handler Describes the scenario verified by the test.
 def test_dispatch_dataframe_raises_dataset_not_found_for_unknown_handler() -> None:
     """
-    test dispatch dataframe raises dataset not found for unknown handler 시나리오를 검증한다.
+    test dispatch dataframe raises dataset not found for unknown handler Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _build_adapter()
     dataset = build_dataset_ref(
         "krx",
@@ -1416,37 +1092,28 @@ def test_dispatch_dataframe_raises_dataset_not_found_for_unknown_handler() -> No
         _ = adapter._dispatch_dataframe(dataset, Query(), {})
 
 
-# test load pykrx raises install hint when dependency missing 테스트가 검증하는 시나리오를 설명한다.
+# test load pykrx raises install hint when dependency missing Describes the scenario verified by the test.
 def test_load_pykrx_raises_install_hint_when_dependency_missing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """
-    test load pykrx raises install hint when dependency missing 시나리오를 검증한다.
+    test load pykrx raises install hint when dependency missing Validates the scenario described by the test name.
 
-    매개변수:
-        monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Input parameter.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _ExposedKrxAdapter(config=KPubDataConfig())
 
     def _raise_import_error() -> SimpleNamespace:
-        """
-        내부 헬퍼로서 raise import error 처리를 담당한다.
+        """_raise_import_error
 
-        반환값:
-            SimpleNamespace: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+Validates the scenario described by the test name.
+"""
         raise ImportError("pykrx is unavailable")
 
     monkeypatch.setattr(adapter, "_import_pykrx", _raise_import_error)
@@ -1455,39 +1122,27 @@ def test_load_pykrx_raises_install_hint_when_dependency_missing(
         _ = adapter.load_pykrx_for_test()
 
 
-# test load pykrx returns imported module 테스트가 검증하는 시나리오를 설명한다.
+# test load pykrx returns imported module Describes the scenario verified by the test.
 def test_load_pykrx_returns_imported_module(monkeypatch: pytest.MonkeyPatch) -> None:
     """
-    test load pykrx returns imported module 시나리오를 검증한다.
+    test load pykrx returns imported module Validates the scenario described by the test name.
 
-    매개변수:
-        monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Input parameter.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = _ExposedKrxAdapter(config=KPubDataConfig())
     pykrx_module = SimpleNamespace(stock=SimpleNamespace())
 
     def _import_module(name: str) -> SimpleNamespace:
-        """
-        내부 헬퍼로서 import module 처리를 담당한다.
+        """_import_module
 
-        매개변수:
-            name (str): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            SimpleNamespace: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+Validates the scenario described by the test name.
+"""
         assert name == "pykrx"
         return pykrx_module
 
@@ -1496,23 +1151,19 @@ def test_load_pykrx_returns_imported_module(monkeypatch: pytest.MonkeyPatch) -> 
     assert adapter.load_pykrx_for_test() is pykrx_module
 
 
-# test adapter is constructible without krx api key 테스트가 검증하는 시나리오를 설명한다.
+# test adapter is constructible without krx api key Describes the scenario verified by the test.
 def test_adapter_is_constructible_without_krx_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     """
-    test adapter is constructible without krx api key 시나리오를 검증한다.
+    test adapter is constructible without krx api key Validates the scenario described by the test name.
 
-    매개변수:
-        monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Input parameter.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     monkeypatch.delenv("KPUBDATA_KRX_API_KEY", raising=False)
 
     adapter = KrxAdapter(config=KPubDataConfig.from_env())
@@ -1521,23 +1172,19 @@ def test_adapter_is_constructible_without_krx_api_key(monkeypatch: pytest.Monkey
     assert adapter.requires_api_key is False
 
 
-# test adapter construction does not import pykrx 테스트가 검증하는 시나리오를 설명한다.
+# test adapter construction does not import pykrx Describes the scenario verified by the test.
 def test_adapter_construction_does_not_import_pykrx(monkeypatch: pytest.MonkeyPatch) -> None:
     """
-    test adapter construction does not import pykrx 시나리오를 검증한다.
+    test adapter construction does not import pykrx Validates the scenario described by the test name.
 
-    매개변수:
-        monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Input parameter.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     monkeypatch.delitem(sys.modules, "pykrx", raising=False)
 
     _ = KrxAdapter(config=KPubDataConfig())
@@ -1546,12 +1193,10 @@ def test_adapter_construction_does_not_import_pykrx(monkeypatch: pytest.MonkeyPa
 
 
 class TestCallRawRejectsUnknownOperations:
-    """``_ = operation`` 으로 인자를 버리면 오타가 조용히 통과한다.
+    """Tests for TestCallRawRejectsUnknownOperations.
 
-    호출자는 자기가 요청한 작업이 수행됐다고 믿지만, 실제로는 항상 같은 목록
-    조회가 돌아왔다. krx 는 pykrx 래퍼라 raw 작업이 하나뿐이니, 그 사실을
-    말해 주는 편이 맞다.
-    """
+This class groups related test cases and helpers for TestCallRawRejectsUnknownOperations.
+"""
 
     def test_an_unknown_operation_is_rejected(self) -> None:
         adapter = KrxAdapter()
@@ -1568,7 +1213,10 @@ class TestCallRawRejectsUnknownOperations:
             _ = adapter.call_raw(dataset, "typo", {})
 
     def test_an_empty_operation_is_still_accepted(self) -> None:
-        """이름을 생략한 호출은 예전과 같이 목록 조회로 동작한다."""
+        """test_an_empty_operation_is_still_accepted
+
+Validates the scenario described by the test name.
+"""
         adapter = KrxAdapter()
         dataset = adapter.get_dataset("kospi_index")
         _set_pykrx(adapter, get_index_ohlcv=lambda *_args: _kospi_index_frame())

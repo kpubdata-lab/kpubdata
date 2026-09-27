@@ -1,4 +1,4 @@
-"""특허청(KIPI) 어댑터 단위 테스트 (#223)."""
+"""KIPRIS (Patent Office) adapter unit tests (#223)."""
 
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ def _build_adapter(fixture_names: list[str]) -> tuple[KiprisAdapter, object]:
 
 
 def test_query_records_builds_kipi_url() -> None:
-    """patFamInfoSearchService URL 형상을 검증한다."""
+    """Verify patFamInfoSearchService URL shape."""
     adapter, transport = _build_adapter(["patent_family.json"])
     dataset = adapter.get_dataset("patent_family")
 
@@ -63,7 +63,7 @@ def test_query_records_builds_kipi_url() -> None:
 
 
 def test_query_records_missing_application_number_raises() -> None:
-    """필수 filter applicationNumber 누락 시 InvalidRequestError."""
+    """Missing required filter applicationNumber raises InvalidRequestError."""
     adapter, _ = _build_adapter(["patent_family.json"])
     dataset = adapter.get_dataset("patent_family")
 
@@ -72,11 +72,11 @@ def test_query_records_missing_application_number_raises() -> None:
     except InvalidRequestError as exc:
         assert "applicationNumber" in str(exc)
     else:
-        raise AssertionError("applicationNumber 누락이 예외로 나야 한다")
+        raise AssertionError("Missing applicationNumber should raise exception")
 
 
 def test_empty_items_returns_empty_batch() -> None:
-    """items가 빈 문자열인 정상 응답은 빈 배치로 처리된다."""
+    """When items is empty string, normal response returns empty batch."""
     adapter, _ = _build_adapter(["empty.json"])
     dataset = adapter.get_dataset("patent_family")
 
@@ -87,7 +87,7 @@ def test_empty_items_returns_empty_batch() -> None:
 
 
 def test_full_page_sets_next_page() -> None:
-    """totalCount가 없어 full-page 폴백으로 next_page를 계산한다."""
+    """next_page computed via full-page heuristic when totalCount absent."""
     adapter, _ = _build_adapter(["patent_family.json"])
     dataset = adapter.get_dataset("patent_family")
 
@@ -99,7 +99,7 @@ def test_full_page_sets_next_page() -> None:
 
 
 def test_call_raw_returns_full_envelope() -> None:
-    """call_raw가 response 엔벨로프 전체를 반환한다."""
+    """call_raw returns the complete response envelope."""
     adapter, _ = _build_adapter(["patent_family.json"])
     dataset = adapter.get_dataset("patent_family")
 

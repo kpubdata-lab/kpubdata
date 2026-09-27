@@ -1,4 +1,4 @@
-"""나이스(NEIS) 어댑터 단위 테스트 (#164)."""
+"""NEIS adapter unit tests (#164)."""
 
 from __future__ import annotations
 
@@ -135,9 +135,8 @@ def test_pagination_next_page_computed_from_total() -> None:
     assert batch.next_page == 2
 
 
-# test school info parses 테스트가 검증하는 시나리오를 설명한다.
 def test_school_info_parses_without_required_filters() -> None:
-    """학교기본정보는 필수 filter 없이 교육청 코드만으로 조회된다 (#218)."""
+    """School basic info is queried with just an education-office code — no required filters (#218)."""
     adapter, _ = _build_adapter(["school_info.json"])
     dataset = adapter.get_dataset("school_info")
 

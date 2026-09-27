@@ -1,7 +1,6 @@
-"""테스트 모듈.
+"""Test module.
 
-이 파일은 ``tests/unit/providers/datago/test_adapter_coverage.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
+This module defines tests and helpers for the surrounding test suite.
 """
 
 from __future__ import annotations
@@ -22,77 +21,64 @@ from kpubdata.transport.http import HttpTransport
 
 
 class FakeResponse:
-    """
-    FakeResponse 관련 역할을 캡슐화하는 클래스.
+    """Tests for FakeResponse.
 
-    이 클래스는 ``tests/unit/providers/datago/test_adapter_coverage.py`` 모듈 안에서 FakeResponse의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__.
-
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
+This class groups related test cases and helpers for FakeResponse.
+"""
 
     def __init__(self, data: bytes, content_type: str = "application/json") -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize with payload.
 
-        매개변수:
-            data (bytes): 호출자가 제공하는 입력 값이다.
-            content_type (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            data (bytes): Input parameter.
+            content_type (str): Input parameter.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        Raises:
+            Exceptions propagated."""
         self.headers: dict[str, str] = {"content-type": content_type}
         self.content: bytes = data
         self.text: str = data.decode("utf-8")
 
 
 class FakeTransport:
-    """
-    FakeTransport 관련 역할을 캡슐화하는 클래스.
+    """Tests for FakeTransport.
 
-    이 클래스는 ``tests/unit/providers/datago/test_adapter_coverage.py`` 모듈 안에서 FakeTransport의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__, request.
-
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
+This class groups related test cases and helpers for FakeTransport.
+"""
 
     def __init__(self, responses: list[FakeResponse]) -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize with payload.
 
-        매개변수:
-            responses (list[FakeResponse]): 호출자가 제공하는 입력 값이다.
+        Args:
+            responses (list[FakeResponse]): Input parameter.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        Raises:
+            Exceptions propagated."""
         self._responses = list(responses)
         self.calls: list[dict[str, object]] = []
 
     def request(self, method: str, url: str, **kwargs: object) -> FakeResponse:
         """
-        request 동작을 수행한다.
+        Execute a mock HTTP request.
 
-        매개변수:
-            method (str): 호출자가 제공하는 입력 값이다.
-            url (str): 호출자가 제공하는 입력 값이다.
-            **kwargs (object): 호출자가 제공하는 입력 값이다.
+        Args:
+            method (str): Input parameter.
+            url (str): Input parameter.
+            **kwargs (object): Input parameter.
 
-        반환값:
-            FakeResponse: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            FakeResponse: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        Raises:
+            Exceptions propagated."""
         self.calls.append({"method": method, "url": url, **kwargs})
         if not self._responses:
             raise AssertionError("No responses queued")
@@ -100,18 +86,10 @@ class FakeTransport:
 
 
 def _dataset(raw_metadata: dict[str, object]) -> DatasetRef:
-    """
-    내부 헬퍼로서 dataset 처리를 담당한다.
+    """_dataset
 
-    매개변수:
-        raw_metadata (dict[str, object]): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        DatasetRef: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-    """
+Validates the scenario described by the test name.
+"""
     return DatasetRef(
         id="datago.test",
         provider="datago",
@@ -127,19 +105,8 @@ def _adapter(
     transport: FakeTransport,
     dataset: DatasetRef,
 ) -> DataGoAdapter:
-    """
-    내부 헬퍼로서 adapter 처리를 담당한다.
-
-    매개변수:
-        transport (FakeTransport): 호출자가 제공하는 입력 값이다.
-        dataset (DatasetRef): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        DataGoAdapter: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-    """
+    """Validates the scenario described by the test name.
+"""
     return DataGoAdapter(
         config=KPubDataConfig(provider_keys={"datago": "test-key"}),
         transport=cast(HttpTransport, cast(object, transport)),
@@ -148,20 +115,10 @@ def _adapter(
 
 
 def _ok_payload(*, items: object, total_count: object, num_of_rows: object) -> dict[str, object]:
-    """
-    내부 헬퍼로서 ok payload 처리를 담당한다.
+    """_ok_payload
 
-    매개변수:
-        items (object): 호출자가 제공하는 입력 값이다.
-        total_count (object): 호출자가 제공하는 입력 값이다.
-        num_of_rows (object): 호출자가 제공하는 입력 값이다.
-
-    반환값:
-        dict[str, object]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-    """
+Validates the scenario described by the test name.
+"""
     return {
         "response": {
             "header": {"resultCode": "00", "resultMsg": "NORMAL SERVICE."},
@@ -175,40 +132,32 @@ def _ok_payload(*, items: object, total_count: object, num_of_rows: object) -> d
     }
 
 
-# test name property returns datago 테스트가 검증하는 시나리오를 설명한다.
+# test name property returns datago Describes the scenario verified by the test.
 def test_name_property_returns_datago() -> None:
     """
-    test name property returns datago 시나리오를 검증한다.
+    test name property returns datago Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     assert DataGoAdapter(catalogue=[]).name == "datago"
 
 
-# test query records sets next page for full page with remaining total 테스트가 검증하는 시나리오를 설명한다.
+# test query records sets next page for full page with remaining total Describes the scenario verified by the test.
 def test_query_records_sets_next_page_for_full_page_with_remaining_total(monkeypatch) -> None:
     """
-    test query records sets next page for full page with remaining total 시나리오를 검증한다.
+    test query records sets next page for full page with remaining total Validates the scenario described by the test name.
 
-    매개변수:
-        monkeypatch (object): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (object): Input parameter.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     import kpubdata.providers.datago.adapter as adapter_module
 
     payload = _ok_payload(items=[{"id": 1}, {"id": 2}], total_count=5, num_of_rows=2)
@@ -225,23 +174,19 @@ def test_query_records_sets_next_page_for_full_page_with_remaining_total(monkeyp
     assert batch.next_page == 2
 
 
-# test query records stops when page size times page reaches total 테스트가 검증하는 시나리오를 설명한다.
+# test query records stops when page size times page reaches total Describes the scenario verified by the test.
 def test_query_records_stops_when_page_size_times_page_reaches_total(monkeypatch) -> None:
     """
-    test query records stops when page size times page reaches total 시나리오를 검증한다.
+    test query records stops when page size times page reaches total Validates the scenario described by the test name.
 
-    매개변수:
-        monkeypatch (object): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (object): Input parameter.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     import kpubdata.providers.datago.adapter as adapter_module
 
     payload = _ok_payload(items=[{"id": 1}, {"id": 2}], total_count=2, num_of_rows=2)
@@ -258,20 +203,16 @@ def test_query_records_stops_when_page_size_times_page_reaches_total(monkeypatch
     assert batch.next_page is None
 
 
-# test get schema returns none when all fields are filtered out 테스트가 검증하는 시나리오를 설명한다.
+# test get schema returns none when all fields are filtered out Describes the scenario verified by the test.
 def test_get_schema_returns_none_when_all_fields_are_filtered_out() -> None:
     """
-    test get schema returns none when all fields are filtered out 시나리오를 검증한다.
+    test get schema returns none when all fields are filtered out Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     dataset = _dataset(
         {
             "base_url": "https://example.test",
@@ -283,62 +224,50 @@ def test_get_schema_returns_none_when_all_fields_are_filtered_out() -> None:
     assert adapter.get_schema(dataset) is None
 
 
-# test build request url raises when base url missing 테스트가 검증하는 시나리오를 설명한다.
+# test build request url raises when base url missing Describes the scenario verified by the test.
 def test_build_request_url_raises_when_base_url_missing() -> None:
     """
-    test build request url raises when base url missing 시나리오를 검증한다.
+    test build request url raises when base url missing Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = DataGoAdapter(catalogue=[])
     with pytest.raises(ProviderResponseError, match="missing base_url"):
         _ = adapter._build_request_url(_dataset({}))
 
 
-# test build request url returns base url when operation missing 테스트가 검증하는 시나리오를 설명한다.
+# test build request url returns base url when operation missing Describes the scenario verified by the test.
 def test_build_request_url_returns_base_url_when_operation_missing() -> None:
     """
-    test build request url returns base url when operation missing 시나리오를 검증한다.
+    test build request url returns base url when operation missing Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     adapter = DataGoAdapter(catalogue=[])
     dataset = _dataset({"base_url": "https://example.test/api"})
 
     assert adapter._build_request_url(dataset) == "https://example.test/api"
 
 
-# test request and decode falls back to json for unknown content type 테스트가 검증하는 시나리오를 설명한다.
+# test request and decode falls back to json for unknown content type Describes the scenario verified by the test.
 def test_request_and_decode_falls_back_to_json_for_unknown_content_type(monkeypatch) -> None:
     """
-    test request and decode falls back to json for unknown content type 시나리오를 검증한다.
+    test request and decode falls back to json for unknown content type Validates the scenario described by the test name.
 
-    매개변수:
-        monkeypatch (object): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (object): Input parameter.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     import kpubdata.providers.datago.adapter as adapter_module
 
     transport = FakeTransport([FakeResponse(b"ignored")])
@@ -353,18 +282,10 @@ def test_request_and_decode_falls_back_to_json_for_unknown_content_type(monkeypa
     monkeypatch.setattr(adapter_module, "detect_content_type", lambda _resp: "unknown")
 
     def _decode_json(_content: bytes) -> dict[str, object]:
-        """
-        내부 헬퍼로서 decode json 처리를 담당한다.
+        """_decode_json
 
-        매개변수:
-            _content (bytes): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            dict[str, object]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+Validates the scenario described by the test name.
+"""
         called["decode_json"] = True
         return {"response": {}}
 
@@ -375,23 +296,19 @@ def test_request_and_decode_falls_back_to_json_for_unknown_content_type(monkeypa
     assert decoded == {"response": {}}
 
 
-# test request and decode raises parse error when decoded payload not object 테스트가 검증하는 시나리오를 설명한다.
+# test request and decode raises parse error when decoded payload not object Describes the scenario verified by the test.
 def test_request_and_decode_raises_parse_error_when_decoded_payload_not_object(monkeypatch) -> None:
     """
-    test request and decode raises parse error when decoded payload not object 시나리오를 검증한다.
+    test request and decode raises parse error when decoded payload not object Validates the scenario described by the test name.
 
-    매개변수:
-        monkeypatch (object): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (object): Input parameter.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     import kpubdata.providers.datago.adapter as adapter_module
 
     transport = FakeTransport([FakeResponse(b"[]")])
@@ -408,23 +325,19 @@ def test_request_and_decode_raises_parse_error_when_decoded_payload_not_object(m
         _ = adapter._request_and_decode("https://example.test", {})
 
 
-# test request and decode raises parse error when decode fails 테스트가 검증하는 시나리오를 설명한다.
+# test request and decode raises parse error when decode fails Describes the scenario verified by the test.
 def test_request_and_decode_raises_parse_error_when_decode_fails(monkeypatch) -> None:
     """
-    test request and decode raises parse error when decode fails 시나리오를 검증한다.
+    test request and decode raises parse error when decode fails Validates the scenario described by the test name.
 
-    매개변수:
-        monkeypatch (object): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (object): Input parameter.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     import kpubdata.providers.datago.adapter as adapter_module
 
     transport = FakeTransport([FakeResponse(b"invalid")])
@@ -437,18 +350,10 @@ def test_request_and_decode_raises_parse_error_when_decode_fails(monkeypatch) ->
     monkeypatch.setattr(adapter_module, "detect_content_type", lambda _resp: "unknown")
 
     def _raises_parse_error(_content: bytes) -> dict[str, object]:
-        """
-        내부 헬퍼로서 raises parse error 처리를 담당한다.
+        """_raises_parse_error
 
-        매개변수:
-            _content (bytes): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            dict[str, object]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+Validates the scenario described by the test name.
+"""
         raise ParseError("bad payload")
 
     monkeypatch.setattr(adapter_module, "decode_json", _raises_parse_error)
@@ -457,100 +362,80 @@ def test_request_and_decode_raises_parse_error_when_decode_fails(monkeypatch) ->
         _ = adapter._request_and_decode("https://example.test", {})
 
 
-# test validate envelope raises when response missing 테스트가 검증하는 시나리오를 설명한다.
+# test validate envelope raises when response missing Describes the scenario verified by the test.
 def test_validate_envelope_raises_when_response_missing() -> None:
     """
-    test validate envelope raises when response missing 시나리오를 검증한다.
+    test validate envelope raises when response missing Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     parser = DataGoEnvelopeParser()
 
     with pytest.raises(ProviderResponseError, match="missing response"):
         _ = parser.parse({})
 
 
-# test validate envelope raises when header missing 테스트가 검증하는 시나리오를 설명한다.
+# test validate envelope raises when header missing Describes the scenario verified by the test.
 def test_validate_envelope_raises_when_header_missing() -> None:
     """
-    test validate envelope raises when header missing 시나리오를 검증한다.
+    test validate envelope raises when header missing Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     parser = DataGoEnvelopeParser()
 
     with pytest.raises(ProviderResponseError, match="missing header"):
         _ = parser.parse({"response": {"body": {}}})
 
 
-# test validate envelope raises when result code not string 테스트가 검증하는 시나리오를 설명한다.
+# test validate envelope raises when result code not string Describes the scenario verified by the test.
 def test_validate_envelope_raises_when_result_code_not_string() -> None:
     """
-    test validate envelope raises when result code not string 시나리오를 검증한다.
+    test validate envelope raises when result code not string Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     parser = DataGoEnvelopeParser()
 
     with pytest.raises(ProviderResponseError, match="missing resultCode"):
         _ = parser.parse({"response": {"header": {"resultCode": 0}, "body": {}}})
 
 
-# test raise for result code unknown code raises provider response error 테스트가 검증하는 시나리오를 설명한다.
+# test raise for result code unknown code raises provider response error Describes the scenario verified by the test.
 def test_raise_for_result_code_unknown_code_raises_provider_response_error() -> None:
     """
-    test raise for result code unknown code raises provider response error 시나리오를 검증한다.
+    test raise for result code unknown code raises provider response error Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     parser = DataGoEnvelopeParser()
 
     with pytest.raises(ProviderResponseError):
         parser._raise_for_result_code("99", "unknown code", "datago.test")
 
 
-# test normalize items accepts direct list wrapper 테스트가 검증하는 시나리오를 설명한다.
+# test normalize items accepts direct list wrapper Describes the scenario verified by the test.
 def test_normalize_items_accepts_direct_list_wrapper() -> None:
     """
-    test normalize items accepts direct list wrapper 시나리오를 검증한다.
+    test normalize items accepts direct list wrapper Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     parser = DataGoEnvelopeParser()
 
     normalized = parser.normalize_items([{"id": 1}, "x", {"id": 2}])
@@ -558,160 +443,130 @@ def test_normalize_items_accepts_direct_list_wrapper() -> None:
     assert normalized == [{"id": 1}, {"id": 2}]
 
 
-# test normalize items returns empty for unsupported wrapper 테스트가 검증하는 시나리오를 설명한다.
+# test normalize items returns empty for unsupported wrapper Describes the scenario verified by the test.
 def test_normalize_items_returns_empty_for_unsupported_wrapper() -> None:
     """
-    test normalize items returns empty for unsupported wrapper 시나리오를 검증한다.
+    test normalize items returns empty for unsupported wrapper Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     parser = DataGoEnvelopeParser()
     assert parser.normalize_items("not-a-list-or-dict") == []
 
 
-# test coerce int returns default for non numeric string 테스트가 검증하는 시나리오를 설명한다.
+# test coerce int returns default for non numeric string Describes the scenario verified by the test.
 def test_coerce_int_returns_default_for_non_numeric_string() -> None:
     """
-    test coerce int returns default for non numeric string 시나리오를 검증한다.
+    test coerce int returns default for non numeric string Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     assert coerce_int("not-a-number", 7) == 7
 
 
-# test coerce int returns default for non string non int 테스트가 검증하는 시나리오를 설명한다.
+# test coerce int returns default for non string non int Describes the scenario verified by the test.
 def test_coerce_int_returns_default_for_non_string_non_int() -> None:
     """
-    test coerce int returns default for non string non int 시나리오를 검증한다.
+    test coerce int returns default for non string non int Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     assert coerce_int(3.14, 11) == 11
 
 
 class _FakeCatalogueFile:
-    """
-    _FakeCatalogueFile 관련 역할을 캡슐화하는 클래스.
+    """Tests for _FakeCatalogueFile.
 
-    이 클래스는 ``tests/unit/providers/datago/test_adapter_coverage.py`` 모듈 안에서 _FakeCatalogueFile의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__, read_text.
-
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
+This class groups related test cases and helpers for _FakeCatalogueFile.
+"""
 
     def __init__(self, text: str) -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize with payload.
 
-        매개변수:
-            text (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            text (str): Input parameter.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        Raises:
+            Exceptions propagated."""
         self._text = text
 
     def read_text(self, encoding: str = "utf-8") -> str:
         """
-        read text 동작을 수행한다.
+        Perform read text operation.
 
-        매개변수:
-            encoding (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            encoding (str): Input parameter.
 
-        반환값:
-            str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            str: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        Raises:
+            Exceptions propagated."""
         del encoding
         return self._text
 
 
 class _FakePackageFiles:
-    """
-    _FakePackageFiles 관련 역할을 캡슐화하는 클래스.
+    """Tests for _FakePackageFiles.
 
-    이 클래스는 ``tests/unit/providers/datago/test_adapter_coverage.py`` 모듈 안에서 _FakePackageFiles의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__, joinpath.
-
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
+This class groups related test cases and helpers for _FakePackageFiles.
+"""
 
     def __init__(self, text: str) -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize with payload.
 
-        매개변수:
-            text (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            text (str): Input parameter.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        Raises:
+            Exceptions propagated."""
         self._text = text
 
     def joinpath(self, _name: str) -> _FakeCatalogueFile:
         """
-        joinpath 동작을 수행한다.
+        Perform joinpath operation.
 
-        매개변수:
-            _name (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            _name (str): Input parameter.
 
-        반환값:
-            _FakeCatalogueFile: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            _FakeCatalogueFile: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        Raises:
+            Exceptions propagated."""
         return _FakeCatalogueFile(self._text)
 
 
-# test load default catalogue raises when top level json not list 테스트가 검증하는 시나리오를 설명한다.
+# test load default catalogue raises when top level json not list Describes the scenario verified by the test.
 def test_load_default_catalogue_raises_when_top_level_json_not_list(monkeypatch) -> None:
     """
-    test load default catalogue raises when top level json not list 시나리오를 검증한다.
+    test load default catalogue raises when top level json not list Validates the scenario described by the test name.
 
-    매개변수:
-        monkeypatch (object): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (object): Input parameter.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     import kpubdata.providers._common as common_module
 
     monkeypatch.setattr(common_module, "files", lambda _pkg: _FakePackageFiles("{}"))
@@ -720,23 +575,19 @@ def test_load_default_catalogue_raises_when_top_level_json_not_list(monkeypatch)
         _ = DataGoAdapter._load_default_catalogue()
 
 
-# test load default catalogue raises when entry not dict 테스트가 검증하는 시나리오를 설명한다.
+# test load default catalogue raises when entry not dict Describes the scenario verified by the test.
 def test_load_default_catalogue_raises_when_entry_not_dict(monkeypatch) -> None:
     """
-    test load default catalogue raises when entry not dict 시나리오를 검증한다.
+    test load default catalogue raises when entry not dict Validates the scenario described by the test name.
 
-    매개변수:
-        monkeypatch (object): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (object): Input parameter.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     import kpubdata.providers._common as common_module
 
     monkeypatch.setattr(common_module, "files", lambda _pkg: _FakePackageFiles("[1]"))
@@ -745,23 +596,19 @@ def test_load_default_catalogue_raises_when_entry_not_dict(monkeypatch) -> None:
         _ = DataGoAdapter._load_default_catalogue()
 
 
-# test load default catalogue raises when entry key not string 테스트가 검증하는 시나리오를 설명한다.
+# test load default catalogue raises when entry key not string Describes the scenario verified by the test.
 def test_load_default_catalogue_raises_when_entry_key_not_string(monkeypatch) -> None:
     """
-    test load default catalogue raises when entry key not string 시나리오를 검증한다.
+    test load default catalogue raises when entry key not string Validates the scenario described by the test name.
 
-    매개변수:
-        monkeypatch (object): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (object): Input parameter.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     import kpubdata.providers._common as common_module
 
     monkeypatch.setattr(common_module, "files", lambda _pkg: _FakePackageFiles("[]"))
@@ -771,20 +618,16 @@ def test_load_default_catalogue_raises_when_entry_key_not_string(monkeypatch) ->
         _ = DataGoAdapter._load_default_catalogue()
 
 
-# test build dataset ref parses string max page size 테스트가 검증하는 시나리오를 설명한다.
+# test build dataset ref parses string max page size Describes the scenario verified by the test.
 def test_build_dataset_ref_parses_string_max_page_size() -> None:
     """
-    test build dataset ref parses string max page size 시나리오를 검증한다.
+    test build dataset ref parses string max page size Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     dataset = build_dataset_ref(
         "datago",
         {
@@ -800,20 +643,16 @@ def test_build_dataset_ref_parses_string_max_page_size() -> None:
     assert dataset.query_support.max_page_size == 250
 
 
-# test build dataset ref raises for invalid max page size type 테스트가 검증하는 시나리오를 설명한다.
+# test build dataset ref raises for invalid max page size type Describes the scenario verified by the test.
 def test_build_dataset_ref_raises_for_invalid_max_page_size_type() -> None:
     """
-    test build dataset ref raises for invalid max page size type 시나리오를 검증한다.
+    test build dataset ref raises for invalid max page size type Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     with pytest.raises(ConfigError, match="max_page_size must be int-like"):
         _ = build_dataset_ref(
             "datago",
@@ -826,19 +665,15 @@ def test_build_dataset_ref_raises_for_invalid_max_page_size_type() -> None:
         )
 
 
-# test require string field raises when field missing 테스트가 검증하는 시나리오를 설명한다.
+# test require string field raises when field missing Describes the scenario verified by the test.
 def test_require_string_field_raises_when_field_missing() -> None:
     """
-    test require string field raises when field missing 시나리오를 검증한다.
+    test require string field raises when field missing Validates the scenario described by the test name.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-    """
+    Raises:
+        Exceptions propagated."""
     with pytest.raises(ConfigError, match="missing non-empty string field"):
         _ = require_string_field({}, "dataset_key", "datago")

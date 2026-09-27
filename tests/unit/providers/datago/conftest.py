@@ -1,7 +1,9 @@
-"""테스트 모듈.
+"""Test module.
 
-이 파일은 ``tests/unit/providers/datago/conftest.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
+This file defines test scenarios and helper objects for the
+tests/unit/providers/datago/conftest.py path. It validates core flows,
+exceptions, and edge conditions to prevent regressions and verify the
+public contract.
 """
 
 from __future__ import annotations
@@ -20,33 +22,32 @@ from kpubdata.transport.http import HttpTransport
 
 
 def fixture_path(name: str) -> Path:
-    """
-    fixture path 동작을 수행한다.
+    """Return the fixture file path.
 
-    매개변수:
-        name (str): 호출자가 제공하는 입력 값이다.
+    Args:
+        name (str): Fixture file name.
 
-    반환값:
-        Path: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        Path: Resolved path to the fixture file.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Any exceptions raised by underlying dependencies are propagated.
     """
     return Path(__file__).resolve().parents[3] / "fixtures" / "datago" / name
 
 
 def load_json_fixture(name: str) -> dict[str, object]:
-    """
-    load json fixture 동작을 수행한다.
+    """Load JSON fixture file and return as dict.
 
-    매개변수:
-        name (str): 호출자가 제공하는 입력 값이다.
+    Args:
+        name (str): Fixture file name.
 
-    반환값:
-        dict[str, object]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        dict[str, object]: Parsed JSON object from fixture.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        ValueError: If fixture does not contain a JSON object.
+        Any exceptions raised by underlying dependencies are propagated.
     """
     payload = cast(object, json.loads(fixture_path(name).read_text(encoding="utf-8")))
     if isinstance(payload, dict):
@@ -55,45 +56,33 @@ def load_json_fixture(name: str) -> dict[str, object]:
 
 
 def load_fixture_bytes(name: str) -> bytes:
-    """
-    load fixture bytes 동작을 수행한다.
+    """Load fixture file as bytes.
 
-    매개변수:
-        name (str): 호출자가 제공하는 입력 값이다.
+    Args:
+        name (str): Fixture file name.
 
-    반환값:
-        bytes: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        bytes: Raw bytes from fixture file.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Any exceptions raised by underlying dependencies are propagated.
     """
     return fixture_path(name).read_bytes()
 
 
 class FakeResponse:
-    """
-    FakeResponse 관련 역할을 캡슐화하는 클래스.
+    """Mock HTTP response object for testing.
 
-    이 클래스는 ``tests/unit/providers/datago/conftest.py`` 모듈 안에서 FakeResponse의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__.
-
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    This class simulates an HTTP response with headers and content for
+    use in unit tests without making actual network requests.
     """
 
     def __init__(self, data: bytes, content_type: str = "application/json") -> None:
-        """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        """Initialize FakeResponse with data and content type.
 
-        매개변수:
-            data (bytes): 호출자가 제공하는 입력 값이다.
-            content_type (str): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Args:
+            data (bytes): Response body as bytes.
+            content_type (str): Content-Type header value.
         """
         self.headers: dict[str, str] = {"content-type": content_type}
         self.content: bytes = data
@@ -101,29 +90,18 @@ class FakeResponse:
 
 
 class FixtureTransport:
-    """
-    FixtureTransport 관련 역할을 캡슐화하는 클래스.
+    """Mock HTTP transport for testing with fixture responses.
 
-    이 클래스는 ``tests/unit/providers/datago/conftest.py`` 모듈 안에서 FixtureTransport의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__, request.
-
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Stores a queue of fixture-based responses and records all requests
+    for assertion in tests.
     """
 
     def __init__(self, fixture_names: list[str], content_type: str = "application/json") -> None:
-        """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        """Initialize FixtureTransport with fixture names.
 
-        매개변수:
-            fixture_names (list[str]): 호출자가 제공하는 입력 값이다.
-            content_type (str): 호출자가 제공하는 입력 값이다.
-
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Args:
+            fixture_names (list[str]): List of fixture file names.
+            content_type (str): Content-Type header for all responses.
         """
         self._responses: list[FakeResponse] = [
             FakeResponse(load_fixture_bytes(name), content_type=content_type)
@@ -132,19 +110,18 @@ class FixtureTransport:
         self.calls: list[dict[str, object]] = []
 
     def request(self, method: str, url: str, **kwargs: object) -> FakeResponse:
-        """
-        request 동작을 수행한다.
+        """Execute a mocked HTTP request.
 
-        매개변수:
-            method (str): 호출자가 제공하는 입력 값이다.
-            url (str): 호출자가 제공하는 입력 값이다.
-            **kwargs (object): 호출자가 제공하는 입력 값이다.
+        Args:
+            method (str): HTTP method name.
+            url (str): Request URL.
+            **kwargs (object): Additional request parameters.
 
-        반환값:
-            FakeResponse: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            FakeResponse: Next fixture response from the queue.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            AssertionError: If no fixture responses remain.
         """
         self.calls.append({"method": method, "url": url, **kwargs})
         if not self._responses:
@@ -156,32 +133,24 @@ class FixtureTransport:
 def configured_adapter() -> Callable[
     [list[str], str], tuple[DataGoAdapter, DatasetRef, FixtureTransport]
 ]:
-    """
-    configured adapter 동작을 수행한다.
+    """Factory fixture providing a pre-configured DataGoAdapter instance.
 
-    반환값:
-        Callable[[list[str], str], tuple[DataGoAdapter, DatasetRef, FixtureTransport]]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Returns:
+        Callable: A callable that builds an adapter with given fixtures.
     """
 
     def _build(
         fixture_names: list[str],
         content_type: str = "application/json",
     ) -> tuple[DataGoAdapter, DatasetRef, FixtureTransport]:
-        """
-        내부 헬퍼로서 build 처리를 담당한다.
+        """Build adapter with fixture transport.
 
-        매개변수:
-            fixture_names (list[str]): 호출자가 제공하는 입력 값이다.
-            content_type (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            fixture_names (list[str]): List of fixture file names.
+            content_type (str): Content-Type for all responses.
 
-        반환값:
-            tuple[DataGoAdapter, DatasetRef, FixtureTransport]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
-
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Returns:
+            tuple: (adapter, dataset, transport) triple.
         """
         transport = FixtureTransport(fixture_names=fixture_names, content_type=content_type)
         config = KPubDataConfig(provider_keys={"datago": "test-key"})

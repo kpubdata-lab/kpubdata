@@ -1,8 +1,9 @@
-"""테스트 모듈.
+"""Test module.
 
-이 파일은 ``tests/unit/providers/datago/test_adapter.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
-"""
+This file defines test scenarios and helper objects for the
+tests/unit/providers/datago/test_adapter.py path. It validates core flows,
+exceptions, and edge conditions to prevent regressions and verify the
+public contract."""
 
 from __future__ import annotations
 
@@ -40,77 +41,64 @@ REAL_ESTATE_DATASET_KEYS = [
 
 
 class FakeResponse:
-    """
-    FakeResponse 관련 역할을 캡슐화하는 클래스.
+    """Tests for FakeResponse.
 
-    이 클래스는 ``tests/unit/providers/datago/test_adapter.py`` 모듈 안에서 FakeResponse의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__.
-
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
+This class groups related test cases and helpers for FakeResponse.
+"""
 
     def __init__(self, payload: object, content_type: str = "application/json") -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize with payload.
 
-        매개변수:
-            payload (object): 호출자가 제공하는 입력 값이다.
-            content_type (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            payload (object): Input parameter.
+            content_type (str): Input parameter.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        Raises:
+            Exceptions propagated."""
         self.headers: dict[str, str] = {"content-type": content_type}
         self.text: str = json.dumps(payload)
         self.content: bytes = self.text.encode()
 
 
 class FakeTransport:
-    """
-    FakeTransport 관련 역할을 캡슐화하는 클래스.
+    """Tests for FakeTransport.
 
-    이 클래스는 ``tests/unit/providers/datago/test_adapter.py`` 모듈 안에서 FakeTransport의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__, request.
-
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
+This class groups related test cases and helpers for FakeTransport.
+"""
 
     def __init__(self, responses: list[FakeResponse]) -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize with payload.
 
-        매개변수:
-            responses (list[FakeResponse]): 호출자가 제공하는 입력 값이다.
+        Args:
+            responses (list[FakeResponse]): Input parameter.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        Raises:
+            Exceptions propagated."""
         self._responses: list[FakeResponse] = list(responses)
         self.calls: list[dict[str, object]] = []
 
     def request(self, method: str, url: str, **kwargs: object) -> FakeResponse:
         """
-        request 동작을 수행한다.
+        Execute a mock HTTP request.
 
-        매개변수:
-            method (str): 호출자가 제공하는 입력 값이다.
-            url (str): 호출자가 제공하는 입력 값이다.
-            **kwargs (object): 호출자가 제공하는 입력 값이다.
+        Args:
+            method (str): Input parameter.
+            url (str): Input parameter.
+            **kwargs (object): Input parameter.
 
-        반환값:
-            FakeResponse: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            FakeResponse: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-        """
+        Raises:
+            Exceptions propagated."""
         self.calls.append({"method": method, "url": url, **kwargs})
         return self._responses.pop(0)
 
@@ -123,20 +111,19 @@ def _success_payload(
     page_no: object,
 ) -> dict[str, object]:
     """
-    내부 헬퍼로서 success payload 처리를 담당한다.
+    Build success response payload.
 
-    매개변수:
-        items (object): 호출자가 제공하는 입력 값이다.
-        total_count (object): 호출자가 제공하는 입력 값이다.
-        num_of_rows (object): 호출자가 제공하는 입력 값이다.
-        page_no (object): 호출자가 제공하는 입력 값이다.
+    Args:
+        items (object): Input parameter.
+        total_count (object): Input parameter.
+        num_of_rows (object): Input parameter.
+        page_no (object): Input parameter.
 
-    반환값:
-        dict[str, object]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        dict[str, object]: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-    """
+    Raises:
+        Exceptions propagated."""
     return {
         "response": {
             "header": {"resultCode": "00", "resultMsg": "NORMAL SERVICE."},
@@ -152,18 +139,17 @@ def _success_payload(
 
 def _error_payload(code: str, msg: str = "ERROR") -> dict[str, object]:
     """
-    내부 헬퍼로서 error payload 처리를 담당한다.
+    Build error response payload.
 
-    매개변수:
-        code (str): 호출자가 제공하는 입력 값이다.
-        msg (str): 호출자가 제공하는 입력 값이다.
+    Args:
+        code (str): Input parameter.
+        msg (str): Input parameter.
 
-    반환값:
-        dict[str, object]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        dict[str, object]: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-    """
+    Raises:
+        Exceptions propagated."""
     return {
         "response": {
             "header": {"resultCode": code, "resultMsg": msg},
@@ -176,17 +162,16 @@ def _build_adapter_with_transport(
     responses: list[FakeResponse],
 ) -> tuple[DataGoAdapter, DatasetRef, FakeTransport]:
     """
-    내부 헬퍼로서 build adapter with transport 처리를 담당한다.
+    Build adapter with transport.
 
-    매개변수:
-        responses (list[FakeResponse]): 호출자가 제공하는 입력 값이다.
+    Args:
+        responses (list[FakeResponse]): Input parameter.
 
-    반환값:
-        tuple[DataGoAdapter, DatasetRef, FakeTransport]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        tuple[DataGoAdapter, DatasetRef, FakeTransport]: Result.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-    """
+    Raises:
+        Exceptions propagated."""
     transport = FakeTransport(responses)
     config = KPubDataConfig(provider_keys={"datago": "test-key"})
     adapter = DataGoAdapter(
@@ -198,15 +183,10 @@ def _build_adapter_with_transport(
 
 
 class AdapterFactory(Protocol):
-    """
-    AdapterFactory 관련 역할을 캡슐화하는 클래스.
+    """Tests for AdapterFactory.
 
-    이 클래스는 ``tests/unit/providers/datago/test_adapter.py`` 모듈 안에서 AdapterFactory의 상태와 동작을 함께 관리한다.
-    주요 메서드: __call__.
-
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
+This class groups related test cases and helpers for AdapterFactory.
+"""
 
     def __call__(
         self,
@@ -216,50 +196,37 @@ class AdapterFactory(Protocol):
 
 
 class TestDataGoAdapterDiscovery:
-    """
-    TestDataGoAdapterDiscovery 관련 역할을 캡슐화하는 클래스.
+    """Tests for TestDataGoAdapterDiscovery.
 
-    이 클래스는 ``tests/unit/providers/datago/test_adapter.py`` 모듈 안에서 TestDataGoAdapterDiscovery의 상태와 동작을 함께 관리한다.
-    주요 메서드: test_default_catalogue_loads, test_list_datasets_returns_copy, test_list_datasets_all_datago_provider, test_list_datasets_ids_prefixed, test_get_dataset_found.
+This class groups related test cases and helpers for TestDataGoAdapterDiscovery.
+"""
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
-
-    # test default catalogue loads 테스트가 검증하는 시나리오를 설명한다.
+    # test default catalogue loads Describes the scenario verified by the test.
     def test_default_catalogue_loads(self) -> None:
         """
-        test default catalogue loads 시나리오를 검증한다.
+        Verify default catalogue loads.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter = DataGoAdapter()
 
         datasets = adapter.list_datasets()
         assert datasets
         assert all(isinstance(dataset, DatasetRef) for dataset in datasets)
 
-    # test list datasets returns copy 테스트가 검증하는 시나리오를 설명한다.
+    # test list datasets returns copy Describes the scenario verified by the test.
     def test_list_datasets_returns_copy(self) -> None:
         """
-        test list datasets returns copy 시나리오를 검증한다.
+        Verify list_datasets returns copy.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter = DataGoAdapter()
 
         first = adapter.list_datasets()
@@ -268,97 +235,77 @@ class TestDataGoAdapterDiscovery:
         assert first == second
         assert first is not second
 
-    # test list datasets all datago provider 테스트가 검증하는 시나리오를 설명한다.
+    # test list datasets all datago provider Describes the scenario verified by the test.
     def test_list_datasets_all_datago_provider(self) -> None:
         """
-        test list datasets all datago provider 시나리오를 검증한다.
+        Verify all have datago provider.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter = DataGoAdapter()
 
         datasets = adapter.list_datasets()
         assert all(dataset.provider == "datago" for dataset in datasets)
 
-    # test list datasets ids prefixed 테스트가 검증하는 시나리오를 설명한다.
+    # test list datasets ids prefixed Describes the scenario verified by the test.
     def test_list_datasets_ids_prefixed(self) -> None:
         """
-        test list datasets ids prefixed 시나리오를 검증한다.
+        Verify IDs prefixed.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter = DataGoAdapter()
 
         datasets = adapter.list_datasets()
         assert all(dataset.id.startswith("datago.") for dataset in datasets)
 
-    # test get dataset found 테스트가 검증하는 시나리오를 설명한다.
+    # test get dataset found Describes the scenario verified by the test.
     def test_get_dataset_found(self) -> None:
         """
-        test get dataset found 시나리오를 검증한다.
+        Verify get_dataset returns dataset.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter = DataGoAdapter()
 
         dataset = adapter.get_dataset("metro_fare")
         assert dataset.id == "datago.metro_fare"
         assert dataset.dataset_key == "metro_fare"
 
-    # test get dataset not found 테스트가 검증하는 시나리오를 설명한다.
+    # test get dataset not found Describes the scenario verified by the test.
     def test_get_dataset_not_found(self) -> None:
         """
-        test get dataset not found 시나리오를 검증한다.
+        Verify get_dataset raises.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter = DataGoAdapter()
 
         with pytest.raises(DatasetNotFoundError):
             _ = adapter.get_dataset("does_not_exist")
 
-    # test constructor override catalogue 테스트가 검증하는 시나리오를 설명한다.
+    # test constructor override catalogue Describes the scenario verified by the test.
     def test_constructor_override_catalogue(self) -> None:
         """
-        test constructor override catalogue 시나리오를 검증한다.
+        Verify constructor overrides catalogue.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         custom_dataset = DatasetRef(
             id="datago.custom",
             provider="datago",
@@ -372,58 +319,46 @@ class TestDataGoAdapterDiscovery:
 
         assert adapter.list_datasets() == [custom_dataset]
 
-    # test search datasets match 테스트가 검증하는 시나리오를 설명한다.
+    # test search datasets match Describes the scenario verified by the test.
     def test_search_datasets_match(self) -> None:
         """
-        test search datasets match 시나리오를 검증한다.
+        Verify search_datasets matches.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter = DataGoAdapter()
 
         results = adapter.search_datasets("fare")
         assert results
         assert any(dataset.dataset_key == "metro_fare" for dataset in results)
 
-    # test search datasets no match 테스트가 검증하는 시나리오를 설명한다.
+    # test search datasets no match Describes the scenario verified by the test.
     def test_search_datasets_no_match(self) -> None:
         """
-        test search datasets no match 시나리오를 검증한다.
+        Verify search_datasets no match.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter = DataGoAdapter()
 
         assert adapter.search_datasets("zzzzzz-not-a-dataset") == []
 
-    # test no api key required for discovery 테스트가 검증하는 시나리오를 설명한다.
+    # test no api key required for discovery Describes the scenario verified by the test.
     def test_no_api_key_required_for_discovery(self) -> None:
         """
-        test no api key required for discovery 시나리오를 검증한다.
+        Verify no API key needed.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter = DataGoAdapter()
 
         datasets = adapter.list_datasets()
@@ -434,54 +369,41 @@ class TestDataGoAdapterDiscovery:
 
 
 class TestDataGoAdapterRealEstateDatasets:
-    """
-    TestDataGoAdapterRealEstateDatasets 관련 역할을 캡슐화하는 클래스.
+    """Tests for TestDataGoAdapterRealEstateDatasets.
 
-    이 클래스는 ``tests/unit/providers/datago/test_adapter.py`` 모듈 안에서 TestDataGoAdapterRealEstateDatasets의 상태와 동작을 함께 관리한다.
-    주요 메서드: test_catalogue_contains_all_real_estate_datasets, test_get_dataset_for_each_real_estate_key, test_real_estate_datasets_have_correct_operations, test_real_estate_datasets_have_offset_pagination, test_search_datasets_finds_real_estate.
+This class groups related test cases and helpers for TestDataGoAdapterRealEstateDatasets.
+"""
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
-
-    # test catalogue contains all real estate datasets 테스트가 검증하는 시나리오를 설명한다.
+    # test catalogue contains all real estate datasets Describes the scenario verified by the test.
     def test_catalogue_contains_all_real_estate_datasets(self) -> None:
         """
-        test catalogue contains all real estate datasets 시나리오를 검증한다.
+        Verify catalogue complete.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter = DataGoAdapter()
 
         dataset_keys = {dataset.dataset_key for dataset in adapter.list_datasets()}
 
         assert set(REAL_ESTATE_DATASET_KEYS).issubset(dataset_keys)
 
-    # test get dataset for each real estate key 테스트가 검증하는 시나리오를 설명한다.
+    # test get dataset for each real estate key Describes the scenario verified by the test.
     @pytest.mark.parametrize("dataset_key", REAL_ESTATE_DATASET_KEYS)
     def test_get_dataset_for_each_real_estate_key(self, dataset_key: str) -> None:
         """
-        test get dataset for each real estate key 시나리오를 검증한다.
+        Verify get each dataset.
 
-        매개변수:
-            dataset_key (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset_key (str): Input parameter.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter = DataGoAdapter()
 
         dataset = adapter.get_dataset(dataset_key)
@@ -489,24 +411,20 @@ class TestDataGoAdapterRealEstateDatasets:
         assert dataset.id == f"datago.{dataset_key}"
         assert dataset.dataset_key == dataset_key
 
-    # test real estate datasets have correct operations 테스트가 검증하는 시나리오를 설명한다.
+    # test real estate datasets have correct operations Describes the scenario verified by the test.
     @pytest.mark.parametrize("dataset_key", REAL_ESTATE_DATASET_KEYS)
     def test_real_estate_datasets_have_correct_operations(self, dataset_key: str) -> None:
         """
-        test real estate datasets have correct operations 시나리오를 검증한다.
+        Verify operations correct.
 
-        매개변수:
-            dataset_key (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset_key (str): Input parameter.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter = DataGoAdapter()
 
         dataset = adapter.get_dataset(dataset_key)
@@ -514,24 +432,20 @@ class TestDataGoAdapterRealEstateDatasets:
         assert Operation.LIST in dataset.operations
         assert Operation.RAW in dataset.operations
 
-    # test real estate datasets have offset pagination 테스트가 검증하는 시나리오를 설명한다.
+    # test real estate datasets have offset pagination Describes the scenario verified by the test.
     @pytest.mark.parametrize("dataset_key", REAL_ESTATE_DATASET_KEYS)
     def test_real_estate_datasets_have_offset_pagination(self, dataset_key: str) -> None:
         """
-        test real estate datasets have offset pagination 시나리오를 검증한다.
+        Verify offset pagination.
 
-        매개변수:
-            dataset_key (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset_key (str): Input parameter.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter = DataGoAdapter()
 
         dataset = adapter.get_dataset(dataset_key)
@@ -540,20 +454,16 @@ class TestDataGoAdapterRealEstateDatasets:
         assert dataset.query_support.pagination is PaginationMode.OFFSET
         assert dataset.query_support.max_page_size == 1000
 
-    # test search datasets finds real estate 테스트가 검증하는 시나리오를 설명한다.
+    # test search datasets finds real estate Describes the scenario verified by the test.
     def test_search_datasets_finds_real_estate(self) -> None:
         """
-        test search datasets finds real estate 시나리오를 검증한다.
+        Verify finds real estate.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter = DataGoAdapter()
 
         results = adapter.search_datasets("실거래")
@@ -563,30 +473,21 @@ class TestDataGoAdapterRealEstateDatasets:
 
 
 class TestDataGoAdapterQueryRecords:
-    """
-    TestDataGoAdapterQueryRecords 관련 역할을 캡슐화하는 클래스.
+    """Tests for TestDataGoAdapterQueryRecords.
 
-    이 클래스는 ``tests/unit/providers/datago/test_adapter.py`` 모듈 안에서 TestDataGoAdapterQueryRecords의 상태와 동작을 함께 관리한다.
-    주요 메서드: test_query_records_single_page, test_query_records_sets_next_page_when_more_pages_exist, test_query_records_sets_next_page_without_total_count_for_full_page, test_query_records_raw_is_single_payload_dict, test_query_records_single_item_dict.
+This class groups related test cases and helpers for TestDataGoAdapterQueryRecords.
+"""
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
-
-    # test query records single page 테스트가 검증하는 시나리오를 설명한다.
+    # test query records single page Describes the scenario verified by the test.
     def test_query_records_single_page(self) -> None:
         """
-        test query records single page 시나리오를 검증한다.
+        Verify single page.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         payload = _success_payload(
             items=[{"id": 1}, {"id": 2}, {"id": 3}],
             total_count=3,
@@ -603,20 +504,16 @@ class TestDataGoAdapterQueryRecords:
         assert isinstance(batch.raw, dict)
         assert len(transport.calls) == 1
 
-    # test query records sets next page when more pages exist 테스트가 검증하는 시나리오를 설명한다.
+    # test query records sets next page when more pages exist Describes the scenario verified by the test.
     def test_query_records_sets_next_page_when_more_pages_exist(self) -> None:
         """
-        test query records sets next page when more pages exist 시나리오를 검증한다.
+        Verify next_page when more.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         payload = _success_payload(
             items=[{"id": 1}, {"id": 2}],
             total_count=5,
@@ -632,20 +529,16 @@ class TestDataGoAdapterQueryRecords:
         assert batch.next_page == 2
         assert len(transport.calls) == 1
 
-    # test query records sets next page without total count for full page 테스트가 검증하는 시나리오를 설명한다.
+    # test query records sets next page without total count for full page Describes the scenario verified by the test.
     def test_query_records_sets_next_page_without_total_count_for_full_page(self) -> None:
         """
-        test query records sets next page without total count for full page 시나리오를 검증한다.
+        Verify next_page full page.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         payload = _success_payload(
             items=[{"id": 1}, {"id": 2}], total_count=None, num_of_rows=2, page_no=1
         )
@@ -656,20 +549,16 @@ class TestDataGoAdapterQueryRecords:
         assert batch.total_count is None
         assert batch.next_page == 2
 
-    # test query records raw is single payload dict 테스트가 검증하는 시나리오를 설명한다.
+    # test query records raw is single payload dict Describes the scenario verified by the test.
     def test_query_records_raw_is_single_payload_dict(self) -> None:
         """
-        test query records raw is single payload dict 시나리오를 검증한다.
+        Verify raw is dict.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         payload = _success_payload(items=[{"id": 1}], total_count=1, num_of_rows=1, page_no=1)
         adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -677,20 +566,16 @@ class TestDataGoAdapterQueryRecords:
 
         assert batch.raw == payload
 
-    # test query records single item dict 테스트가 검증하는 시나리오를 설명한다.
+    # test query records single item dict Describes the scenario verified by the test.
     def test_query_records_single_item_dict(self) -> None:
         """
-        test query records single item dict 시나리오를 검증한다.
+        Verify single item.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         payload = _success_payload(items={"id": 1}, total_count=1, num_of_rows=100, page_no=1)
         adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -699,20 +584,16 @@ class TestDataGoAdapterQueryRecords:
         assert batch.items == [{"id": 1}]
         assert batch.total_count == 1
 
-    # test query records empty items 테스트가 검증하는 시나리오를 설명한다.
+    # test query records empty items Describes the scenario verified by the test.
     def test_query_records_empty_items(self) -> None:
         """
-        test query records empty items 시나리오를 검증한다.
+        Verify empty items.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         payload = _success_payload(items=None, total_count=0, num_of_rows=100, page_no=1)
         adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -721,23 +602,19 @@ class TestDataGoAdapterQueryRecords:
         assert batch.items == []
         assert batch.total_count is None
 
-    # test query records empty items logs debug 테스트가 검증하는 시나리오를 설명한다.
+    # test query records empty items logs debug Describes the scenario verified by the test.
     def test_query_records_empty_items_logs_debug(self, caplog: pytest.LogCaptureFixture) -> None:
         """
-        test query records empty items logs debug 시나리오를 검증한다.
+        Verify empty logged.
 
-        매개변수:
-            caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+        Args:
+            caplog (pytest.LogCaptureFixture): Input parameter.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         payload = _success_payload(items=None, total_count=0, num_of_rows=100, page_no=1)
         adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -754,20 +631,16 @@ class TestDataGoAdapterQueryRecords:
         assert record.__dict__["page_size"] == 100
         assert record.__dict__["total_count"] == 0
 
-    # test query records string numerics 테스트가 검증하는 시나리오를 설명한다.
+    # test query records string numerics Describes the scenario verified by the test.
     def test_query_records_string_numerics(self) -> None:
         """
-        test query records string numerics 시나리오를 검증한다.
+        Verify string numerics.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         payload = _success_payload(
             items=[{"id": 1}], total_count="1", num_of_rows="100", page_no="1"
         )
@@ -778,39 +651,31 @@ class TestDataGoAdapterQueryRecords:
         assert batch.total_count == 1
         assert len(batch.items) == 1
 
-    # test query records auth error 30 테스트가 검증하는 시나리오를 설명한다.
+    # test query records auth error 30 Describes the scenario verified by the test.
     def test_query_records_auth_error_30(self) -> None:
         """
-        test query records auth error 30 시나리오를 검증한다.
+        Verify auth error.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(_error_payload("30"))])
 
         with pytest.raises(AuthError):
             _ = adapter.query_records(dataset, Query())
 
-    # test query records rate limit 22 테스트가 검증하는 시나리오를 설명한다.
+    # test query records rate limit 22 Describes the scenario verified by the test.
     def test_query_records_rate_limit_22(self) -> None:
         """
-        test query records rate limit 22 시나리오를 검증한다.
+        Verify rate limit.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(_error_payload("22"))])
 
         with pytest.raises(RateLimitError) as excinfo:
@@ -818,108 +683,86 @@ class TestDataGoAdapterQueryRecords:
 
         assert excinfo.value.retryable is False
 
-    # test query records invalid request 10 테스트가 검증하는 시나리오를 설명한다.
+    # test query records invalid request 10 Describes the scenario verified by the test.
     def test_query_records_invalid_request_10(self) -> None:
         """
-        test query records invalid request 10 시나리오를 검증한다.
+        Verify invalid request.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(_error_payload("10"))])
 
         with pytest.raises(InvalidRequestError):
             _ = adapter.query_records(dataset, Query())
 
-    # test query records dataset not found 12 테스트가 검증하는 시나리오를 설명한다.
+    # test query records dataset not found 12 Describes the scenario verified by the test.
     def test_query_records_dataset_not_found_12(self) -> None:
         """
-        test query records dataset not found 12 시나리오를 검증한다.
+        Verify dataset not found.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(_error_payload("12"))])
 
         with pytest.raises(DatasetNotFoundError):
             _ = adapter.query_records(dataset, Query())
 
-    # test query records service unavailable 01 테스트가 검증하는 시나리오를 설명한다.
+    # test query records service unavailable 01 Describes the scenario verified by the test.
     def test_query_records_service_unavailable_01(self) -> None:
         """
-        test query records service unavailable 01 시나리오를 검증한다.
+        Verify service unavailable.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(_error_payload("01"))])
 
         with pytest.raises(ServiceUnavailableError):
             _ = adapter.query_records(dataset, Query())
 
-    # test query records http 403 wraps with activation hint 테스트가 검증하는 시나리오를 설명한다.
+    # test query records http 403 wraps with activation hint Describes the scenario verified by the test.
     def test_query_records_http_403_wraps_with_activation_hint(self) -> None:
         """
-        test query records http 403 wraps with activation hint 시나리오를 검증한다.
+        Verify HTTP 403 hint.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
 
         class ForbiddenTransport:
-            """
-            ForbiddenTransport 관련 역할을 캡슐화하는 클래스.
+            """Tests for ForbiddenTransport.
 
-            이 클래스는 ``tests/unit/providers/datago/test_adapter.py`` 모듈 안에서 ForbiddenTransport의 상태와 동작을 함께 관리한다.
-            주요 메서드: request.
-
-            속성 설명:
-                생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-            """
+This class groups related test cases and helpers for ForbiddenTransport.
+"""
 
             def request(self, method: str, url: str, **kwargs: object) -> FakeResponse:
                 """
-                request 동작을 수행한다.
+                Execute a mock HTTP request.
 
-                매개변수:
-                    method (str): 호출자가 제공하는 입력 값이다.
-                    url (str): 호출자가 제공하는 입력 값이다.
-                    **kwargs (object): 호출자가 제공하는 입력 값이다.
+                Args:
+                    method (str): Input parameter.
+                    url (str): Input parameter.
+                    **kwargs (object): Input parameter.
 
-                반환값:
-                    FakeResponse: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+                Returns:
+                    FakeResponse: Result.
 
-                예외:
-                    구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-                """
+                Raises:
+                    Exceptions propagated."""
                 del method, url, kwargs
-                # 실제 transport 와 같은 모양으로 만든다 — ``status_code`` 를
-                # 싣고 체인은 끊는다. datago 는 키를 params 로 보내므로 실제
-                # 경로에서는 언제나 ``from None`` 이다.
+# Verifies test behavior (see test name for details).
+# Verifies test behavior (see test name for details).
+                # path always ``from None`` is.
                 raise TransportError(
                     "HTTP status error 403 for GET https://apis.data.go.kr/test",
                     provider="datago",
@@ -940,20 +783,16 @@ class TestDataGoAdapterQueryRecords:
         assert excinfo.value.status_code == 403
         assert excinfo.value.dataset_id == dataset.id
 
-    # test query records accepts three digit success code 000 테스트가 검증하는 시나리오를 설명한다.
+    # test query records accepts three digit success code 000 Describes the scenario verified by the test.
     def test_query_records_accepts_three_digit_success_code_000(self) -> None:
         """
-        test query records accepts three digit success code 000 시나리오를 검증한다.
+        test query records accepts three digit success code 000 Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         payload = {
             "response": {
                 "header": {"resultCode": "000", "resultMsg": "OK"},
@@ -972,20 +811,16 @@ class TestDataGoAdapterQueryRecords:
         assert len(batch.items) == 1
         assert batch.items[0]["aptNm"] == "래미안"
 
-    # test query records accepts two digit success code 00 테스트가 검증하는 시나리오를 설명한다.
+    # test query records accepts two digit success code 00 Describes the scenario verified by the test.
     def test_query_records_accepts_two_digit_success_code_00(self) -> None:
         """
-        test query records accepts two digit success code 00 시나리오를 검증한다.
+        test query records accepts two digit success code 00 Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         payload = _success_payload(items=[{"id": 1}], total_count=1, num_of_rows=100, page_no=1)
         adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -993,20 +828,16 @@ class TestDataGoAdapterQueryRecords:
 
         assert len(batch.items) == 1
 
-    # test query records filters passed 테스트가 검증하는 시나리오를 설명한다.
+    # test query records filters passed Describes the scenario verified by the test.
     def test_query_records_filters_passed(self) -> None:
         """
-        test query records filters passed 시나리오를 검증한다.
+        test query records filters passed Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         payload = _success_payload(items=[{"id": 1}], total_count=1, num_of_rows=100, page_no=1)
         adapter, dataset, transport = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -1017,20 +848,16 @@ class TestDataGoAdapterQueryRecords:
         assert params["stationName"] == "Seoul"
         assert params["page"] == "1"
 
-    # test query records reserved keys protected 테스트가 검증하는 시나리오를 설명한다.
+    # test query records reserved keys protected Describes the scenario verified by the test.
     def test_query_records_reserved_keys_protected(self) -> None:
         """
-        test query records reserved keys protected 시나리오를 검증한다.
+        test query records reserved keys protected Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         payload = _success_payload(items=[{"id": 1}], total_count=1, num_of_rows=100, page_no=1)
         adapter, dataset, transport = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -1060,7 +887,8 @@ class TestDataGoAdapterQueryRecords:
     def test_query_records_applies_unoverrideable_fixed_query_params(
         self, dataset_key: str, expected_date_cd: str
     ) -> None:
-        """ASOS operation-fixed 상수는 호출자 filter로 덮어쓸 수 없다."""
+        """Validates the scenario described by the test name.
+"""
         payload = _success_payload(items=[{"id": 1}], total_count=1, num_of_rows=100, page_no=1)
         adapter, _, transport = _build_adapter_with_transport([FakeResponse(payload)])
         dataset = adapter.get_dataset(dataset_key)
@@ -1076,7 +904,10 @@ class TestDataGoAdapterQueryRecords:
         assert params["dateCd"] == expected_date_cd
 
     def test_query_records_does_not_add_fixed_query_params_to_other_dataset(self) -> None:
-        """ASOS 전용 상수는 다른 DataGo dataset 요청에 추가되지 않는다."""
+        """test_query_records_does_not_add_fixed_query_params_to_other_dataset
+
+Validates the scenario described by the test name.
+"""
         payload = _success_payload(items=[{"id": 1}], total_count=1, num_of_rows=100, page_no=1)
         adapter, dataset, transport = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -1089,30 +920,21 @@ class TestDataGoAdapterQueryRecords:
 
 
 class TestDataGoAdapterCallRaw:
-    """
-    TestDataGoAdapterCallRaw 관련 역할을 캡슐화하는 클래스.
+    """Tests for TestDataGoAdapterCallRaw.
 
-    이 클래스는 ``tests/unit/providers/datago/test_adapter.py`` 모듈 안에서 TestDataGoAdapterCallRaw의 상태와 동작을 함께 관리한다.
-    주요 메서드: test_call_raw_returns_full_payload, test_call_raw_custom_operation, test_call_raw_error_mapped.
+This class groups related test cases and helpers for TestDataGoAdapterCallRaw.
+"""
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
-
-    # test call raw returns full payload 테스트가 검증하는 시나리오를 설명한다.
+    # test call raw returns full payload Describes the scenario verified by the test.
     def test_call_raw_returns_full_payload(self) -> None:
         """
-        test call raw returns full payload 시나리오를 검증한다.
+        test call raw returns full payload Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         payload = _success_payload(items=[{"id": 1}], total_count=1, num_of_rows=1, page_no=1)
         adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -1120,20 +942,16 @@ class TestDataGoAdapterCallRaw:
 
         assert result == payload
 
-    # test call raw custom operation 테스트가 검증하는 시나리오를 설명한다.
+    # test call raw custom operation Describes the scenario verified by the test.
     def test_call_raw_custom_operation(self) -> None:
         """
-        test call raw custom operation 시나리오를 검증한다.
+        test call raw custom operation Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         payload = _success_payload(items=[{"id": 1}], total_count=1, num_of_rows=1, page_no=1)
         adapter, dataset, transport = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -1143,20 +961,16 @@ class TestDataGoAdapterCallRaw:
         assert isinstance(url, str)
         assert url.endswith("/customOperation")
 
-    # test call raw error mapped 테스트가 검증하는 시나리오를 설명한다.
+    # test call raw error mapped Describes the scenario verified by the test.
     def test_call_raw_error_mapped(self) -> None:
         """
-        test call raw error mapped 시나리오를 검증한다.
+        test call raw error mapped Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(_error_payload("30"))])
 
         with pytest.raises(AuthError):
@@ -1164,30 +978,21 @@ class TestDataGoAdapterCallRaw:
 
 
 class TestDataGoAdapterCatalogueOperations:
-    """
-    TestDataGoAdapterCatalogueOperations 관련 역할을 캡슐화하는 클래스.
+    """Tests for TestDataGoAdapterCatalogueOperations.
 
-    이 클래스는 ``tests/unit/providers/datago/test_adapter.py`` 모듈 안에서 TestDataGoAdapterCatalogueOperations의 상태와 동작을 함께 관리한다.
-    주요 메서드: test_default_catalogue_has_operations, test_default_catalogue_has_query_support.
+This class groups related test cases and helpers for TestDataGoAdapterCatalogueOperations.
+"""
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
-
-    # test default catalogue has operations 테스트가 검증하는 시나리오를 설명한다.
+    # test default catalogue has operations Describes the scenario verified by the test.
     def test_default_catalogue_has_operations(self) -> None:
         """
-        test default catalogue has operations 시나리오를 검증한다.
+        test default catalogue has operations Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter = DataGoAdapter()
 
         datasets = [d for d in adapter.list_datasets() if not d.raw_metadata.get("generic")]
@@ -1196,20 +1001,16 @@ class TestDataGoAdapterCatalogueOperations:
             assert Operation.LIST in dataset.operations
             assert Operation.RAW in dataset.operations
 
-    # test default catalogue has query support 테스트가 검증하는 시나리오를 설명한다.
+    # test default catalogue has query support Describes the scenario verified by the test.
     def test_default_catalogue_has_query_support(self) -> None:
         """
-        test default catalogue has query support 시나리오를 검증한다.
+        test default catalogue has query support Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter = DataGoAdapter()
 
         datasets = [d for d in adapter.list_datasets() if not d.raw_metadata.get("generic")]
@@ -1220,12 +1021,10 @@ class TestDataGoAdapterCatalogueOperations:
             assert dataset.query_support.max_page_size == 1000
 
     def test_air_quality_declares_required_request_parameter(self) -> None:
-        """air_quality는 최소 sidoName 요청 파라미터를 metadata로 드러낸다.
+        """test_air_quality_declares_required_request_parameter
 
-        getCtprvnRltmMesureDnsty는 sidoName이 없으면 상위 API가
-        NO_MANDATORY_REQUEST_PARAMETERS_ERROR를 돌려준다 — UI가 이를 사전에
-        안내할 수 있도록 raw_metadata.request_parameters에 표현한다.
-        """
+Validates the scenario described by the test name.
+"""
         adapter = DataGoAdapter()
 
         dataset = adapter.get_dataset("air_quality")
@@ -1235,11 +1034,14 @@ class TestDataGoAdapterCatalogueOperations:
         assert "sidoName" in by_name
         assert by_name["sidoName"]["required"] is True
         assert by_name["sidoName"]["example"] == "서울"
-        # 시크릿 파라미터를 여기 넣지 않는다.
+        # secret params not added here.
         assert "serviceKey" not in by_name
 
     def test_airkorea_station_realtime_declares_official_required_parameters(self) -> None:
-        """2026-06-30 공식 기술문서의 필수 user query만 보존한다."""
+        """test_airkorea_station_realtime_declares_official_required_parameters
+
+Validates the scenario described by the test name.
+"""
         adapter = DataGoAdapter()
 
         dataset = adapter.get_dataset("airkorea_station_realtime")
@@ -1257,12 +1059,10 @@ class TestDataGoAdapterCatalogueOperations:
         assert "returnType" not in by_name
 
     def test_air_quality_declares_application_requirement(self) -> None:
-        """air_quality는 활용신청이 API Key 발급과 별개일 수 있음을 metadata로 드러낸다.
+        """test_air_quality_declares_application_requirement
 
-        공공데이터포털은 API Key 발급과 특정 Dataset 활용신청이 별개일 수 있다 —
-        Studio가 이를 안내할 수 있도록 raw_metadata.application에 공식 상세/활용신청
-        URL을 표현한다. Studio는 이 상태를 "완료/승인됨"으로 추측하지 않는다.
-        """
+Validates the scenario described by the test name.
+"""
         adapter = DataGoAdapter()
 
         dataset = adapter.get_dataset("air_quality")
@@ -1272,7 +1072,10 @@ class TestDataGoAdapterCatalogueOperations:
         assert application["url"] == "https://www.data.go.kr/data/15073861/openapi.do"
 
     def test_high_confidence_catalogue_metadata_is_preserved(self) -> None:
-        """공식 교차검증으로 확정한 endpoint·입력·활용신청 metadata를 보존한다."""
+        """test_high_confidence_catalogue_metadata_is_preserved
+
+Validates the scenario described by the test name.
+"""
         adapter = DataGoAdapter()
 
         # village_fcst was retired from the catalogue on main; ultra_srt_ncst is
@@ -1310,12 +1113,10 @@ class TestDataGoAdapterCatalogueOperations:
         }
 
     def test_required_query_filters_match_the_documented_request_parameters(self) -> None:
-        """두 요청 계약이 같은 필수 파라미터를 말한다.
+        """test_required_query_filters_match_the_documented_request_parameters
 
-        `request_parameters`에 `required: true`로 문서화하면서
-        `required_query_filters`를 그대로 두면, 기존 필드를 읽는 metadata 소비자는
-        새로 문서화된 필수 파라미터 없이 요청을 계속 만들게 된다.
-        """
+Validates the scenario described by the test name.
+"""
         import json
         from pathlib import Path
 
@@ -1343,33 +1144,24 @@ class TestDataGoAdapterCatalogueOperations:
 
 
 class TestDataGoAdapterXml:
-    """
-    TestDataGoAdapterXml 관련 역할을 캡슐화하는 클래스.
+    """Tests for TestDataGoAdapterXml.
 
-    이 클래스는 ``tests/unit/providers/datago/test_adapter.py`` 모듈 안에서 TestDataGoAdapterXml의 상태와 동작을 함께 관리한다.
-    주요 메서드: test_query_records_xml_multi_item, test_query_records_xml_single_item, test_call_raw_xml_response, test_xml_error_maps_to_exception.
+This class groups related test cases and helpers for TestDataGoAdapterXml.
+"""
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
-
-    # test query records xml multi item 테스트가 검증하는 시나리오를 설명한다.
+    # test query records xml multi item Describes the scenario verified by the test.
     def test_query_records_xml_multi_item(self, configured_adapter: AdapterFactory) -> None:
         """
-        test query records xml multi item 시나리오를 검증한다.
+        test query records xml multi item Validates the scenario described by the test name.
 
-        매개변수:
-            configured_adapter (AdapterFactory): 호출자가 제공하는 입력 값이다.
+        Args:
+            configured_adapter (AdapterFactory): Input parameter.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter, dataset, _ = configured_adapter(["success_xml.xml"], content_type="text/xml")
         batch = adapter.query_records(dataset, Query())
 
@@ -1378,23 +1170,19 @@ class TestDataGoAdapterXml:
         assert batch.items[1]["stationName"] == "강남구"
         assert batch.total_count == 2
 
-    # test query records xml single item 테스트가 검증하는 시나리오를 설명한다.
+    # test query records xml single item Describes the scenario verified by the test.
     def test_query_records_xml_single_item(self, configured_adapter: AdapterFactory) -> None:
         """
-        test query records xml single item 시나리오를 검증한다.
+        test query records xml single item Validates the scenario described by the test name.
 
-        매개변수:
-            configured_adapter (AdapterFactory): 호출자가 제공하는 입력 값이다.
+        Args:
+            configured_adapter (AdapterFactory): Input parameter.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter, dataset, _ = configured_adapter(
             ["success_xml_single_item.xml"], content_type="text/xml"
         )
@@ -1404,95 +1192,74 @@ class TestDataGoAdapterXml:
         assert batch.items[0]["stationName"] == "종로구"
         assert batch.total_count == 1
 
-    # test call raw xml response 테스트가 검증하는 시나리오를 설명한다.
+    # test call raw xml response Describes the scenario verified by the test.
     def test_call_raw_xml_response(self, configured_adapter: AdapterFactory) -> None:
         """
-        test call raw xml response 시나리오를 검증한다.
+        test call raw xml response Validates the scenario described by the test name.
 
-        매개변수:
-            configured_adapter (AdapterFactory): 호출자가 제공하는 입력 값이다.
+        Args:
+            configured_adapter (AdapterFactory): Input parameter.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter, dataset, _ = configured_adapter(["success_xml.xml"], content_type="text/xml")
         result = adapter.call_raw(dataset, "getVilageFcst", {})
 
         assert isinstance(result, dict)
         assert result["response"]["header"]["resultCode"] == "00"
 
-    # test xml error maps to exception 테스트가 검증하는 시나리오를 설명한다.
+    # test xml error maps to exception Describes the scenario verified by the test.
     def test_xml_error_maps_to_exception(self, configured_adapter: AdapterFactory) -> None:
         """
-        test xml error maps to exception 시나리오를 검증한다.
+        test xml error maps to exception Validates the scenario described by the test name.
 
-        매개변수:
-            configured_adapter (AdapterFactory): 호출자가 제공하는 입력 값이다.
+        Args:
+            configured_adapter (AdapterFactory): Input parameter.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter, dataset, _ = configured_adapter(["error_xml_auth_30.xml"], content_type="text/xml")
         with pytest.raises(AuthError):
             _ = adapter.query_records(dataset, Query())
 
 
 class TestDataGoAdapterGetSchema:
-    """
-    TestDataGoAdapterGetSchema 관련 역할을 캡슐화하는 클래스.
+    """Tests for TestDataGoAdapterGetSchema.
 
-    이 클래스는 ``tests/unit/providers/datago/test_adapter.py`` 모듈 안에서 TestDataGoAdapterGetSchema의 상태와 동작을 함께 관리한다.
-    주요 메서드: test_get_schema_returns_none_without_fields, test_get_schema_returns_descriptor_with_fields, test_get_schema_skips_invalid_field_entries, test_get_schema_empty_fields_returns_none.
+This class groups related test cases and helpers for TestDataGoAdapterGetSchema.
+"""
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
-    """
-
-    # test get schema returns none without fields 테스트가 검증하는 시나리오를 설명한다.
+    # test get schema returns none without fields Describes the scenario verified by the test.
     def test_get_schema_returns_none_without_fields(self) -> None:
         """
-        test get schema returns none without fields 시나리오를 검증한다.
+        test get schema returns none without fields Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         adapter = DataGoAdapter()
         dataset = adapter.get_dataset("metro_fare")
         schema = adapter.get_schema(dataset)
         assert schema is None
 
-    # test get schema returns descriptor with fields 테스트가 검증하는 시나리오를 설명한다.
+    # test get schema returns descriptor with fields Describes the scenario verified by the test.
     def test_get_schema_returns_descriptor_with_fields(self) -> None:
         """
-        test get schema returns descriptor with fields 시나리오를 검증한다.
+        test get schema returns descriptor with fields Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         custom_dataset = DatasetRef(
             id="datago.test_schema",
             provider="datago",
@@ -1536,20 +1303,16 @@ class TestDataGoAdapterGetSchema:
         assert schema.fields[1].nullable is True
         assert schema.raw["source"] == "catalogue"
 
-    # test get schema skips invalid field entries 테스트가 검증하는 시나리오를 설명한다.
+    # test get schema skips invalid field entries Describes the scenario verified by the test.
     def test_get_schema_skips_invalid_field_entries(self) -> None:
         """
-        test get schema skips invalid field entries 시나리오를 검증한다.
+        test get schema skips invalid field entries Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         custom_dataset = DatasetRef(
             id="datago.test_bad_fields",
             provider="datago",
@@ -1576,20 +1339,16 @@ class TestDataGoAdapterGetSchema:
         assert len(schema.fields) == 1
         assert schema.fields[0].name == "valid_field"
 
-    # test get schema empty fields returns none 테스트가 검증하는 시나리오를 설명한다.
+    # test get schema empty fields returns none Describes the scenario verified by the test.
     def test_get_schema_empty_fields_returns_none(self) -> None:
         """
-        test get schema empty fields returns none 시나리오를 검증한다.
+        test get schema empty fields returns none Validates the scenario described by the test name.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Result.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
-
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
-        """
+        Raises:
+            Exceptions propagated."""
         custom_dataset = DatasetRef(
             id="datago.test_empty",
             provider="datago",
@@ -1610,14 +1369,10 @@ class TestDataGoAdapterGetSchema:
 
 
 class TestDataGoGatewayErrors:
-    """게이트웨이가 서비스 대신 응답한 경우를 원인 그대로 올린다.
+    """Tests for TestDataGoGatewayErrors.
 
-    요청이 서비스에 닿기 전에 거부되면 data.go.kr은 ``<response>`` 대신
-    ``OpenAPI_ServiceResponse/cmmMsgHeader``를 돌려준다. 이 모양을 몰랐을 때는
-    ``response``가 없다는 이유로 "Malformed response envelope" 파싱 오류가 났고,
-    실제 원인(키가 등록되지 않았다, 호출 한도를 넘었다)은 사라졌다 — 사용자는
-    고칠 수 있는 문제를 서버 결함으로 오해하게 된다.
-    """
+This class groups related test cases and helpers for TestDataGoGatewayErrors.
+"""
 
     def test_unregistered_service_key_raises_auth_error(
         self, configured_adapter: AdapterFactory
@@ -1659,7 +1414,7 @@ class TestDataGoGatewayErrors:
     def test_a_gateway_error_is_not_reported_as_a_malformed_envelope(
         self, configured_adapter: AdapterFactory
     ) -> None:
-        # 회귀 방지: 예전 동작은 "Malformed response envelope: missing response"였다.
+        # Regression prevention: Previous behavior was "Malformed response envelope: missing response"was.
         adapter, dataset, _ = configured_adapter(
             ["error_gateway_key_not_registered.xml"], content_type="text/xml"
         )
