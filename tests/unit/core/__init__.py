@@ -1,5 +1,5 @@
-"""테스트 모듈.
+"""Test module.
 
-이 파일은 ``tests/unit/core/__init__.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
+This file ``tests/unit/core/__init__.py`` defines test scenarios and helper objects.
+For regression prevention and public contract validation verify core flows, exceptions, and edge conditions.
 """

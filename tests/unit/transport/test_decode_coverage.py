@@ -1,7 +1,7 @@
-"""테스트 모듈.
+"""Test module.
 
-이 파일은 ``tests/unit/transport/test_decode_coverage.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
+This file ``tests/unit/transport/test_decode_coverage.py`` defines test scenarios and helper objects.
+For regression prevention and public contract validation verify core flows, exceptions, and edge conditions.
 """
 
 from __future__ import annotations
@@ -14,40 +14,40 @@ from kpubdata.exceptions import ParseError
 from kpubdata.transport.decode import decode_json, decode_xml
 
 
-# test decode json raises for non utf8 bytes 테스트가 검증하는 시나리오를 설명한다.
+# Explains scenario for: test decode json raises for non utf8 bytes.
 def test_decode_json_raises_for_non_utf8_bytes() -> None:
     """
-    test decode json raises for non utf8 bytes 시나리오를 검증한다.
+    Verify: test decode json raises for non utf8 bytes scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     with pytest.raises(ParseError, match="UTF-8"):
         decode_json(b"\xff\xfe")
 
 
-# test decode xml raises when parser returns non dict 테스트가 검증하는 시나리오를 설명한다.
+# test decode xml raises when parser returns non dict Explains scenario validated by test.
 def test_decode_xml_raises_when_parser_returns_non_dict(monkeypatch: pytest.MonkeyPatch) -> None:
     """
-    test decode xml raises when parser returns non dict 시나리오를 검증한다.
+    test decode xml raises when parser returns non dict Verify scenario.
 
-    매개변수:
-        monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (pytest.MonkeyPatch): input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: returns computation result or value from sub-call.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        can propagate exceptions from sub-dependencies as-is.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Example:
+        Verify expected behavior described by test name is maintained without regression.
     """
     fake_module = MagicMock()
     fake_module.parse.return_value = ["not", "a", "dict"]

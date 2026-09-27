@@ -1,7 +1,8 @@
-"""core/executor.py 단위 테스트 — spec 실행기의 관찰 가능한 동작을 검증한다.
+"""Unit tests for core/executor.py — verify observable behavior of the spec executor.
 
-FakeTransport/FakeConfig는 실제 HttpTransport·KPubDataConfig의 해당 인터페이스를
-표준 타입을 유지하며 대체한다(재사용 패턴: tests/unit/providers/datago/conftest.py).
+FakeTransport/FakeConfig substitute the corresponding interfaces of real
+HttpTransport·KPubDataConfig while maintaining standard types (reuse pattern:
+tests/unit/providers/datago/conftest.py).
 """
 
 from __future__ import annotations
@@ -40,7 +41,7 @@ FIXTURES_DIR = Path(__file__).resolve().parents[2] / "fixtures"
 
 
 class FakeResponse:
-    """httpx.Response의 최소 인터페이스(content·headers)를 흉내낸다."""
+    """Mimics the minimal interface (content·headers) of httpx.Response."""
 
     def __init__(self, content: bytes, content_type: str = "application/json") -> None:
         self.content = content
@@ -48,7 +49,7 @@ class FakeResponse:
 
 
 class FakeTransport:
-    """요청을 기록하고 미리 준비한 응답(또는 예외)을 반환한다."""
+    """Records requests and returns pre-prepared responses (or exceptions)."""
 
     def __init__(
         self,
@@ -89,7 +90,7 @@ class FakeTransport:
 
 
 class FakeConfig(KPubDataConfig):
-    """키 조회만 고정값으로 대체한 설정."""
+    """Config with key lookup replaced by fixed values."""
 
     def get_provider_key(self, provider: str) -> str | None:
         return f"test-key-{provider}"
@@ -99,7 +100,7 @@ class FakeConfig(KPubDataConfig):
 
 
 def _golden_spec(dataset_key: str) -> SpecDefinition:
-    """번들 골든 spec을 로드한다."""
+    """Load bundled golden spec."""
     return load_spec_file(SPECS_DIR / "datago" / f"{dataset_key}.yaml")
 
 
@@ -108,7 +109,7 @@ def _standard_envelope(
     total_count: int | None = 30,
     result_code: str = "00",
 ) -> FakeResponse:
-    """data.go.kr standard envelope 응답을 만든다."""
+    """Create a data.go.kr standard envelope response."""
     body: dict[str, object] = {}
     if items is None:
         body["items"] = None
@@ -139,12 +140,12 @@ def village_spec() -> SpecDefinition:
 
 
 # ----------------------------------------------------------------------
-# 파라미터 조립
+# Parameter assembly
 # ----------------------------------------------------------------------
 
 
 def test_build_params_assembles_auth_format_pagination_filters(apt_spec: SpecDefinition) -> None:
-    """인증·포맷·페이지네이션·필터가 모두 조립된다."""
+    """Auth·format·pagination·filters are all assembled."""
     executor = _make_executor(FakeTransport())
     query = Query(filters={"LAWD_CD": "11110", "DEAL_YMD": "202401"}, page=2, page_size=50)
     params = executor.build_params(apt_spec, query)
@@ -158,7 +159,7 @@ def test_build_params_assembles_auth_format_pagination_filters(apt_spec: SpecDef
 
 
 def test_build_params_reserved_keys_not_overwritten(apt_spec: SpecDefinition) -> None:
-    """사용자 필터가 인증/포맷/페이지 파라미터를 덮어쓰지 않는다."""
+    """User filters do not overwrite auth/format/pagination parameters."""
     executor = _make_executor(FakeTransport())
     query = Query(filters={"serviceKey": "hijack", "pageNo": "999"})
     params = executor.build_params(apt_spec, query)
@@ -167,14 +168,14 @@ def test_build_params_reserved_keys_not_overwritten(apt_spec: SpecDefinition) ->
 
 
 def test_build_params_max_size_clamp(apt_spec: SpecDefinition) -> None:
-    """page_size가 max_size를 초과하면 잘린다."""
+    """page_size is clamped if it exceeds max_size."""
     executor = _make_executor(FakeTransport())
     params = executor.build_params(apt_spec, Query(page=1, page_size=99999))
     assert int(params["numOfRows"]) == 1000
 
 
 def test_build_params_unsupported_pagination_raises(apt_spec: SpecDefinition) -> None:
-    """미지원 페이지네이션 방식은 NotImplementedError를 낸다."""
+    """Unsupported pagination style raises NotImplementedError."""
     executor = _make_executor(FakeTransport())
     spec = replace(apt_spec, pagination=replace(apt_spec.pagination, type="date_window"))
     with pytest.raises(NotImplementedError, match="date_window"):
@@ -182,12 +183,12 @@ def test_build_params_unsupported_pagination_raises(apt_spec: SpecDefinition) ->
 
 
 # ----------------------------------------------------------------------
-# query: envelope·페이지네이션
+# query: envelope·pagination
 # ----------------------------------------------------------------------
 
 
 def test_query_multi_items_with_total_count(apt_spec: SpecDefinition) -> None:
-    """총건수 기반 next_page 계산이 어댑터 시맨틱과 일치한다."""
+    """next_page calculation based on total_count matches adapter semantics."""
     items = [{"아파트": "래미안", "거래금액": "120,000"} for _ in range(10)]
     transport = FakeTransport([_standard_envelope(items, total_count=30)])
     executor = _make_executor(transport)
@@ -205,7 +206,7 @@ def test_query_multi_items_with_total_count(apt_spec: SpecDefinition) -> None:
 
 
 def test_query_single_item_dict_wrapped(apt_spec: SpecDefinition) -> None:
-    """단일 item dict가 1건 리스트로 정규화된다."""
+    """Single item dict is normalized into a 1-item list."""
     transport = FakeTransport([_standard_envelope({"아파트": "단일"}, total_count=1)])
     executor = _make_executor(transport)
     batch = executor.query(apt_spec, _ref(apt_spec), Query(page=1, page_size=10))
@@ -214,7 +215,7 @@ def test_query_single_item_dict_wrapped(apt_spec: SpecDefinition) -> None:
 
 
 def test_query_empty_items(apt_spec: SpecDefinition) -> None:
-    """빈 페이지는 빈 배치·next_page=None을 반환한다."""
+    """Empty page returns empty batch and next_page=None."""
     transport = FakeTransport([_standard_envelope(None, total_count=None)])
     executor = _make_executor(transport)
     batch = executor.query(apt_spec, _ref(apt_spec), Query(page=1, page_size=10))
@@ -224,7 +225,7 @@ def test_query_empty_items(apt_spec: SpecDefinition) -> None:
 
 
 def test_query_full_page_without_total_suggests_next(apt_spec: SpecDefinition) -> None:
-    """총건수가 없을 때 꽉 찬 페이지는 다음 페이지 신호로 간주한다."""
+    """Full page without total_count is treated as a signal for next page."""
     items = [{"no": i} for i in range(10)]
     transport = FakeTransport([_standard_envelope(items, total_count=None)])
     executor = _make_executor(transport)
@@ -233,7 +234,7 @@ def test_query_full_page_without_total_suggests_next(apt_spec: SpecDefinition) -
 
 
 def test_query_default_page_size_is_100(apt_spec: SpecDefinition) -> None:
-    """page 미지정 시 page=1·page_size=100 기본값이 쓰인다."""
+    """Default page=1·page_size=100 is used when page is not specified."""
     transport = FakeTransport([_standard_envelope([{"x": 1}], total_count=1)])
     executor = _make_executor(transport)
     executor.query(apt_spec, _ref(apt_spec), Query())
@@ -244,7 +245,7 @@ def test_query_default_page_size_is_100(apt_spec: SpecDefinition) -> None:
 
 
 # ----------------------------------------------------------------------
-# query: 에러 매핑
+# query: Error mapping
 # ----------------------------------------------------------------------
 
 
@@ -266,7 +267,7 @@ def test_query_default_page_size_is_100(apt_spec: SpecDefinition) -> None:
 def test_query_error_code_table(
     apt_spec: SpecDefinition, code: str, expected_exc: type[Exception]
 ) -> None:
-    """resultCode→표준 예외 매핑 테이블이 어댑터와 동일하다."""
+    """resultCode→standard exception mapping table matches adapter."""
     payload = {
         "response": {
             "header": {"resultCode": code, "resultMsg": f"에러 {code}"},
@@ -282,7 +283,7 @@ def test_query_error_code_table(
 
 @pytest.mark.parametrize("ok_code", ["000", "0"])
 def test_query_ok_values_numeric_zero(apt_spec: SpecDefinition, ok_code: str) -> None:
-    """ "000"/"0" 성공 코드도 int 정규화로 통과한다."""
+    """ "000"/"0" success codes also pass through int normalization."""
     payload = {
         "response": {
             "header": {"resultCode": ok_code, "resultMsg": "OK"},
@@ -296,7 +297,7 @@ def test_query_ok_values_numeric_zero(apt_spec: SpecDefinition, ok_code: str) ->
 
 
 def test_query_missing_result_code_raises(apt_spec: SpecDefinition) -> None:
-    """resultCode가 없는 envelope은 ProviderResponseError가 된다."""
+    """Envelope without resultCode becomes ProviderResponseError."""
     transport = FakeTransport([FakeResponse(b'{"response": {"header": {}, "body": {}}}')])
     executor = _make_executor(transport)
     with pytest.raises(ProviderResponseError, match="에러 코드"):
@@ -304,12 +305,13 @@ def test_query_missing_result_code_raises(apt_spec: SpecDefinition) -> None:
 
 
 def test_query_http_403_maps_to_auth_error(apt_spec: SpecDefinition) -> None:
-    """전송 계층 403은 활용신청 힌트 AuthError가 된다.
+    """Transport layer 403 becomes AuthError with usage application hint.
 
-    실제 transport 가 그렇게 하듯 ``status_code`` 를 실어 준다. 예전에는 이
-    fake 가 ``__cause__`` 만 채웠는데, transport 는 요청에 credential 이 실려
-    있으면 예외 체인을 끊는다 — spec executor 는 키를 params 로 보내므로 항상
-    끊긴다. 체인이 있다고 전제한 fake 가 실제 경로와 달랐다.
+    Real transport does so by carrying ``status_code`` in the exception.
+    Previously, fake only filled ``__cause__``, but transport breaks the
+    exception chain when the request carries credentials — spec executor
+    sends keys as params, so the chain is always broken. Fake's assumption
+    of a chain did not match the real path.
     """
     transport_error = TransportError("forbidden", provider="datago", status_code=403)
     executor = _make_executor(FakeTransport(error=transport_error))
@@ -320,7 +322,7 @@ def test_query_http_403_maps_to_auth_error(apt_spec: SpecDefinition) -> None:
 def test_query_http_403_maps_to_auth_error_even_without_an_exception_chain(
     apt_spec: SpecDefinition,
 ) -> None:
-    """체인이 끊긴 상태가 실제 경로다 — 그래도 403 힌트가 나와야 한다."""
+    """Broken chain is the actual path — 403 hint must still appear."""
     transport_error = TransportError("forbidden", provider="datago", status_code=403)
     assert transport_error.__cause__ is None
 
@@ -342,12 +344,12 @@ def test_a_non_403_transport_error_is_not_turned_into_an_auth_error(
 
 
 # ----------------------------------------------------------------------
-# query: XML·fields 정규화
+# query: XML·fields normalization
 # ----------------------------------------------------------------------
 
 
 def test_query_xml_format_hint(village_spec: SpecDefinition) -> None:
-    """format_hint=xml이 포맷 파라미터를 바꾸고 XML 응답을 파싱한다."""
+    """format_hint=xml changes format parameter and parses XML response."""
     xml_payload = (
         "<response><header><resultCode>00</resultCode></header>"
         "<body><items><item><category>T1H</category><fcstValue>12.3</fcstValue></item></items>"
@@ -370,7 +372,7 @@ def test_query_xml_format_hint(village_spec: SpecDefinition) -> None:
 
 
 def test_query_fields_normalization() -> None:
-    """fields 선언이 있으면 rename·transform·캐스팅이 적용된다."""
+    """With fields declaration, rename·transform·casting is applied."""
     spec = load_spec_file(FIXTURES_DIR / "specs" / "valid_full.yaml")
     record = {"거래금액": "120,000", "년": "2024"}
     payload = {
@@ -391,7 +393,7 @@ def test_query_fields_normalization() -> None:
 def _valid_full_batch(
     records: list[dict[str, object]], field_type: str = "integer"
 ) -> list[dict[str, object]]:
-    """valid_full spec으로 주어진 레코드를 정규화한 결과를 돌려준다."""
+    """Normalize given records using valid_full spec and return result."""
     spec = load_spec_file(FIXTURES_DIR / "specs" / "valid_full.yaml")
     spec = replace(spec, fields=(replace(spec.fields[0], type=field_type),))
     payload = {
@@ -406,10 +408,10 @@ def _valid_full_batch(
 
 
 class TestColumnConsistentCasting:
-    """캐스팅은 컬럼 단위로 전부 성공할 때만 적용된다 (#452).
+    """Casting succeeds column-wise, not row-wise (#452).
 
-    행마다 따로 캐스팅하면 같은 컬럼에 int와 str이 공존해, 표로 다루는 소비자
-    (kpubdata-builder Silver 등)가 그 컬럼을 거부한다.
+    Row-by-row casting allows same column to have both int and str,
+    which table consumers (kpubdata-builder Silver etc) reject.
     """
 
     def test_all_castable_column_is_cast(self) -> None:
@@ -417,7 +419,7 @@ class TestColumnConsistentCasting:
         assert [item["deal_amount"] for item in items] == [120000, 98000]
 
     def test_one_uncastable_value_leaves_the_whole_column_alone(self) -> None:
-        # 실거래가 aptDong처럼 대부분 숫자인데 일부 행에 이름이 들어오는 실제 사례.
+        # Real case like apt_trade: most rows are numbers but some have names.
         items = _valid_full_batch(
             [{"거래금액": "120,000"}, {"거래금액": "협의"}, {"거래금액": "98,000"}]
         )
@@ -435,7 +437,7 @@ class TestColumnConsistentCasting:
         assert "deal_amount" not in items[1]
 
     def test_rename_and_transform_still_apply_when_casting_is_skipped(self) -> None:
-        # 캐스팅을 포기해도 rename(거래금액→deal_amount)과 transform(strip_comma)은 유지된다.
+        # Even when casting is skipped, rename and transform still apply.
         items = _valid_full_batch([{"거래금액": "120,000"}, {"거래금액": "협의"}])
         assert all("거래금액" not in item for item in items)
         assert items[0]["deal_amount"] == "120000"
@@ -454,12 +456,12 @@ class TestColumnConsistentCasting:
 
 
 # ----------------------------------------------------------------------
-# 미지원 envelope / SpecDatasetAdapter
+# Unsupported envelope / SpecDatasetAdapter
 # ----------------------------------------------------------------------
 
 
 def test_query_unsupported_envelope_raises(apt_spec: SpecDefinition) -> None:
-    """datago_standard 외 envelope은 NotImplementedError."""
+    """Envelope other than datago_standard raises NotImplementedError."""
     spec = replace(apt_spec, response=replace(apt_spec.response, envelope="seoul_service_row"))
     executor = _make_executor(FakeTransport())
     with pytest.raises(NotImplementedError, match="seoul_service_row"):
@@ -469,7 +471,7 @@ def test_query_unsupported_envelope_raises(apt_spec: SpecDefinition) -> None:
 def test_spec_dataset_adapter_surface(
     apt_spec: SpecDefinition, village_spec: SpecDefinition
 ) -> None:
-    """어댑터 프로토콜 표면(list/search/get/query/raw)이 동작한다."""
+    """Adapter protocol surface (list/search/get/query/raw) works."""
     raw_payload = {"response": {"header": {"resultCode": "00"}, "body": {"items": None}}}
     transport = FakeTransport(
         [
@@ -503,14 +505,15 @@ def test_spec_dataset_adapter_surface(
 
 
 def test_spec_dataset_adapter_get_schema_is_none(apt_spec: SpecDefinition) -> None:
-    """get_schema는 정직하게 None을 반환한다."""
+    """get_schema honestly returns None."""
     executor = _make_executor(FakeTransport())
     adapter = SpecDatasetAdapter("datago", [apt_spec], executor)
     assert adapter.get_schema(adapter.get_dataset("apt_trade")) is None
 
 
 # ----------------------------------------------------------------------
-# 실행기 범위 확장: path_segment·index_range·pindex_psize·$루트·배열인덱스·neis
+# Executor scope extension: path_segment·index_range·pindex_psize·$root·
+# array index·neis
 # ----------------------------------------------------------------------
 
 
@@ -521,7 +524,7 @@ def _spec_from(data: dict[str, object]) -> SpecDefinition:
 
 
 def test_build_url_path_template_bok_style() -> None:
-    """path_template의 {key}/{start}/{end} 치환이 bok 계열 URL을 만든다."""
+    """path_template {key}/{start}/{end} substitution creates BOK-style URL."""
     spec = _spec_from(
         {
             "id": "bok.test_stat",
@@ -554,14 +557,15 @@ def test_build_url_path_template_bok_style() -> None:
     url = executor.build_url(spec, page=2, page_size=10, api_key="KEY123")
     assert url == "https://api.bok.go.kr/eco/KEY123/json/StatisticSearch/11/20/AAA/110"
 
-    # 파라미터 조립: index_range는 쿼리에 페이지를 싣지 않고(경로에 반영) 인증은 경로로 빠진다
+    # Parameter assembly: index_range does not put page in query
+    # (reflected in path) and auth is pulled from path.
     params = executor.build_params(spec, Query(page=2, page_size=10))
     assert params["__path_key__"] == "test-key-datago"
     assert "pageNo" not in params
 
 
 def test_pindex_psize_and_page_display_params() -> None:
-    """lofin(pIndex/pSize)과 law(page/display) 쿼리 페이지네이션이 조립된다."""
+    """lofin (pIndex/pSize) and law (page/display) query pagination is assembled."""
     base = {
         "id": "test.lofin_like",
         "provider": "test",
@@ -588,12 +592,13 @@ def test_pindex_psize_and_page_display_params() -> None:
 
 
 def test_extract_items_root_array_and_operation_template() -> None:
-    """$ 루트 배열(kosis)과 {operation} 치환(lofin) 추출이 동작한다."""
-    # kosis 루트 배열은 _request에서 dict가 아니라 ProviderResponseError가 나는 계약이다.
-    # (kosis 전환 시 실행기 계약 확장 필요 — envelope 상태 그대로 둔다)
+    """$ root array (kosis) and {operation} substitution (lofin) extraction works."""
+    # kosis root array contract: _request returns ProviderResponseError, not dict.
+    # (Executor contract expansion needed for kosis transition — keep
+    # envelope state as-is).
     from kpubdata.core.executor import _dot_get
 
-    assert _dot_get({"a": {"b": 1}}, "a.b") == 1  # 일반 경로 회귀
+    assert _dot_get({"a": {"b": 1}}, "a.b") == 1  # Normal path returns recursively
 
     lofin_spec = _spec_from(
         {
@@ -625,7 +630,7 @@ def test_extract_items_root_array_and_operation_template() -> None:
     }
     assert extract_items(lofin_spec, lofin_payload) == [{"fyr": "2023"}, {"fyr": "2022"}]
     assert extract_total_count(lofin_spec, lofin_payload) == 2
-    check_payload_error(lofin_spec, lofin_payload)  # 성공 통과
+    check_payload_error(lofin_spec, lofin_payload)  # Success passes
 
     lofin_payload["RESULT"] = [{"CODE": "ERROR-300", "MESSAGE": "필수 누락"}]
     from kpubdata.exceptions import ProviderResponseError as PRE
@@ -635,7 +640,7 @@ def test_extract_items_root_array_and_operation_template() -> None:
 
 
 def test_extract_neis_double_list_merges_blocks() -> None:
-    """NEIS 이중 리스트 envelope가 블록별 row를 병합한다."""
+    """NEIS double-list envelope merges rows per block."""
     spec = _spec_from(
         {
             "id": "test.neis_like",
@@ -663,7 +668,7 @@ def test_extract_neis_double_list_merges_blocks() -> None:
 
 
 def test_kosis_err_field_raises_on_error_payload() -> None:
-    """kosis err_field 스타일: err 키가 있으면 ProviderResponseError."""
+    """kosis err_field style: err key presence raises ProviderResponseError."""
     spec = _spec_from(
         {
             "id": "test.kosis_err",
@@ -685,7 +690,7 @@ def test_kosis_err_field_raises_on_error_payload() -> None:
 
 
 def test_seoul_info_codes_pass_error_check() -> None:
-    """seoul 계열 INFO-000/INFO-200은 ok_values로 통과한다."""
+    """Seoul-series INFO-000/INFO-200 pass error check via ok_values."""
     spec = _spec_from(
         {
             "id": "test.seoul_like",
@@ -719,11 +724,12 @@ def test_seoul_info_codes_pass_error_check() -> None:
 
 
 class TestSpecRequestParameterMetadata:
-    """spec params가 DatasetRef.raw_metadata로 노출되는지 (#375).
+    """Spec params exposed via DatasetRef.raw_metadata (#375).
 
-    소비자(Builder/Studio)는 `query_support.filterable_fields`로 "필터 가능한 이름"만
-    알 수 있었고, 무엇이 필수인지·어떤 값을 넣어야 하는지는 알 수 없었다. spec에
-    이미 있는 정보를 catalogue `request_parameters`(#374)와 같은 형태로 노출한다.
+    Consumers (Builder/Studio) could only learn filterable_fields via
+    query_support.filterable_fields, but not which are required or what
+    values to use. Expose spec info already present in request_parameters
+    form (#374).
     """
 
     def test_required_parameter_is_exposed_with_example(self) -> None:
@@ -739,8 +745,8 @@ class TestSpecRequestParameterMetadata:
         assert "지역코드" in str(lawd["description"])
 
     def test_alias_is_reported_as_the_name_callers_pass(self) -> None:
-        # air_station의 sidoName은 alias가 `station`/`term`처럼 따로 있다 —
-        # 사용자가 넘겨야 하는 이름(alias)이 name, 원 API 이름은 api_name.
+        # air_station's sidoName has an alias like station/term —
+        # the name users must pass is 'alias'; the original API name is api_name.
         ref = _ref(_golden_spec("air_station"))
         parameters = ref.raw_metadata["request_parameters"]
         assert isinstance(parameters, tuple)
@@ -748,7 +754,7 @@ class TestSpecRequestParameterMetadata:
 
         assert "station" in by_name, sorted(by_name)
         assert by_name["station"]["api_name"] == "stationName"
-        # alias가 없는 파라미터는 api_name을 싣지 않는다(중복 정보 제거).
+        # Parameters without alias do not carry api_name (eliminate redundant info).
         assert "api_name" not in by_name["ver"]
 
     def test_enum_values_are_exposed(self) -> None:
@@ -759,7 +765,8 @@ class TestSpecRequestParameterMetadata:
         assert term["enum"] == ["daily", "month", "3month"]
 
     def test_metadata_is_immutable(self) -> None:
-        # raw_metadata는 공유 참조다 — 소비자가 바꿔도 다른 소비자에게 새지 않아야 한다.
+        # raw_metadata is a shared reference — changes by consumers must not
+        # leak to other consumers.
         ref = _ref(_golden_spec("apt_trade"))
         parameters = ref.raw_metadata["request_parameters"]
         assert isinstance(parameters, tuple)
@@ -773,7 +780,8 @@ class TestSpecRequestParameterMetadata:
         assert ref.raw_metadata["verified_at"] == spec.source.verified_at
 
     def test_filterable_fields_still_match_the_exposed_names(self) -> None:
-        # 기존 계약(query_support)과 신규 메타데이터가 서로 어긋나지 않아야 한다.
+        # Existing contract (query_support) and new metadata must not
+        # diverge from each other.
         ref = _ref(_golden_spec("air_station"))
         parameters = ref.raw_metadata["request_parameters"]
         assert isinstance(parameters, tuple)
@@ -784,11 +792,12 @@ class TestSpecRequestParameterMetadata:
 
 
 class TestSpecExecutorRecognisesGatewayRejections:
-    """spec 우선 경로도 게이트웨이 거부를 원인대로 보고한다.
+    """Spec-first path also reports gateway rejections per cause.
 
-    #478 은 datago **어댑터** 에만 이 분기를 넣었다. spec 을 타는 20여 종은
-    여전히 "응답 envelope에서 에러 코드를 찾을 수 없습니다" 로 실패했다 —
-    사용자가 고칠 수 있는 문제(키 미등록, 한도 초과)가 파싱 오류로 보였다.
+    #478 added this branch only to the datago **adapter**. ~20 other
+    specs still failed with "error code not found in response envelope" —
+    user-fixable issues (key unregistered, quota exceeded) appeared as
+    parse errors.
     """
 
     @staticmethod
@@ -843,7 +852,7 @@ class TestSpecExecutorRecognisesGatewayRejections:
         assert exc.value.provider_code == "22"
 
     def test_it_is_not_reported_as_a_missing_error_code(self) -> None:
-        # 회귀 방지: 예전 메시지는 "에러 코드를 찾을 수 없습니다" 였다.
+        # Regression check: old message was "could not find error code".
         from kpubdata.core.executor import check_payload_error
         from kpubdata.exceptions import AuthError
 
