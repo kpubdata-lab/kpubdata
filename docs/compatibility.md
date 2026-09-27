@@ -6,7 +6,7 @@ KPubData Product Family는 세 저장소가 독립적으로 릴리스되지만, 
 | :--- | :--- | :--- | :--- |
 | [kpubdata](https://github.com/yeongseon/kpubdata) | 데이터 수집·정규화 코어 | 3.10+ | (없음) |
 | [kpubdata-builder](https://github.com/yeongseon/kpubdata-builder) | 빌드 파이프라인 | 3.10+ | `kpubdata` |
-| [kpubdata-studio](https://github.com/yeongseon/kpubdata-studio) | 웹 대시보드 | (Node) | `kpubdata-builder` (REST) |
+| [kpubdata-studio](https://github.com/yeongseon/kpubdata-studio) | 웹 대시보드 | Node **22+** | `kpubdata-builder` (REST) |
 
 전체 아키텍처 관계는 [Product Family 아키텍처](product-family-architecture.md) 문서를 참고한다.
 
@@ -18,13 +18,22 @@ KPubData Product Family는 세 저장소가 독립적으로 릴리스되지만, 
 
 | kpubdata-builder | kpubdata | 비고 |
 | :--- | :--- | :--- |
-| 0.1.x | 0.5.x | 현재 활성 라인. Medallion(Bronze→Silver→Gold) 파이프라인 + 서비스 façade 도입. |
+| 0.4.0.dev0 | 0.6.x | 현재 개발 라인. `pyproject.toml` 의 의존 핀은 `>=0.6.0,<0.7` 이다. |
+| 0.1.x | 0.5.x | Medallion(Bronze→Silver→Gold) 파이프라인 + 서비스 façade 도입. |
+
+> **선언과 태그가 어긋나 있다.** builder 의 `pyproject.toml` 은 `0.4.0.dev0` 이고
+> 발행된 최신 태그는 `v0.1.0` 이다. studio 는 태그가 없다. 즉 위 표의 첫 행은
+> **아직 릴리스되지 않은 상태**를 가리킨다 — 설치 가능한 artifact 로 검증된
+> 조합이 아니다. 정리는
+> [kpubdata-builder#690](https://github.com/yeongseon/kpubdata-builder/issues/690)
+> 에서 한다. 그때까지 버전 번호 대신 커밋 SHA 로 조합을 특정하는 것이 정확하다.
 
 ### kpubdata-studio × kpubdata-builder
 
 | kpubdata-studio | kpubdata-builder | 비고 |
 | :--- | :--- | :--- |
-| (TBD) | 0.1.x | studio는 builder의 HTTP façade(OpenAPI 3.1, `contract/builder-api.yaml`)를 통해 통신한다. |
+| 0.4.0 (태그 없음) | 0.4.0.dev0 | studio 는 builder 의 HTTP façade(OpenAPI 3.1, `contract/builder-api.yaml` **v1.28.0**)를 통해 통신한다. |
+| (TBD) | 0.1.x | |
 
 > **표 갱신 규칙**: 새 minor 릴리스가 나면, 해당 릴리스가 호환되는 의존 저장소 버전 범위를 표에 새 행으로 추가한다. 이전 행은 보존(EOL 표시 가능)하여 사용자가 자신의 조합을 찾아볼 수 있게 한다.
 
@@ -45,7 +54,7 @@ KPubData Product Family는 세 저장소가 독립적으로 릴리스되지만, 
 ### kpubdata
 
 - `kpubdata` 최상위에서 import 가능한 심볼(`Client`, `DatasetRef`, `Operation`, `PaginationMode`, `Query`, `RecordBatch`, `QuerySupport`, 정규 예외 등) — [`API_SPEC.md`](https://github.com/yeongseon/kpubdata/blob/main/API_SPEC.md)에 명시된 것.
-- Provider adapter가 외부에 노출하는 dataset id 표면(`datago.apt_trade` 등) — `SUPPORTED_DATA.md`에 "지원"으로 표시된 것만 호환성 약속 대상이다.
+- Provider adapter가 외부에 노출하는 dataset id 표면(`datago.apt_trade` 등) — `SUPPORTED_DATA.md` 에 표시된 상태 중 호환성 약속 대상이 무엇인지는 상태 모델 재설계(#498)에서 정한다. **"지원" 이라는 손으로 쓴 표기는 근거가 무엇인지 말해주지 않아서 약속의 기준이 될 수 없다** — POLICY 3절이 생성 파일만 기준으로 쓰라고 하는 이유다.
 - 정규(canonical) 데이터 모델 — [`CANONICAL_MODEL.md`](https://github.com/yeongseon/kpubdata/blob/main/CANONICAL_MODEL.md).
 
 내부 구현 디테일(transport 헬퍼, provider 내부 모듈 등)은 호환성 약속 대상이 아니다.
