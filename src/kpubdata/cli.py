@@ -1,7 +1,8 @@
-"""KPubData Python 모듈.
+"""KPubData Python module.
 
-이 파일은 ``src/kpubdata/cli.py`` 경로의 구현을 담는다.
-주요 클래스와 함수는 공개 API, 전송 계층, Provider 어댑터 중 하나의 역할을 담당한다.
+Holds the implementation at ``src/kpubdata/cli.py``. The main classes and
+functions each serve one of three roles: public API, transport layer, or
+provider adapter.
 """
 
 from __future__ import annotations
@@ -38,7 +39,7 @@ _MAX_CELL_WIDTH = 40
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """main과 관련된 값을 계산하거나 조회한다."""
+    """Parse arguments, dispatch the command, and map errors to exit codes."""
     parser = _build_parser()
     args = parser.parse_args(list(argv) if argv is not None else None)
     parsed_values = vars(args)
@@ -69,7 +70,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    """parser을 구성해 반환한다."""
+    """Build and return the argparse parser."""
     parser = argparse.ArgumentParser(prog="kpubdata")
     _ = parser.add_argument("--cache", action="store_true", help="Enable response cache")
     _ = parser.add_argument(
@@ -171,7 +172,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _configure_logging(level_name: str) -> bool:
-    """configure logging과 관련된 값을 계산하거나 조회한다."""
+    """Configure logging from the level name; return whether debug is enabled."""
     level_map = {
         "warning": logging.WARNING,
         "info": logging.INFO,
@@ -186,7 +187,7 @@ def _configure_logging(level_name: str) -> bool:
 
 
 def _run_command(args: argparse.Namespace) -> int:
-    """run command과 관련된 값을 계산하거나 조회한다."""
+    """Dispatch the parsed command to its handler."""
     values = vars(args)
     version_flag = cast(bool, values.get("version", False))
     command = cast(str | None, values.get("command"))
@@ -201,12 +202,13 @@ def _run_command(args: argparse.Namespace) -> int:
         _build_parser().print_help()
         return 0
 
-    # scaffold는 client/provider key가 필요 없으므로 별도 분기.
+    # scaffold needs no client or provider key, so it branches off early.
     if command == "scaffold":
         return _handle_scaffold_command(args)
 
-    # probe 는 자체 fast-fail transport 를 만든다(timeout 15s·재시도 0) — 공용
-    # client 를 쓰면 캐시와 재시도가 끼어들어 "지금 이 키로 닿는가" 를 못 본다.
+    # probe builds its own fast-fail transport (15s timeout, zero retries) —
+    # the shared client would let cache and retries interfere with the
+    # question "is this key reachable right now".
     if command == "probe":
         return _handle_probe_command(args)
 
@@ -225,7 +227,7 @@ def _run_command(args: argparse.Namespace) -> int:
 
 
 def _handle_probe_command(args: argparse.Namespace) -> int:
-    """``kpubdata probe`` — 도달성 분류와 활용신청 체크리스트 (#499)."""
+    """``kpubdata probe`` — reachability classification and the activation checklist (#499)."""
     from pathlib import Path
 
     from kpubdata._probe import (
@@ -270,14 +272,14 @@ def _handle_probe_command(args: argparse.Namespace) -> int:
 
 
 def _create_client(*, cache_enabled: bool, provider_keys: dict[str, str]) -> Client:
-    """create client과 관련된 값을 계산하거나 조회한다."""
+    """Create a Client, optionally with the response cache enabled."""
     if cache_enabled:
         return Client.from_env(provider_keys=provider_keys, cache=True)
     return Client.from_env(provider_keys=provider_keys)
 
 
 def _handle_datasets_command(client: Client, args: argparse.Namespace) -> int:
-    """handle datasets command과 관련된 값을 계산하거나 조회한다."""
+    """Handle the ``datasets`` command."""
     values = vars(args)
     datasets_command = cast(str | None, values.get("datasets_command"))
 
@@ -348,7 +350,7 @@ def _handle_datasets_command(client: Client, args: argparse.Namespace) -> int:
 
 
 def _handle_fetch_command(client: Client, args: argparse.Namespace) -> int:
-    """handle fetch command과 관련된 값을 계산하거나 조회한다."""
+    """Handle the ``fetch`` command."""
     values = vars(args)
     params = _parse_assignments(cast(list[str], values.get("param", [])), flag_name="-p/--param")
     list_kwargs: dict[str, object] = dict(params)
@@ -413,7 +415,7 @@ def _handle_fetch_command(client: Client, args: argparse.Namespace) -> int:
 
 
 def _handle_raw_command(client: Client, args: argparse.Namespace) -> int:
-    """handle raw command과 관련된 값을 계산하거나 조회한다."""
+    """Handle the ``raw`` command."""
     values = vars(args)
     params = _parse_assignments(cast(list[str], values.get("param", [])), flag_name="-p/--param")
     dataset_id = cast(str, values.get("dataset_id"))
@@ -426,7 +428,7 @@ def _handle_raw_command(client: Client, args: argparse.Namespace) -> int:
 
 
 def _handle_scaffold_command(args: argparse.Namespace) -> int:
-    """`kpubdata scaffold provider <name>` 처리 — 새 provider skeleton 생성."""
+    """Handle ``kpubdata scaffold provider <name>`` — generate a new provider skeleton."""
     from kpubdata.scaffold import scaffold_provider
 
     values = vars(args)
@@ -462,7 +464,7 @@ def _handle_scaffold_command(args: argparse.Namespace) -> int:
 
 
 def _dataset_summary(dataset: DatasetRef) -> dict[str, object]:
-    """dataset summary과 관련된 값을 계산하거나 조회한다."""
+    """Build a JSON-serializable dataset summary."""
     return {
         "id": dataset.id,
         "name": dataset.name,
@@ -472,7 +474,7 @@ def _dataset_summary(dataset: DatasetRef) -> dict[str, object]:
 
 
 def _dataset_details(dataset: DatasetRef) -> dict[str, object]:
-    """dataset details과 관련된 값을 계산하거나 조회한다."""
+    """Build a JSON-serializable dataset detail mapping."""
     return {
         "id": dataset.id,
         "name": dataset.name,
@@ -484,7 +486,7 @@ def _dataset_details(dataset: DatasetRef) -> dict[str, object]:
 
 
 def _query_support_payload(query_support: QuerySupport | None) -> dict[str, object] | None:
-    """support payload을 수행한다."""
+    """Build a JSON payload describing query support."""
     if query_support is None:
         return None
     return {
@@ -497,7 +499,7 @@ def _query_support_payload(query_support: QuerySupport | None) -> dict[str, obje
 
 
 def _render_records(items: list[dict[str, object]], *, output_format: str) -> str:
-    """render records과 관련된 값을 계산하거나 조회한다."""
+    """Render record items in the requested output format."""
     if output_format == "json":
         return json.dumps(_to_jsonable(items), ensure_ascii=False, indent=2)
     if output_format == "csv":
@@ -506,7 +508,7 @@ def _render_records(items: list[dict[str, object]], *, output_format: str) -> st
 
 
 def _render_csv(items: list[dict[str, object]]) -> str:
-    """render csv과 관련된 값을 계산하거나 조회한다."""
+    """Render items as CSV."""
     output = io.StringIO()
     headers = _csv_headers(items)
     writer = csv.DictWriter(output, fieldnames=headers, extrasaction="ignore")
@@ -518,7 +520,7 @@ def _render_csv(items: list[dict[str, object]]) -> str:
 
 
 def _render_table(rows: Sequence[Mapping[str, object]], *, headers: Sequence[str]) -> str:
-    """render table과 관련된 값을 계산하거나 조회한다."""
+    """Render rows as an aligned text table."""
     if not headers:
         return "(no columns)"
     if not rows:
@@ -542,14 +544,14 @@ def _render_table(rows: Sequence[Mapping[str, object]], *, headers: Sequence[str
 
 
 def _table_headers(items: list[dict[str, object]]) -> list[str]:
-    """table headers과 관련된 값을 계산하거나 조회한다."""
+    """Return the header keys for a table, capped at the column limit."""
     if not items:
         return []
     return list(items[0].keys())[:_MAX_TABLE_COLUMNS]
 
 
 def _csv_headers(items: list[dict[str, object]]) -> list[str]:
-    """csv headers과 관련된 값을 계산하거나 조회한다."""
+    """Return the union of item keys, in first-seen order."""
     headers: list[str] = []
     for item in items:
         for key in item:
@@ -559,7 +561,7 @@ def _csv_headers(items: list[dict[str, object]]) -> list[str]:
 
 
 def _parse_assignments(values: Sequence[str], *, flag_name: str) -> dict[str, str]:
-    """assignments을 파싱해 반환한다."""
+    """Parse KEY=VALUE strings into a dict."""
     assignments: dict[str, str] = {}
     for value in values:
         key, parsed_value = _split_assignment(value, flag_name=flag_name)
@@ -568,7 +570,7 @@ def _parse_assignments(values: Sequence[str], *, flag_name: str) -> dict[str, st
 
 
 def _split_assignment(value: str, *, flag_name: str) -> tuple[str, str]:
-    """split assignment과 관련된 값을 계산하거나 조회한다."""
+    """Split one KEY=VALUE string; raise InvalidRequestError when malformed."""
     if "=" not in value:
         raise InvalidRequestError(f"{flag_name} expects KEY=VALUE: {value}")
     key, parsed_value = value.split("=", 1)
@@ -579,7 +581,7 @@ def _split_assignment(value: str, *, flag_name: str) -> tuple[str, str]:
 
 
 def _write_output(content: str, output_path: str | None) -> None:
-    """write output과 관련된 값을 계산하거나 조회한다."""
+    """Write content to stdout or to a file."""
     if output_path is None:
         _ = sys.stdout.write(content)
         if not content.endswith("\n"):
@@ -589,12 +591,12 @@ def _write_output(content: str, output_path: str | None) -> None:
 
 
 def _operation_names(operations: Iterable[Operation]) -> list[str]:
-    """operation names과 관련된 값을 계산하거나 조회한다."""
+    """Return the sorted operation value names."""
     return sorted(operation.value for operation in operations)
 
 
 def _to_jsonable(value: object) -> object:
-    """jsonable 형태로 변환한다."""
+    """Convert a value into a JSON-serializable form."""
     if value is None or isinstance(value, (str, int, float, bool)):
         return value
     if isinstance(value, Enum):
@@ -621,7 +623,7 @@ def _to_jsonable(value: object) -> object:
 
 
 def _stringify_value(value: object) -> str:
-    """stringify value과 관련된 값을 계산하거나 조회한다."""
+    """Render a value as a display string."""
     if value is None:
         return ""
     if isinstance(value, str):
@@ -632,19 +634,19 @@ def _stringify_value(value: object) -> str:
 
 
 def _truncate(value: str) -> str:
-    """truncate과 관련된 값을 계산하거나 조회한다."""
+    """Truncate a cell to the table width limit."""
     if len(value) <= _MAX_CELL_WIDTH:
         return value
     return f"{value[: _MAX_CELL_WIDTH - 1]}…"
 
 
 def _print_error(exc: BaseException) -> None:
-    """print error과 관련된 값을 계산하거나 조회한다."""
+    """Print an error line to stderr."""
     print(f"error: {type(exc).__name__}: {exc}", file=sys.stderr)
 
 
 def _get_version() -> str:
-    """version을 반환한다."""
+    """Return the installed package version."""
     try:
         return version("kpubdata")
     except PackageNotFoundError:

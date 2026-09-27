@@ -1,13 +1,14 @@
-"""새 Provider 어댑터를 위한 스캐폴딩 도구 (#61).
+"""Scaffolding tooling for new provider adapters (#61).
 
-이 모듈은 새 Provider 어댑터를 추가할 때 필요한 최소 파일 묶음을 자동으로
-생성한다. 핵심은 PROVIDER_ADAPTER_CONTRACT.md / AGENTS.md의 규칙을 따르는
-정직한 skeleton — 동작하는 placeholder 어댑터 + catalogue + fixture +
-contract test — 을 한 번에 만들어주어 첫 PR을 작성하기 위한 시작 비용을
-없애는 데 있다.
+This module generates the minimal bundle of files needed to add a new
+provider adapter. The point is an honest skeleton that follows the rules in
+PROVIDER_ADAPTER_CONTRACT.md / AGENTS.md — a working placeholder adapter,
+catalogue, fixture and contract test produced in one shot — removing the
+startup cost of writing the first PR.
 
-주요 함수:
-    - scaffold_provider: 지정된 이름의 Provider skeleton을 디스크에 생성한다.
+Main functions:
+    - scaffold_provider: write a provider skeleton to disk under the given
+      name.
 """
 
 from __future__ import annotations
@@ -25,17 +26,17 @@ _DATASET_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 
 @dataclass(frozen=True)
 class ScaffoldResult:
-    """스캐폴딩이 만든 파일 경로의 결과 객체.
+    """Result object carrying the paths the scaffolding created.
 
-    속성:
-        provider_dir: src/kpubdata/providers/<name>/ 디렉터리.
-        adapter_path: provider 어댑터 모듈 경로.
-        init_path: provider 패키지 __init__.py 경로.
-        catalogue_path: catalogue.json 경로.
-        fixture_dir: tests/fixtures/<name>/ 디렉터리.
-        fixture_path: 샘플 fixture JSON 경로.
-        contract_test_path: tests/contract/test_<name>.py 경로.
-        created: 새로 만든 파일 경로 목록.
+    Attributes:
+        provider_dir: The src/kpubdata/providers/<name>/ directory.
+        adapter_path: Path of the provider adapter module.
+        init_path: Path of the provider package __init__.py.
+        catalogue_path: Path of catalogue.json.
+        fixture_dir: The tests/fixtures/<name>/ directory.
+        fixture_path: Path of the sample fixture JSON.
+        contract_test_path: Path of tests/contract/test_<name>.py.
+        created: Paths of the newly created files.
     """
 
     provider_dir: Path
@@ -49,10 +50,11 @@ class ScaffoldResult:
 
 
 def _validate_provider_name(name: str) -> None:
-    """워크스페이스를 벗어날 수 있거나 파이썬 식별자가 아닌 이름을 거부한다.
+    """Reject names that could escape the workspace or are not identifiers.
 
-    파이썬 예약어(``class``, ``import`` 등)는 import/from 문에서 SyntaxError가
-    나므로 정규식 통과 여부와 무관하게 별도로 거부한다.
+    Python keywords (``class``, ``import``, ...) are rejected separately
+    from the regex because they would raise SyntaxError in import/from
+    statements regardless of pattern compliance.
     """
     if not _PROVIDER_NAME_PATTERN.match(name):
         raise ValueError(
@@ -67,10 +69,11 @@ def _validate_provider_name(name: str) -> None:
 
 
 def _validate_dataset_key(key: str) -> None:
-    """비ASCII나 식별자가 아닌 dataset_key를 거부한다.
+    """Reject non-ASCII or non-identifier dataset keys.
 
-    dataset_key는 테스트 함수 이름(``test_<provider>_seed_dataset_*``)의 일부로도
-    재사용될 수 있어 파이썬 예약어를 명시적으로 거부한다.
+    dataset_key can also be reused as part of a test function name
+    (``test_<provider>_seed_dataset_*``), so Python keywords are rejected
+    explicitly.
     """
     if not _DATASET_KEY_PATTERN.match(key):
         raise ValueError(
@@ -82,7 +85,7 @@ def _validate_dataset_key(key: str) -> None:
 
 
 def _adapter_module(provider_name: str, dataset_key: str) -> str:
-    """provider adapter 모듈 본문을 문자열로 반환한다."""
+    """Return the provider adapter module body as a string."""
     class_name = "".join(part.capitalize() for part in provider_name.split("_")) + "Adapter"
     return f'''"""{provider_name} provider 어댑터 (TODO: 한 줄 설명).
 
@@ -198,7 +201,7 @@ __all__ = ["{class_name}"]
 
 
 def _init_module(provider_name: str) -> str:
-    """provider 패키지 __init__.py 본문."""
+    """Body of the provider package __init__.py."""
     class_name = "".join(part.capitalize() for part in provider_name.split("_")) + "Adapter"
     return (
         f'"""{provider_name} Provider 어댑터 패키지."""\n\n'
@@ -209,7 +212,7 @@ def _init_module(provider_name: str) -> str:
 
 
 def _catalogue_seed(provider_name: str, dataset_key: str) -> str:
-    """초기 catalogue.json 본문(샘플 데이터셋 1개)."""
+    """Initial catalogue.json body (one sample dataset)."""
     entry = {
         "dataset_key": dataset_key,
         "name": f"{provider_name} {dataset_key} sample (TODO: 실명으로 교체)",
@@ -228,7 +231,7 @@ def _catalogue_seed(provider_name: str, dataset_key: str) -> str:
 
 
 def _fixture_seed(dataset_key: str) -> str:
-    """샘플 success fixture(합성 placeholder)."""
+    """Sample success fixture (synthetic placeholder)."""
     payload = {
         "response": {
             "header": {"resultCode": "00", "resultMsg": "NORMAL SERVICE."},
@@ -248,7 +251,7 @@ def _fixture_seed(dataset_key: str) -> str:
 
 
 def _contract_test(provider_name: str, dataset_key: str) -> str:
-    """tests/contract/test_<name>.py skeleton — discovery까지 동작."""
+    """tests/contract/test_<name>.py skeleton — covers discovery only."""
     class_name = "".join(part.capitalize() for part in provider_name.split("_")) + "Adapter"
     return f'''"""{provider_name} provider contract test (skeleton).
 
@@ -287,17 +290,18 @@ def test_{provider_name}_seed_dataset_metadata() -> None:
 
 
 def _cleanup_empty_directories(dirs: list[Path]) -> list[str]:
-    """깊은 디렉터리부터 순서대로 비어 있으면 제거한다.
+    """Remove empty directories deepest-first.
 
-    이번 호출에서 새로 생성한 leaf 디렉터리를 cleanup하기 위한 helper.
-    호출 전부터 존재했거나 파일이 남아 있는 디렉터리는 삭제하지 않는다.
+    Helper for cleaning up leaf directories created by this call.
+    Directories that existed before the call, or that still hold files,
+    are not deleted.
 
-    정상적으로 무시하는 상황:
-        - 디렉터리가 이미 존재하지 않음 (FileNotFoundError)
-        - 디렉터리가 비어 있지 않음 (errno.ENOTEMPTY)
+    Silently ignored conditions:
+        - the directory no longer exists (FileNotFoundError)
+        - the directory is not empty (errno.ENOTEMPTY)
 
-    반환값:
-        실제 삭제 실패의 오류 메시지 목록.
+    Returns:
+        Error messages for deletions that genuinely failed.
     """
     errors: list[str] = []
     for directory in reversed(dirs):
@@ -320,21 +324,22 @@ def scaffold_provider(
     dataset_key: str = "sample",
     overwrite: bool = False,
 ) -> ScaffoldResult:
-    """새 Provider 어댑터의 최소 파일 묶음을 생성한다.
+    """Create the minimal file bundle for a new provider adapter.
 
-    매개변수:
-        name: Provider 이름(파이썬 패키지 명, 예: ``my_provider``).
-        repo_root: kpubdata 저장소 루트 경로(``src/`` 와 ``tests/`` 의 부모).
-        dataset_key: 시드 catalogue 엔트리의 dataset_key.
-        overwrite: 기존 파일이 있을 때 덮어쓸지 여부. 기본 False — 기존 파일이
-            있으면 ``FileExistsError``를 발생시킨다.
+    Args:
+        name: Provider name (a Python package name, e.g. ``my_provider``).
+        repo_root: Root of the kpubdata repository (parent of ``src/`` and
+            ``tests/``).
+        dataset_key: dataset_key of the seed catalogue entry.
+        overwrite: Whether to overwrite existing files. Defaults to
+            False — existing files raise ``FileExistsError``.
 
-    반환값:
-        ScaffoldResult: 생성된 경로 묶음.
+    Returns:
+        ScaffoldResult: The bundle of created paths.
 
-    예외:
-        ValueError: 이름 또는 dataset_key가 규칙에 맞지 않을 때.
-        FileExistsError: ``overwrite=False`` 일 때 기존 파일이 존재하면 발생.
+    Raises:
+        ValueError: The name or dataset_key breaks the rules.
+        FileExistsError: Files already exist and ``overwrite=False``.
     """
     _validate_provider_name(name)
     _validate_dataset_key(dataset_key)
