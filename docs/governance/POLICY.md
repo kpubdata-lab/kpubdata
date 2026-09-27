@@ -89,7 +89,7 @@ Milestone 계층은 만들지 않는다.
 | 정보 | 기록 위치 | 설정 주체 |
 |---|---|---|
 | Status (15절) | GitHub Project 필드 | 사람·자동화 (Done은 사람만) |
-| Priority (8절) | Project 필드 | 사람 (High 승격은 사람만) |
+| Priority (8절) | **`priority:*` 라벨** (2.1.2절) | 사람 (High 이상 승격은 사람만) |
 | Epic (5절) | **`epic:*` 라벨** (2.1.1절) | 사람 |
 | Required Verification (18절) | Project 필드 + 이슈 본문 | 이슈 작성자, triage에서 확정 |
 | Target Release (33절) | Project 필드 | 사람 |
@@ -143,6 +143,29 @@ Project 가 생기면 Status·Priority·Target Release 는 표대로 Project 필
 Epic 은 라벨로 남긴다 — 위의 세 번째 이유는 Project 가 생겨도 사라지지 않는다.
 
 ---
+
+## 2.1.2 Priority 도 라벨이다 — 2026-09-27 개정
+
+Epic 과 같은 이유다(2.1.1절). Project 가 없으면 Priority 필드는 **아무것도 기록하지
+못한다.** GOV-02 가 `gh` 의 `project` scope 없이 막혀 있는 동안 우선순위를 둘 곳이
+없었고, 실제로 열린 이슈 85건 중 우선순위가 기록된 것은 0건이었다.
+
+| 라벨 | 뜻 |
+|---|---|
+| `priority:critical` | 이미 노출·피해가 발생 중이다. 다른 작업을 멈춘다 |
+| `priority:high` | 제품 흐름·보안·데이터 정확성을 실질적으로 막는다 |
+| `priority:medium` | 제품화에 필요하지만 다른 작업을 중단시키지 않는다 |
+| `priority:low` | 장기 개선·최적화·편의성 |
+
+**접두사를 붙인다.** 맨 `high` 는 무엇의 high 인지 모호하고 `severity` 와 섞인다 —
+9절이 경고하는 혼동이 라벨 이름에서 시작되게 두지 않는다.
+
+`P0` / `P1` / `P2` 라벨은 **폐기한다**(8절). 그 표기를 쓰지 않기로 한 것은 원래
+결정이고, 라벨만 남아 있었다.
+
+Project 가 생기면 Status·Target Release 는 2.1절 표대로 Project 필드로 간다.
+Priority 는 Epic 과 함께 라벨로 남긴다 — 이슈 목록에서 바로 보이고 필터가 되는 것이
+보드를 열어야 보이는 것보다 낫다.
 
 # 3. Product Direction
 
@@ -419,7 +442,10 @@ V0
 
 # 8. Priority 정책
 
-기존 `P0 / P1 / P2` 표기는 사용하지 않는다.
+기록 위치는 `priority:*` 라벨이다(2.1.2절).
+
+기존 `P0 / P1 / P2` 표기는 사용하지 않는다. **라벨도 폐기한다** — 표기를 쓰지 않기로
+하고도 라벨이 남아 있어서 열린 이슈 10건이 계속 그것을 달고 있었다.
 
 기존 문서의 Priority는 기계적으로 치환하지 않는다.
 
@@ -429,6 +455,27 @@ V0
 
 이후 triage에서 다시 판정한다. **치환이 아니라 원점 재판정이다** — 잘못된
 우선순위가 이름만 바꿔 살아남지 않게 한다.
+
+## Critical — 2026-09-27 추가
+
+**이미 노출돼 있거나 피해가 발생 중이다.** 다른 작업을 멈추고 이것부터 한다.
+
+High 와 가르는 기준은 심각성이 아니라 **지금 노출돼 있는가**다. 같은 결함이라도
+배포되지 않았으면 High 이고, 배포된 버전에서 재현되면 Critical 이다.
+
+예:
+
+- 배포된 버전이 credential 을 로그·응답·백업에 남긴다
+- 운영 중인 배포에서 사용자가 다른 사용자의 데이터를 읽을 수 있다
+- 게시된 데이터가 지금 약관을 위반하고 있다
+- 릴리스된 산출물이 잘못된 데이터를 담고 있다
+
+Critical 에는 High 와 같은 `Impact:` · `Blocks:` · `Evidence:` 가 필요하고,
+**`Evidence:` 는 재현 경로여야 한다** — 가능성이 아니라 지금 그렇다는 것을 보여야
+Critical 이다.
+
+Critical 은 Severity 가 아니다(9절). Severity 는 bug 의 성질이고 Critical 은 *지금
+무엇을 먼저 하는가*다. 심각한 버그가 배포되지 않았다면 Critical 이 아니다.
 
 ## High
 
@@ -445,13 +492,16 @@ V0
 - release artifact가 실행되지 않음
 - evidence pipeline 신뢰 불가
 
-High에는 반드시 다음이 있어야 한다.
+High 이상에는 반드시 다음이 있어야 한다.
 
 ```text
 Impact:
 Blocks:
 Evidence:
 ```
+
+열린 이슈 85건 중 **35건에 `Evidence:` 절이 없다.** 그 이슈들은 지금 High 로 올릴
+수 없다. 근거를 채우는 것이 GOV-05(#510)의 실제 작업이다.
 
 High라는 이유만으로 긴급 릴리스한다는 의미는 아니다.
 
