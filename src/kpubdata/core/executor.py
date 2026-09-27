@@ -48,8 +48,7 @@ _DEFAULT_PAGE_SIZE = 100
 # To avoid importing providers from core, generalize the datago 403 hint.
 _FORBIDDEN_HINT = (
     "Provider returned 403. This usually means the specific API has not been activated "
-    "(via data.go.kr activation request) for your key. Check the dataset's "
-    "documentation page for your provider."
+    "(활용신청) for your key. Check the dataset's documentation page for your provider."
 )
 
 
@@ -654,7 +653,7 @@ def check_payload_error(spec: SpecDefinition, payload: dict[str, object]) -> Non
         err_raw = payload.get("err")
         if isinstance(err_raw, (str, dict)):
             raise ProviderResponseError(
-                f"{spec.id}: Provider error response: {str(err_raw)[:200]}",
+                f"{spec.id}: Provider 오류 응답: {str(err_raw)[:200]}",
                 provider=spec.provider,
                 dataset_id=spec.id,
             )
@@ -670,7 +669,7 @@ def check_payload_error(spec: SpecDefinition, payload: dict[str, object]) -> Non
     elif isinstance(raw_code, int) and not isinstance(raw_code, bool):
         code = str(raw_code)
     else:
-        msg = f"{spec.id}: cannot find error code in response envelope ({error.code_path!r})."
+        msg = f"{spec.id}: 응답 envelope에서 에러 코드를 찾을 수 없습니다({error.code_path!r})."
         raise ProviderResponseError(msg, provider=spec.provider, dataset_id=spec.id)
 
     ok_strings = {str(value) for value in error.ok_values}
