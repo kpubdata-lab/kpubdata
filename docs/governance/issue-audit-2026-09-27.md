@@ -11,17 +11,23 @@ GOV-04. [POLICY.md](./POLICY.md) 11·12절에 따라 세 저장소의 Open Issue
 
 | 분류 | 건수 |
 |---|---|
-| KEEP | 9 |
-| DECISION | 8 |
-| BLOCKED | 4 |
+| KEEP | 8 |
+| **DECISION** | **9** |
+| MERGE | 4 |
+| BLOCKED | 3 |
 | EPIC | 3 |
-| MERGE | 3 |
-| CLOSE | 1 |
+| SPLIT | 1 |
+| CLOSE | 0 |
 | **합계** | **28** |
 
-Open Issue 중 **8건이 DECISION** 이다 — 코드 작업 전에 사람의 결정이 필요하고,
+Open Issue 중 **9건이 DECISION** 이다 — 코드 작업 전에 사람의 결정이 필요하고,
 그 결정이 없는 동안 에이전트가 진행하면 되돌리기 어려운 방향으로 굳는다.
 이것이 현재 가장 큰 병목이다.
+
+> 이 표는 아래 행에서 기계적으로 재집계한 것이다. 처음 적은 요약은 7행 중 5행이
+> 틀렸고(KEEP 9, DECISION 8, MERGE 3, BLOCKED 4, CLOSE 1), **합계만 우연히 28로
+> 맞아서 드러나지 않았다.** 존재하지 않는 CLOSE 1건이 있고 SPLIT 1건이 빠져
+> 있었다. 합계가 맞는다고 내역이 맞는 것은 아니다.
 
 ---
 
