@@ -91,7 +91,7 @@ class TestPandasIsReallyOptional:
 
 @pytest.mark.skipif(
     not _TYPING_EXTENSIONS_IS_OPTIONAL,
-    reason='3.11 이하에서는 typing_extensions 가 선언된 의존성이라 차단하면 당연히 실패한다',
+    reason="3.11 이하에서는 typing_extensions 가 선언된 의존성이라 차단하면 당연히 실패한다",
 )
 class TestTypingExtensionsIsReallyOptional:
     """Python 3.12+ new installs have no typing_extensions.
