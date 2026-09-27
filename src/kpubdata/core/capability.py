@@ -1,4 +1,4 @@
-"""데이터셋 작업과 질의 지원을 설명하는 capability 메타데이터."""
+"""Capability metadata describing the operations and queries a dataset supports."""
 
 from __future__ import annotations
 
@@ -18,17 +18,17 @@ def _dataclass(
     slots: bool = False,
     frozen: bool = False,
 ) -> Callable[[type[_T]], type[_T]]:
-    """고정 옵션을 적용하는 dataclass 데코레이터를 반환한다."""
+    """Return a dataclass decorator with the options already fixed."""
 
     def _decorate(cls: type[_T]) -> type[_T]:
-        """대상 클래스에 dataclass 옵션을 적용해 반환한다."""
+        """Apply the dataclass options to the target class and return it."""
         return _stdlib_dataclass(slots=slots, frozen=frozen)(cls)  # pyright: ignore[reportCallIssue]
 
     return _decorate
 
 
 class Operation(str, Enum):
-    """데이터셋이 지원할 수 있는 주요 작업."""
+    """The main operations a dataset can support."""
 
     LIST = "list"
     GET = "get"
@@ -38,7 +38,7 @@ class Operation(str, Enum):
 
 
 class PaginationMode(str, Enum):
-    """데이터셋이 페이지네이션을 지원하는 방식."""
+    """How a dataset paginates."""
 
     OFFSET = "offset"
     INDEX = "index"
@@ -48,7 +48,7 @@ class PaginationMode(str, Enum):
 
 @_dataclass(slots=True, frozen=True)
 class QuerySupport:
-    """데이터셋이 지원하는 목록 질의 기능에 대한 구조화된 메타데이터."""
+    """Structured metadata about the list-query features a dataset supports."""
 
     pagination: PaginationMode = PaginationMode.NONE
     filterable_fields: frozenset[str] = frozenset()

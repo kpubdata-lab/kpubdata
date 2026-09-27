@@ -1,4 +1,4 @@
-"""지수 백오프를 사용하는 재시도 유틸리티."""
+"""Retry helpers that back off exponentially."""
 
 from __future__ import annotations
 
@@ -21,22 +21,22 @@ def with_retry(
     retryable_exceptions: tuple[type[BaseException], ...] = (),
     sleep: Callable[[float], None] = time.sleep,
 ) -> T:
-    """지수 백오프 재시도와 함께 ``fn``을 실행한다.
+    """Call ``fn``, retrying with exponential backoff.
 
-    매개변수:
-        fn: 실행할 호출 가능 객체.
-        max_retries: 첫 시도 이후 재시도 횟수.
-        backoff_factor: 지수 백오프의 기준 계수.
-        retryable_exceptions: 재시도를 유발해야 하는 예외 타입들.
-        sleep: 재시도 사이의 대기 함수. 기본은 ``time.sleep``이며, 테스트에서
-            가짜 sleep을 주입하거나 async 래퍼가 ``asyncio.sleep``을 쓸 수 있다(#270).
+    Args:
+        fn: The callable to run.
+        max_retries: How many retries to make after the first attempt.
+        backoff_factor: Base factor for the exponential backoff.
+        retryable_exceptions: Exception types that should trigger a retry.
+        sleep: How to wait between retries. Defaults to ``time.sleep``; tests
+            inject a fake and the async wrapper passes ``asyncio.sleep`` (#270).
 
-    반환값:
-        ``fn``이 반환한 값.
+    Returns:
+        Whatever ``fn`` returned.
 
-    예외:
-        BaseException: ``fn``에서 발생한 마지막 예외를 다시 발생시킨다.
-        ValueError: 재시도 구성 값이 유효하지 않은 경우.
+    Raises:
+        BaseException: Re-raises the last exception ``fn`` raised.
+        ValueError: If the retry configuration is invalid.
     """
     if max_retries < 0:
         msg = "max_retries must be >= 0"
@@ -76,10 +76,11 @@ async def with_retry_async(
     backoff_factor: float = 0.5,
     retryable_exceptions: tuple[type[BaseException], ...] = (),
 ) -> T:
-    """``with_retry``의 async 버전 — 대기에 ``asyncio.sleep``을 쓴다 (#270).
+    """The async counterpart of ``with_retry``; waits with ``asyncio.sleep`` (#270).
 
-    이벤트 루프를 차단하지 않으므로 FastAPI/asyncio 기반 소비자(Builder 등)의
-    이벤트 루프를 굳지 않게 한다. 재시도 정책·예외 의미론은 동기 버전과 동일하다.
+    It does not block the event loop, so FastAPI/asyncio consumers such as
+    Builder do not stall. The retry policy and exception semantics are identical
+    to the synchronous version.
     """
     if max_retries < 0:
         msg = "max_retries must be >= 0"

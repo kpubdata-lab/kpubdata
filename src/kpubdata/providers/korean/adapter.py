@@ -1,16 +1,16 @@
-"""국립국어원 표준국어대사전 open API 어댑터 (#222).
+"""Adapter for the National Institute of Korean Language dictionary API (#222).
 
-stdict open API(\`stdict.korean.go.kr/api\`)는 표준 data.go.kr 엔벨로프가 아닌
-고유 형상을 쓴다::
+stdict open API(\`stdict.korean.go.kr/api\`) does not use the standard data.go.kr
+envelope; it has a shape of its own::
 
     {"channel": {
         "title": "...", "link": "...", "total": "50", "start": "1", "num": "10",
         "item": [{"target_code": "...", "word": "...", "sense": [...], ...}],
     }}
 
-- 인증은 \`key\` query parameter(stdict 사이트에서 발급)로 한다
-- 오류는 JSON body의 \`statusCode\`(\`"000"\` 정상)로 알린다
-- 페이지네이션은 \`start\`/\`num\`(페이지 시작 인덱스/페이지 크기, 최대 100)
+- Authentication uses the \`key\` query parameter, issued on the stdict site
+- Errors arrive in the JSON body as \`statusCode\` (\`"000"\` means success)
+- Pagination uses \`start\`/\`num\` (1-based start index, page size, max 100)
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ _CATALOGUE_PACKAGE = "kpubdata.providers.korean"
 
 
 class KoreanAdapter:
-    """국립국어원 표준국어대사전 어댑터."""
+    """Adapter for the National Institute of Korean Language dictionary."""
 
     requires_api_key: bool = True
 
@@ -194,11 +194,12 @@ class KoreanAdapter:
     def _parse_stdict_envelope(
         self, payload: Mapping[str, object], dataset_id: str
     ) -> tuple[list[dict[str, object]], int]:
-        """stdict channel 엔벨로프에서 (items, total_count)를 추출한다.
+        """Extract ``(items, total_count)`` from the stdict channel envelope.
 
-        다의어는 한 표제어가 여러 \`sense\`를 가진다 — 레코드 단위로 펼쳐
-        각 sense를 독립 항목으로 정규화한다(표제어+definition이 사용 단위).
-        오류는 \`statusCode\`로 매핑한다(\`019\` 인증 오류 → AuthError).
+        A polysemous headword carries several \`sense\` entries. They are
+        flattened to one record per sense, because headword plus definition is
+        the unit callers work with. Errors map from \`statusCode\`; \`019\`
+        is an authentication failure and becomes AuthError.
         """
         status_code = payload.get("statusCode")
         if isinstance(status_code, str) and status_code != "000":
