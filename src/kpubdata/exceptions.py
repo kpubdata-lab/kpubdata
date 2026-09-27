@@ -1,4 +1,4 @@
-"""구조화된 오류 컨텍스트를 갖는 KPubData 예외 계층."""
+"""KPubData exception hierarchy with structured error context."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from typing import Any
 
 
 class PublicDataError(Exception):
-    """구조화된 컨텍스트 속성을 갖는 모든 KPubData 오류의 기반 클래스."""
+    """Base class for all KPubData errors carrying structured context attributes."""
 
     def __init__(
         self,
@@ -20,7 +20,7 @@ class PublicDataError(Exception):
         retryable: bool = False,
         detail: object = None,
     ) -> None:
-        """선택적 Provider/전송 메타데이터와 함께 오류를 초기화한다."""
+        """Initialize the error with optional provider/transport metadata."""
 
         super().__init__(message)
         self.provider = provider
@@ -32,7 +32,7 @@ class PublicDataError(Exception):
         self.detail = detail
 
     def __repr__(self) -> str:
-        """Provider 및 전송 메타데이터를 포함한 구조화된 repr를 반환한다."""
+        """Return a structured repr that includes provider and transport metadata."""
         parts = [f"{type(self).__name__}({self.args[0]!r}"]
         if self.provider:
             parts.append(f"provider={self.provider!r}")
@@ -46,22 +46,24 @@ class PublicDataError(Exception):
 
 
 class ConfigError(PublicDataError):
-    """KPubData 설정이 잘못되었거나 불완전할 때 발생한다."""
+    """Raised when the KPubData configuration is invalid or incomplete."""
 
 
-#: 다시 보낼 가치가 있는 4xx. 나머지 4xx 는 같은 답이 돌아온다.
+#: 4xx statuses worth sending again. The rest of the 4xx range answers the same.
 _RETRYABLE_CLIENT_STATUSES = frozenset({408, 425, 429})
 
 
 def _status_is_retryable(status_code: object) -> bool:
-    """이 상태 코드의 실패를 재시도해도 되는지.
+    """Whether a failure with this status code is worth retrying.
 
-    판정은 ``transport.http._is_retryable_status`` 의 재시도 정책과 같은 뜻이되,
-    거기에 없는 408·425 까지 포함한다 — transport 는 그 둘을 재시도하지 않지만,
-    호출자에게 "다시 시도해도 된다" 고 알려 주는 것은 옳다.
+    The verdict matches the retry policy of ``transport.http._is_retryable_status``
+    in spirit, but also includes 408 and 425 — the transport does not retry
+    those two itself, yet telling the caller "you may try again" is still
+    the right answer.
     """
     if not isinstance(status_code, int) or isinstance(status_code, bool):
-        # 상태 코드가 없는 실패는 전송 계층 자체의 실패다(연결/타임아웃).
+        # A failure with no status code is the transport itself failing
+        # (connection/timeout).
         return True
     if status_code in _RETRYABLE_CLIENT_STATUSES:
         return True
@@ -69,22 +71,24 @@ def _status_is_retryable(status_code: object) -> bool:
 
 
 class AuthError(PublicDataError):
-    """인증 또는 권한 부여 실패 시 발생한다."""
+    """Raised on authentication or authorization failure."""
 
 
 class TransportError(PublicDataError):
-    """네트워크 및 전송 계층 실패 시 발생한다."""
+    """Raised on network and transport-layer failure."""
 
     def __init__(self, message: str, **kwargs: Any) -> None:
-        """전송 오류를 초기화한다. 기본 ``retryable`` 은 상태 코드에서 나온다.
+        """Initialize the transport error. The ``retryable`` default comes from the status code.
 
-        예전에는 무조건 ``True`` 였다. 그래서 400·401·403·404 처럼 다시 보내도
-        같은 답이 오는 실패까지 "재시도 가능" 으로 표시됐고, 그 값을 믿는
-        호출자(kpubdata-builder 의 Bronze fetch)는 잘못된 키나 잘못된 요청을
-        재시도 예산만큼 반복했다.
+        It used to be unconditionally ``True``. Failures that answer the same
+        no matter how often you resend — 400, 401, 403, 404 — were therefore
+        marked "retryable", and callers trusting that flag (the kpubdata-builder
+        Bronze fetch) burned their retry budget repeating a bad key or a bad
+        request.
 
-        상태 코드를 모르면(연결 실패·타임아웃 등 전송 계층 자체의 실패) 예전처럼
-        재시도 가능으로 둔다 — 그쪽은 실제로 다시 시도할 가치가 있다.
+        When the status code is unknown (connection failure, timeout — the
+        transport itself failing) it stays retryable as before: those really
+        are worth another attempt.
         """
         status_code = kwargs.get("status_code")
         kwargs.setdefault("retryable", _status_is_retryable(status_code))
@@ -92,46 +96,47 @@ class TransportError(PublicDataError):
 
 
 class TransportTimeoutError(TransportError):
-    """Provider 요청이 타임아웃 한도를 초과할 때 발생한다."""
+    """Raised when a provider request exceeds the timeout limit."""
 
 
 class RateLimitError(TransportError):
-    """Provider가 throttling 등으로 요청을 거부할 때 발생한다."""
+    """Raised when a provider refuses a request (throttling and the like)."""
 
 
 class ServiceUnavailableError(TransportError):
-    """상위 Provider 서비스가 일시적으로 사용 불가할 때 발생한다."""
+    """Raised when the upstream provider service is temporarily unavailable."""
 
 
 class ParseError(PublicDataError):
-    """Provider 페이로드를 안전하게 파싱할 수 없을 때 발생한다."""
+    """Raised when a provider payload cannot be parsed safely."""
 
 
 class InvalidRequestError(PublicDataError):
-    """질의 또는 작업 입력이 의미적으로 잘못되었을 때 발생한다."""
+    """Raised when a query or operation input is semantically invalid."""
 
 
 class ProviderResponseError(PublicDataError):
-    """Provider 응답이 계약 기대사항을 위반할 때 발생한다."""
+    """Raised when a provider response violates contract expectations."""
 
 
 class UnsupportedCapabilityError(PublicDataError):
-    """요청한 작업이 데이터셋에서 지원되지 않을 때 발생한다."""
+    """Raised when the requested operation is not supported by the dataset."""
 
 
 class DatasetNotFoundError(PublicDataError):
-    """요청한 데이터셋 식별자를 해석할 수 없을 때 발생한다."""
+    """Raised when the requested dataset identifier cannot be resolved."""
 
 
 class ProviderNotRegisteredError(PublicDataError):
-    """Provider 키가 레지스트리에 없을 때 발생한다."""
+    """Raised when a provider key is absent from the registry."""
 
 
 class CapabilityContractError(PublicDataError):
-    """Provider 어댑터의 선언된 capability와 실제 동작이 일치하지 않을 때 발생한다.
+    """Raised when a provider adapter's declared capabilities and actual behavior disagree.
 
-    예: catalogue의 dataset이 ``LIST``를 선언했지만 ``list_datasets`` 호출이
-    실패하거나, ``operations``가 빈 집합으로 선언된 dataset이 노출되는 경우.
+    For example: a catalogue dataset declares ``LIST`` but the ``list_datasets``
+    call fails, or a dataset declared with an empty ``operations`` set is
+    exposed.
     """
 
 

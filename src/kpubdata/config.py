@@ -1,12 +1,13 @@
-"""설정 관리 — 명시적 구성과 환경 변수 기반 로딩.
+"""Configuration management — explicit settings and environment-based loading.
 
-Provider 키 조회 순서:
-1. 생성자에 전달한 명시적 `provider_keys` dict
-2. 환경 변수: KPUBDATA_{PROVIDER}_API_KEY (대문자)
-3. 환경 변수: {PROVIDER}_API_KEY (대문자, fallback)
+Provider key lookup order:
+1. An explicit `provider_keys` dict passed to the constructor
+2. Environment variable: KPUBDATA_{PROVIDER}_API_KEY (upper case)
+3. Environment variable: {PROVIDER}_API_KEY (upper case, fallback)
 
-data.go.kr 계열 Provider(localdata, lofin, semas)는 모두 "datago" 키를 사용한다.
-모든 data.go.kr 기반 Provider에 대해 KPUBDATA_DATAGO_API_KEY를 한 번만 설정하면 된다.
+data.go.kr family providers (localdata, lofin, semas) all use the "datago"
+key. Setting KPUBDATA_DATAGO_API_KEY once covers every data.go.kr based
+provider.
 """
 
 from __future__ import annotations
@@ -24,7 +25,7 @@ logger = logging.getLogger("kpubdata.config")
 
 @dataclass
 class KPubDataConfig:
-    """프레임워크 설정."""
+    """Framework configuration."""
 
     provider_keys: dict[str, str] = field(default_factory=dict)
     timeout: float = 30.0
@@ -32,7 +33,7 @@ class KPubDataConfig:
     extra: dict[str, object] = field(default_factory=dict)
 
     def __repr__(self) -> str:
-        """민감 정보를 노출하지 않는 간결한 디버그 표현을 반환한다."""
+        """Return a concise debug representation that exposes no secrets."""
         providers = sorted(self.provider_keys.keys())
         return (
             "KPubDataConfig("
@@ -44,7 +45,7 @@ class KPubDataConfig:
         )
 
     def get_provider_key(self, provider: str) -> str | None:
-        """문서화된 우선순위에 따라 Provider의 API 키를 조회한다."""
+        """Look up a provider's API key following the documented precedence."""
         normalized_provider = _normalize_provider_name(provider)
 
         explicit = _get_explicit_key(self.provider_keys, normalized_provider)
@@ -65,17 +66,19 @@ class KPubDataConfig:
         return None
 
     def require_provider_key(self, provider: str, *, fallback_to: str | None = None) -> str:
-        """get_provider_key와 같지만 키가 없으면 ConfigError를 발생시킨다.
+        """Like get_provider_key, but raises ConfigError when the key is missing.
 
-        ``fallback_to`` 는 여러 provider 가 **같은 발급처의 키 하나**를 쓰는 경우를
-        위한 것이다 — localdata·semas 는 datago 와 동일한 data.go.kr 서비스 키를
-        쓴다. 그래서 두 어댑터가 곧바로 ``require_provider_key("datago")`` 를
-        불렀는데, 그러면 README 가 안내하는 ``provider_keys={"localdata": ...}`` 나
-        ``KPUBDATA_LOCALDATA_API_KEY`` 가 **조용히 무시된다.** 문서 그대로 따라 한
-        사용자는 ConfigError 를 봤다.
+        ``fallback_to`` exists for providers that **share one key from the
+        same issuer** — localdata and semas use the same data.go.kr service
+        key as datago. Those two adapters used to call
+        ``require_provider_key("datago")`` directly, which **silently
+        ignored** what the README recommends (``provider_keys={"localdata":
+        ...}`` or ``KPUBDATA_LOCALDATA_API_KEY``). Users who followed the
+        documentation hit a ConfigError.
 
-        이제 자기 이름을 먼저 보고, 없으면 공유 키로 내려간다. 두 방식 모두 동작
-        하므로 문서와 코드가 어긋나지 않는다.
+        Now a provider looks under its own name first and falls back to the
+        shared key. Both spellings work, so documentation and code no longer
+        disagree.
         """
         key = self.get_provider_key(provider)
         if key is not None:
@@ -106,10 +109,11 @@ class KPubDataConfig:
         max_retries: int | None = None,
         extra: dict[str, object] | None = None,
     ) -> KPubDataConfig:
-        """환경 변수로부터 설정을 구성한다.
+        """Build the configuration from environment variables.
 
-        KPUBDATA_*_API_KEY 패턴을 스캔한다. override는 명시적 파라미터로만
-        전달한다(#276) — ``**kwargs: Any``는 타입 안전성을 우회하므로 폐기했다.
+        Scans for the KPUBDATA_*_API_KEY pattern. Overrides are passed only
+        through explicit parameters (#276) — ``**kwargs: Any`` bypassed type
+        safety and was dropped.
         """
         scanned_keys: dict[str, str] = {}
         for env_name, env_value in os.environ.items():
@@ -123,7 +127,8 @@ class KPubDataConfig:
 
         provider_overrides: dict[str, str] = {}
         for key, value in (provider_keys or {}).items():
-            # 타입은 dict[str, str]이지만, 언타입 호출자 방어로 런타임 검증 유지.
+            # The type is dict[str, str]; runtime validation stays as defense
+            # against untyped callers.
             if isinstance(key, str) and isinstance(value, str) and value:
                 provider_overrides[_normalize_provider_name(key)] = value
 
@@ -139,18 +144,18 @@ class KPubDataConfig:
 
 
 def _normalize_provider_name(provider: str) -> str:
-    """Provider 이름을 비교 가능한 소문자 형식으로 정규화한다."""
+    """Normalize a provider name into a comparable lower-case form."""
     return provider.strip().lower()
 
 
 def _provider_env_token(provider: str) -> str:
-    """Provider 이름을 환경 변수 접두사에 맞는 토큰으로 변환한다."""
+    """Convert a provider name into a token usable in an environment variable prefix."""
     token = re.sub(r"[^A-Za-z0-9]", "_", provider)
     return token.upper()
 
 
 def _get_explicit_key(provider_keys: dict[str, str], provider: str) -> str | None:
-    """명시적으로 전달된 provider_keys에서 Provider 키를 찾는다."""
+    """Find a provider key in the explicitly passed provider_keys."""
     if provider in provider_keys and provider_keys[provider]:
         return provider_keys[provider]
 
