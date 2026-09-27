@@ -82,7 +82,16 @@ def host_is_allowed(provider: str, url_or_host: str) -> bool:
     candidate = url_or_host.strip()
     if not candidate:
         return False
-    host = urlparse(candidate).hostname if "//" in candidate else candidate
+    try:
+        host = urlparse(candidate).hostname if "//" in candidate else candidate
+    except ValueError:
+        # ``urlparse`` raises on a malformed bracketed host such as
+        # ``https://[invalid``. Spec validation only requires ``base_url`` to be
+        # a non-empty string, so such a value does reach here, and letting the
+        # exception escape would turn a fail-closed refusal into a crash out of
+        # ``build_params`` -- a different error, and one that no longer reads as
+        # "this host is not allowed".
+        return False
     if not host:
         return False
     host = host.casefold().rstrip(".")

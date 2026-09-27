@@ -16,11 +16,13 @@ import httpx
 import pytest
 
 from kpubdata._hosts import PROVIDER_ALLOWED_HOSTS, host_is_allowed, hosts_for
+from kpubdata._typing import override
 from kpubdata.config import KPubDataConfig
 from kpubdata.core.executor import SpecExecutor
 from kpubdata.core.models import Query
 from kpubdata.core.spec import SpecDefinition, from_mapping
 from kpubdata.exceptions import InvalidRequestError
+from kpubdata.transport.http import HttpTransport, TransportConfig
 
 _SECRET = "the-project-service-key"
 
@@ -70,17 +72,40 @@ def _spec(
     )
 
 
-class _RefusingTransport:
-    """Any request reaching here means the gate failed to stop it."""
+class _RefusingTransport(HttpTransport):
+    """Any request reaching here means the gate failed to stop it.
 
-    def request(self, *args: object, **kwargs: object) -> httpx.Response:
-        raise AssertionError(f"the credential left the process: {args} {kwargs}")
+    It subclasses ``HttpTransport`` rather than duck-typing so that mypy keeps
+    checking the signature. A double that drifts from the real contract would
+    let these negative tests pass while the executor calls something else
+    (AGENTS.md forbids papering that over with ``type: ignore``).
+    """
+
+    def __init__(self) -> None:
+        super().__init__(TransportConfig(timeout=1, max_retries=0, cache=None))
+
+    @override
+    def request(
+        self,
+        method: str,
+        url: str,
+        *,
+        params: dict[str, str] | None = None,
+        headers: dict[str, str] | None = None,
+        content: bytes | None = None,
+        json_body: object = None,
+        dataset_id: str | None = None,
+        provider: str | None = None,
+        secret_values: tuple[str, ...] = (),
+        no_store: bool = False,
+    ) -> httpx.Response:
+        raise AssertionError(f"the credential left the process: {method} {url} params={params}")
 
 
 def _executor(*, keys: dict[str, str] | None = None) -> SpecExecutor:
     provider_keys = {"datago": _SECRET, "bok": _SECRET} if keys is None else keys
     return SpecExecutor(
-        transport=_RefusingTransport(),  # type: ignore[arg-type]
+        transport=_RefusingTransport(),
         config=KPubDataConfig(provider_keys=provider_keys),
     )
 
@@ -184,3 +209,14 @@ class TestTheListItself:
     @pytest.mark.parametrize("value", ["", "   ", "not a url", "https://"])
     def test_unparseable_values_are_refused(self, value: str) -> None:
         assert not host_is_allowed("datago", value)
+
+    @pytest.mark.parametrize("value", ["https://[invalid", "http://[::1", "https://[", "//[oops"])
+    def test_a_malformed_bracketed_host_is_refused_not_raised(self, value: str) -> None:
+        """``urlparse`` raises ValueError on these. Letting it escape would turn a
+        fail-closed refusal into a crash out of ``build_params`` -- a different
+        error, and one that no longer reads as "this host is not allowed"."""
+        assert not host_is_allowed("datago", value)
+
+    def test_the_executor_refuses_a_malformed_host_without_crashing(self) -> None:
+        with pytest.raises(InvalidRequestError, match="allowlist"):
+            _executor().build_params(_spec(base_url="https://[invalid"), Query())
