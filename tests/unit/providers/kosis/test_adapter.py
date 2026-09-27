@@ -23,8 +23,8 @@ from kpubdata.transport.http import HttpTransport
 class FakeResponse:
     """Tests for FakeResponse.
 
-This class groups related test cases and helpers for FakeResponse.
-"""
+    This class groups related test cases and helpers for FakeResponse.
+    """
 
     def __init__(self, payload: object) -> None:
         """
@@ -46,8 +46,8 @@ This class groups related test cases and helpers for FakeResponse.
 class FakeTransport:
     """Tests for FakeTransport.
 
-This class groups related test cases and helpers for FakeTransport.
-"""
+    This class groups related test cases and helpers for FakeTransport.
+    """
 
     def __init__(self, responses: list[FakeResponse]) -> None:
         """
@@ -331,10 +331,10 @@ def test_query_records_ignores_non_kosis_default_query_param_keys() -> None:
 def test_raise_for_error_payload_returns_none_when_err_field_absent() -> None:
     """test_raise_for_error_payload_returns_none_when_err_field_absent
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     adapter, dataset, _ = _build_adapter_with_transport([])
-# Verifies test behavior (see test name for details).
+    # Verifies test behavior (see test name for details).
     result = adapter._raise_for_error_payload({"some_field": "some_value"}, dataset.id)
     assert result is None
 
@@ -343,8 +343,8 @@ Validates the scenario described by the test name.
 def test_raise_for_error_payload_raises_auth_error_on_code_30() -> None:
     """test_raise_for_error_payload_raises_auth_error_on_code_30
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     adapter, dataset, _ = _build_adapter_with_transport([])
     with pytest.raises(AuthError):
         adapter._raise_for_error_payload({"err": "30", "errMsg": "인증키 오류"}, dataset.id)
@@ -354,8 +354,8 @@ Validates the scenario described by the test name.
 def test_raise_for_error_payload_raises_invalid_request_error_on_code_10() -> None:
     """test_raise_for_error_payload_raises_invalid_request_error_on_code_10
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     adapter, dataset, _ = _build_adapter_with_transport([])
     with pytest.raises(InvalidRequestError):
         adapter._raise_for_error_payload({"err": "10", "errMsg": "잘못된 요청"}, dataset.id)
@@ -365,8 +365,8 @@ Validates the scenario described by the test name.
 def test_raise_for_error_payload_raises_provider_response_error_on_unknown_code() -> None:
     """test_raise_for_error_payload_raises_provider_response_error_on_unknown_code
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     adapter, dataset, _ = _build_adapter_with_transport([])
     with pytest.raises(ProviderResponseError):
         adapter._raise_for_error_payload({"err": "99", "errMsg": "기타 오류"}, dataset.id)

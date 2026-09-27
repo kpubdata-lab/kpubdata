@@ -23,8 +23,8 @@ from kpubdata.transport.http import HttpTransport
 class FakeResponse:
     """Tests for FakeResponse.
 
-This class groups related test cases and helpers for FakeResponse.
-"""
+    This class groups related test cases and helpers for FakeResponse.
+    """
 
     def __init__(self, data: bytes, content_type: str = "application/json") -> None:
         """
@@ -47,8 +47,8 @@ This class groups related test cases and helpers for FakeResponse.
 class FakeTransport:
     """Tests for FakeTransport.
 
-This class groups related test cases and helpers for FakeTransport.
-"""
+    This class groups related test cases and helpers for FakeTransport.
+    """
 
     def __init__(self, responses: list[FakeResponse]) -> None:
         """
@@ -88,8 +88,8 @@ This class groups related test cases and helpers for FakeTransport.
 def _dataset(raw_metadata: dict[str, object]) -> DatasetRef:
     """_dataset
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     return DatasetRef(
         id="datago.test",
         provider="datago",
@@ -105,8 +105,7 @@ def _adapter(
     transport: FakeTransport,
     dataset: DatasetRef,
 ) -> DataGoAdapter:
-    """Validates the scenario described by the test name.
-"""
+    """Validates the scenario described by the test name."""
     return DataGoAdapter(
         config=KPubDataConfig(provider_keys={"datago": "test-key"}),
         transport=cast(HttpTransport, cast(object, transport)),
@@ -117,8 +116,8 @@ def _adapter(
 def _ok_payload(*, items: object, total_count: object, num_of_rows: object) -> dict[str, object]:
     """_ok_payload
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     return {
         "response": {
             "header": {"resultCode": "00", "resultMsg": "NORMAL SERVICE."},
@@ -284,8 +283,8 @@ def test_request_and_decode_falls_back_to_json_for_unknown_content_type(monkeypa
     def _decode_json(_content: bytes) -> dict[str, object]:
         """_decode_json
 
-Validates the scenario described by the test name.
-"""
+        Validates the scenario described by the test name.
+        """
         called["decode_json"] = True
         return {"response": {}}
 
@@ -352,8 +351,8 @@ def test_request_and_decode_raises_parse_error_when_decode_fails(monkeypatch) ->
     def _raises_parse_error(_content: bytes) -> dict[str, object]:
         """_raises_parse_error
 
-Validates the scenario described by the test name.
-"""
+        Validates the scenario described by the test name.
+        """
         raise ParseError("bad payload")
 
     monkeypatch.setattr(adapter_module, "decode_json", _raises_parse_error)
@@ -486,8 +485,8 @@ def test_coerce_int_returns_default_for_non_string_non_int() -> None:
 class _FakeCatalogueFile:
     """Tests for _FakeCatalogueFile.
 
-This class groups related test cases and helpers for _FakeCatalogueFile.
-"""
+    This class groups related test cases and helpers for _FakeCatalogueFile.
+    """
 
     def __init__(self, text: str) -> None:
         """
@@ -522,8 +521,8 @@ This class groups related test cases and helpers for _FakeCatalogueFile.
 class _FakePackageFiles:
     """Tests for _FakePackageFiles.
 
-This class groups related test cases and helpers for _FakePackageFiles.
-"""
+    This class groups related test cases and helpers for _FakePackageFiles.
+    """
 
     def __init__(self, text: str) -> None:
         """

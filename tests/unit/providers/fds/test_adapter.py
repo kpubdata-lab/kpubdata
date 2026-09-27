@@ -1,4 +1,4 @@
-"""FDS (Food and Drug Safety) adapter unit tests (#165)."""
+"""MFDS (FDS) adapter unit tests (#165)."""
 
 from __future__ import annotations
 
@@ -47,7 +47,7 @@ def test_query_records_builds_fds_url_with_key_in_path() -> None:
     url = str(call["url"])
     # URL shape: /api/{KEY}/{service}/json/{start}/{end}
     assert "/FDS-KEY-1/I1200/json/1/2" in url
-    # Path key is passed to transport as secret_values and masked in logs (#354).
+    # The path key is passed to the transport as secret_values so logs mask it (#354).
     assert call.get("secret_values") == ("FDS-KEY-1",)
 
     assert len(batch.items) == 2
@@ -60,7 +60,7 @@ def test_query_records_next_page_from_full_page() -> None:
 
     batch = adapter.query_records(dataset, Query(page=1, page_size=1))
 
-    # Actual shape: total_count is provided (2) — with page_size=1, next page exists.
+    # The real shape provides total_count (=2) — with page_size 1 there is a next page.
     assert batch.total_count == 2
     assert batch.next_page == 2
 
@@ -74,7 +74,7 @@ def test_query_records_auth_error_maps_to_auth_error() -> None:
     except AuthError:
         pass
     else:
-        raise AssertionError("INFO-100 should map to AuthError")
+        raise AssertionError("INFO-100은 AuthError로 매핑되어야 한다")
 
 
 def test_call_raw_returns_full_payload() -> None:
@@ -83,4 +83,4 @@ def test_call_raw_returns_full_payload() -> None:
 
     payload = adapter.call_raw(dataset, "I1200", {"start_idx": 1, "end_idx": 5})
 
-    assert "I1200" in cast(dict, payload)  # Actual shape: service name is top-level key
+    assert "I1200" in cast(dict, payload)  # Real shape: the service name is the top-level key

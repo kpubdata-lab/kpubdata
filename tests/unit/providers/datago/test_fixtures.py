@@ -26,8 +26,8 @@ from .conftest import FixtureTransport, load_fixture_bytes, load_json_fixture
 class AdapterFactory(Protocol):
     """Tests for AdapterFactory.
 
-This class groups related test cases and helpers for AdapterFactory.
-"""
+    This class groups related test cases and helpers for AdapterFactory.
+    """
 
     def __call__(
         self,
@@ -39,15 +39,14 @@ This class groups related test cases and helpers for AdapterFactory.
 def _build_real_estate_adapter(
     fixture_name: str, dataset_key: str
 ) -> tuple[DataGoAdapter, DatasetRef]:
-    """Validates the scenario described by the test name.
-"""
+    """Validates the scenario described by the test name."""
     data = load_fixture_bytes(fixture_name)
 
     class _FakeResponse:
         """Tests for _FakeResponse.
 
-This class groups related test cases and helpers for _FakeResponse.
-"""
+        This class groups related test cases and helpers for _FakeResponse.
+        """
 
         def __init__(self) -> None:
             """
@@ -65,8 +64,8 @@ This class groups related test cases and helpers for _FakeResponse.
     class _FakeTransport:
         """Tests for _FakeTransport.
 
-This class groups related test cases and helpers for _FakeTransport.
-"""
+        This class groups related test cases and helpers for _FakeTransport.
+        """
 
         def request(self, _method: str, _url: str, **_kwargs: object) -> _FakeResponse:
             """
@@ -873,8 +872,8 @@ def test_fixture_g2b_catalog_parses() -> None:
 def test_datago_g2b_catalog_default_filters_fill_required_param() -> None:
     """test_datago_g2b_catalog_default_filters_fill_required_param
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     transport = FixtureTransport(fixture_names=["success_g2b_catalog.json"])
     config = KPubDataConfig(provider_keys={"datago": "test-key"})
     adapter = DataGoAdapter(
@@ -924,8 +923,8 @@ def test_datago_g2b_catalog_default_filters_call_raw() -> None:
 def test_datago_g2b_catalog_call_raw_user_override() -> None:
     """test_datago_g2b_catalog_call_raw_user_override
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     transport = FixtureTransport(fixture_names=["success_g2b_catalog.json"])
     config = KPubDataConfig(provider_keys={"datago": "test-key"})
     adapter = DataGoAdapter(
@@ -944,8 +943,8 @@ Validates the scenario described by the test name.
 def test_datago_default_filters_case_insensitive_user_override() -> None:
     """test_datago_default_filters_case_insensitive_user_override
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     transport = FixtureTransport(fixture_names=["success_g2b_catalog.json"])
     config = KPubDataConfig(provider_keys={"datago": "test-key"})
     adapter = DataGoAdapter(
@@ -954,7 +953,7 @@ Validates the scenario described by the test name.
     )
     dataset = adapter.get_dataset("g2b_catalog")
 
-# Verifies test behavior (see test name for details).
+    # Verifies test behavior (see test name for details).
     adapter.query_records(dataset, Query(filters={"inqrydiv": "3"}))
 
     first_call = cast(dict[str, object], transport.calls[0])
@@ -1454,8 +1453,8 @@ def test_fixture_bond_price_parses() -> None:
 def test_fixture_bond_price_call_raw_returns_full_envelope() -> None:
     """test_fixture_bond_price_call_raw_returns_full_envelope
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     adapter, dataset = _build_real_estate_adapter("success_bond_price.json", "bond_price")
     expected = load_json_fixture("success_bond_price.json")
 
@@ -1481,8 +1480,8 @@ def test_fixture_sports_facility_parses() -> None:
 def test_fixture_sports_facility_call_raw_returns_full_envelope() -> None:
     """test_fixture_sports_facility_call_raw_returns_full_envelope
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     adapter, dataset = _build_real_estate_adapter("success_sports_facility.json", "sports_facility")
     expected = load_json_fixture("success_sports_facility.json")
 
@@ -1510,8 +1509,8 @@ def test_fixture_culture_facility_parses() -> None:
 def test_fixture_new_datasets_call_raw_return_full_envelope() -> None:
     """test_fixture_new_datasets_call_raw_return_full_envelope
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     cases = [
         ("success_culture_facility.json", "culture_facility", "cultureartspaces/performingplace"),
     ]

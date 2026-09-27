@@ -43,8 +43,8 @@ REAL_ESTATE_DATASET_KEYS = [
 class FakeResponse:
     """Tests for FakeResponse.
 
-This class groups related test cases and helpers for FakeResponse.
-"""
+    This class groups related test cases and helpers for FakeResponse.
+    """
 
     def __init__(self, payload: object, content_type: str = "application/json") -> None:
         """
@@ -67,8 +67,8 @@ This class groups related test cases and helpers for FakeResponse.
 class FakeTransport:
     """Tests for FakeTransport.
 
-This class groups related test cases and helpers for FakeTransport.
-"""
+    This class groups related test cases and helpers for FakeTransport.
+    """
 
     def __init__(self, responses: list[FakeResponse]) -> None:
         """
@@ -185,8 +185,8 @@ def _build_adapter_with_transport(
 class AdapterFactory(Protocol):
     """Tests for AdapterFactory.
 
-This class groups related test cases and helpers for AdapterFactory.
-"""
+    This class groups related test cases and helpers for AdapterFactory.
+    """
 
     def __call__(
         self,
@@ -198,8 +198,8 @@ This class groups related test cases and helpers for AdapterFactory.
 class TestDataGoAdapterDiscovery:
     """Tests for TestDataGoAdapterDiscovery.
 
-This class groups related test cases and helpers for TestDataGoAdapterDiscovery.
-"""
+    This class groups related test cases and helpers for TestDataGoAdapterDiscovery.
+    """
 
     # test default catalogue loads Describes the scenario verified by the test.
     def test_default_catalogue_loads(self) -> None:
@@ -371,8 +371,8 @@ This class groups related test cases and helpers for TestDataGoAdapterDiscovery.
 class TestDataGoAdapterRealEstateDatasets:
     """Tests for TestDataGoAdapterRealEstateDatasets.
 
-This class groups related test cases and helpers for TestDataGoAdapterRealEstateDatasets.
-"""
+    This class groups related test cases and helpers for TestDataGoAdapterRealEstateDatasets.
+    """
 
     # test catalogue contains all real estate datasets Describes the scenario verified by the test.
     def test_catalogue_contains_all_real_estate_datasets(self) -> None:
@@ -475,8 +475,8 @@ This class groups related test cases and helpers for TestDataGoAdapterRealEstate
 class TestDataGoAdapterQueryRecords:
     """Tests for TestDataGoAdapterQueryRecords.
 
-This class groups related test cases and helpers for TestDataGoAdapterQueryRecords.
-"""
+    This class groups related test cases and helpers for TestDataGoAdapterQueryRecords.
+    """
 
     # test query records single page Describes the scenario verified by the test.
     def test_query_records_single_page(self) -> None:
@@ -742,8 +742,8 @@ This class groups related test cases and helpers for TestDataGoAdapterQueryRecor
         class ForbiddenTransport:
             """Tests for ForbiddenTransport.
 
-This class groups related test cases and helpers for ForbiddenTransport.
-"""
+            This class groups related test cases and helpers for ForbiddenTransport.
+            """
 
             def request(self, method: str, url: str, **kwargs: object) -> FakeResponse:
                 """
@@ -760,8 +760,8 @@ This class groups related test cases and helpers for ForbiddenTransport.
                 Raises:
                     Exceptions propagated."""
                 del method, url, kwargs
-# Verifies test behavior (see test name for details).
-# Verifies test behavior (see test name for details).
+                # Verifies test behavior (see test name for details).
+                # Verifies test behavior (see test name for details).
                 # path always ``from None`` is.
                 raise TransportError(
                     "HTTP status error 403 for GET https://apis.data.go.kr/test",
@@ -887,8 +887,7 @@ This class groups related test cases and helpers for ForbiddenTransport.
     def test_query_records_applies_unoverrideable_fixed_query_params(
         self, dataset_key: str, expected_date_cd: str
     ) -> None:
-        """Validates the scenario described by the test name.
-"""
+        """Validates the scenario described by the test name."""
         payload = _success_payload(items=[{"id": 1}], total_count=1, num_of_rows=100, page_no=1)
         adapter, _, transport = _build_adapter_with_transport([FakeResponse(payload)])
         dataset = adapter.get_dataset(dataset_key)
@@ -906,8 +905,8 @@ This class groups related test cases and helpers for ForbiddenTransport.
     def test_query_records_does_not_add_fixed_query_params_to_other_dataset(self) -> None:
         """test_query_records_does_not_add_fixed_query_params_to_other_dataset
 
-Validates the scenario described by the test name.
-"""
+        Validates the scenario described by the test name.
+        """
         payload = _success_payload(items=[{"id": 1}], total_count=1, num_of_rows=100, page_no=1)
         adapter, dataset, transport = _build_adapter_with_transport([FakeResponse(payload)])
 
@@ -922,8 +921,8 @@ Validates the scenario described by the test name.
 class TestDataGoAdapterCallRaw:
     """Tests for TestDataGoAdapterCallRaw.
 
-This class groups related test cases and helpers for TestDataGoAdapterCallRaw.
-"""
+    This class groups related test cases and helpers for TestDataGoAdapterCallRaw.
+    """
 
     # test call raw returns full payload Describes the scenario verified by the test.
     def test_call_raw_returns_full_payload(self) -> None:
@@ -980,8 +979,8 @@ This class groups related test cases and helpers for TestDataGoAdapterCallRaw.
 class TestDataGoAdapterCatalogueOperations:
     """Tests for TestDataGoAdapterCatalogueOperations.
 
-This class groups related test cases and helpers for TestDataGoAdapterCatalogueOperations.
-"""
+    This class groups related test cases and helpers for TestDataGoAdapterCatalogueOperations.
+    """
 
     # test default catalogue has operations Describes the scenario verified by the test.
     def test_default_catalogue_has_operations(self) -> None:
@@ -1023,8 +1022,8 @@ This class groups related test cases and helpers for TestDataGoAdapterCatalogueO
     def test_air_quality_declares_required_request_parameter(self) -> None:
         """test_air_quality_declares_required_request_parameter
 
-Validates the scenario described by the test name.
-"""
+        Validates the scenario described by the test name.
+        """
         adapter = DataGoAdapter()
 
         dataset = adapter.get_dataset("air_quality")
@@ -1040,8 +1039,8 @@ Validates the scenario described by the test name.
     def test_airkorea_station_realtime_declares_official_required_parameters(self) -> None:
         """test_airkorea_station_realtime_declares_official_required_parameters
 
-Validates the scenario described by the test name.
-"""
+        Validates the scenario described by the test name.
+        """
         adapter = DataGoAdapter()
 
         dataset = adapter.get_dataset("airkorea_station_realtime")
@@ -1061,8 +1060,8 @@ Validates the scenario described by the test name.
     def test_air_quality_declares_application_requirement(self) -> None:
         """test_air_quality_declares_application_requirement
 
-Validates the scenario described by the test name.
-"""
+        Validates the scenario described by the test name.
+        """
         adapter = DataGoAdapter()
 
         dataset = adapter.get_dataset("air_quality")
@@ -1074,8 +1073,8 @@ Validates the scenario described by the test name.
     def test_high_confidence_catalogue_metadata_is_preserved(self) -> None:
         """test_high_confidence_catalogue_metadata_is_preserved
 
-Validates the scenario described by the test name.
-"""
+        Validates the scenario described by the test name.
+        """
         adapter = DataGoAdapter()
 
         # village_fcst was retired from the catalogue on main; ultra_srt_ncst is
@@ -1115,8 +1114,8 @@ Validates the scenario described by the test name.
     def test_required_query_filters_match_the_documented_request_parameters(self) -> None:
         """test_required_query_filters_match_the_documented_request_parameters
 
-Validates the scenario described by the test name.
-"""
+        Validates the scenario described by the test name.
+        """
         import json
         from pathlib import Path
 
@@ -1146,8 +1145,8 @@ Validates the scenario described by the test name.
 class TestDataGoAdapterXml:
     """Tests for TestDataGoAdapterXml.
 
-This class groups related test cases and helpers for TestDataGoAdapterXml.
-"""
+    This class groups related test cases and helpers for TestDataGoAdapterXml.
+    """
 
     # test query records xml multi item Describes the scenario verified by the test.
     def test_query_records_xml_multi_item(self, configured_adapter: AdapterFactory) -> None:
@@ -1232,8 +1231,8 @@ This class groups related test cases and helpers for TestDataGoAdapterXml.
 class TestDataGoAdapterGetSchema:
     """Tests for TestDataGoAdapterGetSchema.
 
-This class groups related test cases and helpers for TestDataGoAdapterGetSchema.
-"""
+    This class groups related test cases and helpers for TestDataGoAdapterGetSchema.
+    """
 
     # test get schema returns none without fields Describes the scenario verified by the test.
     def test_get_schema_returns_none_without_fields(self) -> None:
@@ -1371,8 +1370,8 @@ This class groups related test cases and helpers for TestDataGoAdapterGetSchema.
 class TestDataGoGatewayErrors:
     """Tests for TestDataGoGatewayErrors.
 
-This class groups related test cases and helpers for TestDataGoGatewayErrors.
-"""
+    This class groups related test cases and helpers for TestDataGoGatewayErrors.
+    """
 
     def test_unregistered_service_key_raises_auth_error(
         self, configured_adapter: AdapterFactory

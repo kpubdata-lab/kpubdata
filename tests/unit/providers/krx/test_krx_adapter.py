@@ -30,54 +30,54 @@ from kpubdata.providers.krx.adapter import KrxAdapter
 class _ExposedKrxAdapter(KrxAdapter):
     """Tests for _ExposedKrxAdapter.
 
-This class groups related test cases and helpers for _ExposedKrxAdapter.
-"""
+    This class groups related test cases and helpers for _ExposedKrxAdapter.
+    """
 
     def load_pykrx_for_test(self) -> object:
         """load_pykrx_for_test
 
-Validates the scenario described by the test name.
-"""
+        Validates the scenario described by the test name.
+        """
         return self._load_pykrx()
 
 
 def _fixture_path(name: str) -> Path:
     """_fixture_path
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     return Path(__file__).resolve().parents[3] / "fixtures" / "krx" / name
 
 
 def _load_snapshot(name: str) -> list[dict[str, object]]:
     """_load_snapshot
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     return json.loads(_fixture_path(name).read_text(encoding="utf-8"))
 
 
 def _build_adapter() -> KrxAdapter:
     """_build_adapter
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     return KrxAdapter(config=KPubDataConfig())
 
 
 def _set_pykrx(adapter: KrxAdapter, **stock_methods: object) -> None:
     """_set_pykrx
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     adapter._pykrx = SimpleNamespace(stock=SimpleNamespace(**stock_methods))
 
 
 def _kospi_index_frame() -> pd.DataFrame:
     """_kospi_index_frame
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     return pd.DataFrame(
         {
             "시가": [2650.0, 2661.0, 2644.0, 2632.0, 2629.0],
@@ -110,8 +110,8 @@ Validates the scenario described by the test name.
 def _investor_frame(multiplier: int) -> pd.DataFrame:
     """_investor_frame
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     return (
         pd.DataFrame(
             {
@@ -139,8 +139,8 @@ Validates the scenario described by the test name.
 def _market_fundamental_frame(day: str) -> pd.DataFrame:
     """_market_fundamental_frame
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     rows = {
         "20240102": [(100.0, 1.0, 2.0, 1000, 5000), (200.0, 2.0, 4.0, 2000, 7000)],
         "20240103": [(110.0, 1.1, 2.2, 1100, 5100), (210.0, 2.1, 4.2, 2100, 7100)],
@@ -219,8 +219,8 @@ def test_query_records_kospi_index_normalizes_snapshot() -> None:
     def _get_index_ohlcv(start_date: str, end_date: str, ticker: str) -> pd.DataFrame:
         """_get_index_ohlcv
 
-Validates the scenario described by the test name.
-"""
+        Validates the scenario described by the test name.
+        """
         calls.append((start_date, end_date, ticker))
         return _kospi_index_frame()
 
@@ -250,8 +250,8 @@ def test_query_records_kospi_index_supports_custom_ticker_filter() -> None:
     def _get_index_ohlcv(start_date: str, end_date: str, ticker: str) -> pd.DataFrame:
         """_get_index_ohlcv
 
-Validates the scenario described by the test name.
-"""
+        Validates the scenario described by the test name.
+        """
         _ = start_date, end_date
         tickers.append(ticker)
         return _kospi_index_frame()
@@ -357,8 +357,8 @@ def test_query_records_kospi_index_uses_get_index_ohlcv_by_date_fallback() -> No
     def _raise_index_error(*_args: object) -> pd.DataFrame:
         """_raise_index_error
 
-Validates the scenario described by the test name.
-"""
+        Validates the scenario described by the test name.
+        """
         raise ValueError("primary failed")
 
     def _get_index_ohlcv_by_date(
@@ -368,8 +368,7 @@ Validates the scenario described by the test name.
         *,
         name_display: bool,
     ) -> pd.DataFrame:
-        """Validates the scenario described by the test name.
-"""
+        """Validates the scenario described by the test name."""
         fallback_calls.append((start_date, end_date, ticker, name_display))
         return _kospi_index_frame()
 
@@ -407,8 +406,7 @@ def test_query_records_investor_flow_normalizes_snapshot() -> None:
         on: str = "순매수",
         **_kwargs: object,
     ) -> pd.DataFrame:
-        """Validates the scenario described by the test name.
-"""
+        """Validates the scenario described by the test name."""
         calls.append((start_date, end_date, market, on))
         frames = {
             "매수": _investor_frame(10),
@@ -450,8 +448,7 @@ def test_query_records_investor_flow_supports_custom_market_filter() -> None:
         on: str = "순매수",
         **_kwargs: object,
     ) -> pd.DataFrame:
-        """Validates the scenario described by the test name.
-"""
+        """Validates the scenario described by the test name."""
         _ = start_date, end_date, on
         markets.append(market)
         return _investor_frame(1)
@@ -488,8 +485,7 @@ def test_call_raw_investor_flow_uses_requested_on_parameter() -> None:
         on: str = "순매수",
         **_kwargs: object,
     ) -> pd.DataFrame:
-        """Validates the scenario described by the test name.
-"""
+        """Validates the scenario described by the test name."""
         calls.append((start_date, end_date, market, on))
         return _investor_frame(1)
 
@@ -546,8 +542,8 @@ def test_query_records_market_valuation_normalizes_snapshot() -> None:
     def _get_market_fundamental_by_ticker(date: str, market: str = "KOSPI") -> pd.DataFrame:
         """_get_market_fundamental_by_ticker
 
-Validates the scenario described by the test name.
-"""
+        Validates the scenario described by the test name.
+        """
         _ = market
         days_called.append(date)
         if date in {"20240106", "20240107"}:
@@ -591,8 +587,8 @@ def test_query_records_market_valuation_supports_custom_market_filter() -> None:
     def _get_market_fundamental_by_ticker(date: str, market: str = "KOSPI") -> pd.DataFrame:
         """_get_market_fundamental_by_ticker
 
-Validates the scenario described by the test name.
-"""
+        Validates the scenario described by the test name.
+        """
         _ = date
         markets.append(market)
         return _market_fundamental_frame("20240102")
@@ -624,8 +620,8 @@ def test_market_valuation_skips_days_with_missing_columns_and_zero_rows() -> Non
     def _get_market_fundamental_by_ticker(date: str, market: str = "KOSPI") -> pd.DataFrame:
         """_get_market_fundamental_by_ticker
 
-Validates the scenario described by the test name.
-"""
+        Validates the scenario described by the test name.
+        """
         _ = market
         if date == "20240102":
             return pd.DataFrame(columns=["PER"])
@@ -665,8 +661,8 @@ def test_market_valuation_returns_empty_when_all_days_are_skipped() -> None:
     def _get_market_fundamental_by_ticker(date: str, market: str = "KOSPI") -> pd.DataFrame:
         """_get_market_fundamental_by_ticker
 
-Validates the scenario described by the test name.
-"""
+        Validates the scenario described by the test name.
+        """
         _ = date, market
         return pd.DataFrame(columns=["PER", "PBR", "DIV", "EPS", "BPS"])
 
@@ -722,8 +718,7 @@ def test_fetch_market_valuation_returns_passthrough_frame_when_columns_are_missi
         _end_date: str,
         _market: str,
     ) -> pd.DataFrame:
-        """Validates the scenario described by the test name.
-"""
+        """Validates the scenario described by the test name."""
         return pd.DataFrame({"date": [pd.Timestamp("2024-01-02")], "close": [100.0]}).set_index(
             "date"
         )
@@ -903,8 +898,7 @@ def test_query_records_uses_query_extra_for_filters() -> None:
         on: str = "순매수",
         **_kwargs: object,
     ) -> pd.DataFrame:
-        """Validates the scenario described by the test name.
-"""
+        """Validates the scenario described by the test name."""
         calls.append((start_date, end_date, market, on))
         return _investor_frame(1)
 
@@ -1112,8 +1106,8 @@ def test_load_pykrx_raises_install_hint_when_dependency_missing(
     def _raise_import_error() -> SimpleNamespace:
         """_raise_import_error
 
-Validates the scenario described by the test name.
-"""
+        Validates the scenario described by the test name.
+        """
         raise ImportError("pykrx is unavailable")
 
     monkeypatch.setattr(adapter, "_import_pykrx", _raise_import_error)
@@ -1141,8 +1135,8 @@ def test_load_pykrx_returns_imported_module(monkeypatch: pytest.MonkeyPatch) -> 
     def _import_module(name: str) -> SimpleNamespace:
         """_import_module
 
-Validates the scenario described by the test name.
-"""
+        Validates the scenario described by the test name.
+        """
         assert name == "pykrx"
         return pykrx_module
 
@@ -1195,8 +1189,8 @@ def test_adapter_construction_does_not_import_pykrx(monkeypatch: pytest.MonkeyPa
 class TestCallRawRejectsUnknownOperations:
     """Tests for TestCallRawRejectsUnknownOperations.
 
-This class groups related test cases and helpers for TestCallRawRejectsUnknownOperations.
-"""
+    This class groups related test cases and helpers for TestCallRawRejectsUnknownOperations.
+    """
 
     def test_an_unknown_operation_is_rejected(self) -> None:
         adapter = KrxAdapter()
@@ -1215,8 +1209,8 @@ This class groups related test cases and helpers for TestCallRawRejectsUnknownOp
     def test_an_empty_operation_is_still_accepted(self) -> None:
         """test_an_empty_operation_is_still_accepted
 
-Validates the scenario described by the test name.
-"""
+        Validates the scenario described by the test name.
+        """
         adapter = KrxAdapter()
         dataset = adapter.get_dataset("kospi_index")
         _set_pykrx(adapter, get_index_ohlcv=lambda *_args: _kospi_index_frame())

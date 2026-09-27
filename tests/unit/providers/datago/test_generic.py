@@ -20,8 +20,8 @@ from kpubdata.transport.http import HttpTransport
 class FakeResponse:
     """Tests for FakeResponse.
 
-This class groups related test cases and helpers for FakeResponse.
-"""
+    This class groups related test cases and helpers for FakeResponse.
+    """
 
     def __init__(self, payload: object, content_type: str = "application/json") -> None:
         """
@@ -44,8 +44,8 @@ This class groups related test cases and helpers for FakeResponse.
 class FakeTransport:
     """Tests for FakeTransport.
 
-This class groups related test cases and helpers for FakeTransport.
-"""
+    This class groups related test cases and helpers for FakeTransport.
+    """
 
     def __init__(self, responses: list[FakeResponse]) -> None:
         """
@@ -83,8 +83,8 @@ This class groups related test cases and helpers for FakeTransport.
 def _success_envelope() -> dict[str, object]:
     """_success_envelope
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     return {
         "response": {
             "header": {"resultCode": "00", "resultMsg": "OK"},
@@ -96,8 +96,8 @@ Validates the scenario described by the test name.
 def _build_adapter(responses: list[FakeResponse]) -> tuple[DataGoAdapter, FakeTransport]:
     """_build_adapter
 
-Validates the scenario described by the test name.
-"""
+    Validates the scenario described by the test name.
+    """
     transport = FakeTransport(responses)
     config = KPubDataConfig(provider_keys={"datago": "test-key"})
     adapter = DataGoAdapter(
@@ -110,8 +110,8 @@ Validates the scenario described by the test name.
 class TestDataGoGenericDataset:
     """Tests for TestDataGoGenericDataset.
 
-This class groups related test cases and helpers for TestDataGoGenericDataset.
-"""
+    This class groups related test cases and helpers for TestDataGoGenericDataset.
+    """
 
     # test generic dataset in catalogue Describes the scenario verified by the test.
     def test_generic_dataset_in_catalogue(self) -> None:

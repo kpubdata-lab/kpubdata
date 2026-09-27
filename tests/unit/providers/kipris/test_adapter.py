@@ -1,4 +1,4 @@
-"""KIPRIS (Patent Office) adapter unit tests (#223)."""
+"""KIPI (KIPRIS) adapter unit tests (#223)."""
 
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ def _build_adapter(fixture_names: list[str]) -> tuple[KiprisAdapter, object]:
 
 
 def test_query_records_builds_kipi_url() -> None:
-    """Verify patFamInfoSearchService URL shape."""
+    """Verifies the patFamInfoSearchService URL shape."""
     adapter, transport = _build_adapter(["patent_family.json"])
     dataset = adapter.get_dataset("patent_family")
 
@@ -63,7 +63,7 @@ def test_query_records_builds_kipi_url() -> None:
 
 
 def test_query_records_missing_application_number_raises() -> None:
-    """Missing required filter applicationNumber raises InvalidRequestError."""
+    """Missing the required applicationNumber filter raises InvalidRequestError."""
     adapter, _ = _build_adapter(["patent_family.json"])
     dataset = adapter.get_dataset("patent_family")
 
@@ -72,11 +72,11 @@ def test_query_records_missing_application_number_raises() -> None:
     except InvalidRequestError as exc:
         assert "applicationNumber" in str(exc)
     else:
-        raise AssertionError("Missing applicationNumber should raise exception")
+        raise AssertionError("applicationNumber 누락이 예외로 나야 한다")
 
 
 def test_empty_items_returns_empty_batch() -> None:
-    """When items is empty string, normal response returns empty batch."""
+    """A success response whose items is an empty string yields an empty batch."""
     adapter, _ = _build_adapter(["empty.json"])
     dataset = adapter.get_dataset("patent_family")
 
@@ -87,7 +87,7 @@ def test_empty_items_returns_empty_batch() -> None:
 
 
 def test_full_page_sets_next_page() -> None:
-    """next_page computed via full-page heuristic when totalCount absent."""
+    """Without totalCount, next_page falls back to the full-page heuristic."""
     adapter, _ = _build_adapter(["patent_family.json"])
     dataset = adapter.get_dataset("patent_family")
 
@@ -99,7 +99,7 @@ def test_full_page_sets_next_page() -> None:
 
 
 def test_call_raw_returns_full_envelope() -> None:
-    """call_raw returns the complete response envelope."""
+    """call_raw returns the whole response envelope."""
     adapter, _ = _build_adapter(["patent_family.json"])
     dataset = adapter.get_dataset("patent_family")
 
