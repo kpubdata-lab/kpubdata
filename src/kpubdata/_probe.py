@@ -156,6 +156,11 @@ def classify(error: BaseException | None) -> tuple[ProbeStatus, str]:
             return "application_required", detail
         if status == 400:
             return "params_invalid", detail
+        if status == 401:
+            # A credential problem, not an outage. Falling through to
+            # temporarily_unavailable would tell the caller to retry, when what
+            # is needed is a different key.
+            return "auth_unknown", detail
         if status == 429:
             return "rate_limited", detail
         if isinstance(status, int) and 500 <= status < 600:
@@ -321,15 +326,24 @@ def merge_with_existing(results: list[ProbeResult], path: Path) -> list[ProbeRes
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         payload = None
-    if isinstance(payload, dict):
-        for row in payload.get("results", []):
+    rows = payload.get("results") if isinstance(payload, dict) else None
+    if isinstance(rows, list):
+        for row in rows:
             if not isinstance(row, dict) or "dataset_id" not in row:
+                continue
+            status = str(row.get("status", ""))
+            if status not in PROBE_STATUSES:
+                # A report written by the previous implementation holds statuses
+                # like "ok" or "auth-403". Keeping them would produce a mixed
+                # report whose values are not in the vocabulary, and guessing a
+                # translation would invent a verdict nobody measured. Drop the
+                # row; the next full probe fills it in.
                 continue
             try:
                 existing[str(row["dataset_id"])] = ProbeResult(
                     dataset_id=str(row["dataset_id"]),
                     service_id=str(row.get("service_id", "")),
-                    status=str(row.get("status", "")),
+                    status=status,
                     probed_at=str(row.get("probed_at", "")),
                     detail=str(row.get("detail", "")),
                 )

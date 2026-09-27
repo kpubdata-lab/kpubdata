@@ -247,10 +247,15 @@ def _handle_probe_command(args: argparse.Namespace) -> int:
 
     output = getattr(args, "output", None)
     report_path = Path(output) if output else DEFAULT_REPORT_PATH
-    # --provider 나 --dataset 로 일부만 프로브했을 때, 나머지 판정을 지우지
-    # 않는다. 보고서의 요점은 전체 그림이고, 다시 만들려면 모든 provider 를
-    # 또 호출해야 한다 (#514).
-    write_report(merge_with_existing(results, report_path), report_path)
+    filtered = bool(getattr(args, "provider", None) or getattr(args, "dataset", None))
+    # A partial probe merges: erasing the other verdicts would mean calling every
+    # provider again to get them back (#514).
+    #
+    # A full probe replaces. It *is* the whole picture, so merging would keep rows
+    # for specs that have since been removed or renamed, and the report would go
+    # on naming a dataset that no longer exists.
+    rows = merge_with_existing(results, report_path) if filtered else results
+    write_report(rows, report_path)
     counts = summarize(results)
     print(
         "프로브 "

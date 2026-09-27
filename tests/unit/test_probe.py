@@ -14,6 +14,7 @@ from pathlib import Path
 import pytest
 
 from kpubdata._probe import (
+    PROBE_STATUSES,
     ProbeResult,
     classify,
     merge_with_existing,
@@ -279,3 +280,56 @@ class TestTheWriteIsAtomic:
         write_report([_result("datago.a", "SvcA", "available")], report)
         payload = json.loads(report.read_text(encoding="utf-8"))
         assert payload["results"][0]["dataset_id"] == "datago.a"
+
+
+class TestTheCodexFindings:
+    """Regression cover for the review findings on #536."""
+
+    def test_401_is_a_credential_problem_not_an_outage(self) -> None:
+        """Falling through to temporarily_unavailable tells the caller to retry,
+        when what is needed is a different key."""
+        assert classify(TransportError("unauthorized", status_code=401))[0] == "auth_unknown"
+
+    def test_a_legacy_status_row_is_dropped(self, tmp_path: Path) -> None:
+        """A report from the previous implementation holds statuses like "ok".
+        Keeping them produces a report whose values are not in the vocabulary,
+        and guessing a translation would invent a verdict nobody measured."""
+        report = tmp_path / "legacy.json"
+        report.write_text(
+            json.dumps(
+                {
+                    "results": [
+                        {"dataset_id": "datago.old", "status": "ok"},
+                        {"dataset_id": "datago.new", "status": "available"},
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        merged = merge_with_existing([], report)
+        assert [r.dataset_id for r in merged] == ["datago.new"]
+
+    def test_every_retained_status_is_in_the_vocabulary(self, tmp_path: Path) -> None:
+        report = tmp_path / "mixed.json"
+        report.write_text(
+            json.dumps(
+                {
+                    "results": [
+                        {"dataset_id": "a", "status": s}
+                        for s in ("ok", "gone", "auth-403", "params-400", "available")
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        for result in merge_with_existing([], report):
+            assert result.status in PROBE_STATUSES
+
+    @pytest.mark.parametrize("body", ['{"results": null}', '{"results": 3}', '{"results": {}}'])
+    def test_a_non_list_results_container_does_not_lose_the_new_rows(
+        self, tmp_path: Path, body: str
+    ) -> None:
+        report = tmp_path / "malformed.json"
+        report.write_text(body, encoding="utf-8")
+        merged = merge_with_existing([_result("datago.a", "SvcA", "available")], report)
+        assert [r.dataset_id for r in merged] == ["datago.a"]

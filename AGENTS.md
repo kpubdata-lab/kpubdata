@@ -36,10 +36,15 @@
 
 ## 언어 정책
 
-- **Documentation**: 기본적으로 한국어로 작성한다. 영어 확장은 향후 릴리스에서 계획한다.
-- **Code**: 모든 코드(변수명, 함수명, 주석, docstring)는 한국어 우선을 따른다.
+- **Documentation** (`docs/`, `*.md`): 한국어로 작성한다. 한국 공공데이터를 다루는
+  프로젝트이고, 문서 번역은 별도 판단이다 (#517 의 Non-goals).
+- **Code** (주석, docstring): **영어로 작성한다.** 글로벌 오픈소스로 공개하기
+  때문이다 — docstring 은 `help()`·mkdocs API 문서·IDE 힌트에 그대로 나오는
+  공개 문서다. 기존 한국어 주석·docstring 은 #517 에서 옮기고 있다.
+  - 사용자에게 보이는 **문자열 리터럴**은 이 규칙의 대상이 아니다. 예외·로그
+    메시지와 CLI 출력의 언어는 런타임 동작이고 별도 결정이다.
 - **Commit messages**: Always in English.
-- **Issue / PR titles and descriptions**: 한국어를 사용해도 되며, 영어도 괜찮다.
+- **Issue / PR titles and descriptions**: **Always in English.**
 
 ## 데이터셋 게시 규칙
 
