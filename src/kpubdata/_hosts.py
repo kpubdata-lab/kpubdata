@@ -1,0 +1,137 @@
+"""The one allowlist of hosts a provider credential may be sent to (#519).
+
+A spec declares both where to call (``endpoint.base_url``) and which credential
+to attach (``auth.provider_key``). Nothing used to check that the two agreed, so
+a spec could name any host and the executor would send the project's provider
+key there. ``providers/datago/adapter.py`` already had this check for
+``datago.generic``'s ``base_url_override``; the spec path did not have it.
+
+That split is the actual defect. The list lives here so both paths read the same
+one -- the same failure mode as the three divergent copies of the sensitive
+parameter names (see ``transport/_sensitive.py``).
+
+The gate is fail-closed. A provider with no entry cannot receive a credential at
+all, because "we forgot to list this provider" must not read as "any host is
+fine". Deployments that legitimately need another host (a proxy, a staging
+gateway) add it through ``KPUBDATA_<PROVIDER>_EXTRA_HOSTS``.
+"""
+
+from __future__ import annotations
+
+import os
+from collections.abc import Mapping
+from urllib.parse import urlparse
+
+__all__ = [
+    "PROVIDER_ALLOWED_HOSTS",
+    "extra_hosts_env_var",
+    "extra_hosts_for",
+    "host_is_allowed",
+    "hosts_for",
+]
+
+#: Exact hostnames, plus ``.suffix`` entries that match any subdomain.
+#:
+#: Collected from the shipped specs, adapters and catalogues rather than from
+#: documentation, so the list reflects what the code actually calls. Adding a
+#: host here is a change to where credentials may travel, which is why the
+#: governance policy treats it as a review-gated path.
+PROVIDER_ALLOWED_HOSTS: Mapping[str, frozenset[str]] = {
+    # data.go.kr and the gateways that front it
+    "datago": frozenset({".data.go.kr", "data.go.kr", "api.odcloud.kr", "openapi.its.go.kr"}),
+    "localdata": frozenset({".data.go.kr", "data.go.kr"}),
+    "semas": frozenset({".data.go.kr", "data.go.kr"}),
+    # Bank of Korea ECOS
+    "bok": frozenset({"ecos.bok.or.kr"}),
+    "kosis": frozenset({"kosis.kr", ".kosis.kr"}),
+    "krx": frozenset({"data.krx.co.kr"}),
+    "kipris": frozenset({"kipo-api.kipi.or.kr"}),
+    "law": frozenset({"www.law.go.kr", "law.go.kr"}),
+    "lofin": frozenset({"www.lofin365.go.kr", "lofin365.go.kr"}),
+    "neis": frozenset({"open.neis.go.kr"}),
+    "seoul": frozenset({"openapi.seoul.go.kr", "swopenapi.seoul.go.kr"}),
+    "sgis": frozenset({"sgisapi.kostat.go.kr"}),
+    "fds": frozenset({"openapi.foodsafetykorea.go.kr"}),
+    "korean": frozenset({"stdict.korean.go.kr"}),
+}
+
+
+def extra_hosts_env_var(provider: str) -> str:
+    """Name of the environment variable that widens ``provider``'s allowlist.
+
+    ``datago`` keeps the name it already had (#261); the pattern generalises to
+    every provider.
+    """
+    return f"KPUBDATA_{provider.strip().upper()}_EXTRA_HOSTS"
+
+
+def extra_hosts_for(provider: str) -> frozenset[str]:
+    """Hosts added through the environment. **Matched exactly, never as suffixes.**
+
+    A ``.example.com`` entry here allows exactly the host ``.example.com``, which
+    resolves to nothing -- it does not open every subdomain. That asymmetry with
+    the built-in list is deliberate: a built-in suffix is reviewed when it is
+    added to this file, while an environment value is whatever a deployment
+    exported. One typo turning into a wildcard would make the list meaningless,
+    and the credential goes wherever the list allows.
+
+    Accepts commas and whitespace as separators. A hostname cannot contain
+    either, so there is no ambiguity, and an operator following either form in
+    the documentation gets what they asked for.
+    """
+    raw = os.environ.get(extra_hosts_env_var(provider), "")
+    return frozenset(entry.casefold() for entry in raw.replace(",", " ").split() if entry)
+
+
+def hosts_for(provider: str) -> frozenset[str]:
+    """Every allowed host for ``provider``, built-in and environment together.
+
+    For display and diagnostics. ``host_is_allowed`` consults the two sets
+    separately, because only the built-in one may carry suffix entries.
+    """
+    declared = PROVIDER_ALLOWED_HOSTS.get(provider.strip().casefold(), frozenset())
+    return declared | extra_hosts_for(provider)
+
+
+def host_is_allowed(provider: str, url_or_host: str) -> bool:
+    """Whether ``provider``'s credential may be sent to this host.
+
+    Accepts a full URL or a bare hostname. An unparseable value, an empty host
+    and a provider with no entry all answer False -- every uncertain case is a
+    refusal, because the cost of guessing wrong is a leaked credential.
+    """
+    candidate = url_or_host.strip()
+    if not candidate:
+        return False
+    try:
+        host = urlparse(candidate).hostname if "//" in candidate else candidate
+    except ValueError:
+        # ``urlparse`` raises on a malformed bracketed host such as
+        # ``https://[invalid``. Spec validation only requires ``base_url`` to be
+        # a non-empty string, so such a value does reach here, and letting the
+        # exception escape would turn a fail-closed refusal into a crash out of
+        # ``build_params`` -- a different error, and one that no longer reads as
+        # "this host is not allowed".
+        return False
+    if not host:
+        return False
+    host = host.casefold().rstrip(".")
+    builtin = PROVIDER_ALLOWED_HOSTS.get(provider.strip().casefold(), frozenset())
+    extra = extra_hosts_for(provider)
+    if not builtin and not extra:
+        return False
+
+    # Environment additions are compared exactly. Only the reviewed built-in list
+    # may widen to subdomains.
+    if host in extra:
+        return True
+
+    for entry in builtin:
+        if entry.startswith("."):
+            # A suffix entry matches subdomains, and the bare domain as well:
+            # ".data.go.kr" covers "apis.data.go.kr" and "data.go.kr".
+            if host == entry[1:] or host.endswith(entry):
+                return True
+        elif host == entry:
+            return True
+    return False

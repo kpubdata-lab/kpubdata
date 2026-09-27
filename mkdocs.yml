@@ -58,6 +58,7 @@ nav:
       - 검증 상태: status.md
   - 가이드:
       - 캐싱: caching.md
+      - Provider 호스트 허용 목록: host-allowlist.md
       - 로깅: logging.md
       - Cookbook:
           - 시작하기: cookbook/getting-started.md

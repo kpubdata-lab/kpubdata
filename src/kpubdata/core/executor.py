@@ -20,6 +20,7 @@ import logging
 from types import MappingProxyType
 from typing import cast
 
+from kpubdata._hosts import extra_hosts_env_var, host_is_allowed
 from kpubdata.config import KPubDataConfig
 from kpubdata.core.capability import Operation, PaginationMode, QuerySupport
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
@@ -216,6 +217,27 @@ class SpecExecutor:
             return format_param.values.get(hint)
         return hint
 
+    def _require_allowed_host(self, spec: SpecDefinition, url_or_host: str) -> None:
+        """Refuse before a credential is assembled for a host we do not trust.
+
+        A spec names both the host to call and the credential to attach, and
+        nothing verified that the two belonged together (#519). The check has to
+        run *before* the key is read, not before the request is sent: once the
+        key is in the parameter dict it can reach a log, an exception message or
+        a retry.
+        """
+        credential_owner = spec.auth.provider_key or spec.provider
+        if host_is_allowed(credential_owner, url_or_host):
+            return
+        # The message names the provider and the variable that widens the list,
+        # but never the host's credential.
+        msg = (
+            f"{spec.id}: refusing to send the {credential_owner!r} credential to "
+            f"a host that is not on its allowlist. Set "
+            f"{extra_hosts_env_var(credential_owner)} if this host is legitimate."
+        )
+        raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id)
+
     def build_params(
         self, spec: SpecDefinition, query: Query, format_hint: str | None = None
     ) -> dict[str, str]:
@@ -225,6 +247,12 @@ class SpecExecutor:
             InvalidRequestError: 파라미터 이름이 선언되지 않은 페이지네이션 방식인 경우.
         """
         params: dict[str, str] = {}
+
+        if spec.auth.type != "none":
+            # Before any credential is read. ``path_template`` can name a host
+            # of its own without going through ``base_url``, so the resolved URL
+            # is checked again in ``_request``.
+            self._require_allowed_host(spec, spec.endpoint.base_url)
 
         if spec.auth.type == "query_param":
             if not spec.auth.param_name:
@@ -346,6 +374,11 @@ class SpecExecutor:
             if spec.auth.type == "path_segment"
             else "",
         )
+        if spec.auth.type != "none":
+            # ``path_template`` is free-form and can embed a host that
+            # ``base_url`` never mentions, which would walk past the check in
+            # ``build_params``. Re-check what will actually be requested (#519).
+            self._require_allowed_host(spec, url)
         if spec.auth.type == "path_segment":
             params = {k: v for k, v in params.items() if k != (spec.auth.param_name or "")}
         try:

@@ -38,6 +38,9 @@ python -c "import kpubdata; print('설치 성공!')"
 4. 마이페이지에서 발급된 키 확인 (예: `ABCD1234EFGH5678`)
 
 ## 4단계: API 키 설정
+
+> 키는 해당 provider 의 공식 호스트로만 전송된다. 사내 프록시를 거쳐야 하는
+> 배포라면 [Provider 키가 전송될 수 있는 호스트](host-allowlist.md)를 먼저 읽는다.
 ### macOS / Linux
 ```bash
 export KPUBDATA_BOK_API_KEY="여기에-발급받은-키-붙여넣기"

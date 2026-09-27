@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import logging
-import os
 from collections.abc import Mapping, Sequence
 from typing import cast
 from urllib.parse import urlparse
 
+from kpubdata._hosts import host_is_allowed
 from kpubdata.config import KPubDataConfig
 from kpubdata.core.models import (
     DatasetRef,
@@ -37,30 +37,14 @@ _DATAGO_403_HINT = (
 )
 
 
-_DATAGO_ALLOWED_HOST_SUFFIXES = (".data.go.kr",)
-_DATAGO_ALLOWED_EXACT_HOSTS = {"data.go.kr"}
-_EXTRA_HOSTS_ENV = "KPUBDATA_DATAGO_EXTRA_HOSTS"
-
-
 def _is_allowed_datago_host(host: str) -> bool:
-    """data.go.kr 공식 도메인(또는 환경변수로 확장한 호스트)만 허용한다 (#261).
+    """Whether the datago credential may be sent to ``host`` (#261).
 
-    확장은 ``KPUBDATA_DATAGO_EXTRA_HOSTS``(콤마 구분)로만 가능하다 — 임의
-    내부 호스트로의 SSRF·API 키 전송을 기본 차단하기 위한 fail-closed 게이트다.
+    The list itself lives in ``kpubdata._hosts`` so that the spec executor reads
+    the same one. It used to live here only, which meant ``datago.generic`` was
+    guarded while every spec-driven call was not (#519).
     """
-    host = host.strip().lower()
-    if not host:
-        return False
-    if host in _DATAGO_ALLOWED_EXACT_HOSTS:
-        return True
-    if any(host.endswith(suffix) for suffix in _DATAGO_ALLOWED_HOST_SUFFIXES):
-        return True
-    extra = os.environ.get(_EXTRA_HOSTS_ENV, "")
-    for entry in extra.split(","):
-        allowed = entry.strip().lower()
-        if allowed and host == allowed:
-            return True
-    return False
+    return host_is_allowed("datago", host)
 
 
 class DataGoAdapter:
