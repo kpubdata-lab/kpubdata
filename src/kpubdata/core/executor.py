@@ -1,17 +1,19 @@
-"""Generic Executor — 선언적 spec만으로 데이터셋 조회를 수행한다.
+"""Generic Executor — performs dataset queries using declarative specs alone.
 
-spec 시스템(#378)의 실행 계층이다. ``kpubdata.core.spec.SpecDefinition``가
-선언한 인증·파라미터·페이지네이션·envelope·에러 규칙을 그대로 해석해
-기존 어댑터와 동일한 관찰 가능한 동작(RecordBatch 의미론)을 낸다.
+Execution layer for the spec system (#378). Interprets the authentication,
+parameter, pagination, envelope, and error rules declared by
+``kpubdata.core.spec.SpecDefinition`` to produce the same observable behavior
+(RecordBatch semantics) as legacy adapters.
 
-범위(파일럿):
-- 인증: ``query_param`` (그 외는 미구현 — 커스텀 어댑터가 담당)
-- 페이지네이션: ``page_no_rows``, ``none`` (그 외 미구현)
-- envelope: ``datago_standard`` (경로 기반 일반 추출 — data.go.kr 계열 공용)
-- 에러: ``header_result_code`` (data.go.kr resultCode 표준 표)
+Scope (pilot):
+- Auth: ``query_param`` (others unimplemented — custom adapters responsible)
+- Pagination: ``page_no_rows``, ``none`` (others unimplemented)
+- Envelope: ``datago_standard`` (path-based generic extraction — shared by
+  data.go.kr family)
+- Error: ``header_result_code`` (data.go.kr resultCode standard table)
 
-계층 규칙: core는 providers를 import하지 않는다. datago 어댑터의 동작은
-복제하되 의존하지 않는다(검증: tests/unit/core/test_executor.py).
+Layering rule: core does not import providers. Duplicate datago adapter logic
+but don't depend on it (verified: tests/unit/core/test_executor.py).
 """
 
 from __future__ import annotations
@@ -43,7 +45,7 @@ logger = logging.getLogger("kpubdata.core.executor")
 _AUTH_ERROR_CODES = frozenset({"30", "31", "20", "32"})
 _SERVICE_UNAVAILABLE_CODES = frozenset({"01", "02"})
 _DEFAULT_PAGE_SIZE = 100
-# core가 providers를 import하지 않기 위해, datago 403 힌트를 일반화해 재정의한다.
+# To avoid importing providers from core, generalize the datago 403 hint.
 _FORBIDDEN_HINT = (
     "Provider returned 403. This usually means the specific API has not been activated "
     "(활용신청) for your key. Check the dataset's documentation page for your provider."
@@ -51,7 +53,7 @@ _FORBIDDEN_HINT = (
 
 
 def _resolve_path(path: str | None, spec: SpecDefinition | None = None) -> str | None:
-    """경로의 ``{operation}`` 플레이스홀더를 해당 데이터셋의 operation으로 치환한다."""
+    """Replace {operation} placeholder in path with the dataset's operation."""
     if path is None:
         return None
     if spec is None:
@@ -60,10 +62,10 @@ def _resolve_path(path: str | None, spec: SpecDefinition | None = None) -> str |
 
 
 def _dot_get(payload: object, path: str | None) -> object | None:
-    """점 경로로 페이로드를 순회한다.
+    """Traverse a payload using dot-path notation.
 
-    숫자 세그먼트는 배열 인덱스로 취급한다(예: ``AJGCF.0.head.0.list_total_count``).
-    특수 경로 ``$`` 는 루트 페이로드 자체를 반환한다(kosis 최상위 배열 등).
+    Numeric segments are treated as array indices (e.g. AJGCF.0.head.0.list_total_count).
+    Special path "$" returns the root payload itself (for kosis top-level arrays, etc).
     """
     if path is None:
         return None
@@ -84,7 +86,7 @@ def _dot_get(payload: object, path: str | None) -> object | None:
 
 
 def _to_int(value: object) -> int | None:
-    """문자열/정수를 int로 변환한다(불가·불리언은 None)."""
+    """Convert string/integer to int (skip bool; return None on failure)."""
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
@@ -98,7 +100,7 @@ def _to_int(value: object) -> int | None:
 
 
 def _normalize_item_list(value: object) -> list[dict[str, object]]:
-    """items 리프 값을 레코드 dict 목록으로 정규화한다(단일 dict → 1개 리스트)."""
+    """Normalize items leaf value to record dict list (single dict → 1-item list)."""
     if isinstance(value, dict):
         return [value]
     if isinstance(value, list):
@@ -107,7 +109,7 @@ def _normalize_item_list(value: object) -> list[dict[str, object]]:
 
 
 def _apply_transform(value: object, transform: str) -> object:
-    """단일 필드 변환을 적용한다(값이 없으면 그대로 반환)."""
+    """Apply single-field transformation (return as-is if no value)."""
     if value is None:
         return None
     if isinstance(value, str) and transform == "strip_comma":
@@ -130,10 +132,10 @@ def _apply_transform(value: object, transform: str) -> object:
 
 
 def _try_cast_field(value: object, field_type: str) -> tuple[bool, object]:
-    """선언된 타입으로 캐스팅을 시도하고 (성공 여부, 값)을 반환한다.
+    """Attempt cast to declared type; return (success, value).
 
-    실패해도 원문을 함께 돌려준다 — 호출부가 컬럼 전체를 보고 적용 여부를 정한다
-    (``_normalize_fields`` 참조).
+    Even on failure, return the original value—caller examines the entire column
+    to decide whether to apply the result (see _normalize_fields).
     """
     if value is None:
         return True, None
@@ -155,25 +157,26 @@ def _try_cast_field(value: object, field_type: str) -> tuple[bool, object]:
 
 
 def _cast_field(value: object, field_type: str) -> object:
-    """선언된 타입으로 캐스팅한다(실패 시 원문을 보존한다)."""
+    """Cast to declared type (preserve original if cast fails)."""
     _, coerced = _try_cast_field(value, field_type)
     return coerced
 
 
-#: data.go.kr 게이트웨이가 서비스 대신 답할 때 쓰는 봉투. 요청이 서비스에 닿기
-#: 전에 거부되면 ``<response>`` 대신 이 모양이 온다 — 등록되지 않은 키, 만료된
-#: 활용신청, 허용되지 않은 IP, 일일 한도 초과.
+#: The envelope returned by data.go.kr gateway when it rejects before reaching
+#: the service. Instead of the service's <response>, this shape arrives when
+#: rejected (unregistered key, expired activation request, disallowed IP, quota exceeded).
 _GATEWAY_ENVELOPE_KEY = "OpenAPI_ServiceResponse"
 _GATEWAY_HEADER_KEY = "cmmMsgHeader"
 
 
 def _gateway_rejection(payload: dict[str, object]) -> tuple[str, str] | None:
-    """게이트웨이 거부면 ``(code, message)``, 아니면 None.
+    """Return (code, message) if gateway rejection, else None.
 
-    ``returnReasonCode`` 는 서비스 envelope 의 ``resultCode`` 와 같은 어휘를 쓰므로
-    같은 매핑에 넘길 수 있다. #478 이 datago **어댑터** 에만 이 분기를 넣었는데,
-    spec 우선 경로를 타는 20여 종은 여전히 "응답 envelope에서 에러 코드를 찾을 수
-    없습니다" 로 실패했다 — 고칠 수 있는 문제가 파싱 오류로 보였다.
+    returnReasonCode uses the same vocabulary as service envelope's resultCode,
+    so it can use the same mapping. #478 added this branch only to the datago
+    adapter, but ~20 datasets on the spec-first path still failed with
+    "error code not found in response envelope". What could be fixed was seen
+    as a parse error.
     """
     gateway = payload.get(_GATEWAY_ENVELOPE_KEY)
     if not isinstance(gateway, dict):
@@ -196,19 +199,19 @@ def _gateway_rejection(payload: dict[str, object]) -> tuple[str, str] | None:
 
 
 class SpecExecutor:
-    """spec 정의를 해석해 조회를 실행하는 Provider 비종속 실행기."""
+    """Provider-agnostic executor that interprets spec to execute queries."""
 
     def __init__(self, transport: HttpTransport, config: KPubDataConfig) -> None:
-        """전송 계층과 설정을 주입받아 실행기를 초기화한다."""
+        """Initialize the executor with transport and config injection."""
         self._transport = transport
         self._config = config
 
     # ------------------------------------------------------------------
-    # 요청 조립
+    # Request assembly
     # ------------------------------------------------------------------
 
     def _resolve_format_value(self, spec: SpecDefinition, format_hint: str | None) -> str | None:
-        """format_hint에 해당하는 포맷 파라미터 값을 spec에서 해석한다."""
+        """Resolve format parameter value from spec matching format_hint."""
         format_param = spec.endpoint.format_param
         if format_param is None or not format_param.name:
             return None
@@ -241,10 +244,15 @@ class SpecExecutor:
     def build_params(
         self, spec: SpecDefinition, query: Query, format_hint: str | None = None
     ) -> dict[str, str]:
-        """인증·포맷·페이지네이션·필터를 조립한 쿼리 파라미터를 만든다.
+        """Assemble auth, format, pagination, and filters into query parameters.
 
-        예외:
-            InvalidRequestError: 파라미터 이름이 선언되지 않은 페이지네이션 방식인 경우.
+        Args:
+            spec: The dataset spec definition.
+            query: The user query.
+            format_hint: Optional format override.
+
+        Raises:
+            InvalidRequestError: If pagination mode lacks required param name.
         """
         params: dict[str, str] = {}
 
@@ -261,7 +269,7 @@ class SpecExecutor:
             provider_key = spec.auth.provider_key or spec.provider
             params[spec.auth.param_name] = self._config.require_provider_key(provider_key)
         elif spec.auth.type == "path_segment":
-            # 키는 URL 경로(path_template의 {key})로 싣는다 — 쿼리에서는 제거된다.
+            # Key is placed in URL path (path_template {key}) — removed from query.
             template = spec.endpoint.path_template or ""
             if "{key}" not in template:
                 msg = f"{spec.id}: path_segment 인증은 path_template의 {{key}}가 필요합니다."
@@ -291,7 +299,7 @@ class SpecExecutor:
             params[page_param] = str(page)
             params[size_param] = str(page_size)
         elif spec.pagination.type in {"pindex_psize", "page_display"}:
-            # lofin(pIndex/pSize, 1-기반)·law(page/display) — 쿼리 파라미터 방식
+            # lofin(pIndex/pSize, 1-based)·law(page/display) — query parameter style
             defaults: dict[str, tuple[str, str, int, int]] = {
                 "pindex_psize": ("pIndex", "pSize", 1, 100),
                 "page_display": ("page", "display", 1, 20),
@@ -304,7 +312,7 @@ class SpecExecutor:
             params[page_param] = str(query.page or default_page)
             params[size_param] = str(query.page_size or default_size)
         elif spec.pagination.type == "index_range":
-            # bok/seoul 계열 — start/end가 URL 경로에 들어간다(path_template {{start}}/{{end}}).
+            # BOK/Seoul family — start/end go in URL path (path_template {{start}}/{{end}}).
             if not spec.endpoint.path_template:
                 msg = f"{spec.id}: index_range 페이지네이션은 path_template이 필요합니다."
                 raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id)
@@ -318,7 +326,7 @@ class SpecExecutor:
         reserved = {key.lower() for key in params}
         alias_map = {param.exposed_name: param.name for param in spec.params}
         for key, raw_value in query.filters.items():
-            # 인증·포맷·페이지 파라미터는 이미 채웠으므로 사용자 필터로 덮어쓰지 않는다.
+            # Auth, format, pagination params already filled; don't override with user filters.
             if key.lower() in reserved:
                 continue
             provider_name = alias_map.get(key, key)
@@ -327,7 +335,7 @@ class SpecExecutor:
         return params
 
     # ------------------------------------------------------------------
-    # 전송·디코딩
+    # Transport and decoding
     # ------------------------------------------------------------------
 
     def build_url(
@@ -337,11 +345,11 @@ class SpecExecutor:
         page_size: int = _DEFAULT_PAGE_SIZE,
         api_key: str = "",
     ) -> str:
-        """spec 엔드포인트 URL을 조립한다.
+        """Assemble spec endpoint URL.
 
-        ``endpoint.path_template``이 있으면 ``{key}``·``{operation}``·``{start}``·``{end}``
-        플레이스홀더를 치환한다(bok/seoul 계열의 경로 내 키·범위). 없으면
-        ``{base}/{operation}`` 기본 형태를 쓴다.
+        If ``endpoint.path_template`` exists, replace {key}, {operation}, {start}, {end}
+        placeholders (for BOK/Seoul family path-based keys and ranges). Otherwise use
+        the default {base}/{operation} form.
         """
         template = spec.endpoint.path_template
         if template:
@@ -358,11 +366,15 @@ class SpecExecutor:
         return f"{spec.endpoint.base_url.rstrip('/')}/{spec.endpoint.operation.lstrip('/')}"
 
     def _request(self, spec: SpecDefinition, params: dict[str, str]) -> dict[str, object]:
-        """spec 엔드포인트로 GET 요청을 보내고 디코딩된 dict를 반환한다.
+        """Send GET request to spec endpoint and return decoded dict.
 
-        예외:
-            AuthError: 전송 계층 403의 경우(활용신청 힌트 포함).
-            ProviderResponseError: 디코딩 결과가 dict가 아닌 경우.
+        Args:
+            spec: The dataset spec.
+            params: Request parameters.
+
+        Raises:
+            AuthError: On transport 403 (with activation request hint).
+            ProviderResponseError: If decoded result is not a dict.
         """
         page_part = params.get(spec.pagination.page_param or "", "1")
         size_part = params.get(spec.pagination.size_param or "", str(_DEFAULT_PAGE_SIZE))
@@ -390,9 +402,9 @@ class SpecExecutor:
                 provider=spec.provider,
             )
         except TransportError as exc:
-            # ``exc.status_code`` 로 본다. ``__cause__`` 를 보던 시절에는 키가
-            # 섞인 요청에서 transport 가 체인을 끊으면(그래야 한다) 403 판정이
-            # 통째로 사라졌다 — 키 마스킹과 403 힌트가 서로를 무효화했다.
+            # Check exc.status_code. When we relied on __cause__, if transport broke
+            # the chain on mixed-key requests (as it should), the 403 determination
+            # vanished entirely — key masking and 403 hint defeated each other.
             if exc.status_code == 403:
                 raise AuthError(
                     _FORBIDDEN_HINT,
@@ -417,11 +429,11 @@ class SpecExecutor:
         raise ProviderResponseError(msg, provider=spec.provider, dataset_id=spec.id)
 
     # ------------------------------------------------------------------
-    # envelope·에러 매핑
+    # Envelope and error mapping
     # ------------------------------------------------------------------
 
     def _require_supported_envelope(self, spec: SpecDefinition) -> None:
-        """파일럿 범위 밖 envelope를 명확히 거부한다."""
+        """Explicitly reject envelopes outside pilot scope."""
         if spec.response.envelope != "datago_standard":
             msg = (
                 f"{spec.id}: envelope={spec.response.envelope!r}은(는) "
@@ -430,61 +442,65 @@ class SpecExecutor:
             raise NotImplementedError(msg)
 
     def _raise_for_code(self, spec: SpecDefinition, code: str, message: str) -> None:
-        """모듈 함수에 위임한다 — 같은 규칙이 두 벌 있으면 반드시 갈라진다."""
+        """Delegate to module function — if same rule exists twice, they must diverge."""
         raise_for_code(spec, code, message)
 
     def _check_error(self, spec: SpecDefinition, payload: dict[str, object]) -> None:
-        """모듈 함수에 위임한다.
+        """Delegate to module function.
 
-        예전에는 같은 판정을 여기서 따로 구현했고, 그 사본에는 모듈 쪽에만
-        추가된 네 가지가 빠져 있었다 — ``err_field`` style(kosis), code_path 의
-        ``{operation}`` 치환(lofin 계열), KorService 류의 최상단 ``resultCode``
-        폴백, ``resultMsg``/``errMsg`` 메시지 폴백.
+        Previously, the same logic was implemented separately here, and the copy
+        missed four enhancements that exist in the module only: err_field style
+        (kosis), {operation} substitution in code_path (lofin family), KorService
+        top-level resultCode fallback, and resultMsg/errMsg message fallback.
 
-        그 결과 ``make verify`` 는 모듈 함수를 쓰고 실제 실행은 이 메서드를 써서,
-        **verify 통과가 실행 경로를 검증한다는 보장이 없었다.** kosis 처럼
-        code 체계가 없는 provider 는 성공 응답에도 "에러 코드를 찾을 수
-        없습니다" 로 실패했다.
+        As a result, ``make verify`` used the module function while actual execution
+        used this method—verify passing did not guarantee the execution path worked.
+        Providers without a code system like kosis failed on success responses saying
+        "error code not found in envelope".
         """
         check_payload_error(spec, payload)
 
     def _extract_items(
         self, spec: SpecDefinition, payload: dict[str, object]
     ) -> list[dict[str, object]]:
-        """모듈 함수에 위임한다.
+        """Delegate to module function.
 
-        사본에는 ``neis_double_list`` envelope, ``{operation}`` 치환, 루트를
-        가리키는 ``$``(kosis 최상위 배열)가 모두 빠져 있었다 — 그 provider 들은
-        verify 를 통과하면서 실행 시에는 빈 목록을 돌려줬다.
+        The copy lacked neis_double_list envelope, {operation} substitution, and $
+        (root for kosis top-level array) — those providers passed verify but returned
+        empty lists at runtime.
         """
         return extract_items(spec, payload)
 
     def _extract_total_count(self, spec: SpecDefinition, payload: dict[str, object]) -> int | None:
-        """total_count_path 규칙으로 총건수를 추출한다(없으면 None)."""
+        """Extract total count using spec's total_count_path rule (None if absent)."""
         raw = _dot_get(payload, spec.response.total_count_path)
         coerced = _to_int(raw)
         return coerced if coerced else None
 
     # ------------------------------------------------------------------
-    # 정규화
+    # Normalization
     # ------------------------------------------------------------------
 
     def _normalize_fields(
         self, spec: SpecDefinition, items: list[dict[str, object]]
     ) -> list[dict[str, object]]:
-        """fields[] 선언이 있을 때만 rename·transform·캐스팅을 적용한다.
+        """Apply rename/transform/casting only when a fields[] declaration exists.
 
-        캐스팅은 **컬럼 단위로 전부 성공할 때만** 적용한다. 행마다 따로 판단하면
-        같은 컬럼에 캐스팅된 값과 원문이 섞여, 소비자가 표 형태로 다룰 때 타입이
-        깨진다 — 예컨대 실거래가의 ``aptDong`` 은 대부분 ``"105"`` 지만 일부 행에는
-        동 이름(``"현대뜨레비앙"``)이 들어와, 행 단위 캐스팅은 int와 str이 공존하는
-        컬럼을 만든다. 한 값이라도 캐스팅에 실패하면 그 컬럼은 원문 그대로 둔다 —
-        spec의 타입 선언이 실제 데이터와 어긋나더라도 downstream이 깨지지 않는다.
+        Casting applies **per column, and only when every value succeeds**.
+        Deciding row by row would mix cast values with originals in one
+        column, breaking the type for consumers working in tabular form —
+        for example, the apartment-trade ``aptDong`` is mostly ``"105"`` but
+        some rows carry a dong *name* (a Korean neighborhood string), so
+        row-wise casting would produce a column where int and str coexist.
+        If even one value fails to cast, the column stays as-is — even when
+        the spec's type declaration disagrees with the real data,
+        downstream does not break.
         """
         if not spec.fields:
             return items
 
-        # 1단계: rename과 transform만 적용한다(캐스팅은 컬럼 전체를 본 뒤에).
+        # Stage 1: apply rename and transform only (casting waits until the
+        # whole column has been seen).
         staged: list[dict[str, object]] = []
         for item in items:
             record: dict[str, object] = dict(item)
@@ -497,7 +513,7 @@ class SpecExecutor:
                     record.pop(source_name, None)
             staged.append(record)
 
-        # 2단계: 컬럼 단위 캐스팅 — 전부 성공할 때만 반영한다.
+        # Stage 2: per-column casting — applied only when all values succeed.
         for field in spec.fields:
             casts: list[tuple[dict[str, object], object]] = []
             castable = True
@@ -521,7 +537,7 @@ class SpecExecutor:
         return staged
 
     # ------------------------------------------------------------------
-    # 공개 API
+    # Public API
     # ------------------------------------------------------------------
 
     def query(
@@ -531,7 +547,7 @@ class SpecExecutor:
         query: Query,
         format_hint: str | None = None,
     ) -> RecordBatch:
-        """spec에 따라 조회를 실행해 RecordBatch를 반환한다."""
+        """Execute the query per spec and return a RecordBatch."""
         self._require_supported_envelope(spec)
         params = self.build_params(spec, query, format_hint=format_hint)
         payload = self._request(spec, params)
@@ -566,10 +582,11 @@ class SpecExecutor:
         query: Query,
         format_hint: str | None = None,
     ) -> tuple[dict[str, str], dict[str, object]]:
-        """요청 파라미터와 디코딩된 원본 페이로드를 함께 반환한다(record용).
+        """Return the request parameters together with the decoded raw payload (for recording).
 
-        query와 달리 envelope 해석·정규화를 수행하지 않는다 — 기록 도구가
-        raw/expected를 각자 저장하기 위한 저수준 진입점이다.
+        Unlike query, this performs no envelope interpretation or
+        normalization — a low-level entry point so recording tools can store
+        raw/expected themselves.
         """
         self._require_supported_envelope(spec)
         params = self.build_params(spec, query, format_hint=format_hint)
@@ -582,7 +599,7 @@ class SpecExecutor:
         params: dict[str, object],
         format_hint: str | None = None,
     ) -> dict[str, object]:
-        """envelope 해석 없이 디코딩된 원본 페이로드를 반환한다(raw 비상구)."""
+        """Return the decoded raw payload without envelope interpretation (raw escape hatch)."""
         string_params: dict[str, str] = {key: str(value) for key, value in params.items()}
         if spec.auth.type == "query_param" and spec.auth.param_name:
             provider_key = spec.auth.provider_key or spec.provider
@@ -597,7 +614,7 @@ class SpecExecutor:
 
 
 def raise_for_code(spec: SpecDefinition, code: str, message: str) -> None:
-    """에러 코드를 표준 예외로 매핑한다(data.go.kr resultCode 표준 표)."""
+    """Map error code to standard exception (data.go.kr resultCode standard table)."""
     if code in _AUTH_ERROR_CODES:
         raise AuthError(message, provider=spec.provider, dataset_id=spec.id, provider_code=code)
     if code == "22":
@@ -622,15 +639,17 @@ def raise_for_code(spec: SpecDefinition, code: str, message: str) -> None:
 
 
 def check_payload_error(spec: SpecDefinition, payload: dict[str, object]) -> None:
-    """에러 코드 경로를 검사하고 실패 코드면 예외를 발생시킨다(record·verify 공용)."""
+    """Check error code path and raise if failure code (shared by record/verify).
+
+    If gateway rejected instead of service, declared code_path won't exist.
+    Both builder's verify and record use this function, so check it too.
+    """
     error = spec.response.error
-    # 게이트웨이가 서비스 대신 답했으면 선언된 code_path 를 찾아봐야 없다.
-    # builder 의 verify 와 record 가 이 함수를 쓰므로 여기도 같이 본다.
     gateway = _gateway_rejection(payload)
     if gateway is not None:
         raise_for_code(spec, gateway[0], gateway[1])
     if error.style == "err_field":
-        # kosis류: 코드 체계가 없고 err 필드 존재 자체가 실패를 뜻한다.
+        # kosis family: no code system; err field presence itself means failure.
         err_raw = payload.get("err")
         if isinstance(err_raw, (str, dict)):
             raise ProviderResponseError(
@@ -640,8 +659,9 @@ def check_payload_error(spec: SpecDefinition, payload: dict[str, object]) -> Non
             )
         return
     raw_code = _dot_get(payload, _resolve_path(error.code_path, spec))
-    # 폴백: 한국관광공사 KorService류는 에러를 envelope 밖 최상단 resultCode로
-    # 평면 반환한다(성공은 정상 envelope). 선언 경로에 없으면 최상단을 확인한다.
+    # Fallback: Korean Tourism Organization KorService returns errors at top-level
+    # resultCode outside envelope (success uses normal envelope). If declared path
+    # missing, check top-level.
     if raw_code is None and isinstance(payload.get("resultCode"), (str, int)):
         raw_code = payload.get("resultCode")
     if isinstance(raw_code, str):
@@ -670,11 +690,12 @@ def check_payload_error(spec: SpecDefinition, payload: dict[str, object]) -> Non
 
 
 def extract_items(spec: SpecDefinition, payload: dict[str, object]) -> list[dict[str, object]]:
-    """spec의 items_path 규칙으로 레코드 목록을 추출한다(record·verify 공용).
+    """Extract record list using spec's items_path rule (shared by record/verify).
 
-    - ``{operation}`` 플레이스홀더 지원(lofin 계열: ``{operation}.1.row``)
-    - ``$`` 는 루트(kosis 최상위 배열)
-    - envelope ``neis_double_list`` 는 블록별 row를 병합한다
+    Supports:
+    - {operation} placeholder (lofin family: {operation}.1.row)
+    - $ for root (kosis top-level array)
+    - neis_double_list envelope merges row blocks per operation
     """
     if spec.response.envelope == "neis_double_list":
         return _extract_neis_rows(spec, payload)
@@ -693,7 +714,7 @@ def extract_items(spec: SpecDefinition, payload: dict[str, object]) -> list[dict
 
 
 def _extract_neis_rows(spec: SpecDefinition, payload: dict[str, object]) -> list[dict[str, object]]:
-    """NEIS 이중 리스트 envelope: ``{operation}[].row`` 블록을 모두 병합한다."""
+    """NEIS double-list envelope: merge all {operation}[].row blocks."""
     blocks = payload.get(spec.endpoint.operation)
     rows: list[dict[str, object]] = []
     if not isinstance(blocks, list):
@@ -710,7 +731,7 @@ def _extract_neis_rows(spec: SpecDefinition, payload: dict[str, object]) -> list
 
 
 def extract_total_count(spec: SpecDefinition, payload: dict[str, object]) -> int | None:
-    """spec의 total_count_path 규칙으로 총건수를 추출한다(없으면 None)."""
+    """Extract total count using spec's total_count_path rule (None if absent)."""
     resolved = _resolve_path(spec.response.total_count_path, spec)
     raw = _dot_get(payload, resolved)
     coerced = _to_int(raw)
@@ -718,7 +739,7 @@ def extract_total_count(spec: SpecDefinition, payload: dict[str, object]) -> int
 
 
 def _message_path(code_path: str | None) -> str | None:
-    """resultCode 경로에서 대응하는 resultMsg 경로를 유추한다."""
+    """Infer corresponding resultMsg path from resultCode path."""
     if not code_path:
         return None
     segments = code_path.split(".")
@@ -727,16 +748,15 @@ def _message_path(code_path: str | None) -> str | None:
 
 
 def _spec_request_parameters(spec: SpecDefinition) -> tuple[MappingProxyType[str, object], ...]:
-    """spec params를 catalogue ``request_parameters``와 같은 형태로 변환한다 (#375).
+    """Convert spec params to catalog request_parameters format (#375).
 
-    ``query_support.filterable_fields`` 는 "필터 가능한 이름"만 알려줄 뿐이라,
-    소비자(Builder/Studio)는 어떤 파라미터가 **필수**인지, 무슨 값을 넣어야 하는지
-    알 수 없었다. spec에는 그 정보가 이미 있으므로 그대로 노출한다.
+    query_support.filterable_fields only names "filterable" fields, so consumers
+    (Builder/Studio) couldn't tell which parameters are **required** or what values
+    to use. Spec already has this info; expose it directly.
 
-    catalogue 엔트리의 ``request_parameters``(#374)와 키 이름을 맞춰
-    소비자가 두 경로를 한 가지 형태로 읽을 수 있게 한다. ``name`` 은 호출 시
-    실제로 넘기는 이름(alias 우선)이고, 원 API 파라미터 이름은 ``api_name`` 으로
-    따로 싣는다 — 둘이 다를 때 사용자가 넘겨야 하는 쪽은 언제나 ``name`` 이다.
+    Match catalog entry request_parameters (#374) key names so consumers can read
+    both paths in one format. name is the calling name (alias first); original API
+    param goes in api_name separately — when they differ, name is what users pass.
     """
     parameters: list[MappingProxyType[str, object]] = []
     for param in spec.params:
@@ -758,7 +778,7 @@ def _spec_request_parameters(spec: SpecDefinition) -> tuple[MappingProxyType[str
 
 
 def build_spec_dataset_ref(spec: SpecDefinition) -> DatasetRef:
-    """SpecDefinition을 catalogue와 동일한 의미론의 DatasetRef로 변환한다."""
+    """Convert SpecDefinition to DatasetRef with catalog-equivalent semantics."""
     paginated = spec.pagination.type in {"page_no_rows", "page_display", "pindex_psize"}
     query_support = QuerySupport(
         pagination=PaginationMode.OFFSET if paginated else PaginationMode.NONE,
@@ -770,7 +790,7 @@ def build_spec_dataset_ref(spec: SpecDefinition) -> DatasetRef:
     if request_parameters:
         raw_metadata["request_parameters"] = request_parameters
     if spec.source is not None and spec.source.verified_at:
-        # 언제 기준의 명세인지 — 소비자가 메타데이터의 신선도를 판단할 수 있게 한다.
+        # Spec basis date — lets consumers judge metadata freshness.
         raw_metadata["verified_at"] = spec.source.verified_at
     return DatasetRef(
         id=spec.id,
@@ -788,14 +808,15 @@ def build_spec_dataset_ref(spec: SpecDefinition) -> DatasetRef:
 
 
 class SpecDatasetAdapter:
-    """하나의 Provider 분량 spec 묶음을 ProviderAdapter 프로토콜로 노출한다.
+    """Expose one Provider's spec bundle as ProviderAdapter protocol.
 
-    레지스트리 통합 전 파일럿용: 기존 어댑터와 동일한 인터페이스를 제공하되
-    spec 실행기가 조회를 수행한다. call_raw는 항상 원본 페이로드를 반환한다.
+    Pilot version before registry integration: provides same interface as
+    built-in adapters but spec executor performs queries. call_raw always
+    returns the raw payload.
     """
 
     def __init__(self, provider: str, specs: list[SpecDefinition], executor: SpecExecutor) -> None:
-        """Provider 식별자·spec 목록·실행기로 어댑터를 초기화한다."""
+        """Initialize the adapter with provider ID, spec list, and executor."""
         self._provider = provider
         self._specs = {spec.dataset_key: spec for spec in specs if spec.provider == provider}
         self._executor = executor
@@ -803,15 +824,15 @@ class SpecDatasetAdapter:
 
     @property
     def name(self) -> str:
-        """Provider 식별자를 반환한다."""
+        """Return the Provider identifier."""
         return self._provider
 
     def list_datasets(self) -> list[DatasetRef]:
-        """보유한 spec 전체를 DatasetRef로 반환한다."""
+        """Return all held specs as DatasetRef."""
         return [build_spec_dataset_ref(spec) for spec in self._specs.values()]
 
     def search_datasets(self, text: str) -> list[DatasetRef]:
-        """id·제목·설명에 대한 부분 문자열 검색 결과를 반환한다."""
+        """Return substring search results in id, title, description."""
         needle = text.lower()
         return [
             build_spec_dataset_ref(spec)
@@ -822,10 +843,10 @@ class SpecDatasetAdapter:
         ]
 
     def get_dataset(self, dataset_key: str) -> DatasetRef:
-        """Provider 로컬 키로 DatasetRef를 해석한다.
+        """Resolve a provider-local key into a DatasetRef.
 
-        예외:
-            DatasetNotFoundError: 알 수 없는 키인 경우.
+        Raises:
+            DatasetNotFoundError: The key is unknown.
         """
         spec = self._specs.get(dataset_key)
         if spec is None:
@@ -834,7 +855,7 @@ class SpecDatasetAdapter:
         return build_spec_dataset_ref(spec)
 
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
-        """spec 실행기로 정규 목록 질의를 실행한다."""
+        """Run a canonical list query through the spec executor."""
         spec = self._specs.get(dataset.dataset_key)
         if spec is None:
             msg = f"Unknown dataset key for spec adapter: {dataset.id}"
@@ -842,11 +863,11 @@ class SpecDatasetAdapter:
         return self._executor.query(spec, dataset, query)
 
     def get_schema(self, dataset: DatasetRef) -> SchemaDescriptor | None:
-        """아직 스키마 메타데이터를 지원하지 않는다(정직한 선언)."""
+        """Schema metadata is not supported yet (an honest declaration)."""
         return None
 
     def call_raw(self, dataset: DatasetRef, operation: str, params: dict[str, object]) -> object:
-        """원본 페이로드를 반환하는 raw 비상구를 보장한다."""
+        """Guarantee the raw escape hatch returning the original payload."""
         spec = self._specs.get(dataset.dataset_key)
         if spec is None:
             msg = f"Unknown dataset key for spec adapter: {dataset.id}"

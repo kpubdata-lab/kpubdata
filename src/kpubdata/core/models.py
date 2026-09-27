@@ -1,4 +1,4 @@
-"""Provider와 어댑터 전반에서 공유되는 정규 도메인 모델."""
+"""Canonical domain models shared across providers and adapters."""
 
 from __future__ import annotations
 
@@ -13,25 +13,25 @@ from kpubdata.exceptions import InvalidRequestError
 
 
 def _empty_proxy() -> MappingProxyType[str, object]:
-    """비어 있는 불변 문자열 키 매핑 프록시를 반환한다."""
+    """Return empty immutable string-key mapping proxy."""
     return MappingProxyType({})
 
 
 def _empty_object_proxy() -> MappingProxyType[str, object]:
-    """비어 있는 불변 객체 값 매핑 프록시를 반환한다."""
+    """Return empty immutable object-value mapping proxy."""
     return MappingProxyType({})
 
 
 @_dataclass(slots=True, frozen=True)
 class DatasetRef:
-    """Provider 데이터셋에 대한 정규 불변 참조.
+    """Canonical immutable reference to a provider dataset.
 
-    속성:
-        description: 이 데이터셋이 제공하는 내용을 사람이 읽기 쉽게 설명한 문자열.
-        tags: 탐색용 분류 태그(예: ``("weather", "forecast")``).
-        source_url: 원본 API 문서 또는 데이터 포털 페이지의 URL.
-        query_support: 알려진 경우 구조화된 목록 질의 기능 메타데이터.
-        raw_metadata: 디버깅을 위한 Provider 고유 탐색 메타데이터.
+    Attributes:
+        description: Human-readable string describing what this dataset provides.
+        tags: Exploration classification tags (e.g., ``("weather", "forecast")``).
+        source_url: URL to original API docs or data portal page.
+        query_support: Structured list-query capability metadata, if known.
+        raw_metadata: Provider-specific exploration metadata for debugging.
     """
 
     id: str
@@ -47,23 +47,23 @@ class DatasetRef:
     source_url: str | None = None
 
     def supports(self, op: Operation) -> bool:
-        """이 데이터셋이 요청된 작업을 지원하는지 반환한다."""
+        """Return whether this dataset supports the requested operation."""
 
         return op in self.operations
 
     def __repr__(self) -> str:
-        """개발자 친화적인 간결한 표현을 반환한다."""
+        """Return developer-friendly concise representation."""
         ops = ", ".join(sorted(operation.value for operation in self.operations))
         return f"DatasetRef(id={self.id!r}, provider={self.provider!r}, ops=[{ops}])"
 
 
 @_dataclass(slots=True)
 class Query:
-    """레코드 목록 조회를 위한 Provider 비종속 질의 객체.
+    """Provider-agnostic query object for record list retrieval.
 
-    속성:
-        filters: 질의 변환에 병합되는 Provider별 필터 페이로드.
-        extra: 정규 필드로 포괄되지 않는 추가 Provider 고유 파라미터.
+    Attributes:
+        filters: Provider-specific filter payload merged into query conversion.
+        extra: Additional provider-specific parameters not covered by canonical fields.
     """
 
     filters: dict[str, object] = field(default_factory=dict)
@@ -77,7 +77,7 @@ class Query:
     extra: dict[str, object] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        """Query 생성 시 canonical-level 타입 검증을 수행한다."""
+        """Perform canonical-level type validation on Query creation."""
         self._validate_page()
         self._validate_page_size()
         self._validate_cursor()
@@ -88,7 +88,7 @@ class Query:
         self._validate_dict_type(self.extra, "extra")
 
     def _validate_page(self) -> None:
-        """page 필드가 유효한 정수인지 검증한다."""
+        """Validate that page field is a valid integer."""
         if self.page is None:
             return
         if isinstance(self.page, bool):
@@ -101,7 +101,7 @@ class Query:
             raise InvalidRequestError("page must be a positive integer (>= 1)")
 
     def _validate_page_size(self) -> None:
-        """page_size 필드가 유효한 정수인지 검증한다."""
+        """Validate that page_size field is a valid integer."""
         if self.page_size is None:
             return
         if isinstance(self.page_size, bool):
@@ -114,7 +114,7 @@ class Query:
             raise InvalidRequestError("page_size must be a positive integer (>= 1)")
 
     def _validate_cursor(self) -> None:
-        """cursor 필드가 문자열인지 검증한다."""
+        """Validate that cursor field is a string."""
         if self.cursor is None:
             return
         if not isinstance(self.cursor, str):
@@ -125,7 +125,7 @@ class Query:
             raise InvalidRequestError("cursor must be a non-empty string")
 
     def _validate_dates(self) -> None:
-        """날짜 필드가 문자열이고 비어있지 않은지 검증한다."""
+        """Validate that date fields are non-empty strings."""
         for field_name, value in (("start_date", self.start_date), ("end_date", self.end_date)):
             if value is None:
                 continue
@@ -137,7 +137,7 @@ class Query:
                 raise InvalidRequestError(f"{field_name} must be a non-empty string")
 
     def _validate_fields(self) -> None:
-        """fields 필드가 문자열 리스트인지 검증한다."""
+        """Validate that fields field is a list of strings."""
         if self.fields is None:
             return
         if not isinstance(self.fields, list):
@@ -151,7 +151,7 @@ class Query:
                 )
 
     def _validate_sort(self) -> None:
-        """sort 필드가 문자열 리스트인지 검증한다."""
+        """Validate that sort field is a list of strings."""
         if self.sort is None:
             return
         if not isinstance(self.sort, list):
@@ -165,7 +165,7 @@ class Query:
                 )
 
     def _validate_dict_type(self, value: dict[str, object], field_name: str) -> None:
-        """dict 필드의 키가 문자열인지 검증한다."""
+        """Validate that dict field keys are strings."""
         if not isinstance(value, dict):
             raise InvalidRequestError(f"{field_name} must be a dict, got {type(value).__name__}")
         for key in value:
@@ -177,13 +177,13 @@ class Query:
 
 @_dataclass(slots=True)
 class RecordBatch:
-    """데이터셋 질의에서 반환된 정규화 레코드 배치.
+    """Normalized record batch returned from dataset query.
 
-    속성:
-        next_page: 오프셋 페이지네이션을 위한 다음 페이지 번호.
-        next_cursor: 커서 페이지네이션을 위한 불투명 커서 토큰.
-        raw: 이 배치를 도출하는 데 사용한 Provider 고유 응답 페이로드.
-        meta: 정규 필드에 맞지 않는 추가 어댑터 메타데이터.
+    Attributes:
+        next_page: Next page number for offset-based pagination.
+        next_cursor: Opaque cursor token for cursor-based pagination.
+        raw: Provider-specific response payload used to derive this batch.
+        meta: Additional adapter metadata not fitting canonical fields.
     """
 
     items: list[dict[str, object]]
@@ -195,19 +195,19 @@ class RecordBatch:
     meta: dict[str, object] = field(default_factory=dict)
 
     def __len__(self) -> int:
-        """배치에 담긴 레코드 수를 반환한다."""
+        """Return the number of records in the batch."""
         return len(self.items)
 
     def __iter__(self) -> Iterator[dict[str, object]]:
-        """배치의 레코드를 순회하는 이터레이터를 반환한다."""
+        """Return an iterator over batch records."""
         return iter(self.items)
 
     def __bool__(self) -> bool:
-        """배치에 레코드가 하나라도 있으면 True를 반환한다."""
+        """Return True if batch has any records."""
         return bool(self.items)
 
     def to_pandas(self) -> object:
-        """items를 pandas ``DataFrame``으로 변환한다."""
+        """Convert items to pandas ``DataFrame``."""
         try:
             pd = import_module("pandas")
         except ImportError:
@@ -219,17 +219,17 @@ class RecordBatch:
 
 @_dataclass(slots=True)
 class FieldConstraints:
-    """데이터셋 필드의 구조화된 제약 조건.
+    """Structured constraints for a dataset field.
 
-    모든 속성은 선택 사항이다. Provider 카탈로그가 실제로 선언한 값만 채운다.
+    All attributes are optional. Only populate values actually declared by the provider catalog.
 
-    속성:
-        max_length: 최대 문자 길이(문자열 필드).
-        min_value: 최소 숫자 값(숫자 필드).
-        max_value: 최대 숫자 값(숫자 필드).
-        pattern: 값이 일치해야 하는 정규식 패턴(예: ``"^\\\\d{6}$"``).
-        allowed_values: 허용되는 값의 닫힌 집합.
-        format: 의미론적 형식 힌트(예: ``"YYYYMM"``, ``"date"``, ``"url"``).
+    Attributes:
+        max_length: Maximum character length (for string fields).
+        min_value: Minimum numeric value (for numeric fields).
+        max_value: Maximum numeric value (for numeric fields).
+        pattern: Regex pattern that values must match (e.g., ``"^\\\\d{6}$"``).
+        allowed_values: Closed set of permitted values.
+        format: Semantic format hint (e.g., ``"YYYYMM"``, ``"date"``, ``"url"``).
     """
 
     max_length: int | None = None
@@ -242,11 +242,11 @@ class FieldConstraints:
 
 @_dataclass(slots=True)
 class FieldDescriptor:
-    """데이터셋 스키마의 단일 필드를 설명한다.
+    """Describe a single field in a dataset schema.
 
-    속성:
-        constraints: 필드에 대한 선택적 구조화 제약 조건.
-        raw: 고급 사용을 위해 보존한 Provider 고유 필드 메타데이터.
+    Attributes:
+        constraints: Optional structured constraints for the field.
+        raw: Provider-specific field metadata preserved for advanced use.
     """
 
     name: str
@@ -260,10 +260,10 @@ class FieldDescriptor:
 
 @_dataclass(slots=True)
 class SchemaDescriptor:
-    """데이터셋에 대해 노출되는 스키마 메타데이터를 설명한다.
+    """Describe schema metadata exposed for a dataset.
 
-    속성:
-        raw: 정규화하지 않고 보존한 Provider 고유 스키마 메타데이터.
+    Attributes:
+        raw: Provider-specific schema metadata preserved without normalization.
     """
 
     dataset: DatasetRef
