@@ -176,7 +176,7 @@ def test_adapter_docstring_documents_default_query_params_merge_rule() -> None:
         테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
     """
     assert KosisAdapter.__doc__ is not None
-    assert "dataset default_query_params < query.filters (호출자 우선)" in KosisAdapter.__doc__
+    assert "dataset default_query_params < query.filters (caller priority)" in KosisAdapter.__doc__
 
 
 # test query records missing start date logs debug 테스트가 검증하는 시나리오를 설명한다.

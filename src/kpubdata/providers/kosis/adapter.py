@@ -1,7 +1,8 @@
-"""KPubData Python 모듈.
+"""KPubData Python module.
 
-이 파일은 ``src/kpubdata/providers/kosis/adapter.py`` 경로의 구현을 담는다.
-주요 클래스와 함수는 공개 API, 전송 계층, Provider 어댑터 중 하나의 역할을 담당한다.
+This file contains the implementation at ``src/kpubdata/providers/kosis/adapter.py``.
+Key classes and functions are part of the public API, transport layer,
+or provider adapter.
 """
 
 from __future__ import annotations
@@ -48,9 +49,9 @@ _KOSIS_DEFAULT_QUERY_PARAM_KEYS: tuple[str, ...] = (
 
 
 class KosisAdapter:
-    """KOSIS 어댑터.
+    """KOSIS adapter.
 
-    질의 변환 병합 규칙: dataset default_query_params < query.filters (호출자 우선).
+    Query merge rule: dataset default_query_params < query.filters (caller priority).
     """
 
     requires_api_key: bool = True
@@ -62,7 +63,7 @@ class KosisAdapter:
         transport: HttpTransport | None = None,
         catalogue: Sequence[DatasetRef] | None = None,
     ) -> None:
-        """인스턴스가 사용할 내부 상태를 초기화한다."""
+        """Initialize instance state."""
         self._config: KPubDataConfig = config or KPubDataConfig()
         transport_config = TransportConfig(
             timeout=self._config.timeout,
@@ -78,15 +79,15 @@ class KosisAdapter:
 
     @property
     def name(self) -> str:
-        """name과 관련된 값을 계산하거나 조회한다."""
+        """Return provider name."""
         return "kosis"
 
     def list_datasets(self) -> list[DatasetRef]:
-        """list datasets과 관련된 값을 계산하거나 조회한다."""
+        """Return all datasets provided by this adapter."""
         return list(self._datasets)
 
     def search_datasets(self, text: str) -> list[DatasetRef]:
-        """search datasets과 관련된 값을 계산하거나 조회한다."""
+        """Search datasets."""
         needle = text.casefold()
         return [
             dataset
@@ -95,7 +96,7 @@ class KosisAdapter:
         ]
 
     def get_dataset(self, dataset_key: str) -> DatasetRef:
-        """dataset을 반환한다."""
+        """Return the dataset for the given key."""
         dataset = self._datasets_by_key.get(dataset_key)
         if dataset is not None:
             return dataset
@@ -111,7 +112,7 @@ class KosisAdapter:
         )
 
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
-        """records을 수행한다."""
+        """Query records by calling KOSIS API."""
         _page_size = query.page_size or 100
         logger.debug(
             "kosis query_records",
@@ -148,11 +149,11 @@ class KosisAdapter:
         )
 
     def get_schema(self, dataset: DatasetRef) -> SchemaDescriptor | None:
-        """schema을 반환한다."""
+        """Return schema information of the dataset."""
         return build_schema_from_metadata(dataset)
 
     def call_raw(self, dataset: DatasetRef, operation: str, params: dict[str, object]) -> object:
-        """call raw과 관련된 값을 계산하거나 조회한다."""
+        """Call KOSIS API directly and return raw response."""
         logger.debug(
             "kosis call_raw",
             extra={
@@ -168,11 +169,11 @@ class KosisAdapter:
         return payload
 
     def _require_api_key(self) -> str:
-        """필수 API 키을 읽고 없으면 예외를 발생시킨다."""
+        """Read required API key or raise exception."""
         return self._config.require_provider_key("kosis")
 
     def _build_request_url(self, dataset: DatasetRef, query: Query) -> str:
-        """요청 URL을 구성해 반환한다."""
+        """Build KOSIS API request URL."""
         start_date = query.start_date
         end_date = query.end_date
         if not isinstance(start_date, str) or not start_date:
@@ -213,7 +214,7 @@ class KosisAdapter:
         operation: str,
         params: Mapping[str, object],
     ) -> str:
-        """raw url을 구성해 반환한다."""
+        """Build KOSIS API raw request URL."""
         request_params = self._build_base_params(dataset)
         selected_operation = operation.strip()
         if selected_operation and selected_operation != "statisticsParameterData":
@@ -224,7 +225,7 @@ class KosisAdapter:
         return self._compose_url(dataset, request_params)
 
     def _build_base_params(self, dataset: DatasetRef) -> dict[str, str]:
-        """기본 파라미터을 구성해 반환한다."""
+        """Build default query parameters."""
         api_key = self._require_api_key()
         org_id = self._require_dataset_metadata(dataset, "org_id")
         tbl_id = self._require_dataset_metadata(dataset, "tbl_id")
@@ -251,7 +252,7 @@ class KosisAdapter:
 
     @staticmethod
     def _get_default_query_params(dataset: DatasetRef) -> dict[str, str]:
-        """default query params을 반환한다."""
+        """Return merged default query params."""
         raw_defaults = dataset.raw_metadata.get("default_query_params")
         if not isinstance(raw_defaults, Mapping):
             return {}
@@ -265,13 +266,13 @@ class KosisAdapter:
         return default_query_params
 
     def _compose_url(self, dataset: DatasetRef, params: Mapping[str, str]) -> str:
-        """compose url과 관련된 값을 계산하거나 조회한다."""
+        """Compose KOSIS URL from dataset and query."""
         base_url = self._require_dataset_metadata(dataset, "base_url")
         query_string = urlencode(params)
         return f"{base_url}?{query_string}"
 
     def _request_and_decode(self, url: str, dataset_id: str) -> object:
-        """request and decode과 관련된 값을 계산하거나 조회한다."""
+        """Send HTTP GET request to KOSIS API and decode."""
         response = self._transport.request("GET", url, dataset_id=dataset_id, provider="kosis")
 
         try:
@@ -290,7 +291,7 @@ class KosisAdapter:
         raise ParseError("Decoded payload is neither an object nor an array", provider="kosis")
 
     def _extract_items(self, payload: object, dataset_id: str) -> list[dict[str, object]]:
-        """items에서 필요한 값을 추출한다."""
+        """Extract items from KOSIS API response."""
         if isinstance(payload, dict):
             self._raise_for_error_payload(cast(dict[str, object], payload), dataset_id)
 
@@ -309,10 +310,10 @@ class KosisAdapter:
         return [cast(dict[str, object], item) for item in payload_items if isinstance(item, dict)]
 
     def _raise_for_error_payload(self, payload: Mapping[str, object], dataset_id: str) -> None:
-        """에러 페이로드를 검사하고 에러가 있으면 예외를 발생시킨다."""
+        """Check KOSIS API error response and raise exception."""
         code_raw = payload.get("err")
         if code_raw is None:
-            return  # "err" 필드 없음 = 정상 응답
+            return  # "err" field missing = success response
         message_raw = payload.get("errMsg")
         code = code_raw if isinstance(code_raw, str) else None
         message = message_raw if isinstance(message_raw, str) else "KOSIS returned an error"
@@ -348,7 +349,7 @@ class KosisAdapter:
 
     @staticmethod
     def _require_dataset_metadata(dataset: DatasetRef, field_name: str) -> str:
-        """필수 dataset metadata을 읽고 없으면 예외를 발생시킨다."""
+        """Read required field from dataset metadata."""
         value = dataset.raw_metadata.get(field_name)
         if isinstance(value, str) and value:
             return value
@@ -360,7 +361,7 @@ class KosisAdapter:
 
     @staticmethod
     def _load_default_catalogue() -> tuple[DatasetRef, ...]:
-        """기본 카탈로그을 로드해 반환한다."""
+        """Load and return default catalog."""
         return load_catalogue("kpubdata.providers.kosis", "kosis")
 
 
