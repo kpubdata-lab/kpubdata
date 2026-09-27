@@ -6,9 +6,9 @@
 
 ## 요약 (English summary)
 
-> Code, comments, docstrings, commit messages, PR titles, CHANGELOG and README are
-> English. Issue bodies, PR bodies and review comments may be written in Korean or
-> English. Korean-language documentation is kept where the subject matter is
+> Code, comments, docstrings, commit messages, **issue and PR titles**, CHANGELOG
+> and README are English. Issue bodies, PR bodies and review comments may be
+> written in Korean or English. Korean-language documentation is kept where the subject matter is
 > Korean (provider procedures, KOGL terms), and user-visible strings are out of
 > scope — their language is runtime behaviour, decided separately.
 >
@@ -74,18 +74,22 @@ konlpy 3% 는 학술 인용을 목적으로 영어를 택한 예외에 가깝다
 | **PR 제목** | **영어** (Conventional Commits) |
 | CHANGELOG · 릴리스 노트 | **영어** |
 | **README** | **영어 기본** |
-| 이슈 제목·본문 | 한국어 또는 영어 |
+| **이슈 제목** | **영어** |
+| 이슈 본문 | 한국어 또는 영어 |
 | PR 본문, 리뷰 코멘트 | 한국어 또는 영어 |
 | 한국 도메인 문서 (`docs/providers/`, 공공누리·활용신청 절차) | 한국어 유지 |
 | 사용자에게 보이는 문자열 리터럴 | **이 정책의 대상이 아니다** |
 
 ### 경계가 왜 여기인가
 
-**밖으로 나가거나 오래 남는 것은 영어다.** docstring 은 `help()` 와 API 문서로
-나간다. PR 제목은 squash merge 로 커밋이 되고 CHANGELOG 로 이어진다. README 는
-저장소를 처음 보는 사람이 읽는 유일한 것이다.
+**제목은 영어, 본문은 자유.** 경계가 제목과 본문 사이에 있다.
 
-**논의는 자유다.** 기여자와 핵심 사용자 대부분이 한국인이고, 도메인 논의는 한국어가
+제목은 목록·검색·릴리스 노트·교차 참조에 나타난다. 이슈 목록을 훑는 사람은 제목만
+읽고, PR 제목은 squash merge 로 커밋이 되어 CHANGELOG 로 이어진다. docstring 은
+`help()` 와 API 문서로 나가고, README 는 저장소를 처음 보는 사람이 읽는 유일한
+것이다. **전부 밖으로 나가거나 오래 남는다.**
+
+본문은 논의다. 기여자와 핵심 사용자 대부분이 한국인이고, 도메인 논의는 한국어가
 더 정확하다. 이슈 본문을 영어로 강제하면 참여 문턱만 올라가고 얻는 것이 없다.
 
 **문자열 리터럴은 별개다.** 예외 메시지·로그·CLI 출력·UI 문자열의 언어는 런타임
@@ -101,9 +105,9 @@ konlpy 3% 는 학술 인용을 목적으로 영어를 택한 예외에 가깝다
 - ADR 과 주요 API 변경은 논의가 한국어여도 **결론에 영어 요약을 남긴다.**
 - 한국어 문서의 문체는 **해요체가 아닌 평서체**로 통일한다. 여러 사람이 쓰면 문체가
   갈리고, 갈린 문서는 번역본처럼 읽힌다.
-- **영어로 쓰기 어렵다는 이유로 기여를 막지 않는다.** PR 제목을 영어로 쓰기
-  어려우면 한국어로 내고 말해 달라 — 제목은 리뷰에서 함께 정리한다. 이 문장이
-  없으면 "PR 제목은 영어" 가 기여 장벽이 된다.
+- **영어로 쓰기 어렵다는 이유로 기여를 막지 않는다.** 이슈나 PR 제목을 영어로 쓰기
+  어려우면 **한국어로 올리고 그렇게 말해 달라** — 제목은 triage 나 리뷰에서 함께
+  정리한다. 이 문장이 없으면 "제목은 영어" 가 그대로 기여 장벽이 된다.
 
 ## 결과
 
@@ -144,7 +148,20 @@ README 는 각 400~500줄이다. 전체 재작성이 아니라 영어를 기본�
 **README 를 한국어로 유지.** 실측에서 한국 도메인 프로젝트의 README 는 23~47% 로
 한국어 비중이 높으므로 관행에는 맞다. 그럼에도 영어를 택한 이유는, README 가
 저장소를 처음 보는 사람이 읽는 **유일한** 문서이고 진입 판단이 거기서 끝나기
-때문이다. 확장성 쪽에 무게를 둔 선택이며, 관행에서 벗어난다는 점을 여기 기록한다.
+때문이다.
+
+**이슈 제목을 한국어로 허용.** 이쪽도 관행은 한국어다 — 실측 19~96%,
+service-apply 는 96% 다. 그럼에도 영어로 고정한 이유는 제목이 목록·검색·교차
+참조에 나타나는 유일한 텍스트라는 것이다. 이슈 목록을 훑는 사람은 제목만 읽는다.
+
+### 관행에서 벗어나는 두 지점
+
+README 와 이슈 제목, 둘이다. 둘 다 **확장성 쪽에 무게를 둔 선택**이고, 측정된
+관행은 반대 방향을 가리킨다. 이 문서는 관행이 동의하는 척하지 않는다.
+
+대신 그 비용을 상쇄하는 장치를 둔다 — 본문은 한국어를 그대로 허용하고, 제목을
+영어로 쓰기 어려우면 한국어로 올리고 말해 달라고 명시한다. **제목 하나 때문에
+이슈를 안 올리는 일이 생기면 이 정책은 실패한 것이다.**
 
 ## 참고
 
