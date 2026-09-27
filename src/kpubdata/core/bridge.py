@@ -1,16 +1,17 @@
-"""Composite Provider 브릿지 — 기존 어댑터와 spec 실행기를 한 Provider로 병합한다.
+"""Composite Provider bridge — merges legacy adapters and spec executors into one.
 
-spec 시스템(#378)의 통합 계층이다. 같은 Provider 이름으로 등록된 두 세계
-(카탈로그 기반 내장 어댑터 / 선언적 spec 실행기)를 하나의
-``ProviderAdapter`` 표면으로 합친다.
+Integration layer for the spec system (#378). Unifies two worlds registered under
+the same Provider name (catalog-based built-in adapter / declarative spec executor)
+under a single ``ProviderAdapter`` surface.
 
-병합 규칙:
-- 같은 ``dataset_key``가 양쪽에 있으면 **spec이 이긴다**(컷오버 진행 중 해당
-  데이터셋의 단일 진실 원천이 spec이 된다).
-- spec 전용 키는 목록 끝에 추가한다.
-- 카탈로그 전용 키는 기존 어댑터가 그대로 담당한다(공존).
+Merge rules:
+- If the same ``dataset_key`` exists in both, **spec wins** (during cutover, spec
+  becomes the single source of truth for that dataset).
+- Spec-only keys are added at the end of the list.
+- Catalog-only keys are handled by the legacy adapter (coexist).
 
-컷오버가 완료된 Provider는 카탈로그 항목 제거 후 이 브릿지만 남게 된다.
+After cutover is complete, the Provider's catalog entry is removed and only this
+bridge remains.
 """
 
 from __future__ import annotations
@@ -25,13 +26,17 @@ logger = logging.getLogger("kpubdata.core.bridge")
 
 
 class CompositeProviderAdapter:
-    """내장 어댑터와 spec 어댑터를 spec-우선으로 병합한 Provider 어댑터."""
+    """Built-in adapter and spec adapter merged spec-first."""
 
     def __init__(self, inner: ProviderAdapter, spec_adapter: SpecDatasetAdapter) -> None:
-        """두 어댑터를 받아 병합 어댑터를 초기화한다.
+        """Initialize the composite adapter from two adapters.
 
-        예외:
-            ValueError: 두 어댑터의 Provider 이름이 다른 경우.
+        Args:
+            inner: The built-in (catalog-based) adapter.
+            spec_adapter: The spec executor adapter.
+
+        Raises:
+            ValueError: If the two adapters have different Provider names.
         """
         if inner.name != spec_adapter.name:
             msg = (
@@ -47,11 +52,11 @@ class CompositeProviderAdapter:
 
     @property
     def name(self) -> str:
-        """Provider 식별자(두 어댑터가 공유)를 반환한다."""
+        """Return the Provider identifier (shared by both adapters)."""
         return self._inner.name
 
     def _spec_owns(self, dataset_key: str) -> bool:
-        """해당 키가 spec 소유인지 반환한다."""
+        """Return whether this key is owned by spec."""
         try:
             self._spec.get_dataset(dataset_key)
         except Exception:
@@ -59,7 +64,7 @@ class CompositeProviderAdapter:
         return True
 
     def list_datasets(self) -> list[DatasetRef]:
-        """카탈로그 + spec 데이터셋을 키 중복 없이 반환한다(spec 우선)."""
+        """Return catalog + spec datasets without key duplication (spec first)."""
         spec_refs = {ref.dataset_key: ref for ref in self._spec.list_datasets()}
         merged: list[DatasetRef] = []
         seen: set[str] = set()
@@ -75,7 +80,7 @@ class CompositeProviderAdapter:
         return merged
 
     def search_datasets(self, text: str) -> list[DatasetRef]:
-        """양쪽 검색 결과를 병합해 키 중복 없이 반환한다(spec 우선)."""
+        """Merge search results from both without key duplication (spec first)."""
         spec_matches = {ref.dataset_key: ref for ref in self._spec.search_datasets(text)}
         merged: list[DatasetRef] = []
         seen: set[str] = set()
@@ -91,13 +96,13 @@ class CompositeProviderAdapter:
         return merged
 
     def get_dataset(self, dataset_key: str) -> DatasetRef:
-        """데이터셋 키를 해석한다(spec 우선, 없으면 내장 어댑터)."""
+        """Resolve dataset key (spec first, fallback to built-in adapter)."""
         if self._spec_owns(dataset_key):
             return self._spec.get_dataset(dataset_key)
         return self._inner.get_dataset(dataset_key)
 
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
-        """소유자에 따라 spec 실행기 또는 내장 어댑터로 질의를 위임한다."""
+        """Delegate query to spec executor or built-in adapter by ownership."""
         if self._spec_owns(dataset.dataset_key):
             logger.debug(
                 "Routing dataset query to spec executor",
@@ -107,25 +112,25 @@ class CompositeProviderAdapter:
         return self._inner.query_records(dataset, query)
 
     def get_schema(self, dataset: DatasetRef) -> SchemaDescriptor | None:
-        """소유자에 따라 스키마 메타데이터 조회를 위임한다."""
+        """Delegate schema metadata query by ownership."""
         if self._spec_owns(dataset.dataset_key):
             return self._spec.get_schema(dataset)
         return self._inner.get_schema(dataset)
 
     def call_raw(self, dataset: DatasetRef, operation: str, params: dict[str, object]) -> object:
-        """소유자에 따라 raw 작업을 위임한다(비상구 보장)."""
+        """Delegate raw operation by ownership (escape hatch guaranteed)."""
         if self._spec_owns(dataset.dataset_key):
             return self._spec.call_raw(dataset, operation, params)
         return self._inner.call_raw(dataset, operation, params)
 
     @property
     def inner(self) -> ProviderAdapter:
-        """래핑된 내장 어댑터를 반환한다(디버깅·테스트용)."""
+        """Return the wrapped built-in adapter (for debugging/testing)."""
         return self._inner
 
     @property
     def spec_adapter(self) -> SpecDatasetAdapter:
-        """래핑된 spec 어댑터를 반환한다(디버깅·테스트용)."""
+        """Return the wrapped spec adapter (for debugging/testing)."""
         return self._spec
 
 

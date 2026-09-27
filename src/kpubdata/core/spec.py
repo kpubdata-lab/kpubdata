@@ -1,14 +1,14 @@
-"""선언적 데이터셋 spec 로더 — YAML 정의를 검증된 데이터클래스로 변환한다.
+"""Declarative dataset spec loader — converts YAML definitions to validated dataclass.
 
-spec 시스템(#378)의 읽기 계층이다. 데이터셋 정의는
-``src/kpubdata/specs/{provider}/{dataset_key}.yaml``에 담기며
-``specs/schema.json``이 계약(contract)이다. Generic Executor
-(``kpubdata.core.executor``)가 이 모듈의 산출물만으로 조회를 수행한다.
+Read layer for the spec system (#378). Dataset definitions live in
+``src/kpubdata/specs/{provider}/{dataset_key}.yaml``; ``specs/schema.json``
+is the contract. Generic Executor (``kpubdata.core.executor``) performs
+queries using only outputs from this module.
 
-설계 원칙:
-- 스키마 검증의 완전한 형태는 ``scripts/validate_spec.py``(jsonschema)가 담당하고,
-  이 모듈은 런타임에 필요한 최소 구조 검증만 수행한다(의존성 최소화).
-- 알 수 없는 키는 거부하지 않고 ``raw_metadata``에 보존해 상위 호환을 유지한다.
+Design principles:
+- Full schema validation is handled by ``scripts/validate_spec.py`` (jsonschema);
+  this module performs only minimal runtime structure validation (minimize dependencies).
+- Unknown keys are not rejected; preserved in ``raw_metadata`` for forward compatibility.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ import yaml
 
 from kpubdata.exceptions import InvalidRequestError
 
-# schema.json과 동일하게 유지되는 enum 집합(런타임 구조 검증용).
+# Enum sets kept in sync with schema.json (runtime structure validation).
 _AUTH_TYPES = frozenset({"query_param", "path_segment", "oauth_exchange", "none"})
 _PAGINATION_TYPES = frozenset(
     {"page_no_rows", "page_display", "pindex_psize", "index_range", "date_window", "none"}
@@ -54,7 +54,7 @@ _STATUSES = frozenset({"active", "deprecated", "broken", "unstable"})
 
 @dataclass(slots=True, frozen=True)
 class SourceRef:
-    """원본 문서 출처 정보."""
+    """Original document source information."""
 
     url: str | None = None
     doc_version: str | None = None
@@ -63,7 +63,7 @@ class SourceRef:
 
 @dataclass(slots=True, frozen=True)
 class FormatParamSpec:
-    """응답 포맷 선택 파라미터(data.go.kr 계열의 dataType/_type/resultType 등)."""
+    """Response format selection parameter (data.go.kr family: dataType/_type/resultType, etc)."""
 
     name: str
     values: dict[str, str] = field(default_factory=dict)
@@ -71,7 +71,7 @@ class FormatParamSpec:
 
 @dataclass(slots=True, frozen=True)
 class EndpointSpec:
-    """엔드포인트 조립 정보."""
+    """Endpoint assembly information."""
 
     base_url: str
     operation: str
@@ -82,7 +82,7 @@ class EndpointSpec:
 
 @dataclass(slots=True, frozen=True)
 class AuthSpec:
-    """인증 방식 선언."""
+    """Authentication method declaration."""
 
     type: str
     param_name: str | None = None
@@ -91,7 +91,7 @@ class AuthSpec:
 
 @dataclass(slots=True, frozen=True)
 class ParamSpec:
-    """데이터 필터 파라미터 선언."""
+    """Data filter parameter declaration."""
 
     name: str
     type: str = "string"
@@ -103,13 +103,13 @@ class ParamSpec:
 
     @property
     def exposed_name(self) -> str:
-        """라이브러리가 필터에 노출하는 이름(alias 우선)."""
+        """Name exposed to library filters (alias prioritized)."""
         return self.alias or self.name
 
 
 @dataclass(slots=True, frozen=True)
 class ErrorSpec:
-    """응답 에러 표현 선언."""
+    """Response error representation declaration."""
 
     style: str
     code_path: str | None = None
@@ -118,7 +118,7 @@ class ErrorSpec:
 
 @dataclass(slots=True, frozen=True)
 class ResponseSpec:
-    """응답 포맷·envelope·경로 선언."""
+    """Response format, envelope, path declaration."""
 
     format: str
     envelope: str
@@ -129,7 +129,7 @@ class ResponseSpec:
 
 @dataclass(slots=True, frozen=True)
 class PaginationSpec:
-    """페이지네이션 방식 선언."""
+    """Pagination method declaration."""
 
     type: str
     page_param: str | None = None
@@ -140,7 +140,7 @@ class PaginationSpec:
 
 @dataclass(slots=True, frozen=True)
 class FieldSpec:
-    """정규화 규칙이 있는 단일 필드 선언."""
+    """Single field declaration with normalization rules."""
 
     name: str
     type: str
@@ -152,7 +152,7 @@ class FieldSpec:
 
 @dataclass(slots=True, frozen=True)
 class ExampleSpec:
-    """호출 예제 선언(record·smoke·예제 생성에 공통 사용)."""
+    """Call example declaration (shared by record/smoke/example generation)."""
 
     name: str
     description: str | None = None
@@ -164,7 +164,7 @@ class ExampleSpec:
 
 @dataclass(slots=True, frozen=True)
 class LicenseSpec:
-    """데이터 이용 허락 조건 선언."""
+    """Data usage permission conditions declaration."""
 
     type: str | None = None
     commercial_use: bool | None = None
@@ -175,7 +175,7 @@ class LicenseSpec:
 
 @dataclass(slots=True, frozen=True)
 class SpecDefinition:
-    """검증된 데이터셋 spec 정의."""
+    """Validated dataset spec definition."""
 
     id: str
     provider: str
@@ -196,12 +196,12 @@ class SpecDefinition:
 
     @property
     def dataset_key(self) -> str:
-        """Provider 로컬 데이터셋 키(id의 마지막 세그먼트)."""
+        """Provider-local dataset key (last segment of id)."""
         return self.id.split(".", 1)[1] if "." in self.id else self.id
 
 
 def _parse_date(value: object, problems: list[str], label: str) -> date | None:
-    """ISO YYYY-MM-DD 문자열을 date로 변환한다(실패 시 문제 목록에 기록)."""
+    """Convert ISO YYYY-MM-DD string to date (record failure in problems list)."""
     if value is None:
         return None
     if isinstance(value, date):
@@ -217,7 +217,7 @@ def _parse_date(value: object, problems: list[str], label: str) -> date | None:
 
 
 def _parse_license(raw: object, problems: list[str]) -> LicenseSpec | None:
-    """license 섹션을 LicenseSpec으로 변환한다."""
+    """Convert license section to LicenseSpec."""
     if raw is None:
         return None
     if not isinstance(raw, dict):
@@ -252,7 +252,7 @@ def _parse_license(raw: object, problems: list[str]) -> LicenseSpec | None:
 
 
 def _parse_params(raw: object, problems: list[str]) -> tuple[ParamSpec, ...]:
-    """params[] 섹션을 ParamSpec 튜플로 변환한다."""
+    """Convert params[] section to ParamSpec tuple."""
     if raw is None:
         return ()
     if not isinstance(raw, list):
@@ -290,7 +290,7 @@ def _parse_params(raw: object, problems: list[str]) -> tuple[ParamSpec, ...]:
 
 
 def _section(data: dict[str, object], key: str) -> dict[str, object]:
-    """매핑 내부의 하위 섹션을 dict로 반환한다(없거나 다른 타입이면 빈 dict)."""
+    """Return subsection as dict from mapping (empty dict if missing/wrong type)."""
     value = data.get(key)
     if isinstance(value, dict):
         return dict(value)
@@ -298,7 +298,7 @@ def _section(data: dict[str, object], key: str) -> dict[str, object]:
 
 
 def _get_str(section: dict[str, object], key: str) -> str | None:
-    """섹션에서 비어 있지 않은 문자열 값을 꺼낸다(조건 불충족 시 None)."""
+    """Extract non-empty string value from section (None if condition unmet)."""
     value = section.get(key)
     if isinstance(value, str) and value:
         return value
@@ -306,11 +306,14 @@ def _get_str(section: dict[str, object], key: str) -> str | None:
 
 
 def from_mapping(data: dict[str, object]) -> SpecDefinition:
-    """스키마 구조를 따르는 매핑을 검증된 SpecDefinition으로 변환한다.
+    """Convert mapping following schema structure to validated SpecDefinition.
 
-    예외:
-        InvalidRequestError: 필수 누락·enum 불일치·id 불일치 등 구조 문제가
-            하나라도 있으면 모든 문제를 하나의 메시지로 묶어 발생시킨다.
+    Args:
+        data: Spec definition as a dictionary (usually from parsed YAML).
+
+    Raises:
+        InvalidRequestError: If there are any structural issues (missing required fields,
+            enum mismatch, id mismatch, etc). All problems are bundled into one message.
     """
     problems: list[str] = []
 
@@ -454,11 +457,11 @@ def from_mapping(data: dict[str, object]) -> SpecDefinition:
     fields_list = data.get("fields")
     examples_list = data.get("examples")
 
-    # 이 세 파서는 problems 에 기록만 하고 값 자리에는 None 을 돌려준다. 예전에는
-    # 아래 SpecDefinition 생성자 인자 안에서 호출돼 `if problems: raise` 를 이미
-    # 지나친 뒤였고, 그래서 기록된 문제가 통째로 버려졌다 — `last_verified:
-    # "2026-13-45"` 같은 값이 아무 말 없이 None 이 되어, 검증한 적 없는 spec 이
-    # "검증일 없음"과 구분되지 않았다. 판정 전에 먼저 부른다.
+    # These three parsers record in problems but return None for the value.
+    # Previously they were called inside SpecDefinition constructor arguments,
+    # after the `if problems: raise` check already passed, so recorded problems
+    # were discarded entirely — a value like last_verified: "2026-13-45" became
+    # None silently, indistinguishable from unverified specs. Call them before the check.
     source_verified_at = _parse_date(source_raw.get("verified_at"), problems, "source.verified_at")
     params_parsed = _parse_params(data.get("params"), problems)
     last_verified = _parse_date(data.get("last_verified"), problems, "last_verified")
@@ -532,7 +535,7 @@ def from_mapping(data: dict[str, object]) -> SpecDefinition:
                 )
             )
 
-    assert endpoint is not None  # noqa: S101 — 위 검증 통과 시 항상 존재
+    assert endpoint is not None  # noqa: S101 — always exists after validation passes above
     assert auth is not None  # noqa: S101
     assert response is not None  # noqa: S101
     assert pagination is not None  # noqa: S101
@@ -562,7 +565,14 @@ def from_mapping(data: dict[str, object]) -> SpecDefinition:
 
 
 def load_spec_file(path: Path) -> SpecDefinition:
-    """YAML spec 파일을 읽어 검증된 SpecDefinition으로 변환한다."""
+    """Read YAML spec file and convert to validated SpecDefinition.
+
+    Args:
+        path: Path to the YAML spec file.
+
+    Raises:
+        InvalidRequestError: If YAML parsing fails or root is not a mapping.
+    """
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
     except yaml.YAMLError as exc:
@@ -575,28 +585,29 @@ def load_spec_file(path: Path) -> SpecDefinition:
 
 
 def _default_specs_dir() -> Path:
-    """패키지에 번들된 specs 디렉터리 경로를 반환한다.
+    """Return bundled specs directory path.
 
-    이 모듈 파일(src/kpubdata/core/spec.py)의 위치에서 상대 경로로 해석한다.
-    importlib.resources를 쓰지 않는 이유: (1) 전역 import 목킹을 하는 기존
-    테스트(test_client_transport_requirements)와 충돌하지 않고, (2) 파일시스템
-    기반 배포(dev 체크아웃·site-packages·wheel)에서 동일하게 동작한다.
-    zipimport로 직접 로드되는 특수 환경은 지원하지 않는다(정직한 제약).
+    Interpreted as a relative path from this module file (src/kpubdata/core/spec.py).
+    We don't use importlib.resources because: (1) it conflicts with global
+    import mocking in existing tests (test_client_transport_requirements), and
+    (2) it works identically across filesystem deployments (dev checkout,
+    site-packages, wheel). Zipimport-loaded special environments are not supported
+    (honest limitation).
     """
     return Path(__file__).resolve().parent.parent / "specs"
 
 
 def _iter_yaml_files(root: Path) -> list[Path]:
-    """디렉터리를 재귀 순회하며 *.yaml/*.yml 파일을 정렬된 목록으로 반환한다."""
+    """Recursively traverse directory and return *.yaml/*.yml files as sorted list."""
     files = [*root.rglob("*.yaml"), *root.rglob("*.yml")]
     return sorted(files)
 
 
 def discover_specs(root: Path | None = None) -> list[SpecDefinition]:
-    """specs 디렉터리의 모든 spec을 로드한다.
+    """Load all specs from specs directory.
 
-    ``root``를 주지 않으면 패키지 내 ``kpubdata/specs/``를 탐색한다.
-    schema.json은 YAML이 아니므로 자연히 제외된다.
+    If root is omitted, discovers from the in-package ``kpubdata/specs/``.
+    schema.json is not YAML so it's naturally excluded.
     """
     target = _default_specs_dir() if root is None else root
     if not target.is_dir():
@@ -605,14 +616,14 @@ def discover_specs(root: Path | None = None) -> list[SpecDefinition]:
 
 
 def spec_index(root: Path | None = None) -> dict[str, SpecDefinition]:
-    """id → SpecDefinition 사전을 반환한다."""
+    """Return id → SpecDefinition dictionary."""
     return {spec.id: spec for spec in discover_specs(root)}
 
 
 def find_spec(
     dataset_key: str, provider: str | None = None, root: Path | None = None
 ) -> SpecDefinition | None:
-    """ "provider.key" 또는 bare key로 spec을 찾는다(없으면 None)."""
+    """Find spec by "provider.key" or bare key (None if not found)."""
     for spec in discover_specs(root):
         if spec.id == dataset_key:
             return spec
@@ -623,7 +634,7 @@ def find_spec(
 
 
 def _sorted(values: frozenset[str]) -> str:
-    """enum 집합을 사람이 읽는 선택지 문자열로 만든다."""
+    """Convert enum set to human-readable choice string."""
     return "|".join(sorted(values))
 
 
