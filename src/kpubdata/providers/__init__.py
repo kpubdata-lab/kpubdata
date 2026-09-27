@@ -1,4 +1,4 @@
-"""내장 Provider 어댑터 패키지."""
+"""Built-in provider adapters package."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Localdata(지방행정인허가) Provider 어댑터."""
+"""Localdata (Local Administrative License) Provider Adapter."""
 
 from __future__ import annotations
 

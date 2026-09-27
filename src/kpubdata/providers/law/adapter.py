@@ -1,7 +1,8 @@
-"""KPubData Python 모듈.
+"""KPubData Python module.
 
-이 파일은 ``src/kpubdata/providers/law/adapter.py`` 경로의 구현을 담는다.
-주요 클래스와 함수는 공개 API, 전송 계층, Provider 어댑터 중 하나의 역할을 담당한다.
+This file contains implementation at path
+``src/kpubdata/providers/law/adapter.py``. Key classes and functions serve
+as public API, transport layer, or provider adapter.
 """
 
 from __future__ import annotations
@@ -22,7 +23,7 @@ logger = logging.getLogger("kpubdata.provider.law")
 
 
 class LawAdapter:
-    """LawAdapter과 관련된 값을 계산하거나 조회한다."""
+    """Adapter for National Law Information Center API."""
 
     requires_api_key: bool = True
 
@@ -33,7 +34,7 @@ class LawAdapter:
         transport: HttpTransport | None = None,
         catalogue: Sequence[DatasetRef] | None = None,
     ) -> None:
-        """인스턴스가 사용할 내부 상태를 초기화한다."""
+        """Initialize instance internal state."""
         self._config: KPubDataConfig = config or KPubDataConfig()
         transport_config = TransportConfig(
             timeout=self._config.timeout,
@@ -49,15 +50,15 @@ class LawAdapter:
 
     @property
     def name(self) -> str:
-        """name과 관련된 값을 계산하거나 조회한다."""
+        """Return computed or retrieved name-related value."""
         return "law"
 
     def list_datasets(self) -> list[DatasetRef]:
-        """list datasets과 관련된 값을 계산하거나 조회한다."""
+        """Return computed or retrieved list-datasets value."""
         return list(self._datasets)
 
     def search_datasets(self, text: str) -> list[DatasetRef]:
-        """search datasets과 관련된 값을 계산하거나 조회한다."""
+        """Return computed or retrieved search-datasets value."""
         needle = text.casefold()
         return [
             dataset
@@ -66,7 +67,7 @@ class LawAdapter:
         ]
 
     def get_dataset(self, dataset_key: str) -> DatasetRef:
-        """dataset을 반환한다."""
+        """Return dataset."""
         dataset = self._datasets_by_key.get(dataset_key)
         if dataset is not None:
             return dataset
@@ -82,7 +83,7 @@ class LawAdapter:
         )
 
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
-        """records을 수행한다."""
+        """Execute query_records operation."""
         page = query.page or 1
         page_size = query.page_size or self._default_page_size(dataset)
         logger.debug(
@@ -127,11 +128,11 @@ class LawAdapter:
         )
 
     def get_schema(self, dataset: DatasetRef) -> SchemaDescriptor | None:
-        """schema을 반환한다."""
+        """Return schema."""
         return build_schema_from_metadata(dataset)
 
     def call_raw(self, dataset: DatasetRef, operation: str, params: dict[str, object]) -> object:
-        """call raw과 관련된 값을 계산하거나 조회한다."""
+        """Return computed or retrieved call-raw value."""
         logger.debug(
             "law call_raw",
             extra={
@@ -157,7 +158,7 @@ class LawAdapter:
         return self._request_and_decode(url, dataset.id)
 
     def _require_api_key(self) -> str:
-        """필수 API 키을 읽고 없으면 예외를 발생시킨다."""
+        """Read required API key; raise on missing."""
         return self._config.require_provider_key("law")
 
     def _build_request_url(
@@ -169,7 +170,7 @@ class LawAdapter:
         page_size: int,
         operation: str | None = None,
     ) -> str:
-        """요청 URL을 구성해 반환한다."""
+        """Build and return request URL."""
         base_url = self._require_dataset_metadata(dataset, "base_url")
         request_params: dict[str, str] = {
             "OC": self._require_api_key(),
@@ -193,7 +194,7 @@ class LawAdapter:
         return f"{base_url}?{urlencode(request_params)}"
 
     def _request_and_decode(self, url: str, dataset_id: str) -> dict[str, object]:
-        """request and decode과 관련된 값을 계산하거나 조회한다."""
+        """Request and decode return value."""
         response = self._transport.request("GET", url, dataset_id=dataset_id, provider="law")
 
         try:
@@ -214,7 +215,7 @@ class LawAdapter:
     def _extract_items(
         self, payload: dict[str, object], dataset: DatasetRef
     ) -> list[dict[str, object]]:
-        """items에서 필요한 값을 추출한다."""
+        """Extract required values from items."""
         item_key = self._require_dataset_metadata(dataset, "item_key")
         items_obj = payload.get(item_key)
         if items_obj is None:
@@ -231,7 +232,7 @@ class LawAdapter:
         )
 
     def _raise_for_error_payload(self, payload: Mapping[str, object], dataset_id: str) -> None:
-        """raise for error payload과 관련된 값을 계산하거나 조회한다."""
+        """Raise for error payload."""
         result_code = payload.get("resultCode")
         result_msg = payload.get("resultMsg") or payload.get("message") or payload.get("error")
 
@@ -244,7 +245,7 @@ class LawAdapter:
                 self._raise_provider_error("AUTH", result_msg, dataset_id)
 
     def _raise_provider_error(self, code: str, message: object, dataset_id: str) -> None:
-        """raise provider error과 관련된 값을 계산하거나 조회한다."""
+        """Raise provider error."""
         resolved_message = (
             message if isinstance(message, str) and message else "Provider returned error"
         )
@@ -264,7 +265,7 @@ class LawAdapter:
         )
 
     def _require_dataset_metadata(self, dataset: DatasetRef, key: str) -> str:
-        """필수 dataset metadata을 읽고 없으면 예외를 발생시킨다."""
+        """Read required dataset metadata; raise on missing."""
         value = dataset.raw_metadata.get(key)
         if isinstance(value, str) and value:
             return value
@@ -275,11 +276,11 @@ class LawAdapter:
         )
 
     def _default_operation(self, dataset: DatasetRef) -> str:
-        """default operation과 관련된 값을 계산하거나 조회한다."""
+        """Return computed or retrieved default operation."""
         return self._require_dataset_metadata(dataset, "default_operation")
 
     def _default_page_size(self, dataset: DatasetRef) -> int:
-        """default page size과 관련된 값을 계산하거나 조회한다."""
+        """Return computed or retrieved default page size."""
         max_page_size = (
             dataset.query_support.max_page_size if dataset.query_support is not None else None
         )
@@ -287,7 +288,7 @@ class LawAdapter:
 
     @classmethod
     def _int_param(cls, params: Mapping[str, object], key: str, default: int) -> int:
-        """int param과 관련된 값을 계산하거나 조회한다."""
+        """Return computed or retrieved int param."""
         value = params.get(key)
         if isinstance(value, int):
             return value
@@ -298,5 +299,5 @@ class LawAdapter:
 
     @staticmethod
     def _load_default_catalogue() -> tuple[DatasetRef, ...]:
-        """기본 카탈로그을 로드해 반환한다."""
+        """Load and return default catalogue."""
         return load_catalogue("kpubdata.providers.law", "law")

@@ -1,14 +1,15 @@
 """Adapter for the Ministry of Food and Drug Safety (FDS) open API (#165).
 
-식약처 open API(\`openapi.foodsafetykorea.go.kr\`) does not use the standard
-data.go.kr envelope; the whole request lives in the URL path::
+Ministry of Food and Drug Safety open API (openapi.foodsafetykorea.go.kr)
+does not use the standard data.go.kr envelope; the whole request lives in
+the URL path::
 
     http://openapi.foodsafetykorea.go.kr/api/{KEY}/{serviceId}/{dataType}/{startIdx}/{endIdx}
 
 - The API key is a **path segment**, not a query parameter, so it has to be
   masked by value (#354)
-- Pagination is a 1-based \`startIdx\`/\`endIdx\` range
-- Errors look like \`{"code": "INFO-100", "message": ...}\`; \`code == "000"\`
+- Pagination is a 1-based ``startIdx``/``endIdx`` range
+- Errors look like ``{"code": "INFO-100", "message": ...}``; ``code == "000"``
   means success
 """
 
