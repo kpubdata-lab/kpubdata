@@ -6,9 +6,10 @@
 
 ## 요약 (English summary)
 
-> Code, comments, docstrings, commit messages, **issue and PR titles**, CHANGELOG
-> and README are English. Issue bodies, PR bodies and review comments may be
-> written in Korean or English. Korean-language documentation is kept where the subject matter is
+> Code, comments, docstrings, commit messages, **issue and PR titles** and
+> CHANGELOG are English. Issue bodies, PR bodies and review comments may be
+> written in Korean or English. **README is Korean first, with an English section
+> following in the same file.** Korean-language documentation is kept where the subject matter is
 > Korean (provider procedures, KOGL terms), and user-visible strings are out of
 > scope — their language is runtime behaviour, decided separately.
 >
@@ -73,7 +74,7 @@ konlpy 3% 는 학술 인용을 목적으로 영어를 택한 예외에 가깝다
 | 커밋 메시지 | **영어** |
 | **PR 제목** | **영어** (Conventional Commits) |
 | CHANGELOG · 릴리스 노트 | **영어** |
-| **README** | **영어 기본** |
+| **README** | **한국어 기본 + 같은 파일에 영어 절** |
 | **이슈 제목** | **영어** |
 | 이슈 본문 | 한국어 또는 영어 |
 | PR 본문, 리뷰 코멘트 | 한국어 또는 영어 |
@@ -86,10 +87,22 @@ konlpy 3% 는 학술 인용을 목적으로 영어를 택한 예외에 가깝다
 
 제목은 목록·검색·릴리스 노트·교차 참조에 나타난다. 이슈 목록을 훑는 사람은 제목만
 읽고, PR 제목은 squash merge 로 커밋이 되어 CHANGELOG 로 이어진다. docstring 은
-`help()` 와 API 문서로 나가고, README 는 저장소를 처음 보는 사람이 읽는 유일한
-것이다. **전부 밖으로 나가거나 오래 남는다.**
+`help()` 와 API 문서로 나간다. **전부 밖으로 나가거나 오래 남는다.**
 
-본문은 논의다. 기여자와 핵심 사용자 대부분이 한국인이고, 도메인 논의는 한국어가
+본문은 논의다.
+
+### README 는 왜 한국어가 먼저인가
+
+현재 사용자와 기여자 대부분이 한국인이고, README 는 그들이 가장 먼저 읽는다. 영어를
+앞에 두면 현재 독자 전부가 자기 언어를 두 번째로 읽게 된다 — 아직 오지 않은 독자를
+위해 이미 있는 독자에게 비용을 지운다.
+
+**별도 파일(`README.en.md`)이 아니라 같은 파일의 뒤쪽 절로 둔다.** 번역을 별도
+파일로 분리하면 한쪽만 갱신되고, 유지되지 않는 번역은 몇 달 뒤 거짓이 된다 — 없는
+것보다 나쁘다. 같은 파일에 인접해 있으면 한쪽만 고친 것이 diff 에서 보인다.
+
+영어 절은 전문 번역이 아니라 **판단에 필요한 최소치**다 — 이것이 무엇이고, 무엇을
+하지 않고, 어디서 시작하는지. 기여자와 핵심 사용자 대부분이 한국인이고, 도메인 논의는 한국어가
 더 정확하다. 이슈 본문을 영어로 강제하면 참여 문턱만 올라가고 얻는 것이 없다.
 
 **문자열 리터럴은 별개다.** 예외 메시지·로그·CLI 출력·UI 문자열의 언어는 런타임
@@ -124,10 +137,11 @@ konlpy 3% 는 학술 인용을 목적으로 영어를 택한 예외에 가깝다
 | 항목 | 현재 | 작업 |
 |---|---|---|
 | 코드 주석·docstring | 약 3,300건 한국어 | #517 진행 중 |
-| **README ×3** | 38% / 32% / 20% | **신규 작업** |
+| **README ×3 의 영어 절** | 없음 | **신규 작업** (한국어 본문은 그대로) |
 
-README 는 각 400~500줄이다. 전체 재작성이 아니라 영어를 기본으로 하고, 한국
-도메인 설명(활용신청 절차 등)은 한국어를 유지하거나 별도 문서로 분리한다.
+README 는 각 400~500줄이고 **한국어 본문은 손대지 않는다.** 뒤쪽에 영어 절을
+더하는 일이며, 전문 번역이 아니라 판단에 필요한 최소치다 — 무엇이고, 무엇을 하지
+않고, 어디서 시작하는지. 대략 20~40줄.
 
 ### 하지 않을 것
 
@@ -145,19 +159,24 @@ README 는 각 400~500줄이다. 전체 재작성이 아니라 영어를 기본�
 **전부 한국어 (1군 방식).** docstring 이 한국어면 `help()` 를 읽을 수 없고, 글로벌
 공개라는 목표와 직접 충돌한다.
 
-**README 를 한국어로 유지.** 실측에서 한국 도메인 프로젝트의 README 는 23~47% 로
-한국어 비중이 높으므로 관행에는 맞다. 그럼에도 영어를 택한 이유는, README 가
-저장소를 처음 보는 사람이 읽는 **유일한** 문서이고 진입 판단이 거기서 끝나기
-때문이다.
+**README 를 영어 기본으로.** 처음 이 ADR 이 택했던 안이다. 기각한 이유는 현재
+독자 전부가 한국인인데 그들에게 자기 언어를 두 번째로 읽게 만든다는 것이다. 실측
+관행(23~47% 한국어)도 반대 방향이었다.
+
+**README 영어판을 별도 파일로.** 유지되지 않는 번역은 거짓이 되고, 별도 파일은
+한쪽만 갱신되기 쉽다. 같은 파일에 두면 drift 가 diff 에 드러난다.
 
 **이슈 제목을 한국어로 허용.** 이쪽도 관행은 한국어다 — 실측 19~96%,
 service-apply 는 96% 다. 그럼에도 영어로 고정한 이유는 제목이 목록·검색·교차
 참조에 나타나는 유일한 텍스트라는 것이다. 이슈 목록을 훑는 사람은 제목만 읽는다.
 
-### 관행에서 벗어나는 두 지점
+### 관행에서 벗어나는 지점은 하나다
 
-README 와 이슈 제목, 둘이다. 둘 다 **확장성 쪽에 무게를 둔 선택**이고, 측정된
-관행은 반대 방향을 가리킨다. 이 문서는 관행이 동의하는 척하지 않는다.
+**이슈 제목**뿐이다. 실측 19~96%, service-apply 는 96% 이므로 관행은 한국어를
+가리킨다. 나머지 — 코드·커밋·CHANGELOG 영어, 본문 자유, README 한국어 우선,
+한국 도메인 문서 한국어 — 는 전부 측정된 관행과 같은 방향이다.
+
+이 문서의 첫 판은 README 도 영어로 두어 벗어나는 지점이 둘이었다. 하나로 줄었다.
 
 대신 그 비용을 상쇄하는 장치를 둔다 — 본문은 한국어를 그대로 허용하고, 제목을
 영어로 쓰기 어려우면 한국어로 올리고 말해 달라고 명시한다. **제목 하나 때문에
