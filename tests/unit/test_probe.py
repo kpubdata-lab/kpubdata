@@ -1,8 +1,9 @@
-"""도달성 프로브 (#499).
+"""Reachability probe (#499).
 
-데이터셋 추가에서 사람만 할 수 있는 단계는 data.go.kr 활용신청 하나인데, 어느
-데이터셋이 그걸 기다리는지가 문서 비고란 텍스트에만 있었다. 에이전트는 spec 작업을
-시작한 뒤에야 403 으로 알게 됐다 — 되돌릴 작업을 먼저 하는 셈이다.
+In dataset addition, the only human-only step is applying at data.go.kr.
+Which datasets await that was buried in documentation notes. An agent didn't
+learn until hitting 403 while working on the spec—too late. This detects
+which datasets need applications upfront.
 """
 
 from __future__ import annotations
@@ -62,16 +63,16 @@ class TestClassification:
         assert classify(error)[0] == expected
 
     def test_a_rate_limit_counts_as_reachable(self) -> None:
-        """한도 초과는 "도달은 된다" 는 뜻이다 — 활용신청 대상이 아니다.
+        """Rate limit means reachable—not a target for application.
 
-        ``RateLimitError`` 가 ``TransportError`` 의 하위라, 판정 순서를 뒤집으면
-        조용히 ``gone`` 으로 분류된다. 실제로 그렇게 짰다가 고쳤다.
+        RateLimitError subclasses TransportError; reversed order would silently
+        classify it as retired. That's what happened before being fixed.
         """
         assert classify(RateLimitError("quota exceeded"))[0] == "rate_limited"
 
 
 class TestServiceIdGrouping:
-    """활용신청은 데이터셋이 아니라 **서비스** 단위로 한다."""
+    """Application is by service, not dataset."""
 
     def test_datasets_sharing_a_service_share_an_id(self) -> None:
         ids = {
@@ -91,7 +92,7 @@ class TestServiceIdGrouping:
 
 class TestApplyReport:
     def test_it_groups_by_service_not_dataset(self) -> None:
-        """이게 보고서의 요점이다 — 데이터셋별로 나열하면 3번 신청해야 하는 것처럼 보인다."""
+        """Report groups by service, not dataset—avoids appearing to need 3 apps."""
         results = [
             _result("datago.air_quality", "ArpltnInforInqireSvc", "application_required"),
             _result("datago.air_station", "ArpltnInforInqireSvc", "application_required"),

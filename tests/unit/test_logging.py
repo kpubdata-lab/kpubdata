@@ -20,26 +20,26 @@ from kpubdata.transport.decode import decode_json, decode_xml, detect_content_ty
 
 class _FakeAdapter:
     """
-    _FakeAdapter 관련 역할을 캡슐화하는 클래스.
+    _FakeAdapter Class encapsulating related operations.
 
-    이 클래스는 ``tests/unit/test_logging.py`` 모듈 안에서 _FakeAdapter의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__, list_datasets, search_datasets, get_dataset, query_records.
+    This class in ``tests/unit/test_logging.py`` module manages _FakeAdapterstate and behavior.
+    Key methods: __init__, list_datasets, search_datasets, get_dataset, query_records.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attributes:
+        Properties defined in constructor and class body are reused as shared context by methods.
     """
 
     name = "fake"
 
     def __init__(self) -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize internal state for the instance.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         self.ref: DatasetRef = DatasetRef(
             id="fake.demo",
@@ -52,43 +52,43 @@ class _FakeAdapter:
 
     def list_datasets(self) -> list[DatasetRef]:
         """
-        list datasets 동작을 수행한다.
+        list datasets Performs the operation.
 
-        반환값:
-            list[DatasetRef]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            list[DatasetRef]: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return [self.ref]
 
     def search_datasets(self, text: str) -> list[DatasetRef]:
         """
-        search datasets 동작을 수행한다.
+        search datasets Performs the operation.
 
-        매개변수:
-            text (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            text (str): Input value provided by caller.
 
-        반환값:
-            list[DatasetRef]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            list[DatasetRef]: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return [self.ref] if text.lower() in self.ref.id else []
 
     def get_dataset(self, dataset_key: str) -> DatasetRef:
         """
-        get dataset 동작을 수행한다.
+        get dataset Performs the operation.
 
-        매개변수:
-            dataset_key (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset_key (str): Input value provided by caller.
 
-        반환값:
-            DatasetRef: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            DatasetRef: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         if dataset_key != "demo":
             raise DatasetNotFoundError(
@@ -100,83 +100,83 @@ class _FakeAdapter:
 
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
         """
-        query records 동작을 수행한다.
+        query records Performs the operation.
 
-        매개변수:
-            dataset (DatasetRef): 호출자가 제공하는 입력 값이다.
-            query (Query): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset (DatasetRef): Input value provided by caller.
+            query (Query): Input value provided by caller.
 
-        반환값:
-            RecordBatch: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            RecordBatch: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return RecordBatch(items=[{"id": 1}], dataset=dataset, total_count=1, raw=None)
 
     def get_schema(self, dataset: DatasetRef) -> SchemaDescriptor | None:
         """
-        get schema 동작을 수행한다.
+        get schema Performs the operation.
 
-        매개변수:
-            dataset (DatasetRef): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset (DatasetRef): Input value provided by caller.
 
-        반환값:
-            SchemaDescriptor | None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            SchemaDescriptor | None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return None
 
     def call_raw(self, dataset: DatasetRef, operation: str, params: dict[str, object]) -> object:
         """
-        call raw 동작을 수행한다.
+        call raw Performs the operation.
 
-        매개변수:
-            dataset (DatasetRef): 호출자가 제공하는 입력 값이다.
-            operation (str): 호출자가 제공하는 입력 값이다.
-            params (dict[str, object]): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset (DatasetRef): Input value provided by caller.
+            operation (str): Input value provided by caller.
+            params (dict[str, object]): Input value provided by caller.
 
-        반환값:
-            object: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            object: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return {"operation": operation, "params": params}
 
 
 def _records(caplog: pytest.LogCaptureFixture, name: str) -> list[logging.LogRecord]:
     """
-    내부 헬퍼로서 records 처리를 담당한다.
+    Helper for records processing.
 
-    매개변수:
-        caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
-        name (str): 호출자가 제공하는 입력 값이다.
+    Args:
+        caplog (pytest.LogCaptureFixture): Input value provided by caller.
+        name (str): Input value provided by caller.
 
-    반환값:
-        list[logging.LogRecord]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        list[logging.LogRecord]: Returns the result or return value from downstream calls.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Propagates exceptions from implementation or dependencies.
     """
     return [r for r in caplog.records if r.name == name]
 
 
 def _by_message(records: list[logging.LogRecord], message: str) -> logging.LogRecord:
     """
-    내부 헬퍼로서 by message 처리를 담당한다.
+    Helper for by message processing.
 
-    매개변수:
-        records (list[logging.LogRecord]): 호출자가 제공하는 입력 값이다.
-        message (str): 호출자가 제공하는 입력 값이다.
+    Args:
+        records (list[logging.LogRecord]): Input value provided by caller.
+        message (str): Input value provided by caller.
 
-    반환값:
-        logging.LogRecord: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        logging.LogRecord: Returns the result or return value from downstream calls.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Propagates exceptions from implementation or dependencies.
     """
     for record in records:
         if record.getMessage() == message:
@@ -187,16 +187,16 @@ def _by_message(records: list[logging.LogRecord], message: str) -> logging.LogRe
 @pytest.fixture
 def fake_client(caplog: pytest.LogCaptureFixture) -> Client:
     """
-    fake client 동작을 수행한다.
+    fake client Performs the operation.
 
-    매개변수:
-        caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+    Args:
+        caplog (pytest.LogCaptureFixture): Input value provided by caller.
 
-    반환값:
-        Client: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        Client: Returns the result or return value from downstream calls.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Propagates exceptions from implementation or dependencies.
     """
     caplog.set_level(logging.DEBUG, logger="kpubdata")
     client = Client()
@@ -206,31 +206,31 @@ def fake_client(caplog: pytest.LogCaptureFixture) -> Client:
 
 class TestClientLogging:
     """
-    TestClientLogging 관련 역할을 캡슐화하는 클래스.
+    TestClientLogging Class encapsulating related operations.
 
-    이 클래스는 ``tests/unit/test_logging.py`` 모듈 안에서 TestClientLogging의 상태와 동작을 함께 관리한다.
-    주요 메서드: test_init_emits_debug, test_close_emits_debug, test_dataset_binding_logs.
+    This class in ``tests/unit/test_logging.py`` module manages TestClientLoggingstate and behavior.
+    Key methods: test_init_emits_debug, test_close_emits_debug, test_dataset_binding_logs.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attributes:
+        Properties defined in constructor and class body are reused as shared context by methods.
     """
 
-    # test init emits debug 테스트가 검증하는 시나리오를 설명한다.
+    # test init emits debug Describes scenario being tested.
     def test_init_emits_debug(self, caplog: pytest.LogCaptureFixture) -> None:
         """
-        test init emits debug 시나리오를 검증한다.
+        test init emits debug Verifies scenario.
 
-        매개변수:
-            caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+        Args:
+            caplog (pytest.LogCaptureFixture): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         caplog.set_level(logging.DEBUG, logger="kpubdata.client")
         _ = Client()
@@ -239,22 +239,22 @@ class TestClientLogging:
         assert isinstance(record.providers, list)  # type: ignore[attr-defined]
         assert "datago" in record.providers  # type: ignore[attr-defined]
 
-    # test close emits debug 테스트가 검증하는 시나리오를 설명한다.
+    # test close emits debug Describes scenario being tested.
     def test_close_emits_debug(self, caplog: pytest.LogCaptureFixture) -> None:
         """
-        test close emits debug 시나리오를 검증한다.
+        test close emits debug Verifies scenario.
 
-        매개변수:
-            caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+        Args:
+            caplog (pytest.LogCaptureFixture): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         caplog.set_level(logging.DEBUG, logger="kpubdata.client")
         client = Client()
@@ -263,25 +263,25 @@ class TestClientLogging:
         records = _records(caplog, "kpubdata.client")
         _ = _by_message(records, "Client closing")
 
-    # test dataset binding logs 테스트가 검증하는 시나리오를 설명한다.
+    # test dataset binding logs Describes scenario being tested.
     def test_dataset_binding_logs(
         self, fake_client: Client, caplog: pytest.LogCaptureFixture
     ) -> None:
         """
-        test dataset binding logs 시나리오를 검증한다.
+        test dataset binding logs Verifies scenario.
 
-        매개변수:
-            fake_client (Client): 호출자가 제공하는 입력 값이다.
-            caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+        Args:
+            fake_client (Client): Input value provided by caller.
+            caplog (pytest.LogCaptureFixture): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         caplog.clear()
         caplog.set_level(logging.DEBUG, logger="kpubdata.client")
@@ -294,31 +294,31 @@ class TestClientLogging:
 
 class TestRegistryLogging:
     """
-    TestRegistryLogging 관련 역할을 캡슐화하는 클래스.
+    TestRegistryLogging Class encapsulating related operations.
 
-    이 클래스는 ``tests/unit/test_logging.py`` 모듈 안에서 TestRegistryLogging의 상태와 동작을 함께 관리한다.
-    주요 메서드: test_register_logs, test_lookup_failure_logs, test_lazy_register_and_materialize_logs.
+    This class in ``tests/unit/test_logging.py`` module manages TestRegistryLoggingstate and behavior.
+    Key methods: test_register_logs, test_lookup_failure_logs, test_lazy_register_and_materialize_logs.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attributes:
+        Properties defined in constructor and class body are reused as shared context by methods.
     """
 
-    # test register logs 테스트가 검증하는 시나리오를 설명한다.
+    # test register logs Describes scenario being tested.
     def test_register_logs(self, caplog: pytest.LogCaptureFixture) -> None:
         """
-        test register logs 시나리오를 검증한다.
+        test register logs Verifies scenario.
 
-        매개변수:
-            caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+        Args:
+            caplog (pytest.LogCaptureFixture): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         caplog.set_level(logging.DEBUG, logger="kpubdata.registry")
         registry = ProviderRegistry()
@@ -327,22 +327,22 @@ class TestRegistryLogging:
         record = _by_message(records, "Registered eager provider adapter")
         assert record.provider == "fake"  # type: ignore[attr-defined]
 
-    # test lookup failure logs 테스트가 검증하는 시나리오를 설명한다.
+    # test lookup failure logs Describes scenario being tested.
     def test_lookup_failure_logs(self, caplog: pytest.LogCaptureFixture) -> None:
         """
-        test lookup failure logs 시나리오를 검증한다.
+        test lookup failure logs Verifies scenario.
 
-        매개변수:
-            caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+        Args:
+            caplog (pytest.LogCaptureFixture): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         caplog.set_level(logging.DEBUG, logger="kpubdata.registry")
         registry = ProviderRegistry()
@@ -352,22 +352,22 @@ class TestRegistryLogging:
         record = _by_message(records, "Provider lookup failed")
         assert record.provider == "missing"  # type: ignore[attr-defined]
 
-    # test lazy register and materialize logs 테스트가 검증하는 시나리오를 설명한다.
+    # test lazy register and materialize logs Describes scenario being tested.
     def test_lazy_register_and_materialize_logs(self, caplog: pytest.LogCaptureFixture) -> None:
         """
-        test lazy register and materialize logs 시나리오를 검증한다.
+        test lazy register and materialize logs Verifies scenario.
 
-        매개변수:
-            caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+        Args:
+            caplog (pytest.LogCaptureFixture): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         caplog.set_level(logging.DEBUG, logger="kpubdata.registry")
         registry = ProviderRegistry()
@@ -382,32 +382,32 @@ class TestRegistryLogging:
 
 class TestCatalogLogging:
     """
-    TestCatalogLogging 관련 역할을 캡슐화하는 클래스.
+    TestCatalogLogging Class encapsulating related operations.
 
-    이 클래스는 ``tests/unit/test_logging.py`` 모듈 안에서 TestCatalogLogging의 상태와 동작을 함께 관리한다.
-    주요 메서드: test_list_logs, test_search_logs, test_resolve_failure_logs, test_invalid_id_logs.
+    This class in ``tests/unit/test_logging.py`` module manages TestCatalogLoggingstate and behavior.
+    Key methods: test_list_logs, test_search_logs, test_resolve_failure_logs, test_invalid_id_logs.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attributes:
+        Properties defined in constructor and class body are reused as shared context by methods.
     """
 
-    # test list logs 테스트가 검증하는 시나리오를 설명한다.
+    # test list logs Describes scenario being tested.
     def test_list_logs(self, fake_client: Client, caplog: pytest.LogCaptureFixture) -> None:
         """
-        test list logs 시나리오를 검증한다.
+        test list logs Verifies scenario.
 
-        매개변수:
-            fake_client (Client): 호출자가 제공하는 입력 값이다.
-            caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+        Args:
+            fake_client (Client): Input value provided by caller.
+            caplog (pytest.LogCaptureFixture): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         caplog.clear()
         caplog.set_level(logging.DEBUG, logger="kpubdata.catalog")
@@ -417,23 +417,23 @@ class TestCatalogLogging:
         _ = _by_message(records, "Catalog list")
         _ = _by_message(records, "Catalog list result")
 
-    # test search logs 테스트가 검증하는 시나리오를 설명한다.
+    # test search logs Describes scenario being tested.
     def test_search_logs(self, fake_client: Client, caplog: pytest.LogCaptureFixture) -> None:
         """
-        test search logs 시나리오를 검증한다.
+        test search logs Verifies scenario.
 
-        매개변수:
-            fake_client (Client): 호출자가 제공하는 입력 값이다.
-            caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+        Args:
+            fake_client (Client): Input value provided by caller.
+            caplog (pytest.LogCaptureFixture): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         caplog.clear()
         caplog.set_level(logging.DEBUG, logger="kpubdata.catalog")
@@ -442,25 +442,25 @@ class TestCatalogLogging:
         record = _by_message(records, "Catalog search")
         assert record.text == "fake"  # type: ignore[attr-defined]
 
-    # test resolve failure logs 테스트가 검증하는 시나리오를 설명한다.
+    # test resolve failure logs Describes scenario being tested.
     def test_resolve_failure_logs(
         self, fake_client: Client, caplog: pytest.LogCaptureFixture
     ) -> None:
         """
-        test resolve failure logs 시나리오를 검증한다.
+        test resolve failure logs Verifies scenario.
 
-        매개변수:
-            fake_client (Client): 호출자가 제공하는 입력 값이다.
-            caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+        Args:
+            fake_client (Client): Input value provided by caller.
+            caplog (pytest.LogCaptureFixture): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         caplog.clear()
         caplog.set_level(logging.DEBUG, logger="kpubdata.catalog")
@@ -469,22 +469,22 @@ class TestCatalogLogging:
         records = _records(caplog, "kpubdata.catalog")
         _ = _by_message(records, "Catalog resolve failed: dataset not found")
 
-    # test invalid id logs 테스트가 검증하는 시나리오를 설명한다.
+    # test invalid id logs Describes scenario being tested.
     def test_invalid_id_logs(self, caplog: pytest.LogCaptureFixture) -> None:
         """
-        test invalid id logs 시나리오를 검증한다.
+        test invalid id logs Verifies scenario.
 
-        매개변수:
-            caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+        Args:
+            caplog (pytest.LogCaptureFixture): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         caplog.set_level(logging.DEBUG, logger="kpubdata.catalog")
         registry = ProviderRegistry()
@@ -495,32 +495,32 @@ class TestCatalogLogging:
 
 class TestDatasetLogging:
     """
-    TestDatasetLogging 관련 역할을 캡슐화하는 클래스.
+    TestDatasetLogging Class encapsulating related operations.
 
-    이 클래스는 ``tests/unit/test_logging.py`` 모듈 안에서 TestDatasetLogging의 상태와 동작을 함께 관리한다.
-    주요 메서드: test_list_logs, test_call_raw_logs, test_list_all_logs_iterations.
+    This class in ``tests/unit/test_logging.py`` module manages TestDatasetLoggingstate and behavior.
+    Key methods: test_list_logs, test_call_raw_logs, test_list_all_logs_iterations.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attributes:
+        Properties defined in constructor and class body are reused as shared context by methods.
     """
 
-    # test list logs 테스트가 검증하는 시나리오를 설명한다.
+    # test list logs Describes scenario being tested.
     def test_list_logs(self, fake_client: Client, caplog: pytest.LogCaptureFixture) -> None:
         """
-        test list logs 시나리오를 검증한다.
+        test list logs Verifies scenario.
 
-        매개변수:
-            fake_client (Client): 호출자가 제공하는 입력 값이다.
-            caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+        Args:
+            fake_client (Client): Input value provided by caller.
+            caplog (pytest.LogCaptureFixture): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         ds = fake_client.dataset("fake.demo")
         caplog.clear()
@@ -534,23 +534,23 @@ class TestDatasetLogging:
         completed = _by_message(records, "Dataset.list completed")
         assert completed.item_count == 1  # type: ignore[attr-defined]
 
-    # test call raw logs 테스트가 검증하는 시나리오를 설명한다.
+    # test call raw logs Describes scenario being tested.
     def test_call_raw_logs(self, fake_client: Client, caplog: pytest.LogCaptureFixture) -> None:
         """
-        test call raw logs 시나리오를 검증한다.
+        test call raw logs Verifies scenario.
 
-        매개변수:
-            fake_client (Client): 호출자가 제공하는 입력 값이다.
-            caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+        Args:
+            fake_client (Client): Input value provided by caller.
+            caplog (pytest.LogCaptureFixture): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         ds = fake_client.dataset("fake.demo")
         caplog.clear()
@@ -561,22 +561,22 @@ class TestDatasetLogging:
         assert record.operation == "op"  # type: ignore[attr-defined]
         assert record.param_keys == ["a", "b"]  # type: ignore[attr-defined]
 
-    # test list all logs iterations 테스트가 검증하는 시나리오를 설명한다.
+    # test list all logs iterations Describes scenario being tested.
     def test_list_all_logs_iterations(self, caplog: pytest.LogCaptureFixture) -> None:
         """
-        test list all logs iterations 시나리오를 검증한다.
+        test list all logs iterations Verifies scenario.
 
-        매개변수:
-            caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+        Args:
+            caplog (pytest.LogCaptureFixture): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         ref = DatasetRef(
             id="fake.demo",
@@ -589,42 +589,42 @@ class TestDatasetLogging:
 
         class _PagedAdapter:
             """
-            _PagedAdapter 관련 역할을 캡슐화하는 클래스.
+            _PagedAdapter Class encapsulating related operations.
 
-            이 클래스는 ``tests/unit/test_logging.py`` 모듈 안에서 _PagedAdapter의 상태와 동작을 함께 관리한다.
-            주요 메서드: __init__, query_records, get_schema, call_raw.
+            This class in ``tests/unit/test_logging.py`` module manages _PagedAdapterstate and behavior.
+            Key methods: __init__, query_records, get_schema, call_raw.
 
-            속성 설명:
-                생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+            Attributes:
+                Properties defined in constructor and class body are reused as shared context by methods.
             """
 
             name = "fake"
 
             def __init__(self) -> None:
                 """
-                인스턴스가 사용할 내부 상태를 초기화한다.
+                Initialize internal state for the instance.
 
-                반환값:
-                    None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+                Returns:
+                    None: Returns the result or return value from downstream calls.
 
-                예외:
-                    구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+                Raises:
+                    Propagates exceptions from implementation or dependencies.
                 """
                 self.calls = 0
 
             def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
                 """
-                query records 동작을 수행한다.
+                query records Performs the operation.
 
-                매개변수:
-                    dataset (DatasetRef): 호출자가 제공하는 입력 값이다.
-                    query (Query): 호출자가 제공하는 입력 값이다.
+                Args:
+                    dataset (DatasetRef): Input value provided by caller.
+                    query (Query): Input value provided by caller.
 
-                반환값:
-                    RecordBatch: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+                Returns:
+                    RecordBatch: Returns the result or return value from downstream calls.
 
-                예외:
-                    구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+                Raises:
+                    Propagates exceptions from implementation or dependencies.
                 """
                 self.calls += 1
                 next_page = 2 if self.calls == 1 else None
@@ -638,16 +638,16 @@ class TestDatasetLogging:
 
             def get_schema(self, dataset: DatasetRef) -> SchemaDescriptor | None:
                 """
-                get schema 동작을 수행한다.
+                get schema Performs the operation.
 
-                매개변수:
-                    dataset (DatasetRef): 호출자가 제공하는 입력 값이다.
+                Args:
+                    dataset (DatasetRef): Input value provided by caller.
 
-                반환값:
-                    SchemaDescriptor | None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+                Returns:
+                    SchemaDescriptor | None: Returns the result or return value from downstream calls.
 
-                예외:
-                    구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+                Raises:
+                    Propagates exceptions from implementation or dependencies.
                 """
                 return None
 
@@ -655,18 +655,18 @@ class TestDatasetLogging:
                 self, dataset: DatasetRef, operation: str, params: dict[str, object]
             ) -> object:
                 """
-                call raw 동작을 수행한다.
+                call raw Performs the operation.
 
-                매개변수:
-                    dataset (DatasetRef): 호출자가 제공하는 입력 값이다.
-                    operation (str): 호출자가 제공하는 입력 값이다.
-                    params (dict[str, object]): 호출자가 제공하는 입력 값이다.
+                Args:
+                    dataset (DatasetRef): Input value provided by caller.
+                    operation (str): Input value provided by caller.
+                    params (dict[str, object]): Input value provided by caller.
 
-                반환값:
-                    object: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+                Returns:
+                    object: Returns the result or return value from downstream calls.
 
-                예외:
-                    구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+                Raises:
+                    Propagates exceptions from implementation or dependencies.
                 """
                 return None
 
@@ -684,31 +684,31 @@ class TestDatasetLogging:
 
 class TestDecodeLogging:
     """
-    TestDecodeLogging 관련 역할을 캡슐화하는 클래스.
+    TestDecodeLogging Class encapsulating related operations.
 
-    이 클래스는 ``tests/unit/test_logging.py`` 모듈 안에서 TestDecodeLogging의 상태와 동작을 함께 관리한다.
-    주요 메서드: test_json_parse_failure_logs, test_xml_parse_failure_logs, test_unrecognized_content_type_logs.
+    This class in ``tests/unit/test_logging.py`` module manages TestDecodeLoggingstate and behavior.
+    Key methods: test_json_parse_failure_logs, test_xml_parse_failure_logs, test_unrecognized_content_type_logs.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attributes:
+        Properties defined in constructor and class body are reused as shared context by methods.
     """
 
-    # test json parse failure logs 테스트가 검증하는 시나리오를 설명한다.
+    # test json parse failure logs Describes scenario being tested.
     def test_json_parse_failure_logs(self, caplog: pytest.LogCaptureFixture) -> None:
         """
-        test json parse failure logs 시나리오를 검증한다.
+        test json parse failure logs Verifies scenario.
 
-        매개변수:
-            caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+        Args:
+            caplog (pytest.LogCaptureFixture): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         from kpubdata.exceptions import ParseError
 
@@ -718,22 +718,22 @@ class TestDecodeLogging:
         records = _records(caplog, "kpubdata.transport.decode")
         _ = _by_message(records, "JSON parse failed")
 
-    # test xml parse failure logs 테스트가 검증하는 시나리오를 설명한다.
+    # test xml parse failure logs Describes scenario being tested.
     def test_xml_parse_failure_logs(self, caplog: pytest.LogCaptureFixture) -> None:
         """
-        test xml parse failure logs 시나리오를 검증한다.
+        test xml parse failure logs Verifies scenario.
 
-        매개변수:
-            caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+        Args:
+            caplog (pytest.LogCaptureFixture): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         from kpubdata.exceptions import ParseError
 
@@ -743,22 +743,22 @@ class TestDecodeLogging:
         records = _records(caplog, "kpubdata.transport.decode")
         _ = _by_message(records, "XML parse failed")
 
-    # test unrecognized content type logs 테스트가 검증하는 시나리오를 설명한다.
+    # test unrecognized content type logs Describes scenario being tested.
     def test_unrecognized_content_type_logs(self, caplog: pytest.LogCaptureFixture) -> None:
         """
-        test unrecognized content type logs 시나리오를 검증한다.
+        test unrecognized content type logs Verifies scenario.
 
-        매개변수:
-            caplog (pytest.LogCaptureFixture): 호출자가 제공하는 입력 값이다.
+        Args:
+            caplog (pytest.LogCaptureFixture): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         import httpx
 

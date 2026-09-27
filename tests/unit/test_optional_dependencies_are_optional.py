@@ -1,10 +1,10 @@
-"""optional extra 없이도 기본 경로가 동작하는지 검증한다.
+"""Verify that basic paths work without optional extras.
 
-CI 는 늘 ``--extra dev`` 로 돌기 때문에 "optional 이라고 선언했지만 실제로는
-필수" 인 의존성을 잡지 못한다. krx 어댑터가 pandas 를 최상단에서 import 하는
-바람에, krx 를 쓸 생각이 없는 사용자의 ``client.datasets.list()`` 가 통째로
-죽었다 — krx 는 인증이 필요 없어서 provider manifest 에 항상 실려 있고,
-provider 를 지정하지 않은 목록 조회는 등록된 어댑터를 전부 만들기 때문이다.
+CI always runs with --extra dev, so it misses dependencies wrongly marked
+optional. The krx adapter imported pandas at the top level, breaking
+client.datasets.list() for users without krx. Since krx requires no auth,
+it's always in the provider manifest, and listing without a provider
+instantiates every adapter.
 """
 
 from __future__ import annotations
@@ -20,16 +20,16 @@ import pytest
 
 _OPTIONAL_MODULES = ("pandas", "pykrx")
 
-# typing_extensions 는 **3.12 이상에서만** optional 이다. marker 가
-# ``python_version < '3.12'`` 라서 3.11 이하에는 실제로 설치되고, 그 버전에서는
-# stdlib 에 ``override`` 가 없으므로 차단하면 당연히 실패한다 — 그건 결함이
-# 아니라 선언된 의존성이다. 3.12 이상에서만 없어도 되는지 검사한다.
+# typing_extensions is optional ONLY on Python 3.12+. With marker
+# python_version < '3.12', it's actually installed on 3.11 and earlier.
+# On those versions, stdlib lacks override so blocking it fails as expected—
+# that's correct behavior, not a bug. Only test 3.12+ without it.
 _TYPING_EXTENSIONS_IS_OPTIONAL = sys.version_info >= (3, 12)
 
 
 @pytest.fixture()
 def without_optional_extras() -> Iterator[None]:
-    """optional extra 가 설치되지 않은 환경을 흉내낸다."""
+    """Simulate environment without optional extras installed."""
     real_import = builtins.__import__
 
     blocked_roots = set(_OPTIONAL_MODULES)
@@ -66,7 +66,7 @@ class TestPandasIsReallyOptional:
         assert module.KrxAdapter is not None
 
     def test_listing_every_dataset_works(self, without_optional_extras: None) -> None:
-        """이게 실제로 죽던 호출이다 — ``kpubdata datasets list`` 와 같은 경로."""
+        """This is the actual call that was breaking—kpubdata datasets list."""
         client_module = importlib.import_module("kpubdata.client")
 
         datasets = client_module.Client().datasets.list()
@@ -81,7 +81,7 @@ class TestPandasIsReallyOptional:
     def test_actually_using_krx_explains_what_to_install(
         self, without_optional_extras: None
     ) -> None:
-        """조용히 실패하지 않는다 — 무엇을 설치해야 하는지 말해 준다."""
+        """Fails loudly—explains what to install instead of silent failure."""
         module = importlib.import_module("kpubdata.providers.krx.adapter")
         exceptions = importlib.import_module("kpubdata.exceptions")
 
@@ -94,10 +94,10 @@ class TestPandasIsReallyOptional:
     reason="3.11 이하에서는 typing_extensions 가 선언된 의존성이라 차단하면 당연히 실패한다",
 )
 class TestTypingExtensionsIsReallyOptional:
-    """3.12 이상 새 설치에는 typing_extensions 가 없다.
+    """Python 3.12+ new installs have no typing_extensions.
 
-    ``override`` 는 3.12, ``dataclass_transform`` 은 3.11 부터 stdlib 이라
-    marker 하나로는 맞출 수 없다. ``kpubdata._typing`` 이 버전별로 갈라 준다.
+    override (3.12+) and dataclass_transform (3.11+) are stdlib so one
+    marker cannot match both. kpubdata._typing branches by version.
     """
 
     def test_importing_the_package_works(self, without_optional_extras: None) -> None:

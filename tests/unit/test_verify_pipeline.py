@@ -1,8 +1,8 @@
-"""Phase 2 검증 파이프라인 단위 테스트 — record·verify·replay의 오프라인 동작 검증.
+"""Phase 2 verification pipeline unit tests-verify record/verify/replay
 
-실호출 기록은 `make record`(integration 성격)로 별도 수행한다. 여기서는
-FakeTransport 주입으로 record의 파일 산출물, verify의 무결성 규칙,
-replay의 매칭 규칙을 결정적으로 검증한다.
+Live calls recorded separately via make record (integration).
+FakeTransport injection deterministically verifies record output files,
+verify integrity rules, and replay matching rules.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ SPECS_DIR = REPO_ROOT / "src" / "kpubdata" / "specs"
 
 
 def _load_script(name: str):
-    """scripts/ 모듈을 로드한다(scripts를 sys.path에 넣어 redact import 지원)."""
+    """Load scripts/ module (add to sys.path for redact import support)."""
     if str(SCRIPTS) not in sys.path:
         sys.path.insert(0, str(SCRIPTS))
     spec = importlib.util.spec_from_file_location(name, SCRIPTS / f"{name}.py")
@@ -39,12 +39,12 @@ verify_mod = _load_script("verify_spec")
 
 
 # ----------------------------------------------------------------------
-# record: 산출물 3종 + 정화 + 해시
+# record: 3 output types + sanitization + hash
 # ----------------------------------------------------------------------
 
 
 class FakeLiveTransport:
-    """실호출 대신 표준 envelope을 주는 전송 계층."""
+    """Transport layer returning standard envelope instead of live calls."""
 
     def __init__(self) -> None:
         self.calls: list[dict[str, object]] = []
@@ -64,7 +64,7 @@ class FakeLiveTransport:
     ) -> object:
 
         self.calls.append({"url": url, "params": dict(params or {})})
-        # village_fcst의 xml 예제는 XML 응답을 흉내낸다.
+        # village_fcst XML example mimics XML response
         fmt = (
             (params or {}).get("dataType")
             or (params or {}).get("_type")
@@ -98,7 +98,7 @@ class FakeLiveTransport:
 
 
 class FakeLiveConfig(record_mod.KPubDataConfig):
-    """키를 고정값으로 제공하는 설정."""
+    """Config providing fixed API key value."""
 
     def get_provider_key(self, provider: str) -> str | None:
         return "real-secret-key" if provider == "datago" else None
@@ -108,7 +108,7 @@ class FakeLiveConfig(record_mod.KPubDataConfig):
 
 
 def test_record_dataset_writes_three_files(tmp_path: Path) -> None:
-    """example마다 raw·meta·expected 3종이 기록되고 키가 정화된다."""
+    """Each example records raw/meta/expected 3-tuple with sanitized key."""
     transport = FakeLiveTransport()
     written = record_mod.record_dataset(
         "datago.apt_trade",
@@ -127,28 +127,28 @@ def test_record_dataset_writes_three_files(tmp_path: Path) -> None:
         meta = json.loads((out_dir / f"{name}.meta.json").read_text(encoding="utf-8"))
         expected = json.loads((out_dir / f"{name}.expected.json").read_text(encoding="utf-8"))
 
-        # 키 정화: meta params와 raw 어디에도 실제 키가 없다.
+        # Key sanitization: no actual key in meta params or raw
         assert "real-secret-key" not in json.dumps(meta) + json.dumps(raw)
         assert meta["params"]["serviceKey"] == "[REDACTED]"
         assert meta["recorded_by"] == "agent-test"
         assert meta["dataset_id"] == "datago.apt_trade"
         assert meta["endpoint"].endswith("getRTMSDataSvcAptTradeDev")
-        # 해시 정합: verify가 같은 규칙으로 재계산해 일치해야 한다.
+        # Hash match: verify recalculates with same rule and must match
         canon = json.dumps(raw, ensure_ascii=False, sort_keys=True, indent=1) + "\n"
         import hashlib
 
         assert hashlib.sha256(canon.encode()).hexdigest() == meta["response_sha256"]
-        # expected 스냅샷
+        # expected snapshot
         assert expected == {"items": [{"no": 1}, {"no": 2}], "total_count": 2}
 
 
 # ----------------------------------------------------------------------
-# verify: 무결성·replay 계약
+# verify: integrity and replay contract
 # ----------------------------------------------------------------------
 
 
 def _record_apt(tmp_path: Path) -> None:
-    """verify 테스트용으로 apt_trade fixture를 기록한다."""
+    """Record apt_trade fixture for verify test."""
     record_mod.record_dataset(
         "datago.apt_trade",
         fixtures_root=tmp_path,
@@ -159,7 +159,7 @@ def _record_apt(tmp_path: Path) -> None:
 
 
 def test_verify_passes_on_fresh_record(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """방금 기록한 fixture는 검증을 통과한다."""
+    """Just-recorded fixture passes verification."""
     _record_apt(tmp_path)
     monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
     steps = verify_mod._verify_fixtures(_spec("datago.apt_trade"))
@@ -168,7 +168,7 @@ def test_verify_passes_on_fresh_record(tmp_path: Path, monkeypatch: pytest.Monke
 
 
 def test_verify_fails_when_fixture_missing(monkeypatch: pytest.MonkeyPatch) -> None:
-    """fixture가 없으면 실패하고 record 안내를 출력한다."""
+    """Fails if fixture missing and prints record guidance."""
     monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", Path("/nonexistent"))
     steps = verify_mod._verify_fixtures(_spec("datago.apt_trade"))
     assert not all(step.passed for step in steps)
@@ -176,7 +176,7 @@ def test_verify_fails_when_fixture_missing(monkeypatch: pytest.MonkeyPatch) -> N
 
 
 def test_verify_fails_on_hash_tamper(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """기록 후 raw를 수정하면 해시 불일치로 실패한다(agent 위조 차단)."""
+    """Hash mismatch fails if raw modified after record (block forgery)."""
     _record_apt(tmp_path)
     monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
     raw_file = next((tmp_path / "datago" / "apt_trade").glob("*.raw.json"))
@@ -192,7 +192,7 @@ def test_verify_fails_on_hash_tamper(tmp_path: Path, monkeypatch: pytest.MonkeyP
 def test_verify_fails_when_spec_field_changed(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """spec의 items_path를 바꾸면 replay 단계에서 실패한다(컷오버 검증 시나리오)."""
+    """Changing items_path in spec fails at replay (cutover validation)."""
     _record_apt(tmp_path)
     monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
     from dataclasses import replace
@@ -214,12 +214,12 @@ def _spec(dataset_id: str):
 
 
 # ----------------------------------------------------------------------
-# replay: 매칭·실패 안내
+# replay: matching and failure guidance
 # ----------------------------------------------------------------------
 
 
 def test_replay_matches_recorded_request(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """기록된 시그니처(키 제외)로 요청하면 fixture 응답이 돌아온다."""
+    """Recorded signature (key excluded) returns fixture response."""
     _record_apt(tmp_path)
     monkeypatch.setenv("KPUBDATA_REPLAY_DIR", str(tmp_path))
     from kpubdata.transport.replay import replay_response
@@ -245,16 +245,16 @@ def test_replay_matches_recorded_request(tmp_path: Path, monkeypatch: pytest.Mon
 def test_replay_miss_raises_with_record_hint(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """등록된 데이터셋·엔드포인트인데 파라미터가 다르면 make record 안내와 함께 실패."""
+    """Registered dataset/endpoint fails with make record guidance if params differ."""
     _record_apt(tmp_path)
     monkeypatch.setenv("KPUBDATA_REPLAY_DIR", str(tmp_path))
     from kpubdata.exceptions import InvalidRequestError
     from kpubdata.transport.replay import replay_response
 
-    # 미등록 데이터셋/엔드포인트는 불간섭(None) — 무관 요청은 실호출 경로.
+    # Unregistered dataset/endpoint bypassed (None)-unrelated calls go live.
     assert replay_response("GET", "https://never.recorded/api", params={}) is None
 
-    # 등록된 조합 + 다른 파라미터 → 엄격 실패.
+    # Registered combo + different params → strict fail.
     with pytest.raises(InvalidRequestError, match="make record"):
         replay_response(
             "GET",
@@ -266,7 +266,7 @@ def test_replay_miss_raises_with_record_hint(
 
 
 def test_client_replay_mode_end_to_end(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """KPUBDATA_MODE=replay에서 Client 질의가 fixture로 서빙된다(실호출 0)."""
+    """Client queries in KPUBDATA_MODE=replay served from fixtures (zero live)."""
     _record_apt(tmp_path)
     monkeypatch.setenv("KPUBDATA_REPLAY_DIR", str(tmp_path))
     monkeypatch.setenv("KPUBDATA_MODE", "replay")
@@ -280,14 +280,14 @@ def test_client_replay_mode_end_to_end(tmp_path: Path, monkeypatch: pytest.Monke
 
 
 # ----------------------------------------------------------------------
-# verify 4단계: 예제 스크립트 replay 실행 + gen_docs_examples
+# verify stage 4: example script replay + gen_docs_examples
 # ----------------------------------------------------------------------
 
 
 def test_verify_step4_missing_example_script_fails(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    """예제 스크립트가 없으면 4단계가 실패하고 규약을 안내한다."""
+    """Stage 4 fails if example script missing and prints contract."""
     monkeypatch.setattr(verify_mod, "REPO_ROOT", tmp_path)
     step = verify_mod._run_example_script(_spec("datago.apt_trade"))
     assert not step.passed
@@ -296,7 +296,7 @@ def test_verify_step4_missing_example_script_fails(
 
 
 def test_gen_docs_examples_check_mode(tmp_path: Path) -> None:
-    """gen_docs_examples --check 는 드리프트를 잡아낸다."""
+    """gen_docs_examples --check catches drift."""
     import importlib.util
 
     script_path = SCRIPTS / "gen_docs_examples.py"
@@ -305,28 +305,27 @@ def test_gen_docs_examples_check_mode(tmp_path: Path) -> None:
     gen = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(gen)
 
-    # 생성 → check 통과
+    # generate → check passes
     monkeyped_out = tmp_path / "dataset-examples.md"
     gen.OUTPUT_PATH = monkeyped_out
     assert gen.main([]) == 0
     assert monkeyped_out.is_file()
     assert gen.main(["--check"]) == 0
 
-    # 드리프트 → check 실패
+    # drift → check fails
     monkeyped_out.write_text("손으로 수정한 내용", encoding="utf-8")
     assert gen.main(["--check"]) == 1
 
 
 def test_record_with_a_fake_transport_does_not_touch_repository_specs(tmp_path: Path) -> None:
-    """가짜 transport 로 기록해도 저장소 spec 의 last_verified 는 그대로여야 한다.
+    """Fake transport recording must not update repo spec last_verified.
 
-    ``fixtures_root`` 만 인자였고 spec 경로는 REPO_ROOT 로 고정이라, 이 테스트
-    파일을 실행하는 것만으로 ``src/kpubdata/specs/datago/apt_trade.yaml`` 의
-    ``last_verified`` 가 오늘로 바뀌었다.
+    Only fixtures_root was arg; spec path was REPO_ROOT-fixed; running this test
+    changes src/kpubdata/specs/datago/apt_trade.yaml last_verified to today.
 
-    그 값은 SUPPORTED_DATA.md·docs/status.md·README 표의 "실API 최종 검증일"
-    원천이고 "90일 초과 시 재검증" 규칙이 여기 걸려 있다 — 테스트가 갱신하면
-    그 규칙이 성립하지 않는다.
+    That value sources SUPPORTED_DATA.md/docs/status.md/README final live API
+    verification date and re-verify if >90 days rule lives here - tests updating it breaks
+    the rule.
     """
     repo_spec = Path(record_mod.SPEC_ROOT) / "datago" / "apt_trade.yaml"
     before = repo_spec.read_text(encoding="utf-8")
@@ -343,7 +342,7 @@ def test_record_with_a_fake_transport_does_not_touch_repository_specs(tmp_path: 
 
 
 def test_spec_root_redirects_the_last_verified_write(tmp_path: Path) -> None:
-    """``spec_root`` 를 넘기면 그쪽만 본다 — 저장소 경로는 건드리지 않는다."""
+    """Pass spec_root to check only that-never touch repo path."""
     spec_root = tmp_path / "specs"
     (spec_root / "datago").mkdir(parents=True)
     target = spec_root / "datago" / "apt_trade.yaml"
@@ -364,7 +363,7 @@ def test_spec_root_redirects_the_last_verified_write(tmp_path: Path) -> None:
 
 
 def test_a_live_transport_still_updates_last_verified(tmp_path: Path) -> None:
-    """실호출 경로의 기능은 그대로여야 한다 — 검증일 갱신이 사라지면 안 된다."""
+    """Live path must keep working - verification date update must persist."""
     from kpubdata.transport.http import HttpTransport
 
     live = HttpTransport()

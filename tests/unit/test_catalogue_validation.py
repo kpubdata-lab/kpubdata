@@ -1,7 +1,7 @@
-"""테스트 모듈.
+"""Unit test module.
 
-이 파일은 ``tests/unit/test_catalogue_validation.py`` 경로의 테스트 시나리오와 보조 객체를 정의한다.
-회귀 방지와 공개 계약 검증을 위해 핵심 흐름, 예외, 가장자리 조건을 확인한다.
+tests/unit/test_catalogue_validation.py`` Defines test scenarios and helper objects.
+Verifies core flows, exceptions, and edge conditions for regression prevention and public contract validation.
 """
 
 from __future__ import annotations
@@ -14,42 +14,42 @@ from kpubdata.providers._common import build_dataset_ref, load_catalogue
 
 class _FakeCatalogueFile:
     """
-    _FakeCatalogueFile 관련 역할을 캡슐화하는 클래스.
+    _FakeCatalogueFile Class encapsulating related operations.
 
-    이 클래스는 ``tests/unit/test_catalogue_validation.py`` 모듈 안에서 _FakeCatalogueFile의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__, read_text.
+    This class in ``tests/unit/test_catalogue_validation.py`` module manages _FakeCatalogueFilestate and behavior.
+    Key methods: __init__, read_text.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attributes:
+        Properties defined in constructor and class body are reused as shared context by methods.
     """
 
     def __init__(self, text: str) -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize internal state for the instance.
 
-        매개변수:
-            text (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            text (str): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         self._text: str = text
 
     def read_text(self, *, encoding: str = "utf-8") -> str:
         """
-        read text 동작을 수행한다.
+        read text Performs the operation.
 
-        매개변수:
-            encoding (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            encoding (str): Input value provided by caller.
 
-        반환값:
-            str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            str: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         assert encoding == "utf-8"
         return self._text
@@ -57,78 +57,78 @@ class _FakeCatalogueFile:
 
 class _FakePackageFiles:
     """
-    _FakePackageFiles 관련 역할을 캡슐화하는 클래스.
+    _FakePackageFiles Class encapsulating related operations.
 
-    이 클래스는 ``tests/unit/test_catalogue_validation.py`` 모듈 안에서 _FakePackageFiles의 상태와 동작을 함께 관리한다.
-    주요 메서드: __init__, joinpath.
+    This class in ``tests/unit/test_catalogue_validation.py`` module manages _FakePackageFilesstate and behavior.
+    Key methods: __init__, joinpath.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attributes:
+        Properties defined in constructor and class body are reused as shared context by methods.
     """
 
     def __init__(self, text: str) -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize internal state for the instance.
 
-        매개변수:
-            text (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            text (str): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         self._text: str = text
 
     def joinpath(self, path: str) -> _FakeCatalogueFile:
         """
-        joinpath 동작을 수행한다.
+        joinpath Performs the operation.
 
-        매개변수:
-            path (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            path (str): Input value provided by caller.
 
-        반환값:
-            _FakeCatalogueFile: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            _FakeCatalogueFile: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         assert path == "catalogue.json"
         return _FakeCatalogueFile(self._text)
 
 
-# test load catalogue raises for duplicate dataset ids 테스트가 검증하는 시나리오를 설명한다.
+# test load catalogue raises for duplicate dataset ids Describes scenario being tested.
 def test_load_catalogue_raises_for_duplicate_dataset_ids(monkeypatch: pytest.MonkeyPatch) -> None:
     """
-    test load catalogue raises for duplicate dataset ids 시나리오를 검증한다.
+    test load catalogue raises for duplicate dataset ids Verifies scenario.
 
-    매개변수:
-        monkeypatch (pytest.MonkeyPatch): 호출자가 제공하는 입력 값이다.
+    Args:
+        monkeypatch (pytest.MonkeyPatch): Input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Returns the result or return value from downstream calls.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Propagates exceptions from implementation or dependencies.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Examples:
+        Verifies expected behavior matches test name without regression.
     """
     import kpubdata.providers._common as common_module
 
     def _fake_files(_package_name: str) -> _FakePackageFiles:
         """
-        내부 헬퍼로서 fake files 처리를 담당한다.
+        Helper for fake files processing.
 
-        매개변수:
-            _package_name (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            _package_name (str): Input value provided by caller.
 
-        반환값:
-            _FakePackageFiles: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            _FakePackageFiles: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return _FakePackageFiles(
             """
@@ -149,19 +149,19 @@ def test_load_catalogue_raises_for_duplicate_dataset_ids(monkeypatch: pytest.Mon
         _ = load_catalogue("fake.package", "test")
 
 
-# test build dataset ref raises for invalid representation 테스트가 검증하는 시나리오를 설명한다.
+# test build dataset ref raises for invalid representation Describes scenario being tested.
 def test_build_dataset_ref_raises_for_invalid_representation() -> None:
     """
-    test build dataset ref raises for invalid representation 시나리오를 검증한다.
+    test build dataset ref raises for invalid representation Verifies scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Returns the result or return value from downstream calls.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Propagates exceptions from implementation or dependencies.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Examples:
+        Verifies expected behavior matches test name without regression.
     """
     with pytest.raises(ConfigError, match="invalid representation"):
         _ = build_dataset_ref(
@@ -174,19 +174,19 @@ def test_build_dataset_ref_raises_for_invalid_representation() -> None:
         )
 
 
-# test build dataset ref raises for invalid operation 테스트가 검증하는 시나리오를 설명한다.
+# test build dataset ref raises for invalid operation Describes scenario being tested.
 def test_build_dataset_ref_raises_for_invalid_operation() -> None:
     """
-    test build dataset ref raises for invalid operation 시나리오를 검증한다.
+    test build dataset ref raises for invalid operation Verifies scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Returns the result or return value from downstream calls.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Propagates exceptions from implementation or dependencies.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Examples:
+        Verifies expected behavior matches test name without regression.
     """
     with pytest.raises(ConfigError, match="invalid operation"):
         _ = build_dataset_ref(
@@ -200,19 +200,19 @@ def test_build_dataset_ref_raises_for_invalid_operation() -> None:
         )
 
 
-# test build dataset ref raises for invalid pagination mode 테스트가 검증하는 시나리오를 설명한다.
+# test build dataset ref raises for invalid pagination mode Describes scenario being tested.
 def test_build_dataset_ref_raises_for_invalid_pagination_mode() -> None:
     """
-    test build dataset ref raises for invalid pagination mode 시나리오를 검증한다.
+    test build dataset ref raises for invalid pagination mode Verifies scenario.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Returns the result or return value from downstream calls.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Propagates exceptions from implementation or dependencies.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Examples:
+        Verifies expected behavior matches test name without regression.
     """
     with pytest.raises(ConfigError, match=r"query_support\.pagination has invalid value"):
         _ = build_dataset_ref(
@@ -226,23 +226,23 @@ def test_build_dataset_ref_raises_for_invalid_pagination_mode() -> None:
         )
 
 
-# test build dataset ref raises for missing required fields 테스트가 검증하는 시나리오를 설명한다.
+# test build dataset ref raises for missing required fields Describes scenario being tested.
 @pytest.mark.parametrize("field_name", ["dataset_key", "name", "representation"])
 def test_build_dataset_ref_raises_for_missing_required_fields(field_name: str) -> None:
     """
-    test build dataset ref raises for missing required fields 시나리오를 검증한다.
+    test build dataset ref raises for missing required fields Verifies scenario.
 
-    매개변수:
-        field_name (str): 호출자가 제공하는 입력 값이다.
+    Args:
+        field_name (str): Input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Returns the result or return value from downstream calls.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Propagates exceptions from implementation or dependencies.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Examples:
+        Verifies expected behavior matches test name without regression.
     """
     entry: dict[str, object] = {
         "dataset_key": "sample",
@@ -255,7 +255,7 @@ def test_build_dataset_ref_raises_for_missing_required_fields(field_name: str) -
         _ = build_dataset_ref("test", entry)
 
 
-# test valid provider catalogues pass validation 테스트가 검증하는 시나리오를 설명한다.
+# test valid provider catalogues pass validation Describes scenario being tested.
 @pytest.mark.parametrize(
     ("package_name", "provider"),
     [
@@ -266,20 +266,20 @@ def test_build_dataset_ref_raises_for_missing_required_fields(field_name: str) -
 )
 def test_valid_provider_catalogues_pass_validation(package_name: str, provider: str) -> None:
     """
-    test valid provider catalogues pass validation 시나리오를 검증한다.
+    test valid provider catalogues pass validation Verifies scenario.
 
-    매개변수:
-        package_name (str): 호출자가 제공하는 입력 값이다.
-        provider (str): 호출자가 제공하는 입력 값이다.
+    Args:
+        package_name (str): Input value provided by caller.
+        provider (str): Input value provided by caller.
 
-    반환값:
-        None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+    Returns:
+        None: Returns the result or return value from downstream calls.
 
-    예외:
-        구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+    Raises:
+        Propagates exceptions from implementation or dependencies.
 
-    예시:
-        테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+    Examples:
+        Verifies expected behavior matches test name without regression.
     """
     datasets = load_catalogue(package_name, provider)
 
@@ -289,28 +289,28 @@ def test_valid_provider_catalogues_pass_validation(package_name: str, provider: 
 
 class TestBuildDatasetRefMetadata:
     """
-    TestBuildDatasetRefMetadata 관련 역할을 캡슐화하는 클래스.
+    TestBuildDatasetRefMetadata Class encapsulating related operations.
 
-    이 클래스는 ``tests/unit/test_catalogue_validation.py`` 모듈 안에서 TestBuildDatasetRefMetadata의 상태와 동작을 함께 관리한다.
-    주요 메서드: test_description_parsed, test_description_empty_string_becomes_none, test_description_absent_is_none, test_tags_parsed, test_tags_absent_is_empty.
+    This class in ``tests/unit/test_catalogue_validation.py`` module manages TestBuildDatasetRefMetadatastate and behavior.
+    Key methods: test_description_parsed, test_description_empty_string_becomes_none, test_description_absent_is_none, test_tags_parsed, test_tags_absent_is_empty.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attributes:
+        Properties defined in constructor and class body are reused as shared context by methods.
     """
 
-    # test description parsed 테스트가 검증하는 시나리오를 설명한다.
+    # test description parsed Describes scenario being tested.
     def test_description_parsed(self) -> None:
         """
-        test description parsed 시나리오를 검증한다.
+        test description parsed Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         ref = build_dataset_ref(
             "test",
@@ -324,19 +324,19 @@ class TestBuildDatasetRefMetadata:
         assert ref.description == "A test dataset"
         assert "description" not in ref.raw_metadata
 
-    # test description empty string becomes none 테스트가 검증하는 시나리오를 설명한다.
+    # test description empty string becomes none Describes scenario being tested.
     def test_description_empty_string_becomes_none(self) -> None:
         """
-        test description empty string becomes none 시나리오를 검증한다.
+        test description empty string becomes none Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         ref = build_dataset_ref(
             "test",
@@ -344,19 +344,19 @@ class TestBuildDatasetRefMetadata:
         )
         assert ref.description is None
 
-    # test description absent is none 테스트가 검증하는 시나리오를 설명한다.
+    # test description absent is none Describes scenario being tested.
     def test_description_absent_is_none(self) -> None:
         """
-        test description absent is none 시나리오를 검증한다.
+        test description absent is none Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         ref = build_dataset_ref(
             "test",
@@ -364,19 +364,19 @@ class TestBuildDatasetRefMetadata:
         )
         assert ref.description is None
 
-    # test tags parsed 테스트가 검증하는 시나리오를 설명한다.
+    # test tags parsed Describes scenario being tested.
     def test_tags_parsed(self) -> None:
         """
-        test tags parsed 시나리오를 검증한다.
+        test tags parsed Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         ref = build_dataset_ref(
             "test",
@@ -390,19 +390,19 @@ class TestBuildDatasetRefMetadata:
         assert ref.tags == ("weather", "forecast")
         assert "tags" not in ref.raw_metadata
 
-    # test tags absent is empty 테스트가 검증하는 시나리오를 설명한다.
+    # test tags absent is empty Describes scenario being tested.
     def test_tags_absent_is_empty(self) -> None:
         """
-        test tags absent is empty 시나리오를 검증한다.
+        test tags absent is empty Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         ref = build_dataset_ref(
             "test",
@@ -410,19 +410,19 @@ class TestBuildDatasetRefMetadata:
         )
         assert ref.tags == ()
 
-    # test tags filters non strings 테스트가 검증하는 시나리오를 설명한다.
+    # test tags filters non strings Describes scenario being tested.
     def test_tags_filters_non_strings(self) -> None:
         """
-        test tags filters non strings 시나리오를 검증한다.
+        test tags filters non strings Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         ref = build_dataset_ref(
             "test",
@@ -435,19 +435,19 @@ class TestBuildDatasetRefMetadata:
         )
         assert ref.tags == ("valid", "also_valid")
 
-    # test source url parsed 테스트가 검증하는 시나리오를 설명한다.
+    # test source url parsed Describes scenario being tested.
     def test_source_url_parsed(self) -> None:
         """
-        test source url parsed 시나리오를 검증한다.
+        test source url parsed Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         ref = build_dataset_ref(
             "test",
@@ -461,19 +461,19 @@ class TestBuildDatasetRefMetadata:
         assert ref.source_url == "https://data.go.kr/example"
         assert "source_url" not in ref.raw_metadata
 
-    # test source url absent is none 테스트가 검증하는 시나리오를 설명한다.
+    # test source url absent is none Describes scenario being tested.
     def test_source_url_absent_is_none(self) -> None:
         """
-        test source url absent is none 시나리오를 검증한다.
+        test source url absent is none Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         ref = build_dataset_ref(
             "test",
@@ -481,19 +481,19 @@ class TestBuildDatasetRefMetadata:
         )
         assert ref.source_url is None
 
-    # test existing description removed from raw metadata 테스트가 검증하는 시나리오를 설명한다.
+    # test existing description removed from raw metadata Describes scenario being tested.
     def test_existing_description_removed_from_raw_metadata(self) -> None:
         """
-        test existing description removed from raw metadata 시나리오를 검증한다.
+        test existing description removed from raw metadata Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         ref = build_dataset_ref(
             "test",
@@ -511,27 +511,27 @@ class TestBuildDatasetRefMetadata:
 
 class TestBuildSchemaConstraints:
     """
-    TestBuildSchemaConstraints 관련 역할을 캡슐화하는 클래스.
+    TestBuildSchemaConstraints Class encapsulating related operations.
 
-    이 클래스는 ``tests/unit/test_catalogue_validation.py`` 모듈 안에서 TestBuildSchemaConstraints의 상태와 동작을 함께 관리한다.
-    주요 메서드: _make_ref_with_fields, test_no_constraints_returns_none_on_field, test_constraints_parsed, test_constraints_max_length_and_values, test_constraints_numeric.
+    This class in ``tests/unit/test_catalogue_validation.py`` module manages TestBuildSchemaConstraintsstate and behavior.
+    Key methods: _make_ref_with_fields, test_no_constraints_returns_none_on_field, test_constraints_parsed, test_constraints_max_length_and_values, test_constraints_numeric.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attributes:
+        Properties defined in constructor and class body are reused as shared context by methods.
     """
 
     def _make_ref_with_fields(self, fields: list[dict[str, object]]) -> object:
         """
-        내부 헬퍼로서 make ref with fields 처리를 담당한다.
+        Helper for make ref with fields processing.
 
-        매개변수:
-            fields (list[dict[str, object]]): 호출자가 제공하는 입력 값이다.
+        Args:
+            fields (list[dict[str, object]]): Input value provided by caller.
 
-        반환값:
-            object: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            object: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         from kpubdata.providers._common import build_dataset_ref, build_schema_from_metadata
 
@@ -544,37 +544,37 @@ class TestBuildSchemaConstraints:
         ref = build_dataset_ref("test", raw)
         return build_schema_from_metadata(ref)
 
-    # test no constraints returns none on field 테스트가 검증하는 시나리오를 설명한다.
+    # test no constraints returns none on field Describes scenario being tested.
     def test_no_constraints_returns_none_on_field(self) -> None:
         """
-        test no constraints returns none on field 시나리오를 검증한다.
+        test no constraints returns none on field Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         schema = self._make_ref_with_fields([{"name": "col1", "type": "string"}])
         assert schema is not None
         assert schema.fields[0].constraints is None
 
-    # test constraints parsed 테스트가 검증하는 시나리오를 설명한다.
+    # test constraints parsed Describes scenario being tested.
     def test_constraints_parsed(self) -> None:
         """
-        test constraints parsed 시나리오를 검증한다.
+        test constraints parsed Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         schema = self._make_ref_with_fields(
             [
@@ -592,19 +592,19 @@ class TestBuildSchemaConstraints:
         assert fc.pattern == r"^\d{6}$"
         assert fc.max_length is None
 
-    # test constraints max length and values 테스트가 검증하는 시나리오를 설명한다.
+    # test constraints max length and values Describes scenario being tested.
     def test_constraints_max_length_and_values(self) -> None:
         """
-        test constraints max length and values 시나리오를 검증한다.
+        test constraints max length and values Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         schema = self._make_ref_with_fields(
             [
@@ -624,19 +624,19 @@ class TestBuildSchemaConstraints:
         assert fc.max_length == 10
         assert fc.allowed_values == ("A", "B", "C")
 
-    # test constraints numeric 테스트가 검증하는 시나리오를 설명한다.
+    # test constraints numeric Describes scenario being tested.
     def test_constraints_numeric(self) -> None:
         """
-        test constraints numeric 시나리오를 검증한다.
+        test constraints numeric Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         schema = self._make_ref_with_fields(
             [
@@ -653,37 +653,37 @@ class TestBuildSchemaConstraints:
         assert fc.min_value == 0
         assert fc.max_value == 100.5
 
-    # test empty constraints dict returns none 테스트가 검증하는 시나리오를 설명한다.
+    # test empty constraints dict returns none Describes scenario being tested.
     def test_empty_constraints_dict_returns_none(self) -> None:
         """
-        test empty constraints dict returns none 시나리오를 검증한다.
+        test empty constraints dict returns none Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         schema = self._make_ref_with_fields([{"name": "col", "type": "string", "constraints": {}}])
         assert schema is not None
         assert schema.fields[0].constraints is None
 
-    # test invalid constraints type ignored 테스트가 검증하는 시나리오를 설명한다.
+    # test invalid constraints type ignored Describes scenario being tested.
     def test_invalid_constraints_type_ignored(self) -> None:
         """
-        test invalid constraints type ignored 시나리오를 검증한다.
+        test invalid constraints type ignored Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         schema = self._make_ref_with_fields(
             [{"name": "col", "type": "string", "constraints": "invalid"}]

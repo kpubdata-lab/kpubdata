@@ -13,120 +13,120 @@ class FakeAdapter:
 
     def __init__(self, provider_name: str = "fake") -> None:
         """
-        인스턴스가 사용할 내부 상태를 초기화한다.
+        Initialize internal state for the instance.
 
-        매개변수:
-            provider_name (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            provider_name (str): Input value provided by caller.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         self._name: str = provider_name
 
     @property
     def name(self) -> str:
         """
-        name 동작을 수행한다.
+        name Performs the operation.
 
-        반환값:
-            str: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            str: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return self._name
 
     def list_datasets(self) -> list[object]:
         """
-        list datasets 동작을 수행한다.
+        list datasets Performs the operation.
 
-        반환값:
-            list[object]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            list[object]: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return []
 
     def search_datasets(self, text: str) -> list[object]:
         """
-        search datasets 동작을 수행한다.
+        search datasets Performs the operation.
 
-        매개변수:
-            text (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            text (str): Input value provided by caller.
 
-        반환값:
-            list[object]: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            list[object]: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         _ = text
         return []
 
     def get_dataset(self, dataset_key: str) -> object:
         """
-        get dataset 동작을 수행한다.
+        get dataset Performs the operation.
 
-        매개변수:
-            dataset_key (str): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset_key (str): Input value provided by caller.
 
-        반환값:
-            object: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            object: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return None
 
     def query_records(self, dataset: object, query: object) -> object:
         """
-        query records 동작을 수행한다.
+        query records Performs the operation.
 
-        매개변수:
-            dataset (object): 호출자가 제공하는 입력 값이다.
-            query (object): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset (object): Input value provided by caller.
+            query (object): Input value provided by caller.
 
-        반환값:
-            object: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            object: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return None
 
     def get_schema(self, dataset: object) -> object:
         """
-        get schema 동작을 수행한다.
+        get schema Performs the operation.
 
-        매개변수:
-            dataset (object): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset (object): Input value provided by caller.
 
-        반환값:
-            object: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            object: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         return None
 
     def call_raw(self, dataset: object, operation: str, params: dict[str, object]) -> object:
         """
-        call raw 동작을 수행한다.
+        call raw Performs the operation.
 
-        매개변수:
-            dataset (object): 호출자가 제공하는 입력 값이다.
-            operation (str): 호출자가 제공하는 입력 값이다.
-            params (dict[str, object]): 호출자가 제공하는 입력 값이다.
+        Args:
+            dataset (object): Input value provided by caller.
+            operation (str): Input value provided by caller.
+            params (dict[str, object]): Input value provided by caller.
 
-        반환값:
-            object: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            object: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
         """
         _ = dataset, operation, params
         return None
@@ -134,122 +134,122 @@ class FakeAdapter:
 
 class TestProviderRegistry:
     """
-    TestProviderRegistry 관련 역할을 캡슐화하는 클래스.
+    TestProviderRegistry Class encapsulating related operations.
 
-    이 클래스는 ``tests/unit/test_registry.py`` 모듈 안에서 TestProviderRegistry의 상태와 동작을 함께 관리한다.
-    주요 메서드: test_register_and_get, test_contains, test_iter, test_duplicate_raises, test_missing_raises.
+    This class in ``tests/unit/test_registry.py`` module manages TestProviderRegistrystate and behavior.
+    Key methods: test_register_and_get, test_contains, test_iter, test_duplicate_raises, test_missing_raises.
 
-    속성 설명:
-        생성자와 클래스 본문에서 정의한 속성은 하위 메서드가 공통 문맥으로 재사용한다.
+    Attributes:
+        Properties defined in constructor and class body are reused as shared context by methods.
     """
 
-    # test register and get 테스트가 검증하는 시나리오를 설명한다.
+    # test register and get Describes scenario being tested.
     def test_register_and_get(self) -> None:
         """
-        test register and get 시나리오를 검증한다.
+        test register and get Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         reg = ProviderRegistry()
         adapter = FakeAdapter("test")
         reg.register(adapter)
         assert reg.get("test") is adapter
 
-    # test contains 테스트가 검증하는 시나리오를 설명한다.
+    # test contains Describes scenario being tested.
     def test_contains(self) -> None:
         """
-        test contains 시나리오를 검증한다.
+        test contains Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         reg = ProviderRegistry()
         reg.register(FakeAdapter("test"))
         assert "test" in reg
         assert "other" not in reg
 
-    # test iter 테스트가 검증하는 시나리오를 설명한다.
+    # test iter Describes scenario being tested.
     def test_iter(self) -> None:
         """
-        test iter 시나리오를 검증한다.
+        test iter Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         reg = ProviderRegistry()
         reg.register(FakeAdapter("b"))
         reg.register(FakeAdapter("a"))
         assert list(reg) == ["a", "b"]
 
-    # test duplicate raises 테스트가 검증하는 시나리오를 설명한다.
+    # test duplicate raises Describes scenario being tested.
     def test_duplicate_raises(self) -> None:
         """
-        test duplicate raises 시나리오를 검증한다.
+        test duplicate raises Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         reg = ProviderRegistry()
         reg.register(FakeAdapter("dup"))
         with pytest.raises(ValueError, match="already registered"):
             reg.register(FakeAdapter("dup"))
 
-    # test missing raises 테스트가 검증하는 시나리오를 설명한다.
+    # test missing raises Describes scenario being tested.
     def test_missing_raises(self) -> None:
         """
-        test missing raises 시나리오를 검증한다.
+        test missing raises Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         reg = ProviderRegistry()
         with pytest.raises(ProviderNotRegisteredError):
             reg.get("nonexistent")
 
-    # test lazy register 테스트가 검증하는 시나리오를 설명한다.
+    # test lazy register Describes scenario being tested.
     def test_lazy_register(self) -> None:
         """
-        test lazy register 시나리오를 검증한다.
+        test lazy register Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         reg = ProviderRegistry()
         reg.register_lazy("lazy", lambda: FakeAdapter("lazy"))
@@ -257,19 +257,19 @@ class TestProviderRegistry:
         adapter = reg.get("lazy")
         assert adapter.name == "lazy"
 
-    # test validate rejects bad adapter 테스트가 검증하는 시나리오를 설명한다.
+    # test validate rejects bad adapter Describes scenario being tested.
     def test_validate_rejects_bad_adapter(self) -> None:
         """
-        test validate rejects bad adapter 시나리오를 검증한다.
+        test validate rejects bad adapter Verifies scenario.
 
-        반환값:
-            None: 계산 결과 또는 하위 호출의 반환값을 돌려준다.
+        Returns:
+            None: Returns the result or return value from downstream calls.
 
-        예외:
-            구현체 내부 또는 하위 의존성에서 발생한 예외를 그대로 전파할 수 있다.
+        Raises:
+            Propagates exceptions from implementation or dependencies.
 
-        예시:
-            테스트 이름이 설명하는 기대 동작이 회귀 없이 유지되는지 확인한다.
+        Examples:
+            Verifies expected behavior matches test name without regression.
         """
         reg = ProviderRegistry()
         with pytest.raises(TypeError):
@@ -277,10 +277,10 @@ class TestProviderRegistry:
 
 
 class TestCapabilityContractValidation:
-    """등록 시점 capability 계약 검증(#231)에 대한 테스트."""
+    """Registration-time capability contract verification (#231)."""
 
     def _ds(self, key: str, *, operations: tuple[str, ...] = ("list", "raw")) -> object:
-        """테스트용 DatasetRef를 만든다."""
+        """Create test DatasetRef."""
         from kpubdata.core.capability import Operation
         from kpubdata.core.models import DatasetRef
         from kpubdata.core.representation import Representation
@@ -295,7 +295,7 @@ class TestCapabilityContractValidation:
         )
 
     def test_registration_calls_list_datasets_and_passes_for_honest_adapter(self) -> None:
-        """list_datasets가 비어 있지 않고 operations가 채워져 있으면 통과한다."""
+        """Passes if list_datasets non-empty and operations filled."""
         from kpubdata.registry import ProviderRegistry
 
         honest = FakeAdapter("honest")
@@ -303,11 +303,11 @@ class TestCapabilityContractValidation:
         honest.list_datasets = lambda: honest_datasets  # type: ignore[method-assign]
 
         reg = ProviderRegistry()
-        reg.register(honest)  # 예외가 발생하지 않아야 한다.
+        reg.register(honest)  # Must not raise exception.
         assert "honest" in reg
 
     def test_registration_rejects_adapter_whose_list_datasets_crashes(self) -> None:
-        """list_datasets가 예외를 던지면 CapabilityContractError로 빠르게 실패한다."""
+        """Fails fast as CapabilityContractError if list_datasets raises."""
         from kpubdata.exceptions import CapabilityContractError
         from kpubdata.registry import ProviderRegistry
 
@@ -324,7 +324,7 @@ class TestCapabilityContractValidation:
         assert "broken" not in reg
 
     def test_registration_rejects_dataset_with_empty_operations(self) -> None:
-        """operations가 빈 집합인 dataset은 "지원 거짓 표시"로 간주해 거부한다."""
+        """Rejects dataset with empty operations as "false support claim"."""
         from kpubdata.exceptions import CapabilityContractError
         from kpubdata.registry import ProviderRegistry
 
@@ -337,7 +337,7 @@ class TestCapabilityContractValidation:
             reg.register(dishonest)
 
     def test_registration_rejects_non_list_return_value(self) -> None:
-        """list_datasets가 list가 아닌 값을 반환하면 거부한다."""
+        """Rejects if list_datasets returns non-list."""
         from kpubdata.exceptions import CapabilityContractError
         from kpubdata.registry import ProviderRegistry
 
@@ -349,7 +349,7 @@ class TestCapabilityContractValidation:
             reg.register(bad_shape)
 
     def test_registration_rejects_non_dataset_ref_entries(self) -> None:
-        """list_datasets에 DatasetRef가 아닌 엔트리가 섞이면 거부한다."""
+        """Rejects if list_datasets mixes non-DatasetRef entries."""
         from kpubdata.exceptions import CapabilityContractError
         from kpubdata.registry import ProviderRegistry
 
@@ -361,18 +361,18 @@ class TestCapabilityContractValidation:
             reg.register(adapter)
 
     def test_validate_capabilities_can_be_disabled(self) -> None:
-        """validate_capabilities=False면 capability 검증을 건너뛴다(deprecation 경로용)."""
+        """Skips capability validation if validate_capabilities=False (deprecation path)."""
         from kpubdata.registry import ProviderRegistry
 
         adapter = FakeAdapter("legacy")
         adapter.list_datasets = lambda: [self._ds("a", operations=())]  # type: ignore[method-assign]
 
         reg = ProviderRegistry()
-        reg.register(adapter, validate_capabilities=False)  # 예외가 없어야 한다.
+        reg.register(adapter, validate_capabilities=False)  # Must not raise exception.
         assert "legacy" in reg
 
     def test_lazy_registration_also_validates_capabilities_on_materialization(self) -> None:
-        """lazy 등록도 materialize 시점에 capability 검증을 거친다."""
+        """Lazy registration also checked at materialization."""
         from kpubdata.exceptions import CapabilityContractError
         from kpubdata.registry import ProviderRegistry
 
@@ -387,7 +387,7 @@ class TestCapabilityContractValidation:
             reg.get("lazy_bad")
 
     def test_duplicate_name_short_circuits_before_capability_validation(self) -> None:
-        """이미 등록된 이름이면 capability 검증(잠재적으로 비싼 catalogue 로드)을 건너뛴다."""
+        """Skips validation for already-registered names (expensive catalog load)."""
         from kpubdata.registry import ProviderRegistry
 
         reg = ProviderRegistry()
@@ -404,15 +404,15 @@ class TestCapabilityContractValidation:
 
         with pytest.raises(ValueError, match="already registered"):
             reg.register(second)
-        # capability 검증이 이름 충돌 검사 뒤에 일어났다면 list_datasets는 호출되지 않아야 한다.
+        # If capability check came after name collision check, list_datasets should not be called.
         assert call_count["n"] == 0
 
 
 class TestLazyConcurrency:
-    """lazy 재료화의 동시성·내구성 (#262)."""
+    """Lazy materialization concurrency and durability (#262)."""
 
     def test_concurrent_get_materializes_once_and_all_succeed(self) -> None:
-        """동시 get() 전원이 같은 인스턴스를 받는다 — 재료화 경합 중 오발생 없음."""
+        """Concurrent get() all receive same instance—no spurious calls during materialization race."""
         import threading
 
         registry = ProviderRegistry()
@@ -422,7 +422,7 @@ class TestLazyConcurrency:
         def factory():
             with lock:
                 calls.append(1)
-            # 재료화 비용을 흉내낸다 — 다른 스레드가 이 사이에 get()한다.
+            # Simulate materialization cost—another thread may get() in between.
             import time
 
             time.sleep(0.01)
@@ -436,7 +436,7 @@ class TestLazyConcurrency:
         def worker():
             try:
                 results.append(registry.get("lazy-race"))
-            except BaseException as exc:  # noqa: BLE001 - 테스트 수집용
+            except BaseException as exc:  # noqa: BLE001 - for test collection
                 errors.append(exc)
 
         barrier = threading.Barrier(8)
@@ -454,11 +454,11 @@ class TestLazyConcurrency:
         assert errors == []
         assert len(results) == 8
         assert all(result is results[0] for result in results)
-        # 두 번째 get은 이미 재료화된 eager 항목을 반환한다.
+        # Second get returns already-materialized eager item.
         assert registry.get("lazy-race") is results[0]
 
     def test_failed_factory_keeps_lazy_entry_retryable(self) -> None:
-        """factory 실패로 항목이 소실되지 않는다 — 재시도 가능(#262 내구성)."""
+        """Item not lost on factory failure—retryable (#262 durability)."""
         registry = ProviderRegistry()
         attempts = []
 
