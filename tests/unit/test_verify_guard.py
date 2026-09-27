@@ -126,6 +126,19 @@ class TestFails:
         assert result.returncode == 1
         assert "deleted  src/kpubdata/specs/two.yaml" in result.stderr
 
+    def test_a_chmod_during_the_run(self, repo: Path) -> None:
+        """Content is identical, only the executable bit changed. The digest
+        alone cannot see it, and the old ``git status`` guard could -- ignoring
+        it would be a regression, not a simplification."""
+        target = repo / "src/kpubdata/specs/one.yaml"
+
+        def during() -> None:
+            target.chmod(0o755)
+
+        result = _guarded(repo, during)
+        assert result.returncode == 1
+        assert "chmod    src/kpubdata/specs/one.yaml" in result.stderr
+
     def test_content_rewritten_in_place(self, repo: Path) -> None:
         """What #497 actually did: overwrite ``last_verified`` in a clean tree."""
 
@@ -155,6 +168,36 @@ class TestTheGuardCannotBeSilentlyDisabled:
         (repo / "src/kpubdata/specs/extra.yaml").write_text("id: extra\n", encoding="utf-8")
         data = json.loads(_run(repo, "snapshot").stdout)
         assert "src/kpubdata/specs/extra.yaml" in data
+
+    def test_a_non_mapping_baseline_is_a_clean_error(self, repo: Path) -> None:
+        """``[]`` used to reach ``compare`` and die with an AttributeError
+        traceback. Non-zero either way, but a traceback cannot be told apart
+        from a real finding."""
+        bad = repo / "list.json"
+        bad.write_text("[]", encoding="utf-8")
+        result = _run(repo, "compare", str(bad))
+        assert result.returncode == 2
+        assert "not a snapshot object" in result.stderr
+        assert "Traceback" not in result.stderr
+
+    def test_a_baseline_with_non_string_entries_is_rejected(self, repo: Path) -> None:
+        bad = repo / "nulls.json"
+        bad.write_text('{"src/kpubdata/specs/one.yaml": null}', encoding="utf-8")
+        result = _run(repo, "compare", str(bad))
+        assert result.returncode == 2
+        assert "Traceback" not in result.stderr
+
+    def test_an_unreadable_file_aborts_instead_of_reporting_clean(self, repo: Path) -> None:
+        """Unreadable before *and* after would compare equal, so the guard would
+        report success over a state it never observed."""
+        target = repo / "src/kpubdata/specs/one.yaml"
+        target.chmod(0o000)
+        try:
+            snap = _run(repo, "snapshot")
+            assert snap.returncode == 2
+            assert "cannot snapshot" in snap.stderr
+        finally:
+            target.chmod(0o644)
 
     def test_snapshot_ignores_gitignored_files(self, repo: Path) -> None:
         (repo / ".gitignore").write_text("src/**/*.tmp\n", encoding="utf-8")

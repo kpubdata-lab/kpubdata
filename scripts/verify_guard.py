@@ -40,6 +40,12 @@ WATCHED = ("src",)
 
 _DELETED = "<deleted>"
 
+#: Mode bits worth recording. Only the executable bits matter here: a verify run
+#: that chmods a spec has mutated the tree, and the content digest alone cannot
+#: see it -- the old ``git status`` guard could, so ignoring it would be a
+#: regression rather than a simplification.
+_MODE_MASK = 0o111
+
 
 def _git(*args: str) -> str:
     return subprocess.run(
@@ -65,22 +71,36 @@ def _watched_paths() -> set[Path]:
     return paths
 
 
+class UnreadablePath(Exception):
+    """A watched file could not be read, so no snapshot can be taken.
+
+    This is not the same as "unchanged". If the same path is unreadable before
+    and after, a marker recorded in both snapshots would compare equal and the
+    guard would report success over a state it never actually observed.
+    """
+
+
 def snapshot() -> dict[str, str]:
-    """Map each watched path to a digest of its current content.
+    """Map each watched path to a digest of its content and relevant mode bits.
 
     A path that git knows about but that is missing from the working tree is
     recorded as deleted rather than skipped, so that deleting a file during the
     run is a detectable difference instead of a silently shorter dictionary.
+
+    Raises:
+        UnreadablePath: A watched file exists but cannot be read.
     """
     result: dict[str, str] = {}
     for path in sorted(_watched_paths()):
         try:
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        except (FileNotFoundError, IsADirectoryError):
-            digest = _DELETED
-        except OSError as exc:  # unreadable is not the same as unchanged
-            digest = f"<unreadable: {exc.errno}>"
-        result[str(path)] = digest
+            mode = path.stat().st_mode & _MODE_MASK
+        except (FileNotFoundError, IsADirectoryError, NotADirectoryError):
+            result[str(path)] = _DELETED
+            continue
+        except OSError as exc:
+            raise UnreadablePath(f"{path}: {exc.strerror or exc.errno}") from exc
+        result[str(path)] = f"{digest}:{mode:o}"
     return result
 
 
@@ -96,9 +116,35 @@ def compare(before: dict[str, str], after: dict[str, str]) -> list[str]:
             problems.append(f"created  {path}")
         elif new is None or new == _DELETED:
             problems.append(f"deleted  {path}")
+        elif _digest_of(old) == _digest_of(new):
+            # Same bytes, different mode bits.
+            problems.append(f"chmod    {path}")
         else:
             problems.append(f"modified {path}")
     return problems
+
+
+def _digest_of(entry: str) -> str:
+    """The content digest out of a ``"<digest>:<mode>"`` snapshot entry."""
+    return entry.split(":", 1)[0]
+
+
+def _validate_baseline(value: object) -> dict[str, str]:
+    """Reject anything that is not a path-to-entry mapping.
+
+    A baseline of ``[]`` used to reach ``compare`` and die with an
+    ``AttributeError`` traceback. That is not a silent pass -- the exit status
+    was still non-zero -- but a traceback is the wrong way to say "this file is
+    not a snapshot", and a reader cannot tell it apart from a real finding.
+    """
+    if not isinstance(value, dict):
+        msg = f"not a snapshot object (found {type(value).__name__})"
+        raise ValueError(msg)
+    for key, entry in value.items():
+        if not isinstance(key, str) or not isinstance(entry, str):
+            msg = "snapshot entries must map a path string to a digest string"
+            raise ValueError(msg)
+    return dict(value)
 
 
 def main() -> int:
@@ -110,18 +156,31 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "snapshot":
-        json.dump(snapshot(), sys.stdout)
+        try:
+            taken = snapshot()
+        except UnreadablePath as exc:
+            print(f"error: cannot snapshot the working tree: {exc}", file=sys.stderr)
+            return 2
+        json.dump(taken, sys.stdout)
         return 0
 
     try:
-        before = json.loads(args.baseline.read_text(encoding="utf-8"))
+        before = _validate_baseline(json.loads(args.baseline.read_text(encoding="utf-8")))
     except (OSError, ValueError) as exc:
         # No usable baseline means the guard cannot answer the question. Saying
         # "clean" here would quietly disable it.
         print(f"error: cannot read the snapshot at {args.baseline}: {exc}", file=sys.stderr)
         return 2
 
-    problems = compare(before, snapshot())
+    try:
+        after = snapshot()
+    except UnreadablePath as exc:
+        # The guard cannot answer the question, and answering "clean" would
+        # switch it off for exactly the run that needs it.
+        print(f"error: cannot verify the working tree: {exc}", file=sys.stderr)
+        return 2
+
+    problems = compare(before, after)
     if not problems:
         return 0
 
