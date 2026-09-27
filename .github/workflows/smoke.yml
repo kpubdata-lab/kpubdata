@@ -51,17 +51,17 @@ jobs:
       - name: Summary
         if: always()
         run: |
+          # 요약을 인라인으로 두면 아무도 테스트할 수 없다. 그래서 root 에서
+          # 카운트를 읽는 결함이 오래 남았고, 실패한 실행에 smoke=PASS 를
+          # 찍었다 (#516). 스크립트에는 테스트가 붙어 있다.
+          #
+          # 이 단계는 실패해도 job 결과를 바꾸지 않는다 — pytest 종료 코드가
+          # 이미 그 역할을 한다. 다만 요약이 거짓말하지는 않는다.
           if [ -f smoke-datago.xml ]; then
-            python3 - <<'EOF'
-          import xml.etree.ElementTree as ET
-          root = ET.parse("smoke-datago.xml").getroot()
-          total = int(root.attrib.get("tests", 0))
-          failed = int(root.attrib.get("failures", 0)) + int(root.attrib.get("errors", 0))
-          skipped = int(root.attrib.get("skipped", 0))
-          passed = total - failed - skipped
-          print(f"datago live: {passed} passed, {failed} failed, {skipped} skipped (total {total})")
-          print(f"smoke={'FAIL' if failed else 'PASS'}")
-          EOF
+            python3 scripts/junit_summary.py smoke-datago.xml --label "datago live" || true
+          else
+            echo "datago live: no report produced"
+            echo "smoke=FAIL"
           fi
 
   drift-report:
