@@ -1,4 +1,4 @@
-"""data.go.kr Provider 어댑터 패키지."""
+"""data.go.kr provider adapter package."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""data.go.kr 응답 엔벌로프 파서."""
+"""data.go.kr response envelope parser."""
 
 from __future__ import annotations
 
@@ -19,11 +19,12 @@ logger = logging.getLogger("kpubdata.provider.datago")
 
 
 def _is_success_code(code: str) -> bool:
-    """성공을 나타내는 모든 data.go.kr resultCode에 대해 True를 반환한다.
+    """Return True for every data.go.kr resultCode that signals success.
 
-    서로 다른 엔드포인트 계열은 "오류 없음" 코드를 다른 자릿수로 사용한다:
-    "00"(대부분의 API)와 "000"(apis.data.go.kr/1613000 하위 RTMS 계열)이다.
-    둘 다, 그리고 0 값을 나타내는 모든 숫자 변형은 성공으로 처리해야 한다.
+    Different endpoint families spell "no error" with different digit
+    counts: "00" (most APIs) and "000" (the RTMS family under
+    apis.data.go.kr/1613000). Both, and every numeric variant of zero,
+    must count as success.
     """
     try:
         return int(code) == 0
@@ -32,12 +33,12 @@ def _is_success_code(code: str) -> bool:
 
 
 class DataGoEnvelopeParser:
-    """data.go.kr 응답 엔벌로프에서 body와 item 목록을 추출한다."""
+    """Extract the body and item list from a data.go.kr response envelope."""
 
     def parse(
         self, payload: dict[str, object], dataset: DatasetRef | None = None
     ) -> tuple[dict[str, object], list[dict[str, object]]]:
-        """데이터셋 유형에 맞는 엔벌로프 검증 함수를 선택해 body/items를 추출한다."""
+        """Select the envelope-validation function for the dataset type and extract body/items."""
         dataset_id = dataset.id if dataset is not None else ""
         envelope_style = dataset.raw_metadata.get("envelope_style") if dataset is not None else None
 
@@ -67,7 +68,7 @@ class DataGoEnvelopeParser:
     def parse_odcloud(
         self, payload: dict[str, object], dataset: DatasetRef
     ) -> tuple[dict[str, object], list[dict[str, object]]]:
-        """odcloud 응답의 data 배열을 레코드 목록으로 정리한다."""
+        """Normalize the odcloud response's data array into a record list."""
         data_obj = payload.get("data")
         if data_obj is None:
             return payload, []
@@ -193,15 +194,17 @@ class DataGoEnvelopeParser:
         return body_dict
 
     def _raise_for_gateway_error(self, payload: dict[str, object], dataset_id: str) -> None:
-        """게이트웨이가 서비스 대신 응답했으면 그 이유를 그대로 올린다.
+        """Surface the gateway's own reason when it answered instead of the service.
 
-        data.go.kr은 요청이 서비스에 닿기 전에 거부되면 ``<response>`` 대신
-        ``OpenAPI_ServiceResponse/cmmMsgHeader``를 돌려준다 — 등록되지 않은 키,
-        만료된 활용신청, 허용되지 않은 IP, 일일 호출 한도 초과 같은 것들이다.
-        이 모양을 몰랐을 때는 ``response``가 없다는 이유로 "Malformed response
-        envelope"라는 파싱 오류가 났고, 실제 원인(내 키가 등록되지 않았다)은
-        사라졌다. ``returnReasonCode``는 서비스 envelope의 ``resultCode``와 같은
-        어휘를 쓰므로, 같은 매핑에 그대로 넘긴다.
+        When data.go.kr rejects a request before it reaches the service, it
+        returns ``OpenAPI_ServiceResponse/cmmMsgHeader`` instead of
+        ``<response>`` — unregistered key, expired activation, disallowed
+        IP, daily quota exceeded and the like. Before this shape was known,
+        it produced a "Malformed response envelope" parse error (no
+        ``response`` block) and the actual cause — my key is not registered
+        — disappeared. ``returnReasonCode`` uses the same vocabulary as the
+        service envelope's ``resultCode``, so it is fed straight into the
+        same mapping.
         """
         gateway = payload.get("OpenAPI_ServiceResponse")
         if not isinstance(gateway, dict):
@@ -216,8 +219,8 @@ class DataGoEnvelopeParser:
             return
         code = str(code_raw).strip()
 
-        # 사람이 읽을 수 있는 이유를 우선한다: returnAuthMsg가 가장 구체적이고,
-        # 없으면 errMsg로 내려간다.
+        # Prefer the human-readable reason: returnAuthMsg is the most
+        # specific, falling back to errMsg.
         for key in ("returnAuthMsg", "errMsg"):
             value = header_dict.get(key)
             if isinstance(value, str) and value.strip():
@@ -254,7 +257,7 @@ class DataGoEnvelopeParser:
         raise ProviderResponseError(msg, provider="datago", provider_code=code)
 
     def normalize_items(self, items_wrapper: object) -> list[dict[str, object]]:
-        """items 또는 item 래퍼를 레코드 딕셔너리 목록으로 정규화한다."""
+        """Normalize an items/item wrapper into a list of record dicts."""
         if items_wrapper is None:
             return []
 
