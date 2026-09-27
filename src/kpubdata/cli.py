@@ -139,6 +139,9 @@ def _build_parser() -> argparse.ArgumentParser:
     _ = probe_parser.add_argument(
         "--report-apply", action="store_true", help="Print the 활용신청 checklist"
     )
+    _ = probe_parser.add_argument(
+        "--output", help="Write the report here instead of the default location"
+    )
 
     scaffold_parser = subparsers.add_parser(
         "scaffold", help="Generate skeleton files for a new provider adapter"
@@ -223,7 +226,16 @@ def _run_command(args: argparse.Namespace) -> int:
 
 def _handle_probe_command(args: argparse.Namespace) -> int:
     """``kpubdata probe`` — 도달성 분류와 활용신청 체크리스트 (#499)."""
-    from kpubdata._probe import probe_all, render_apply_report, summarize, write_report
+    from pathlib import Path
+
+    from kpubdata._probe import (
+        DEFAULT_REPORT_PATH,
+        merge_with_existing,
+        probe_all,
+        render_apply_report,
+        summarize,
+        write_report,
+    )
 
     results = probe_all(
         provider=getattr(args, "provider", None),
@@ -233,7 +245,12 @@ def _handle_probe_command(args: argparse.Namespace) -> int:
         print("프로브 대상이 없습니다.", file=sys.stderr)
         return 1
 
-    write_report(results)
+    output = getattr(args, "output", None)
+    report_path = Path(output) if output else DEFAULT_REPORT_PATH
+    # --provider 나 --dataset 로 일부만 프로브했을 때, 나머지 판정을 지우지
+    # 않는다. 보고서의 요점은 전체 그림이고, 다시 만들려면 모든 provider 를
+    # 또 호출해야 한다 (#514).
+    write_report(merge_with_existing(results, report_path), report_path)
     counts = summarize(results)
     print(
         "프로브 "
