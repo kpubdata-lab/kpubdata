@@ -1,7 +1,7 @@
-"""등록 시점 검증을 포함한 Provider 어댑터 레지스트리.
+"""Provider adapter registry with registration-time validation.
 
-등록된 어댑터가 ProviderAdapter 프로토콜을 만족하는지
-호출 시점이 아니라 등록 시점에 검증한다.
+Verifies at registration time — not call time — that a registered adapter
+satisfies the ProviderAdapter protocol.
 """
 
 from __future__ import annotations
@@ -27,32 +27,34 @@ _REQUIRED_METHODS = (
 
 
 class ProviderRegistry:
-    """Provider 어댑터를 위한 스레드 안전 레지스트리."""
+    """Thread-safe registry of provider adapters."""
 
     def __init__(self) -> None:
-        """비어 있는 eager/lazy 어댑터 레지스트리를 초기화한다."""
+        """Initialize an empty eager/lazy adapter registry."""
         self._adapters: dict[str, ProviderAdapter] = {}
         self._lazy: dict[str, Callable[[], ProviderAdapter]] = {}
         self._lock = RLock()
 
     def __repr__(self) -> str:
-        """간결한 디버그 표현을 반환한다."""
+        """Return a concise debug representation."""
         with self._lock:
             eager_names = sorted(self._adapters.keys())
             lazy_names = sorted(self._lazy.keys())
         return f"ProviderRegistry(eager={eager_names}, lazy={lazy_names})"
 
     def register(self, adapter: ProviderAdapter, *, validate_capabilities: bool = True) -> None:
-        """어댑터 인스턴스를 등록한다. 프로토콜 준수 여부를 검증한다.
+        """Register an adapter instance. Validates protocol compliance.
 
-        ``validate_capabilities=True``(기본값)이면 등록 시점에 ``list_datasets()``를
-        한 번 호출해 어댑터의 catalogue가 실제로 로드되는지, 각 dataset이 비어 있지
-        않은 ``operations`` 집합을 가지는지(즉 catalogue가 "지원" 거짓 표시를
-        하지 않는지)를 fail-fast로 확인한다. 위반 시 ``CapabilityContractError``.
+        With ``validate_capabilities=True`` (the default), ``list_datasets()``
+        is called once at registration to fail-fast on an adapter whose
+        catalogue does not actually load, or whose datasets carry an empty
+        ``operations`` set (i.e. a catalogue that mislabels things as
+        "supported"). Violations raise ``CapabilityContractError``.
 
-        이름 충돌 검사는 capability 검증보다 먼저 수행한다 — capability 검증은
-        ``list_datasets()``를 호출해 catalogue 로드 비용(파일 I/O 등)이 들 수
-        있으므로, 어차피 거부될 등록에 그 비용을 지불하지 않는다.
+        The name-collision check runs before capability validation —
+        capability validation calls ``list_datasets()``, which can cost real
+        catalogue-loading work (file I/O and such), and a registration that
+        will be rejected anyway should not pay that cost.
         """
         self._validate_adapter(adapter)
         provider_name = str(adapter.name).strip().lower()
@@ -65,7 +67,8 @@ class ProviderRegistry:
             self._validate_capability_contract(adapter)
 
         with self._lock:
-            # capability 검증 동안 다른 스레드가 같은 이름을 등록했을 가능성에 대비해 재확인.
+            # Re-check: another thread may have registered the same name
+            # while capability validation was running.
             if provider_name in self._adapters or provider_name in self._lazy:
                 raise ValueError(f"Provider '{provider_name}' is already registered")
             self._adapters[provider_name] = adapter
@@ -77,11 +80,12 @@ class ProviderRegistry:
     def register_lazy(
         self, name: str, factory: Callable[[], ProviderAdapter], *, skip_if_exists: bool = False
     ) -> None:
-        """호출 가능한 팩토리를 통해 지연 로딩 어댑터를 등록한다.
+        """Register a lazily loaded adapter through a callable factory.
 
-        ``skip_if_exists``가 True이면 Provider 이름이 이미 등록된 경우(eager 또는 lazy)
-        등록을 조용히 건너뛴다. 이는 ``Client``가 사용자 등록 어댑터와 충돌하지 않고
-        내장 Provider를 등록할 때 사용된다.
+        When ``skip_if_exists`` is True and the provider name is already
+        registered (eager or lazy), the registration is silently skipped.
+        This is how ``Client`` registers built-in providers without
+        clashing with adapters the user registered.
         """
         normalized_name = name.strip().lower()
         if not normalized_name:
@@ -107,12 +111,14 @@ class ProviderRegistry:
         )
 
     def get(self, name: str) -> ProviderAdapter:
-        """Provider 이름으로 어댑터를 가져온다.
+        """Fetch an adapter by provider name.
 
-        lazy 항목은 락 안에서 ``pop``하지 않고 ``get``으로 확인만 한다(#262) —
-        pop 후 락 밖 재료화 동안 다른 스레드가 조회하면 아직 ``_adapters``에
-        없어 오발생하는 race와, factory 실패 시 항목이 영구 소실되는 문제를
-        함께 막는다. 동시 재료화는 멱등하다(첫 승자가 정본).
+        Lazy entries are only peeked at with ``get`` inside the lock, never
+        ``pop``-ed (#262) — this simultaneously prevents the race where
+        another thread looks the name up during materialization outside the
+        lock and misses it in ``_adapters`` yet, and the failure mode where
+        a factory error permanently loses the entry. Concurrent
+        materialization is idempotent (the first winner is canonical).
         """
         normalized_name = name.strip().lower()
         with self._lock:
@@ -150,24 +156,25 @@ class ProviderRegistry:
                 "adapter_type": type(winner).__name__,
             },
         )
-        # 동시 재료화 시 첫 승자 인스턴스를 모든 스레드가 공유한다(#262).
+        # Under concurrent materialization every thread shares the first
+        # winner's instance (#262).
         return winner
 
     def __contains__(self, name: str) -> bool:
-        """어댑터가 eager 또는 lazy로 등록되어 있으면 True를 반환한다."""
+        """Return True if an adapter is registered, eager or lazy."""
         normalized_name = name.strip().lower()
         with self._lock:
             return normalized_name in self._adapters or normalized_name in self._lazy
 
     def __iter__(self) -> Iterator[str]:
-        """현재 레지스트리가 알고 있는 Provider 이름을 순회한다."""
+        """Iterate the provider names the registry currently knows about."""
         with self._lock:
             names = set(self._adapters.keys()) | set(self._lazy.keys())
         return iter(sorted(names))
 
     @staticmethod
     def _validate_adapter(adapter: ProviderAdapter) -> None:
-        """어댑터가 필요한 프로토콜 메서드를 갖는지 확인한다."""
+        """Check that the adapter carries the required protocol methods."""
         name = getattr(adapter, "name", None)
         if not isinstance(name, str) or not name.strip():
             msg = "Adapter must define a non-empty string attribute 'name'"
@@ -189,12 +196,13 @@ class ProviderRegistry:
 
     @staticmethod
     def _validate_capability_contract(adapter: ProviderAdapter) -> None:
-        """어댑터의 catalogue가 정직한 capability 선언을 하는지 fail-fast로 검증한다.
+        """Fail-fast validation that the adapter's catalogue declares capabilities honestly.
 
-        ``list_datasets()`` 호출 자체가 실패하면 catalogue 로딩이 깨진 상태이므로
-        등록 자체를 차단한다. 그리고 노출되는 각 ``DatasetRef``가 비어 있지 않은
-        ``operations`` 집합을 갖는지 확인한다 — 빈 operations는 "이 dataset은
-        아무 일도 못 한다"는 거짓 표시이기 때문이다.
+        If calling ``list_datasets()`` itself fails, catalogue loading is
+        broken and the registration is blocked outright. Each exposed
+        ``DatasetRef`` is then checked for a non-empty ``operations`` set —
+        empty operations amount to claiming "this dataset can do nothing",
+        a dishonest declaration.
         """
         provider_name = str(getattr(adapter, "name", "<unknown>"))
 

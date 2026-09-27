@@ -1,4 +1,4 @@
-"""Client — KPubData의 최상위 진입점."""
+"""Client — KPubData's top-level entry point."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ logger = logging.getLogger("kpubdata.client")
 
 
 class Client:
-    """데이터셋 탐색과 바인딩된 작업을 위한 최상위 진입점."""
+    """Top-level entry point for dataset discovery and bound operations."""
 
     def __init__(
         self,
@@ -34,11 +34,12 @@ class Client:
         cache_ttl_seconds: int = 86400,
         **extra: object,
     ) -> None:
-        """명시적인 Provider/전송 설정으로 클라이언트를 초기화한다.
+        """Initialize the client with explicit provider/transport settings.
 
-        ``provider_keys``로 인증 정보를 직접 전달하고,
-        ``timeout`` 및 ``max_retries``로 전송 동작을 설정한다.
-        내장 Provider(datago, bok, kosis, lofin)는 기본적으로 지연 등록된다.
+        Credentials are passed directly via ``provider_keys``; transport
+        behavior is configured through ``timeout`` and ``max_retries``.
+        Built-in providers (datago, bok, kosis, lofin) are registered
+        lazily by default.
         """
 
         self._config: KPubDataConfig = KPubDataConfig(
@@ -86,11 +87,12 @@ class Client:
         cache: bool | ResponseCache | None = None,
         cache_ttl_seconds: int | None = None,
     ) -> Client:
-        """환경 변수와 명시적 override 값으로 클라이언트를 생성한다 (#276).
+        """Build a client from environment variables and explicit overrides (#276).
 
-        override는 명시적 파라미터로만 받는다 — ``**kwargs: object``는 타입
-        안전성을 우회한다. ``cache=None``은 "지정 없음"(환경 변수 규칙 적용)을
-        뜻하고 ``False``는 명시적 비활성화다.
+        Overrides are accepted only through explicit parameters —
+        ``**kwargs: object`` bypasses type safety. ``cache=None`` means
+        "unspecified" (the environment-variable rules apply) while ``False``
+        is an explicit opt-out.
         """
         cache_override: object = _UNSET if cache is None else cache
         ttl_override: object = _UNSET if cache_ttl_seconds is None else cache_ttl_seconds
@@ -111,18 +113,18 @@ class Client:
         )
 
     def __enter__(self) -> Client:
-        """컨텍스트 매니저에 진입하고 전송 클라이언트를 초기화한다."""
+        """Enter the context manager and initialize the transport client."""
 
         _ = self._transport.__enter__()
         return self
 
     def __exit__(self, *exc: object) -> None:
-        """컨텍스트 매니저를 종료하고 전송 리소스를 닫는다."""
+        """Exit the context manager and close transport resources."""
 
         self.close()
 
     def close(self) -> None:
-        """이 클라이언트가 사용하는 하위 전송 리소스를 닫는다."""
+        """Close the transport resources this client uses."""
 
         logger.debug(
             "Client closing",
@@ -135,16 +137,16 @@ class Client:
 
     @property
     def datasets(self) -> Catalog:
-        """탐색, 검색, 해석을 위한 카탈로그 인터페이스를 반환한다."""
+        """Return the catalog interface for discovery, search and resolution."""
 
         return self._catalog
 
     def dataset(self, dataset_id: str) -> Dataset:
-        """정규 식별자로 데이터셋 객체를 바인딩해 반환한다.
+        """Bind and return a dataset object for a canonical identifier.
 
-        예외:
-            DatasetNotFoundError: 데이터셋 ID가 잘못되었거나 알 수 없을 때.
-            ProviderNotRegisteredError: Provider가 등록되지 않았을 때.
+        Raises:
+            DatasetNotFoundError: The dataset ID is invalid or unknown.
+            ProviderNotRegisteredError: The provider is not registered.
         """
 
         logger.debug("Binding dataset", extra={"dataset_id": dataset_id})
@@ -160,11 +162,11 @@ class Client:
         return Dataset(ref=ref, adapter=adapter)
 
     def register_provider(self, adapter: object) -> None:
-        """이 클라이언트의 레지스트리에 Provider 어댑터를 등록한다.
+        """Register a provider adapter on this client's registry.
 
-        예외:
-            TypeError: 어댑터가 필요한 프로토콜을 만족하지 않을 때.
-            ValueError: Provider가 이미 등록되어 있을 때.
+        Raises:
+            TypeError: The adapter does not satisfy the required protocol.
+            ValueError: The provider is already registered.
         """
 
         logger.debug(
@@ -174,7 +176,7 @@ class Client:
         self._registry.register(cast(ProviderAdapter, adapter))
 
     def iter_authenticated_providers(self) -> tuple[ProviderAdapter, ...]:
-        """API 키가 필요한 Provider 어댑터만 모아 튜플로 반환한다."""
+        """Collect and return only the provider adapters that require an API key."""
         providers: list[ProviderAdapter] = []
         for provider_name in self._registry:
             adapter = self._registry.get(provider_name)
@@ -183,7 +185,7 @@ class Client:
         return tuple(providers)
 
     def _register_builtin_providers(self) -> None:
-        """내장 Provider를 bootstrap 계층으로 등록한다 (#230)."""
+        """Register the built-in providers through the bootstrap layer (#230)."""
         register_builtin_providers(
             self._registry,
             config=self._config,
@@ -194,7 +196,7 @@ class Client:
 
     @override
     def __repr__(self) -> str:
-        """알려진 Provider를 포함한 간결한 표현을 반환한다."""
+        """Return a concise representation including the known providers."""
 
         return f"Client(providers=[{', '.join(self._registry)}])"
 
@@ -206,12 +208,12 @@ _UNSET = object()
 
 
 def _requires_api_key(adapter: ProviderAdapter) -> bool:
-    """어댑터가 API 키를 요구하는지 반환한다."""
+    """Return whether the adapter requires an API key."""
     return cast(bool, getattr(adapter, "requires_api_key", True))
 
 
 def _resolve_cache(cache: bool | ResponseCache) -> ResponseCache | None:
-    """cache 인자를 ResponseCache 인스턴스 또는 None으로 정규화한다."""
+    """Normalize the cache argument into a ResponseCache instance or None."""
     if cache is False:
         return None
     if cache is True:
@@ -220,7 +222,7 @@ def _resolve_cache(cache: bool | ResponseCache) -> ResponseCache | None:
 
 
 def _resolve_cache_from_env(cache_override: object) -> bool | ResponseCache:
-    """환경 변수 값을 읽어 캐시 사용 여부와 저장 위치를 결정한다."""
+    """Read environment variables to decide cache usage and storage location."""
     if cache_override is not _UNSET:
         return cast(bool | ResponseCache, cache_override)
     if os.environ.get("KPUBDATA_CACHE") != "1":
@@ -232,7 +234,7 @@ def _resolve_cache_from_env(cache_override: object) -> bool | ResponseCache:
 
 
 def _resolve_cache_ttl(ttl_override: object) -> int:
-    """override가 없으면 환경 변수에서 캐시 TTL 초 값을 읽는다."""
+    """Read the cache TTL in seconds from the environment when not overridden."""
     if ttl_override is not _UNSET:
         return cast(int, ttl_override)
     raw_ttl = os.environ.get("KPUBDATA_CACHE_TTL")
