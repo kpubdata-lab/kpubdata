@@ -1,11 +1,14 @@
-"""릴리스 노트용 데이터셋 변경 집계 — 두 시점 사이의 추가/제거/검증 갱신을 뽑는다.
+"""Dataset changelog aggregation for release notes.
 
-사용법:
+Extracts additions/removals/verification updates between two points.
+
+Usage:
     uv run python scripts/changelog_datasets.py --from v0.5.0 --to HEAD
 
-출처:
-- spec 디렉터리(git ls-tree)와 SUPPORTED_DATA.md 를 두 시점에서 비교해
-  데이터셋 증감과 검증일 변화를 요약한다. 수기 입력 없이 git 기반으로만.
+Sources:
+- Compares the spec directory (git ls-tree) and SUPPORTED_DATA.md at two
+  points and summarizes dataset additions/removals and verification-date
+  changes. Git-based only, no manual input.
 """
 
 from __future__ import annotations
@@ -19,11 +22,11 @@ from dataclasses import dataclass
 
 @dataclass
 class Snapshot:
-    """한 시점의 데이터셋 상태."""
+    """Dataset state at a specific point in time."""
 
     specs: set[str]
     catalogue: set[str]
-    verified: dict[str, str]  # dataset_id -> 최종 검증일
+    verified: dict[str, str]  # dataset_id -> final verification date
 
 
 def _git(args: list[str]) -> str:
@@ -35,7 +38,7 @@ def _git(args: list[str]) -> str:
 
 
 def _specs_at(rev: str) -> set[str]:
-    """해당 리비전의 spec 파일 목록에서 데이터셋 id를 만든다."""
+    """Create dataset ids from spec file list at this revision."""
     out = _git(["ls-tree", "-r", "--name-only", rev, "src/kpubdata/specs"])
     found: set[str] = set()
     for line in out.splitlines():
@@ -46,7 +49,7 @@ def _specs_at(rev: str) -> set[str]:
 
 
 def _catalogue_at(rev: str) -> set[str]:
-    """해당 리비전의 catalogue 데이터셋 키 전체."""
+    """All catalogue dataset keys at this revision."""
     out = _git(["ls-tree", "-r", "--name-only", rev, "src/kpubdata/providers"])
     found: set[str] = set()
     for line in out.splitlines():
@@ -65,7 +68,7 @@ def _catalogue_at(rev: str) -> set[str]:
 
 
 def _verified_at(rev: str) -> dict[str, str]:
-    """SUPPORTED_DATA.md의 '실API 검증 | 날짜' 행을 파싱한다."""
+    """Parse 'live API verification | date' row from SUPPORTED_DATA.md."""
     content = _git(["show", f"{rev}:SUPPORTED_DATA.md"])
     verified: dict[str, str] = {}
     for line in content.splitlines():
@@ -76,12 +79,12 @@ def _verified_at(rev: str) -> dict[str, str]:
 
 
 def snapshot(rev: str) -> Snapshot:
-    """리비전 스냅샷을 만든다."""
+    """Create a snapshot at a revision."""
     return Snapshot(specs=_specs_at(rev), catalogue=_catalogue_at(rev), verified=_verified_at(rev))
 
 
 def report(old: Snapshot, new: Snapshot) -> str:
-    """두 스냅샷의 차이를 릴리스 노트 마크다운으로 만든다."""
+    """Generate release notes markdown from the difference between two snapshots."""
     lines: list[str] = ["## 데이터셋 변경", ""]
     added = sorted((new.specs | new.catalogue) - (old.specs | old.catalogue))
     removed = sorted((old.specs | old.catalogue) - (new.specs | new.catalogue))
@@ -105,7 +108,7 @@ def report(old: Snapshot, new: Snapshot) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI 진입점."""
+    """CLI entry point."""
     parser = argparse.ArgumentParser(description="릴리스 노트용 데이터셋 변경 집계")
     parser.add_argument("--from", dest="from_rev", required=True)
     parser.add_argument("--to", dest="to_rev", default="HEAD")

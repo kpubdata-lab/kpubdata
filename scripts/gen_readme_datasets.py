@@ -1,10 +1,10 @@
-"""README 데이터셋 섹션 자동 생성 — specs + catalogue에서 요약 표를 만든다.
+"""README dataset section auto-generation — creates summary table from specs + catalogue.
 
-사용법:
-    uv run python scripts/gen_readme_datasets.py           # 생성 (마커 구간 교체)
-    uv run python scripts/gen_readme_datasets.py --check   # 드리프트 검사(exit 1)
+Usage:
+    uv run python scripts/gen_readme_datasets.py           # generate (replaces the marker section)
+    uv run python scripts/gen_readme_datasets.py --check   # drift check (exit 1)
 
-README의 `<!-- BEGIN: datasets -->` ~ `<!-- END: datasets -->` 구간만 교체한다.
+Only the README section between `<!-- BEGIN: datasets -->` and `<!-- END: datasets -->` is replaced.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ END = "<!-- END: datasets -->"
 
 
 def _catalogue_counts() -> dict[str, int]:
-    """catalogue 기반 Provider별 데이터셋 수."""
+    """Dataset count per provider from catalogue."""
     counts: dict[str, int] = {}
     providers_dir = REPO_ROOT / "src" / "kpubdata" / "providers"
     for catalogue in sorted(providers_dir.glob("*/catalogue.json")):
@@ -33,7 +33,7 @@ def _catalogue_counts() -> dict[str, int]:
 
 
 def build_section() -> str:
-    """데이터셋 요약 섹션 마크다운을 생성한다."""
+    """Generate dataset summary section markdown."""
     specs = discover_specs()
     spec_ids = sorted(spec.id for spec in specs)
     catalogue = _catalogue_counts()
@@ -64,7 +64,7 @@ def build_section() -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI 진입점 — 생성 또는 드리프트 검사."""
+    """CLI entry point — generate or check drift."""
     parser = argparse.ArgumentParser(description="README 데이터셋 섹션 생성")
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args(argv)

@@ -1,15 +1,18 @@
-"""Fixture 기록 도구 — spec의 examples[]로 실API를 호출해 검증 자산을 남긴다.
+"""Fixture recording tool — records validation assets by calling live APIs with spec examples[].
 
-사용법:
+Usage:
     KPUBDATA_DATAGO_API_KEY=... uv run python scripts/record.py datago.apt_trade
     make record DATASET=datago.apt_trade
 
-데이터셋별 examples 각각에 대해 세 파일을 남긴다:
-- ``{example}.raw.json``     — 정화된 원본 페이로드
-- ``{example}.meta.json``    — 호출 시각·endpoint·파라미터(키 제외)·해시·실행 주체
-- ``{example}.expected.json``— 정규화 결과 스냅샷(items·total_count)
+For each example of the dataset it leaves three files:
+- ``{example}.raw.json``      — the sanitized original payload
+- ``{example}.meta.json``     — call time, endpoint, params (key excluded),
+  hash, and the recording identity
+- ``{example}.expected.json`` — snapshot of the normalized result
+  (items, total_count)
 
-meta가 없는 fixture는 verify에서 실패 처리된다(agent가 fixture를 지어내는 경로 차단).
+A fixture without meta fails verification (blocking the path where an
+agent fabricates fixtures).
 """
 
 from __future__ import annotations
@@ -38,23 +41,24 @@ from kpubdata.transport.http import HttpTransport
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FIXTURES_ROOT = REPO_ROOT / "tests" / "fixtures"
-#: spec 파일의 정본 위치. ``record_dataset`` 이 ``last_verified`` 를 갱신하는 대상이다.
-#: 인자로 받는 이유는 테스트가 저장소 소스를 건드리지 않게 하기 위해서다.
+#: Canonical location of spec file. ``record_dataset`` updates ``last_verified``.
+#: Passed as argument so tests don't touch repository source.
 SPEC_ROOT = REPO_ROOT / "src" / "kpubdata" / "specs"
 _DEFAULT_PAGE_SIZE = 10
 
 
 def _canon(obj: object) -> str:
-    """해시 비교용 정규 JSON 직렬화(ensure_ascii=False·개행 고정)."""
+    """Canonical JSON serialization for hash comparison (ensure_ascii=False, fixed newlines)."""
     return json.dumps(obj, ensure_ascii=False, sort_keys=True, indent=1) + "\n"
 
 
 def _is_live_transport(transport: object) -> bool:
-    """이 transport 가 실제로 네트워크를 쓰는지.
+    """Whether this transport uses live network.
 
-    가짜 transport 를 주입한 호출(단위 테스트)은 실호출이 아니므로 검증일을
-    갱신하지 않는다. 실제 ``HttpTransport`` 를 명시적으로 주입한 호출은 실호출이
-    맞으므로 갱신한다 — 판정 기준은 "주입 여부" 가 아니라 "무엇을 주입했는가" 다.
+    A call with a fake transport injected (a unit test) is not a live call,
+    so it must not update the verification date. A call with a real
+    ``HttpTransport`` explicitly injected IS live and updates it — the
+    criterion is "what was injected", not "whether something was".
     """
     return isinstance(transport, HttpTransport)
 
@@ -68,10 +72,10 @@ def record_dataset(
     transport: HttpTransport | None = None,
     recorded_by: str | None = None,
 ) -> list[Path]:
-    """데이터셋의 모든 example을 실호출해 fixture 3종을 저장한다.
+    """Record all examples via live call and save 3 fixture files.
 
-    예외:
-        SystemExit: spec이 없거나 키가 없는 경우(사람이 읽는 안내와 함께).
+    Raises:
+        SystemExit: No spec, or no key (with a human-readable notice).
     """
     spec = find_spec(dataset_id)
     if spec is None:
@@ -106,8 +110,8 @@ def record_dataset(
 
         safe_params = redact_mapping(params, secrets=(api_key,))
         safe_payload = redact_mapping(payload, secrets=(api_key,))
-        # expected는 정화된 raw와 동일 출처에서 추출한다 — verify가 정화본을
-        # 재생하므로 쌍이 일치해야 한다(전화번호 등 항목 치환 반영).
+        # expected extracted from same source as sanitized raw — verify replays sanitized
+        # so pair must match (reflects phone number etc. substitutions).
         items = extract_items(spec, safe_payload)
         total = extract_total_count(spec, safe_payload)
         payload_text = _canon(safe_payload)
@@ -136,16 +140,16 @@ def record_dataset(
         shown = raw_path.relative_to(REPO_ROOT) if raw_path.is_relative_to(REPO_ROOT) else raw_path
         print(f"기록: {shown} ({len(items)}건, total={total})")
 
-    # 기록 성공 → spec의 last_verified를 오늘로 동기화(검증일 신뢰성).
+    # Record success → sync spec's last_verified to today (verification date reliability).
     #
-    # 두 가지를 확인한 뒤에만 쓴다.
+    # Write only after checking both:
     #
-    # 1) 경로: ``spec_root`` 를 쓴다. 예전에는 ``fixtures_root`` 를 tmp 로 넘겨도
-    #    spec 경로만 REPO_ROOT 로 고정돼서, 단위 테스트가 저장소 소스를 고쳤다.
-    # 2) 실호출 여부: 가짜 transport 로 돌린 기록은 "실API 최종 검증일" 이 아니다.
-    #    ``last_verified`` 는 SUPPORTED_DATA.md·docs/status.md·README 표의 원천이고
-    #    "90일 초과 시 재검증" 규칙이 여기 걸려 있다 — 테스트가 갱신하면 그 규칙이
-    #    성립하지 않는다.
+    # 1) Path: use ``spec_root``. Previously, even when ``fixtures_root`` was passed as tmp,
+    #    spec path was fixed to REPO_ROOT only, so unit tests modified repository source.
+    # 2) Live call check: records from fake transport are not "live API final verification date".
+    #    ``last_verified`` is the source for SUPPORTED_DATA.md, docs/status.md, README tables
+    #    "re-verify if >90 days" rule hangs here — if tests update it, that rule
+    #    no longer holds.
     spec_path = spec_root / spec.provider / f"{spec.dataset_key}.yaml"
     if _is_live_transport(resolved_transport) and spec_path.is_file():
         text = spec_path.read_text(encoding="utf-8")
@@ -158,7 +162,7 @@ def record_dataset(
             text = text.replace("status: active", f'status: active\nlast_verified: "{today}"', 1)
         spec_path.write_text(text, encoding="utf-8")
 
-    # spec에서 제거된 예제의 낡은 fixture 정리(도구 위생 — 수동 수정 아님)
+    # Clean up old fixtures for examples removed from spec (tool hygiene — not manual edit)
     declared = {example.name for example in spec.examples}
     for stale in out_dir.glob("*.raw.json"):
         stale_name = stale.name.removesuffix(".raw.json")
@@ -171,14 +175,14 @@ def record_dataset(
 
 
 def _spec_ids() -> list[str]:
-    """번들 spec id 목록을 반환한다."""
+    """Return bundle spec id list."""
     from kpubdata.core.spec import discover_specs
 
     return [spec.id for spec in discover_specs()]
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI 진입점."""
+    """CLI entry point."""
     parser = argparse.ArgumentParser(description="spec examples 실호출 fixture 기록")
     parser.add_argument("dataset", nargs="?", help="데이터셋 id (예: datago.apt_trade)")
     parser.add_argument("--list", action="store_true", help="기록 가능한 spec id 나열")
