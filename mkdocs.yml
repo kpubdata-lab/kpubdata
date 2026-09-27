@@ -69,6 +69,10 @@ nav:
       - 서울 열린데이터광장: providers/seoul.md
       - 통계청 KOSIS: providers/kosis.md
       - 한국은행 BOK: providers/bok.md
+      - 지방재정365 (lofin): providers/lofin.md
+      - 지방행정인허가 (localdata): providers/localdata.md
+      - 소상공인 상가정보 (semas): providers/semas.md
+      - 통계지리정보 (sgis): providers/sgis.md
   - 아키텍처:
       - 시스템 구조: architecture-diagrams.md
       - Product Family: product-family-architecture.md
@@ -77,6 +81,8 @@ nav:
   - ADR:
       - "0001: Dialect 아키텍처": adrs/0001-dialect-inspired-architecture.md
       - "0002: UX 표준화": adrs/0002-standardize-ux-not-native-shape.md
+      - "0003: 언어 정책": adrs/0003-language-policy.md
+      - "0004: 버전 정책": adrs/0004-versioning-and-release.md
   - 튜토리얼:
       - AI 에이전트 워크플로우: tutorial-ai-agent-workflow.md
   - 기여:

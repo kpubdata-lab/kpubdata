@@ -41,23 +41,19 @@ def build_section() -> str:
     catalogue_summary = ", ".join(
         f"{provider} {count}" for provider, count in sorted(catalogue.items())
     )
+    # The per-dataset table lives in SUPPORTED_DATA.md, not here (#546). A README is
+    # read to decide whether to use the project, and 23 rows of verification dates do
+    # not help that decision — the counts do, and the table is one link away.
+    verified = sum(1 for spec in specs if spec.last_verified is not None)
     lines = [
         BEGIN,
         "",
-        f"- **spec 기반 데이터셋**: {len(spec_ids)}종 — `make verify` 4단계 기계 검증 통과",
-        f"- **catalogue 기반 데이터셋**: {sum(catalogue.values())}종 ({catalogue_summary})",
+        f"- **spec 기반 데이터셋** {len(spec_ids)}종 — `make verify` 4단계 기계 검증 통과"
+        f" ({verified}종은 실API 검증 날짜까지 기록)",
+        f"- **catalogue 기반 데이터셋** {sum(catalogue.values())}종 ({catalogue_summary})",
         "",
-        "| spec 데이터셋 | 검증 |",
-        "|---|---|",
-    ]
-    spec_map = {spec.id: spec for spec in specs}
-    for dataset_id in spec_ids:
-        spec = spec_map[dataset_id]
-        verified = spec.last_verified.isoformat() if spec.last_verified else "-"
-        lines.append(f"| `{dataset_id}` | 실API {verified} |")
-    lines += [
-        "",
-        "> 이 표는 `scripts/gen_readme_datasets.py`로 생성했다 — 직접 편집 금지.",
+        "> 이 수치는 `scripts/gen_readme_datasets.py`로 생성했다 — 직접 편집 금지."
+        " 데이터셋별 상태는 [SUPPORTED_DATA.md](./SUPPORTED_DATA.md).",
         END,
     ]
     return "\n".join(lines)
