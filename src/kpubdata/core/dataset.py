@@ -219,6 +219,17 @@ class Dataset:
                 )
 
         effective_max_pages = max_pages if max_pages is not None else _DEFAULT_MAX_PAGES
+
+        # Spec-backed datasets: use global column casting across all pages (#481).
+        # This prevents mixed types when page 1 casts a column but page 2 cannot.
+        query_records_all = getattr(self._adapter, "query_records_all", None)
+        if callable(query_records_all):
+            query = Query(filters=dict(kwargs))
+            batches = query_records_all(self._ref, query, max_pages=effective_max_pages)
+            for batch in batches:
+                yield batch
+            return
+
         seen_pages: set[int] = set()
         seen_cursors: set[str] = set()
         consecutive_empty_batches = 0
