@@ -189,6 +189,50 @@ class TestTheGateDoesNotBlockLegitimateCalls:
         params = _executor().build_params(_spec(base_url="https://gateway.internal/api"), Query())
         assert params["serviceKey"] == _SECRET
 
+    @pytest.mark.parametrize(
+        "value", ["gateway.internal proxy.corp.example", "gateway.internal,proxy.corp.example"]
+    )
+    def test_both_documented_separators_work(
+        self, value: str, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The documentation shows commas and describes whitespace. Splitting on
+        only one of them turns the other form into a single invalid entry, and
+        both legitimate proxies stay blocked."""
+        monkeypatch.setenv("KPUBDATA_DATAGO_EXTRA_HOSTS", value)
+        for host in ("gateway.internal", "proxy.corp.example"):
+            assert host_is_allowed("datago", host), host
+
+
+class TestEnvironmentAdditionsAreExactOnly:
+    """A built-in suffix is reviewed when it is added to ``_hosts.py``. An
+    environment value is whatever a deployment exported, so one typo must not
+    become a wildcard -- the credential goes wherever the list allows."""
+
+    @pytest.fixture(autouse=True)
+    def _clear(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("KPUBDATA_DATAGO_EXTRA_HOSTS", raising=False)
+
+    def test_a_leading_dot_entry_does_not_open_subdomains(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("KPUBDATA_DATAGO_EXTRA_HOSTS", ".example.com")
+        assert not host_is_allowed("datago", "sub.example.com")
+        assert not host_is_allowed("datago", "example.com")
+
+    def test_a_leading_dot_entry_matches_only_itself(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Which resolves to nothing usable -- that is the point."""
+        monkeypatch.setenv("KPUBDATA_DATAGO_EXTRA_HOSTS", ".example.com")
+        assert host_is_allowed("datago", ".example.com")
+
+    def test_a_builtin_suffix_still_widens(self) -> None:
+        assert host_is_allowed("datago", "apis.data.go.kr")
+        assert host_is_allowed("datago", "deeper.apis.data.go.kr")
+
+    def test_an_exact_environment_entry_is_honoured(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("KPUBDATA_DATAGO_EXTRA_HOSTS", "gateway.internal")
+        assert host_is_allowed("datago", "gateway.internal")
+        assert not host_is_allowed("datago", "sub.gateway.internal")
+
 
 class TestTheListItself:
     def test_an_unknown_provider_is_fail_closed(self) -> None:

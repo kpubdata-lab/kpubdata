@@ -25,6 +25,7 @@ from urllib.parse import urlparse
 __all__ = [
     "PROVIDER_ALLOWED_HOSTS",
     "extra_hosts_env_var",
+    "extra_hosts_for",
     "host_is_allowed",
     "hosts_for",
 ]
@@ -64,12 +65,32 @@ def extra_hosts_env_var(provider: str) -> str:
     return f"KPUBDATA_{provider.strip().upper()}_EXTRA_HOSTS"
 
 
-def hosts_for(provider: str) -> frozenset[str]:
-    """Allowed hosts for ``provider``, including the environment additions."""
-    declared = PROVIDER_ALLOWED_HOSTS.get(provider.strip().casefold(), frozenset())
+def extra_hosts_for(provider: str) -> frozenset[str]:
+    """Hosts added through the environment. **Matched exactly, never as suffixes.**
+
+    A ``.example.com`` entry here allows exactly the host ``.example.com``, which
+    resolves to nothing -- it does not open every subdomain. That asymmetry with
+    the built-in list is deliberate: a built-in suffix is reviewed when it is
+    added to this file, while an environment value is whatever a deployment
+    exported. One typo turning into a wildcard would make the list meaningless,
+    and the credential goes wherever the list allows.
+
+    Accepts commas and whitespace as separators. A hostname cannot contain
+    either, so there is no ambiguity, and an operator following either form in
+    the documentation gets what they asked for.
+    """
     raw = os.environ.get(extra_hosts_env_var(provider), "")
-    extra = {entry.strip().casefold() for entry in raw.split(",") if entry.strip()}
-    return declared | frozenset(extra)
+    return frozenset(entry.casefold() for entry in raw.replace(",", " ").split() if entry)
+
+
+def hosts_for(provider: str) -> frozenset[str]:
+    """Every allowed host for ``provider``, built-in and environment together.
+
+    For display and diagnostics. ``host_is_allowed`` consults the two sets
+    separately, because only the built-in one may carry suffix entries.
+    """
+    declared = PROVIDER_ALLOWED_HOSTS.get(provider.strip().casefold(), frozenset())
+    return declared | extra_hosts_for(provider)
 
 
 def host_is_allowed(provider: str, url_or_host: str) -> bool:
@@ -95,10 +116,17 @@ def host_is_allowed(provider: str, url_or_host: str) -> bool:
     if not host:
         return False
     host = host.casefold().rstrip(".")
-    allowed = hosts_for(provider)
-    if not allowed:
+    builtin = PROVIDER_ALLOWED_HOSTS.get(provider.strip().casefold(), frozenset())
+    extra = extra_hosts_for(provider)
+    if not builtin and not extra:
         return False
-    for entry in allowed:
+
+    # Environment additions are compared exactly. Only the reviewed built-in list
+    # may widen to subdomains.
+    if host in extra:
+        return True
+
+    for entry in builtin:
         if entry.startswith("."):
             # A suffix entry matches subdomains, and the bare domain as well:
             # ".data.go.kr" covers "apis.data.go.kr" and "data.go.kr".

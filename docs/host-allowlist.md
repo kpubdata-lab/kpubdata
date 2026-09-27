@@ -60,9 +60,14 @@ export KPUBDATA_SEOUL_EXTRA_HOSTS="seoul-proxy.internal"
 이름 규칙은 `KPUBDATA_<PROVIDER>_EXTRA_HOSTS` 다. `KPUBDATA_DATAGO_EXTRA_HOSTS`
 는 #261 부터 쓰던 이름 그대로다.
 
-값은 **정확히 일치**로 비교한다. 하위 도메인까지 열려면 `.example.com` 처럼
-점으로 시작하는 항목이 필요한데, 환경변수로는 정확한 호스트만 추가할 수 있다 —
-와일드카드를 환경변수로 받으면 오타 하나로 목록이 무의미해진다.
+환경변수로 추가한 값은 **정확히 일치**로만 비교한다. `.example.com` 을 넣어도
+하위 도메인이 열리지 않는다 — 그 항목은 `.example.com` 이라는 호스트 자체와만
+일치하고, 그런 호스트는 없다.
+
+하위 도메인까지 여는 `.` 접두 항목은 `src/kpubdata/_hosts.py` 의 내장 목록에서만
+동작한다. 그 목록에 줄을 추가하는 것은 리뷰를 거치지만 환경변수는 배포가 export
+한 값 그대로이고, 오타 하나가 와일드카드가 되면 목록이 무의미해진다. credential
+은 목록이 허용하는 곳으로 간다.
 
 ## 업그레이드 시 확인할 것
 
