@@ -78,9 +78,14 @@ jobs:
         with:
           python-version: "3.12"
 
+      # The local reference, so this repository's own release exercises the action the
+      # other two call remotely. An action nobody here uses is one that breaks for
+      # them first.
       - name: Work out the new version
         id: bump
-        run: python3 scripts/next_version.py "${{ inputs.bump }}" >> "$GITHUB_OUTPUT"
+        uses: ./.github/actions/next-version
+        with:
+          bump: ${{ inputs.bump }}
 
       - name: Stop here on a dry run
         if: inputs.dry_run

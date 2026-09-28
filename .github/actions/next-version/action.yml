@@ -1,0 +1,37 @@
+name: Next version
+description: >
+  Work out the version after a bump, from the file that declares it. Wraps
+  scripts/next_version.py so kpubdata-builder and kpubdata-studio call one
+  implementation instead of keeping copies that drift.
+
+inputs:
+  bump:
+    description: "patch, minor or pre"
+    required: true
+  file:
+    description: "The file declaring the current version (pyproject.toml or package.json)"
+    required: false
+    default: pyproject.toml
+
+outputs:
+  new_version:
+    description: "The version after the bump"
+    value: ${{ steps.run.outputs.new_version }}
+  tag:
+    description: "`v` plus the new version"
+    value: ${{ steps.run.outputs.tag }}
+
+runs:
+  using: composite
+  steps:
+    # The caller's checkout is the repository being released; this action's own files
+    # come from wherever it was referenced. `github.action_path` is that directory, so
+    # the script is found without the caller checking kpubdata out.
+    - id: run
+      shell: bash
+      env:
+        BUMP: ${{ inputs.bump }}
+        FILE: ${{ inputs.file }}
+      run: |
+        python3 "${{ github.action_path }}/../../../scripts/next_version.py" \
+          "${BUMP}" --file "${FILE}" >> "$GITHUB_OUTPUT"
