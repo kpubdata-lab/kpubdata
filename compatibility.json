@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "owner": "kpubdata",
+  "description": "Cross-repo compatibility matrix — single source of truth (#466). Builder and Studio CI read this file to check their kpubdata dependency range.",
+  "update_policy": "Update on every kpubdata release. Builder/Studio link here, never copy.",
+  "matrix": [
+    {
+      "kpubdata": "main",
+      "builder": "main",
+      "studio": "main",
+      "status": "ci-tested",
+      "note": "Cross-repo E2E (#282) runs against main branches"
+    },
+    {
+      "kpubdata": ">=0.6.0,<0.7",
+      "builder": "dev",
+      "studio": "dev",
+      "status": "supported",
+      "note": "Current development line. No tagged release yet — see builder#690 for version alignment."
+    }
+  ]
+}
