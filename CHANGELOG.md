@@ -49,21 +49,21 @@ Mostly a security and correctness release. Users of 0.6.x should upgrade.
 
 ## [0.6.0] — 2026-09-09
 
-### 제거 (Breaking)
-- **폐기 서비스 데이터셋 141종 제거** (#412): localdata 136종, datago 5종(building_area·building_floor·building_recap_title·building_title·metro_path).
-  2026-09-09 본문 전수 프로브(`tests/fixtures/batch-reclass.json`)로 NO_OPENAPI_SERVICE 확정.
-  해당 catalogue 항목·fixture·테스트를 함께 제거했다. 활용신청 필요 94종은 유지(#409).
+### Removed (Breaking)
+- **Removed 141 datasets for retired services** (#412): 136 localdata, 5 datago (building_area·building_floor·building_recap_title·building_title·metro_path).
+  Confirmed NO_OPENAPI_SERVICE by a full probe of response bodies on 2026-09-09 (`tests/fixtures/batch-reclass.json`).
+  The corresponding catalogue entries, fixtures and tests are removed with them. The 94 that need 활용신청 are kept (#409).
 
-### 추가
-- spec 기반 데이터셋 18종(골든 3 + air_station + ultra_srt_fcst + air_quality + ultra_srt_ncst + 부동산 6 + localdata 3 + airkorea_forecast + metro_fare) — `make verify` 4단계 기계 검증.
-- 대량 전환 도구: `gen_specs_from_catalogue.py`·`batch_record.py`·`gen_example_scripts.py`.
+### Added
+- 18 spec-based datasets (3 golden + air_station + ultra_srt_fcst + air_quality + ultra_srt_ncst + 6 real estate + 3 localdata + airkorea_forecast + metro_fare) — machine-verified by the 4 stages of `make verify`.
+- Bulk conversion tools: `gen_specs_from_catalogue.py`·`batch_record.py`·`gen_example_scripts.py`.
 
 
 ### Recorded after release
 
 These shipped in 0.6.0 but were left under Unreleased until 0.7.0.
 
-- HTTP 전송 계층 로그/예외 메시지에서 API 키가 포함된 query parameter가 `[REDACTED]`로 마스킹되도록 수정 (#260)
+- HTTP transport layer logs/exception messages now mask query parameters containing API keys as `[REDACTED]` (#260)
 - Canonical Query validation now prevents invalid canonical query values from reaching provider adapters (#264)
 - `Dataset.list()` now validates canonical query parameters (`page`, `page_size`, `cursor`, `start_date`, `end_date`, `fields`, `sort`) before adapter invocation
 - Canonical keys are now routed by name (not by type) to prevent bypass via type mismatch (e.g., `dataset.list(page="1")` now raises `InvalidRequestError` instead of falling through to filters)
@@ -76,26 +76,26 @@ These shipped in 0.6.0 but were left under Unreleased until 0.7.0.
 ## [0.5.0] - 2026-04-28
 
 ### Added
-- `krx` provider — 한국거래소 시세 어댑터 (선택적 `pykrx` 백엔드, authless 구성). 새로운 `requires_api_key` 프로토콜 플래그와 `Client.iter_authenticated_providers()` 도입 (#199)
-- `krx.kospi_index` — 코스피 지수 일별 시세 (#200)
-- `krx.investor_flow` — 투자자별 순매수 추이 (`net_value = buy_value - sell_value`) (#200)
-- `krx.market_valuation` — 시장 밸류에이션 지표 (per-day `get_market_fundamental_by_ticker` 집계) (#200)
-- `bok.usd_krw` — 원/달러 환율 ECOS 일별 시세 (731Y003/0000003) (#197)
-- `bok.bond_yield_3y` — 국고채 3년 ECOS 일별 시세 (817Y002/010200000) (#198)
-- `kosis.industrial_production` — 광공업생산지수 (DT_1J22003) (#196)
-- KOSIS 어댑터의 dataset-level `default_query_params` 지원 (objL1-objL8/itmId/prdSe/newEstPrdCnt/prdInterval allowlist; caller filters override defaults) (#196)
-- `pandas-stubs` dev 의존성 추가로 `core/models.py`의 `# type: ignore` 제거
-- ODcloud `provider_family` 프로토콜 지원: `api.odcloud.kr` 기반 엔드포인트를 위한 별도 페이지네이션(`page`/`perPage`) 및 응답 파싱(`data[]` 플랫 배열) 처리
-- k-eco-navigator 연동용 3개 데이터셋 추가:
-  - `datago.g2b_contract` — 나라장터 조달계약정보 (`apis.data.go.kr/1230000/ao/CntrctInfoService`)
-  - `datago.social_enterprise` — 사회적기업 인증현황 (`api.odcloud.kr/api/socialEnterpriseList/v1`, ODcloud 프로토콜)
-  - `datago.g2b_catalog` — 나라장터 종합쇼핑몰 품목정보 (`apis.data.go.kr/1230000/at/ShoppingMallPrdctInfoService`)
+- `krx` provider — Korea Exchange market data adapter (optional `pykrx` backend, authless configuration). Introduces a new `requires_api_key` protocol flag and `Client.iter_authenticated_providers()` (#199)
+- `krx.kospi_index` — KOSPI index daily data (#200)
+- `krx.investor_flow` — net purchase trend by investor type (`net_value = buy_value - sell_value`) (#200)
+- `krx.market_valuation` — market valuation indicators (per-day `get_market_fundamental_by_ticker` aggregation) (#200)
+- `bok.usd_krw` — KRW/USD exchange rate ECOS daily data (731Y003/0000003) (#197)
+- `bok.bond_yield_3y` — 3-year government bond ECOS daily data (817Y002/010200000) (#198)
+- `kosis.industrial_production` — Mining and Manufacturing Production Index (DT_1J22003) (#196)
+- Dataset-level `default_query_params` support in the KOSIS adapter (objL1-objL8/itmId/prdSe/newEstPrdCnt/prdInterval allowlist; caller filters override defaults) (#196)
+- Add the `pandas-stubs` dev dependency and remove the `# type: ignore` in `core/models.py`
+- ODcloud `provider_family` protocol support: separate pagination (`page`/`perPage`) and response parsing (`data[]` flat array) for `api.odcloud.kr`-based endpoints
+- 3 datasets added for the k-eco-navigator integration:
+  - `datago.g2b_contract` — KONEPS procurement contract information (`apis.data.go.kr/1230000/ao/CntrctInfoService`)
+  - `datago.social_enterprise` — social enterprise certification status (`api.odcloud.kr/api/socialEnterpriseList/v1`, ODcloud protocol)
+  - `datago.g2b_catalog` — KONEPS shopping mall product information (`apis.data.go.kr/1230000/at/ShoppingMallPrdctInfoService`)
 
 ### Changed
-- `social_enterprise` 데이터셋은 `apis.data.go.kr`이 아닌 `api.odcloud.kr` 엔드포인트 사용 (ODcloud 프로토콜)
+- The `social_enterprise` dataset uses the `api.odcloud.kr` endpoint rather than `apis.data.go.kr` (ODcloud protocol)
 
 ### Removed
-- `datago.coop` (협동조합 설립현황) 데이터셋 삭제 — 전국 단위 API 미존재 확인
+- Remove the `datago.coop` (cooperative establishment status) dataset — confirmed that no nationwide API exists
 
 ## [0.3.1] - 2026-04-23
 
@@ -133,7 +133,7 @@ These shipped in 0.6.0 but were left under Unreleased until 0.7.0.
 ## [0.2.1] - 2026-04-17
 
 ### Added
-- `SUPPORTED_DATA.md` 실API 최종 검증일 컬럼 추가
+- Add a real-API last-verified-date column to `SUPPORTED_DATA.md`
 - Single-page pagination contract and `list_all()` implementation
 
 ## [0.2.0] - 2026-04-17
