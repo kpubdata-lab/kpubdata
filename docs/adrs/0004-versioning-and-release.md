@@ -64,8 +64,11 @@ kpubdata-studio  ┘
 
 근거가 이미 저장소 안에 있다.
 
-- `docker-compose.prod.app.yml` 이 builder 와 studio 를 **한 애플리케이션으로 띄운다.**
-  사용자는 둘을 따로 설치하지 않는다.
+- **자동화가 없는 저장소는 릴리스가 나가지 않는다.** 태그 수가 그대로 말한다 —
+  워크플로가 있는 kpubdata 10개, 없는 builder 1개, 없는 studio **0개**. 1인
+  개발에서 릴리스 열차가 둘이면 한 대는 굴러가지 않고, 굴러가지 않은 쪽이 studio 다.
+  분리하면 릴리스마다 "저쪽도 내야 하나" 를 판단해야 하고, **반복되는 판단은 건너뛰게
+  된다.**
 - `.github/workflows/cross-repo-contract.yml` 이 **이미 둘을 묶고 있다.** 계약이
   깨지면 양쪽이 같이 깨진다.
 - 반면 builder 는 `kpubdata>=0.6.0,<0.7` 로 **버전 범위로** 의존한다. 그것이 라이브러리
@@ -73,6 +76,25 @@ kpubdata-studio  ┘
 
 그래서 사용자가 "무엇을 돌리고 있나" 에 답할 때 필요한 숫자는 **둘**이다. 애플리케이션
 버전 하나와, 그 안에 든 라이브러리 버전 하나.
+
+#### 근거 하나를 철회했다 — 2026-09-28
+
+이 절의 첫 근거는 **"`docker-compose.prod.app.yml` 이 builder 와 studio 를 한
+애플리케이션으로 띄운다"** 였다. 파일을 열어보니 사실이 아니다.
+
+```
+$ grep -E '^  [a-z-]+:|image:' docker-compose.prod.app.yml
+  builder:   ghcr.io/yeongseon/kpubdata-builder:latest
+  caddy:     caddy:2.8-alpine     (BACKEND_UPSTREAM: builder:8000)
+```
+
+**studio 가 없다.** caddy 는 builder 로만 프록시한다. 측정하지 않고 쓴 문장이고,
+바로 아래에서 같은 실수를 한 번 더 적어둔 그 실수다.
+
+결론은 바뀌지 않는다. studio 가 **다른 곳에 배포돼서** 빠진 게 아니라 **아직 배포된
+적이 없어서** 빠졌기 때문이다 — 태그 0개, 이미지 없음(`kpubdata-studio#411`). Pages
+워크플로의 이름은 `Deploy demo + docs` 이고 제품 배포가 아니다. 근거를 위와 같이
+바꾼다.
 
 #### 처음에 셋 다 독립으로 쓴 것을 고쳤다
 
