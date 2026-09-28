@@ -7,8 +7,14 @@
 #
 # Two entry points, neither of which writes to main directly.
 #
-#   workflow_dispatch                       opens a release pull request
-#   pull_request closed on `release/*`      runs the gates, tags, releases, publishes
+#   workflow_dispatch, mode=prepare         opens a release pull request
+#   workflow_dispatch, mode=release         gates what is declared now, then tags
+#   pull_request closed on `release/*`      the same, for the pull request path
+#
+# `mode=release` exists because a first release is not a bump. Both applications
+# already declare the version their CHANGELOG says they are preparing, so raising it
+# would leave that version unreleased for ever. The declared version is read from the
+# file, never typed, so there is no place for a wrong number to enter.
 #
 # The second half cannot be a separate workflow triggered by the tag: events created
 # with GITHUB_TOKEN do not start workflows. So the gates, the tag and the release are
@@ -25,8 +31,16 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        description: "prepare = open a release pull request; release = tag what is declared now"
+        required: true
+        type: choice
+        options:
+          - prepare
+          - release
+        default: prepare
       bump:
-        description: "Which part of the version to raise"
+        description: "Which part of the version to raise (mode=prepare only)"
         required: true
         type: choice
         options:
@@ -35,7 +49,7 @@ on:
           - pre
         default: patch
       dry_run:
-        description: "Work out the new version and stop — open no pull request"
+        description: "Work out the new version and stop (mode=prepare only)"
         required: false
         type: boolean
         default: false
@@ -50,7 +64,7 @@ jobs:
   prepare:
     name: Open the release pull request
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'prepare'
     timeout-minutes: 10
     permissions:
       contents: write
@@ -64,9 +78,14 @@ jobs:
         with:
           python-version: "3.12"
 
+      # The local reference, so this repository's own release exercises the action the
+      # other two call remotely. An action nobody here uses is one that breaks for
+      # them first.
       - name: Work out the new version
         id: bump
-        run: python3 scripts/next_version.py "${{ inputs.bump }}" >> "$GITHUB_OUTPUT"
+        uses: ./.github/actions/next-version
+        with:
+          bump: ${{ inputs.bump }}
 
       - name: Stop here on a dry run
         if: inputs.dry_run
@@ -74,25 +93,18 @@ jobs:
           echo "dry run: would release ${{ steps.bump.outputs.tag }}"
           echo "nothing written, no branch pushed, no pull request opened"
 
+      # Not just pyproject.toml. `uv.lock` repeats the project's own version, and
+      # writing one without the other fails `uv lock --check` — nine checks red from a
+      # one-line change, which is how kpubdata-builder#744 went.
       - name: Write the version
         if: ${{ !inputs.dry_run }}
-        env:
-          NEW_VERSION: ${{ steps.bump.outputs.new_version }}
-        run: |
-          python3 - <<'PY'
-          import os, pathlib, re
-          path = pathlib.Path("pyproject.toml")
-          path.write_text(
-              re.sub(
-                  r'^version = "[^"]+"',
-                  f'version = "{os.environ["NEW_VERSION"]}"',
-                  path.read_text(encoding="utf-8"),
-                  count=1,
-                  flags=re.MULTILINE,
-              ),
-              encoding="utf-8",
-          )
-          PY
+        uses: ./.github/actions/set-version
+        with:
+          version: ${{ steps.bump.outputs.new_version }}
+
+      - name: Show what changed
+        if: ${{ !inputs.dry_run }}
+        run: git --no-pager diff --stat
 
       - name: Open the pull request
         if: ${{ !inputs.dry_run }}
@@ -103,7 +115,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b "release/${TAG}"
-          git add pyproject.toml
+          git add -A
           git commit -m "chore: release ${TAG}"
           git push origin "release/${TAG}"
           printf '%s\n' \
@@ -121,21 +133,28 @@ jobs:
     name: Gate, tag and release
     runs-on: ubuntu-latest
     if: |
-      github.event_name == 'pull_request' &&
-      github.event.pull_request.merged == true &&
-      startsWith(github.event.pull_request.head.ref, 'release/')
+      (github.event_name == 'workflow_dispatch' && inputs.mode == 'release') ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.merged == true &&
+       startsWith(github.event.pull_request.head.ref, 'release/'))
     timeout-minutes: 20
     permissions:
       contents: write
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
-      # The merge commit itself, not `main`. Tagging main's head would tag whatever
-      # merged next, which is a different tree from the one gated below.
+      # On the pull request path, the merge commit itself — not `main`, which by then
+      # may be whatever merged next, a different tree from the one gated below. On a
+      # dispatch there is no merge commit, so it is main's head, and the SHA is pinned
+      # below so the tag cannot land on something else.
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          ref: ${{ github.event.pull_request.merge_commit_sha || github.ref }}
           fetch-depth: 0
+
+      - name: Pin the commit being released
+        id: commit
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - uses: astral-sh/setup-uv@v7
         with:
@@ -146,7 +165,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Read the version that was merged
+      - name: Read the version being released
         id: tag
         run: |
           version=$(python3 -c "
@@ -162,6 +181,7 @@ jobs:
       # release pull request. Tagging the wrong one is how an artifact ends up
       # labelled with a version it does not contain (kpubdata-builder#690).
       - name: The branch name and the file must agree
+        if: github.event_name == 'pull_request'
         env:
           BRANCH: ${{ github.event.pull_request.head.ref }}
           TAG: ${{ steps.tag.outputs.tag }}
@@ -170,6 +190,19 @@ jobs:
             echo "::error::branch is ${BRANCH} but pyproject.toml says release/${TAG}"
             exit 1
           fi
+
+      # Before the gates, not after. #586 is about a release that failed with a tag
+      # already created; spending ten minutes to then say "tag exists" is the same
+      # shape of waste one step earlier.
+      - name: The tag must not exist yet
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            echo "::error::${TAG} already exists. Nothing to release, or the version was not raised."
+            exit 1
+          fi
+          echo "${TAG} is free"
 
       - name: Install dependencies
         run: uv sync --frozen --extra dev
@@ -193,17 +226,20 @@ jobs:
           git tag "${TAG}"
           git push origin "${TAG}"
           gh release create "${TAG}" --title "${TAG}" --generate-notes \
-            --target "${{ github.event.pull_request.merge_commit_sha }}"
+            --target "${{ steps.commit.outputs.sha }}"
 
-  publish:
-    name: Publish
+  # Publishing is not called from here. PyPI's trusted publisher matches the
+  # workflow GitHub started, so a reusable call made the certificate say
+  # `release.yml` and the upload was refused. publish-pypi.yml is dispatched against
+  # the tag this job created — see its header, and #593 for removing the extra step.
+  say-what-is-next:
+    name: Say what to do next
     needs: [release]
-    # A release created with GITHUB_TOKEN does not fire `release: published`, so the
-    # publish is called rather than waited for.
-    uses: ./.github/workflows/publish-pypi.yml
-    with:
-      ref: ${{ needs.release.outputs.tag }}
-    permissions:
-      contents: read
-      id-token: write
-    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Next step
+        env:
+          TAG: ${{ needs.release.outputs.tag }}
+        run: |
+          echo "::notice::${TAG} is tagged and released. Publish it with:"
+          echo "::notice::  gh workflow run publish-pypi.yml -f ref=${TAG}"

@@ -72,7 +72,7 @@ def test_it_prints_github_output_lines(script, tmp_path: Path, capsys) -> None:
     pyproject = tmp_path / "pyproject.toml"
     pyproject.write_text('[project]\nname = "x"\nversion = "0.6.0"\n', encoding="utf-8")
 
-    exit_code = script.main(["minor", "--pyproject", str(pyproject)])
+    exit_code = script.main(["minor", "--file", str(pyproject)])
 
     assert exit_code == 0
     assert capsys.readouterr().out == "new_version=0.7.0\ntag=v0.7.0\n"
@@ -82,5 +82,38 @@ def test_a_pyproject_without_a_version_is_an_error(script, tmp_path: Path, capsy
     pyproject = tmp_path / "pyproject.toml"
     pyproject.write_text('[project]\nname = "x"\n', encoding="utf-8")
 
-    assert script.main(["patch", "--pyproject", str(pyproject)]) == 1
-    assert "no [project] version" in capsys.readouterr().err
+    assert script.main(["patch", "--file", str(pyproject)]) == 1
+    assert "declares no version" in capsys.readouterr().err
+
+
+def test_it_reads_package_json_too(script, tmp_path: Path, capsys) -> None:
+    """Studio keeps its version in `package.json`, and one shared tool beats two."""
+    manifest = tmp_path / "package.json"
+    manifest.write_text('{\n  "name": "studio",\n  "version": "0.4.0"\n}\n', encoding="utf-8")
+
+    assert script.main(["minor", "--file", str(manifest)]) == 0
+    assert capsys.readouterr().out == "new_version=0.5.0\ntag=v0.5.0\n"
+
+
+def test_package_json_without_a_version_is_an_error(script, tmp_path: Path, capsys) -> None:
+    manifest = tmp_path / "package.json"
+    manifest.write_text('{\n  "name": "studio"\n}\n', encoding="utf-8")
+
+    assert script.main(["patch", "--file", str(manifest)]) == 1
+    assert "declares no version" in capsys.readouterr().err
+
+
+def test_a_json_dependency_pin_is_not_mistaken_for_the_version(
+    script, tmp_path: Path, capsys
+) -> None:
+    """`"version"` appears once as the package's own field; a dependency's pin is
+    spelled `"some-package": "1.2.3"` and must not win the match."""
+    manifest = tmp_path / "package.json"
+    manifest.write_text(
+        '{\n  "name": "studio",\n  "version": "0.4.0",\n'
+        '  "dependencies": { "react": "19.2.0" }\n}\n',
+        encoding="utf-8",
+    )
+
+    assert script.main(["patch", "--file", str(manifest)]) == 0
+    assert capsys.readouterr().out == "new_version=0.4.1\ntag=v0.4.1\n"
