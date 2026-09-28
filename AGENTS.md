@@ -261,7 +261,8 @@ When a public method, public model or canonical exception changes:
 
 - Update `API_SPEC.md`.
 - Update `PRD.md` if the requirement changed.
-- Add a release-note entry.
+- Add an entry under `## [Unreleased]` in `CHANGELOG.md`. The release job takes the
+  notes from that section and stops when it is empty.
 
 ---
 

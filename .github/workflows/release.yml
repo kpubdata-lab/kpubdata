@@ -102,6 +102,16 @@ jobs:
         with:
           version: ${{ steps.bump.outputs.new_version }}
 
+      # The release pull request carries its own CHANGELOG change: `[Unreleased]` becomes
+      # this version, dated. 0.7.0 shipped with its entries still under `[Unreleased]`
+      # because nothing did this. An empty `[Unreleased]` stops here, before a branch.
+      - name: Date the CHANGELOG section
+        if: ${{ !inputs.dry_run }}
+        uses: ./.github/actions/release-notes
+        with:
+          command: promote
+          version: ${{ steps.bump.outputs.new_version }}
+
       - name: Show what changed
         if: ${{ !inputs.dry_run }}
         run: git --no-pager diff --stat
@@ -204,6 +214,16 @@ jobs:
           fi
           echo "${TAG} is free"
 
+      # The notes are the CHANGELOG section, not a list of pull request titles. Taken
+      # before the gates so a missing or empty section stops the release while there
+      # is still nothing to clean up.
+      - name: Release notes from the CHANGELOG
+        id: notes
+        uses: ./.github/actions/release-notes
+        with:
+          command: extract
+          version: ${{ steps.tag.outputs.tag }}
+
       - name: Install dependencies
         run: uv sync --frozen --extra dev
 
@@ -225,7 +245,8 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag "${TAG}"
           git push origin "${TAG}"
-          gh release create "${TAG}" --title "${TAG}" --generate-notes \
+          gh release create "${TAG}" --title "${TAG}" \
+            --notes-file "${{ steps.notes.outputs.file }}" \
             --target "${{ steps.commit.outputs.sha }}"
 
   # Publishing is not called from here. PyPI's trusted publisher matches the
