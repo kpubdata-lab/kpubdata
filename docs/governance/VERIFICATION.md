@@ -134,6 +134,41 @@ import { useAsk KPubDataStore } from "@/features/kubi/useAsk KPubDataSession";
 같은 저장소의 `check-stale-ui-literals.mjs` 는 이미 8자 미만을 거부하고 있었다.
 치환이 그 판단을 빌려 쓰지 않았을 뿐이다.
 
+### 9. 없는 체크는 실패가 아니라 정지다
+
+게이트가 **실패하는 것**만 생각하면 한 가지를 놓친다. 필수로 걸어둔 체크가
+**아예 보고되지 않는 경우**다.
+
+`kpubdata-studio#413` 이 매트릭스에서 Node 20 을 뺐다. 보호 설정은 여전히
+`Lint, type check, test, build (20)` 을 요구했다.
+
+```
+required_status_checks.contexts = [
+  "Lint, type check, test, build (20)",   <- 더는 생기지 않는다
+  ...
+]
+```
+
+**GitHub 은 없는 체크를 실패로 처리하지 않는다. 기다린다.** PR 은 붉어지지도
+않고 그냥 영영 BLOCKED 에 머문다. 볼 로그도 없고 재실행할 잡도 없다.
+
+그래서 사람은 `--admin` 으로 지나간다. 그런데 `--admin` 은 **나머지 체크도 전부**
+건너뛴다. 한 칸이 막힌 대가로 전부가 열린 셈이고, 그 세션의 모든 병합이 그렇게
+들어갔다. **전부를 막는 규칙은 아무것도 지키지 않는다.**
+
+두 가지를 함께 해야 한다.
+
+- **집계 게이트 하나만 required 로 건다.** 그 잡이 매트릭스를 `needs` 하면,
+  버전을 더하거나 빼도 보호 설정은 손댈 일이 없다. 매트릭스 이름을 required 에
+  적는 순간 **매트릭스 수정이 곧 보호 설정 수정**이 되고, 잊는 쪽이 이 장애다.
+- **집계 게이트는 `always()` 아래에서 돈다.** 업스트림이 실패했다고 건너뛰어지면,
+  그 게이트 자체가 방금 말한 "없는 체크" 가 된다.
+
+확인은 `scripts/check_required_checks.py` 가 한다. 매트릭스 잡을 **실제로 생기는
+컨텍스트로 펼쳐서** 비교하고, `--workflows` 로 다른 저장소 체크아웃도 본다.
+CI 가 아니라 로컬에서 돈다 — 보호 설정을 읽으려면 admin 토큰이 필요하고, **그
+토큰을 든 워크플로는 이 스크립트가 잡을 드리프트보다 큰 위험**이다.
+
 ## 지금 있는 게이트
 
 | 저장소 | 게이트 | 무엇을 막나 |
@@ -144,6 +179,8 @@ import { useAsk KPubDataStore } from "@/features/kubi/useAsk KPubDataSession";
 | kpubdata | `scripts/check_fixture_authorship.py` | 손으로 쓴 fixture |
 | kpubdata | `scripts/junit_summary.py` | 실패한 run 을 PASS 로 보고 |
 | 3곳 | 브랜치 보호 + `enforce_admins` | CI 를 건너뛴 병합 |
+| kpubdata | `scripts/check_required_checks.py` | 아무도 만들지 않는 required 체크 (3곳 모두 본다) |
+| 3곳 | CI 의 `CI gate` 잡 | 매트릭스 수정이 보호 설정을 깨는 것 |
 
 없어서 만들어야 하는 것은 [BACKLOG.md](BACKLOG.md) 와 관련 이슈에 있다.
 
