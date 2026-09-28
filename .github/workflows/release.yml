@@ -115,7 +115,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b "release/${TAG}"
-          git add pyproject.toml
+          git add -A
           git commit -m "chore: release ${TAG}"
           git push origin "release/${TAG}"
           printf '%s\n' \
