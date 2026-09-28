@@ -1,0 +1,65 @@
+# Machine-readable production-grade criteria (#463)
+# CI evaluates each dataset against these checks.
+version: 1
+
+base:
+  - id: source_url
+    description: Official source URL exists
+    check: metadata.source_url is not null
+
+  - id: supported_data_listed
+    description: Listed in SUPPORTED_DATA.md
+    check: grep SUPPORTED_DATA.md for dataset_id
+
+  - id: verify_passes
+    description: Schema→fixture→replay→example 4-step passes
+    check: make verify DATASET=<id>
+
+  - id: fixture_exists
+    description: Recorded fixture with meta exists
+    check: tests/fixtures/<provider>/<key>/default.meta.json exists
+
+  - id: example_script
+    description: Example script exists
+    check: examples/<provider>/<key>.py exists
+
+  - id: example_replay
+    description: Example runs in replay mode
+    check: KPUBDATA_MODE=replay python examples/<provider>/<key>.py
+
+  - id: fields_declared
+    description: Field types declared where applicable
+    check: spec.fields[] is non-empty for structured data
+
+  - id: casting_consistent
+    description: Column casting consistent across pages
+    check: list_all() returns homogeneous types per column
+
+  - id: validation_clean
+    description: No uncastable fields or issues documented
+    check: batch.validation.ok or issues have documented rationale
+
+  - id: typed_exceptions
+    description: Error paths return typed exceptions
+    check: unit tests cover error scenarios
+
+  - id: pagination_complete
+    description: list_all completes without data loss
+    check: integration test with list_all
+
+  - id: raw_escape_hatch
+    description: call_raw works
+    check: unit test covers call_raw
+
+studio_additional:
+  - id: parameter_form
+    description: Parameter form generatable
+    check: spec has examples[] with params
+
+  - id: preview_renders
+    description: Preview renders with real data
+    check: studio e2e test
+
+  - id: catalog_discovery
+    description: Appears in Studio catalog
+    check: studio catalog integration
