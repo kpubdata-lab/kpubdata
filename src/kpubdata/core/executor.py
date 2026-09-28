@@ -593,6 +593,11 @@ class SpecExecutor:
         for field in spec.fields:
             casts: list[tuple[dict[str, object], object]] = []
             failed_count = 0
+            # Counted so the report can show a ratio. "10 failed of 12 non-null" and
+            # "10 failed of 500" ask for different fixes — a wrong declaration versus a
+            # few dirty rows — and the failure count alone cannot tell them apart.
+            non_null_count = 0
+            null_count = 0
             sample_failures: list[str] = []
             castable = True
             found_in_any = False
@@ -601,6 +606,10 @@ class SpecExecutor:
                     continue
                 found_in_any = True
                 raw_value = record[field.name]
+                if raw_value is None:
+                    null_count += 1
+                else:
+                    non_null_count += 1
                 succeeded, coerced = _try_cast_field(raw_value, field.type)
                 if not succeeded:
                     castable = False
@@ -622,6 +631,8 @@ class SpecExecutor:
                         declared_type=field.type,
                         failed_count=failed_count,
                         sample_values=tuple(sample_failures),
+                        non_null_count=non_null_count,
+                        null_count=null_count,
                     )
                 )
                 logger.debug(
