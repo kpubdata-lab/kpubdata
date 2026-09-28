@@ -1,7 +1,20 @@
 # Build and publish the distribution. Two ways in, and neither of them pushes to main.
 #
 #   release: published   — a release made by hand in the GitHub UI
-#   workflow_call        — release.yml, after a release pull request merged
+#   workflow_dispatch    — after release.yml has tagged (see below)
+#
+# **This has to stay the top-level workflow.** PyPI's trusted publisher matches the
+# OIDC certificate's Build Config URI, which names the workflow GitHub *started*, not
+# the one that ran. Calling this from release.yml as a reusable workflow made the
+# certificate say `release.yml` and PyPI refused v0.7.0:
+#
+#   Certificate's Build Config URI (.../workflows/release.yml@refs/heads/main)
+#   does not match expected Trusted Publisher (publish-pypi.yml @ yeongseon/kpubdata)
+#
+# So release.yml tags and creates the GitHub Release, and this is dispatched against
+# that tag. One more click, no secret and no change to the PyPI account. Adding
+# release.yml as a second trusted publisher on PyPI would remove the click; that is a
+# change only the account owner can make (#593).
 #
 # The version bump used to live here and committed straight to main (#586). Branch
 # protection refuses that now, and it should: the tag was created *before* the gates
@@ -12,10 +25,10 @@ on:
   release:
     types: [published]
 
-  workflow_call:
+  workflow_dispatch:
     inputs:
       ref:
-        description: "Tag or SHA to build from."
+        description: "Tag to build and publish, e.g. v0.7.0"
         required: true
         type: string
 

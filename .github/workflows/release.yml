@@ -228,15 +228,18 @@ jobs:
           gh release create "${TAG}" --title "${TAG}" --generate-notes \
             --target "${{ steps.commit.outputs.sha }}"
 
-  publish:
-    name: Publish
+  # Publishing is not called from here. PyPI's trusted publisher matches the
+  # workflow GitHub started, so a reusable call made the certificate say
+  # `release.yml` and the upload was refused. publish-pypi.yml is dispatched against
+  # the tag this job created — see its header, and #593 for removing the extra step.
+  say-what-is-next:
+    name: Say what to do next
     needs: [release]
-    # A release created with GITHUB_TOKEN does not fire `release: published`, so the
-    # publish is called rather than waited for.
-    uses: ./.github/workflows/publish-pypi.yml
-    with:
-      ref: ${{ needs.release.outputs.tag }}
-    permissions:
-      contents: read
-      id-token: write
-    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Next step
+        env:
+          TAG: ${{ needs.release.outputs.tag }}
+        run: |
+          echo "::notice::${TAG} is tagged and released. Publish it with:"
+          echo "::notice::  gh workflow run publish-pypi.yml -f ref=${TAG}"
