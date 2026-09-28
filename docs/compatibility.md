@@ -18,21 +18,18 @@ KPubData Product Family는 세 저장소가 독립적으로 릴리스되지만, 
 
 | kpubdata-builder | kpubdata | 비고 |
 | :--- | :--- | :--- |
-| 0.4.0.dev0 | 0.6.x | 현재 개발 라인. `pyproject.toml` 의 의존 핀은 `>=0.6.0,<0.7` 이다. |
+| **0.4.0** | **0.6.0** | 2026-09 릴리스. `uv.lock` 에 박힌 실측값이고, 핀은 `>=0.6.0,<0.7` 이다. **kpubdata 0.7.0 은 이 조합에 들어오지 않는다** — 0.7.0 이 카탈로그에서 golden 3 을 뺐고, 옮기는 작업은 [builder#746](https://github.com/yeongseon/kpubdata-builder/issues/746) 이다. |
 | 0.1.x | 0.5.x | Medallion(Bronze→Silver→Gold) 파이프라인 + 서비스 façade 도입. |
 
-> **선언과 태그가 어긋나 있다.** builder 의 `pyproject.toml` 은 `0.4.0.dev0` 이고
-> 발행된 최신 태그는 `v0.1.0` 이다. studio 는 태그가 없다. 즉 위 표의 첫 행은
-> **아직 릴리스되지 않은 상태**를 가리킨다 — 설치 가능한 artifact 로 검증된
-> 조합이 아니다. 정리는
-> [kpubdata-builder#690](https://github.com/yeongseon/kpubdata-builder/issues/690)
-> 에서 한다. 그때까지 버전 번호 대신 커밋 SHA 로 조합을 특정하는 것이 정확하다.
+> **2026-09-28 에 해소됐다.** 이 경고는 builder 가 `0.4.0.dev0` 을 선언하면서 최신
+> 태그가 `v0.1.0` 이고 studio 는 태그가 아예 없던 상태를 가리켰다. 첫 정기 릴리스로
+> 셋 다 발행됐으므로 **위 표의 행들은 이제 설치 가능한 artifact 를 가리킨다.**
 
 ### kpubdata-studio × kpubdata-builder
 
 | kpubdata-studio | kpubdata-builder | 비고 |
 | :--- | :--- | :--- |
-| 0.4.0 (태그 없음) | 0.4.0.dev0 | studio 는 builder 의 HTTP façade(OpenAPI 3.1, `contract/builder-api.yaml` **v1.28.0**)를 통해 통신한다. |
+| **0.4.0** | **0.4.0** | 2026-09 릴리스. 둘은 ADR 0004 에 따라 **같은 버전**이다. studio 는 builder 의 HTTP façade(OpenAPI 3.1, `contract/builder-api.yaml` **v1.29.0**)를 통해 통신한다. |
 | (TBD) | 0.1.x | |
 
 > **표 갱신 규칙**: 새 minor 릴리스가 나면, 해당 릴리스가 호환되는 의존 저장소 버전 범위를 표에 새 행으로 추가한다. 이전 행은 보존(EOL 표시 가능)하여 사용자가 자신의 조합을 찾아볼 수 있게 한다.
