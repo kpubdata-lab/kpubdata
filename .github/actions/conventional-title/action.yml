@@ -1,0 +1,44 @@
+name: Conventional title
+description: >
+  Parse an issue or pull request title as `type(scope): description` and say which
+  `type:*` label it implies (POLICY 2.1.3). Wraps scripts/conventional_title.py so the
+  three repositories use one parser. Never fails the step — callers decide what an
+  invalid title means, because a pull request should go red and an issue should not.
+
+inputs:
+  title:
+    description: "The title to check. Pass it from the event payload, never through `run:`"
+    required: true
+
+outputs:
+  valid:
+    description: "true or false"
+    value: ${{ steps.run.outputs.valid }}
+  type:
+    description: "The Conventional Commits type, when valid"
+    value: ${{ steps.run.outputs.type }}
+  label:
+    description: "The type:* label the title implies, when valid"
+    value: ${{ steps.run.outputs.label }}
+  error:
+    description: "What is wrong with the title, when invalid"
+    value: ${{ steps.run.outputs.error }}
+
+runs:
+  using: composite
+  steps:
+    # The title is attacker-controlled text. It reaches the script through an
+    # environment variable, not by expansion into the shell line.
+    - id: run
+      shell: bash
+      env:
+        TITLE: ${{ inputs.title }}
+      run: |
+        script="${{ github.action_path }}/../../../scripts/conventional_title.py"
+        if out=$(python3 "${script}" "${TITLE}" 2>/tmp/title-error); then
+          echo "valid=true" >> "$GITHUB_OUTPUT"
+          echo "${out}" >> "$GITHUB_OUTPUT"
+        else
+          echo "valid=false" >> "$GITHUB_OUTPUT"
+          echo "error=$(sed 's/^::error:://' /tmp/title-error | head -1)" >> "$GITHUB_OUTPUT"
+        fi

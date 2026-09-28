@@ -1,7 +1,6 @@
 name: 기능 제안
 description: 새로운 기능이나 개선을 제안합니다 (신규 provider는 별도 템플릿 사용)
-title: "[Feature] "
-labels: ["type:feature"]
+title: "feat: "
 body:
   - type: markdown
     attributes:

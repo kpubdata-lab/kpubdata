@@ -1,7 +1,6 @@
 name: New Provider Adapter
 description: Propose or track a new Korean public data provider adapter
-title: "[Provider] "
-labels: ["type:feature"]
+title: "feat(providers): "
 body:
   - type: markdown
     attributes:

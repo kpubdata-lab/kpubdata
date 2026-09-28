@@ -1,5 +1,6 @@
 name: 데이터셋 추가 요청
 description: spec 기반으로 추가할 공공데이터셋을 요청한다
+title: "feat(datasets): "
 labels: [dataset-request]
 body:
   - type: input
