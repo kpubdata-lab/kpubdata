@@ -1,0 +1,21 @@
+name: Set version
+description: >
+  Write a version into every file that declares it — pyproject.toml and uv.lock, or
+  package.json and package-lock.json. Wraps scripts/set_version.py so the three
+  repositories call one implementation instead of keeping copies that drift.
+
+inputs:
+  version:
+    description: "The version to write"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # `github.action_path` is where this action was checked out, which for a remote
+    # reference is inside the whole of kpubdata. The script is found from there, so the
+    # caller does not have to check this repository out itself.
+    - shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+      run: python3 "${{ github.action_path }}/../../../scripts/set_version.py" "${VERSION}"

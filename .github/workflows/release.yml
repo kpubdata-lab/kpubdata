@@ -93,25 +93,18 @@ jobs:
           echo "dry run: would release ${{ steps.bump.outputs.tag }}"
           echo "nothing written, no branch pushed, no pull request opened"
 
+      # Not just pyproject.toml. `uv.lock` repeats the project's own version, and
+      # writing one without the other fails `uv lock --check` — nine checks red from a
+      # one-line change, which is how kpubdata-builder#744 went.
       - name: Write the version
         if: ${{ !inputs.dry_run }}
-        env:
-          NEW_VERSION: ${{ steps.bump.outputs.new_version }}
-        run: |
-          python3 - <<'PY'
-          import os, pathlib, re
-          path = pathlib.Path("pyproject.toml")
-          path.write_text(
-              re.sub(
-                  r'^version = "[^"]+"',
-                  f'version = "{os.environ["NEW_VERSION"]}"',
-                  path.read_text(encoding="utf-8"),
-                  count=1,
-                  flags=re.MULTILINE,
-              ),
-              encoding="utf-8",
-          )
-          PY
+        uses: ./.github/actions/set-version
+        with:
+          version: ${{ steps.bump.outputs.new_version }}
+
+      - name: Show what changed
+        if: ${{ !inputs.dry_run }}
+        run: git --no-pager diff --stat
 
       - name: Open the pull request
         if: ${{ !inputs.dry_run }}
