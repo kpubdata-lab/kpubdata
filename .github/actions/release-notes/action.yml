@@ -1,0 +1,61 @@
+name: Release notes
+description: >
+  Take a release's notes from its CHANGELOG section, or put that section in place.
+  Wraps scripts/release_notes.py so the three repositories call one implementation.
+  `extract` fails when the section is missing or empty, so a release without notes
+  stops before a tag exists.
+
+inputs:
+  command:
+    description: "promote (prepare job) or extract (release job)"
+    required: true
+  version:
+    description: "The version being released, with or without the leading v"
+    required: true
+  changelog:
+    description: "Path to the CHANGELOG"
+    required: false
+    default: CHANGELOG.md
+  output:
+    description: "Where extract writes the notes (default: the runner's temp directory)"
+    required: false
+    default: ""
+
+outputs:
+  file:
+    description: "The notes file (extract only)"
+    value: ${{ steps.run.outputs.file }}
+
+runs:
+  using: composite
+  steps:
+    # The link at the bottom compares against the previous release tag. A first
+    # release has none, so it links the history up to the new tag instead — the tag
+    # does not exist yet while this runs, but will by the time anyone clicks.
+    - id: run
+      shell: bash
+      env:
+        COMMAND: ${{ inputs.command }}
+        VERSION: ${{ inputs.version }}
+        CHANGELOG: ${{ inputs.changelog }}
+        OUTPUT: ${{ inputs.output }}
+        REPO: ${{ github.repository }}
+      run: |
+        script="${{ github.action_path }}/../../../scripts/release_notes.py"
+        if [ "${COMMAND}" = "promote" ]; then
+          python3 "${script}" promote "${VERSION}" --changelog "${CHANGELOG}"
+          exit $?
+        fi
+        OUTPUT="${OUTPUT:-${RUNNER_TEMP}/release-notes.md}"
+        tag="v${VERSION#v}"
+        previous=$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD 2>/dev/null || true)
+        if [ -n "${previous}" ] && [ "${previous}" != "${tag}" ]; then
+          compare="https://github.com/${REPO}/compare/${previous}...${tag}"
+        else
+          compare="https://github.com/${REPO}/commits/${tag}"
+        fi
+        python3 "${script}" extract "${VERSION}" --changelog "${CHANGELOG}" \
+          --compare-url "${compare}" --output "${OUTPUT}"
+        echo "file=${OUTPUT}" >> "$GITHUB_OUTPUT"
+        echo "notes for ${tag}:"
+        cat "${OUTPUT}"

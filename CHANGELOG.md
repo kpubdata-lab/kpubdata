@@ -7,40 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
+## [0.7.0] — 2026-09-28
 
-- localdata 가 `resultCode "03"`(NODATA)을 예외로 올리던 것을 semas 와 같이 빈 결과로 처리 (#470). 필터를 걸어 조회했는데 결과가 없는 흔한 경우가 한쪽 provider 에서만 오류였다.
-- localdata/semas 의 `_normalize_items` 가 빈 래퍼(`{"items": {}}`)와 XML `<items><item/></items>` 를 1건으로 승격하던 **유령 행** 제거 (#482 회귀). datago 본가 동작에 맞춘다.
-- localdata 의 `base_url` 끝 슬래시 미처리로 `//` 가 생기던 것 수정 (#470).
-- `datago.g2b_catalog` 의 필수 파라미터 `inqryDiv` 자동 전송 (#414). 사용자 필터가 우선하며 키 대소문자를 구분하지 않는다.
-- HTTP 전송 계층 로그/예외 메시지에서 API 키가 포함된 query parameter가 `[REDACTED]`로 마스킹되도록 수정 (#260)
-- Canonical Query validation now prevents invalid canonical query values from reaching provider adapters (#264)
-- `Dataset.list()` now validates canonical query parameters (`page`, `page_size`, `cursor`, `start_date`, `end_date`, `fields`, `sort`) before adapter invocation
-- Canonical keys are now routed by name (not by type) to prevent bypass via type mismatch (e.g., `dataset.list(page="1")` now raises `InvalidRequestError` instead of falling through to filters)
-- Date fields now reject empty strings and whitespace-only values
-- All query validation errors now raise `InvalidRequestError` instead of generic `TypeError`/`ValueError`
-- bok 어댑터가 URL 경로에 실은 API 키를 `secret_values` 로 전달해 로그·예외에서 마스킹 (#475). law 의 `OC` 파라미터를 마스킹 목록에 추가.
-- spec 로더가 `_parse_date`/`_parse_params`/`_parse_license` 의 검증 오류를 버리던 것 수정 (#476). `last_verified: "2026-13-45"` 가 조용히 `None` 이 되지 않는다. **동작 변경**: 잘못된 `license` 필드가 이제 spec 로드를 실패시킨다.
-- `Retry-After` 힌트에 상한을 둔다 — `TransportConfig.max_retry_delay`(기본 60s) (#477). 상한을 넘으면 기다리지 않고 retryable `RateLimitError` 로 즉시 반환한다.
-- data.go.kr 게이트웨이 거부(`OpenAPI_ServiceResponse/cmmMsgHeader`)를 "Malformed response envelope" 가 아니라 원인대로 보고 (#478, datago 어댑터 경로).
-- spec 우선 실행 경로(`core/executor.py`)도 게이트웨이 거부를 인식한다. #478 은 datago 어댑터만 고쳐서, spec 을 타는 20여 종은 여전히 "응답 envelope에서 에러 코드를 찾을 수 없습니다" 로 실패했다.
-- sgis 의 `accessToken`/`consumer_key`/`consumer_secret` 을 마스킹 목록에 추가. 목록이 부분 문자열이 아니라 정확한 이름을 보므로 `consumer_key` 는 `key` 를 포함해도 걸리지 않았다.
-- 종단 HTTP 상태 오류에 `status_code` 를 실어 보낸다. URL 마스킹 시 예외 체인을 끊기 때문에 원래 응답이 함께 사라져, 호출자가 401 과 503 을 메시지 문자열로만 구분할 수 있었다. 재시도를 소진한 429 는 `RateLimitError` 로 올린다.
-- 응답 캐시를 임시 파일 + `os.replace` 로 원자적으로 쓴다. 중간에 끊긴 파일이 완성된 엔트리로 읽혀 TTL 만료까지 깨진 값이 반복됐다.
+Mostly a security and correctness release. Users of 0.6.x should upgrade.
 
-### Removed
+### Security
 
-- 저장소에 커밋돼 있던 `.omx/` 에이전트 도구 로그·상태 파일 10개 삭제, `.gitignore` 에 추가.
-
-### Added
-
-- spec 기반 데이터셋 18종 → 23종.
-- datago 카탈로그 메타데이터 보강 (#376): `request_parameters`, `application`, ASOS 계열 `fixed_query_params`, HTTPS endpoint. `required_query_filters` 와 `request_parameters` 의 필수 표시가 어긋나지 않도록 테스트로 고정.
+- API keys passed as query parameters (`params=`) no longer reach the exception chain, logs or tracebacks. This is the path datago, localdata, semas, sgis and every spec dataset use (#486).
+- bok's key in the URL path and law's `OC` parameter are masked (#475); so are sgis `accessToken`, `consumer_key` and `consumer_secret` (#484).
+- lofin no longer disables TLS certificate verification; only the cipher level is relaxed (#488).
+- The spec executor refuses to send a provider credential to a host not listed for that provider (#532, #519).
+- Error envelopes and tokens are no longer cached. Quota and key errors arrive as HTTP 200, so a momentary quota breach was served from cache for 24 hours (#490).
 
 ### Changed
 
-- Query validation now performs type checking and basic value validation at Query creation time
-- Empty cursor strings (`""`) are now rejected as invalid
+- **BREAKING:** a declared numeric column is cast only when every value in it casts (#468), thousands separators are understood (`"1,200"` → `1200`), and `datago.apt_trade.dealAmount` is now an integer (#574). `list_all()` casts across all pages at once (#575). Consumers that relied on string values in these columns must adjust.
+- **BREAKING:** an invalid `license` field in a spec now fails the load instead of being dropped (#476).
+- 4xx responses are no longer retried (#490). A `Retry-After` beyond `TransportConfig.max_retry_delay` (default 60 s) raises a retryable `RateLimitError` instead of blocking (#477).
+- krx rejects raw operation names it does not have (#493).
+
+### Added
+
+- `RecordBatch.validation`: a typed report of uncastable, missing and undeclared fields with counts and samples (#576, #582).
+- `RecordBatch.meta["provenance"]`: fetch time, SHA-256 of the raw body, content type, cache hit, masked URL and parameters (#583).
+- `kpubdata probe`: classify each dataset as reachable, needing 활용신청, needing parameters, or retired (#504).
+- Spec request parameters exposed on `DatasetRef` metadata (#469); datago catalogue metadata enriched (#376).
+- Spec datasets 18 → 23, including the ocean buoy observation spec (#446, marked unstable until checked against the live API); a `license` field in the spec schema (#443).
+
+### Fixed
+
+- data.go.kr gateway rejections are reported as such on the adapter and spec paths (#478, #485).
+- The documented `localdata` / `semas` key names work; the shared datago key is still accepted (#492).
+- `datasets.list()` no longer needs pandas (#487).
+- HTTP errors carry `status_code`; a 429 that exhausts retries raises `RateLimitError`; the cache is written atomically and keeps `Content-Type` (#484, #496).
+- localdata returns an empty result for `resultCode "03"`, drops phantom rows from empty wrappers, and handles a trailing slash in `base_url` (#482, #483).
+- `datago.g2b_catalog` sends its required `inqryDiv` (#421).
+
+### Removed
+
+- Agent tool logs committed under `.omx/` (#485).
 
 ## [0.6.0] — 2026-09-09
 
@@ -52,6 +57,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 추가
 - spec 기반 데이터셋 18종(골든 3 + air_station + ultra_srt_fcst + air_quality + ultra_srt_ncst + 부동산 6 + localdata 3 + airkorea_forecast + metro_fare) — `make verify` 4단계 기계 검증.
 - 대량 전환 도구: `gen_specs_from_catalogue.py`·`batch_record.py`·`gen_example_scripts.py`.
+
+
+### Recorded after release
+
+These shipped in 0.6.0 but were left under Unreleased until 0.7.0.
+
+- HTTP 전송 계층 로그/예외 메시지에서 API 키가 포함된 query parameter가 `[REDACTED]`로 마스킹되도록 수정 (#260)
+- Canonical Query validation now prevents invalid canonical query values from reaching provider adapters (#264)
+- `Dataset.list()` now validates canonical query parameters (`page`, `page_size`, `cursor`, `start_date`, `end_date`, `fields`, `sort`) before adapter invocation
+- Canonical keys are now routed by name (not by type) to prevent bypass via type mismatch (e.g., `dataset.list(page="1")` now raises `InvalidRequestError` instead of falling through to filters)
+- Date fields now reject empty strings and whitespace-only values
+- All query validation errors now raise `InvalidRequestError` instead of generic `TypeError`/`ValueError`
+- Query validation now performs type checking and basic value validation at Query creation time
+- Empty cursor strings (`""`) are now rejected as invalid
 
 
 ## [0.5.0] - 2026-04-28
