@@ -26,7 +26,14 @@ from typing import cast
 from kpubdata._hosts import extra_hosts_env_var, host_is_allowed
 from kpubdata.config import KPubDataConfig
 from kpubdata.core.capability import Operation, PaginationMode, QuerySupport
-from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
+from kpubdata.core.models import (
+    DatasetRef,
+    FieldIssue,
+    Query,
+    RecordBatch,
+    SchemaDescriptor,
+    ValidationReport,
+)
 from kpubdata.core.representation import Representation
 from kpubdata.core.spec import SpecDefinition
 from kpubdata.exceptions import (
@@ -566,29 +573,35 @@ class SpecExecutor:
 
     def _finalize_casting(
         self, spec: SpecDefinition, staged: list[dict[str, object]]
-    ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
-        """Stage 2 only: column-level all-or-nothing casting (#481).
+    ) -> tuple[list[dict[str, object]], ValidationReport]:
+        """Stage 2 only: column-level all-or-nothing casting (#481, #572).
 
-        Returns (items_with_casting_applied, cast_fallback_diagnostics).
+        Returns (items_with_casting_applied, validation_report).
         """
         if not spec.fields:
-            return staged, []
+            return staged, ValidationReport()
 
-        cast_fallbacks: list[dict[str, object]] = []
+        issues: list[FieldIssue] = []
+        declared_names = {f.name for f in spec.fields}
+
+        # Detect undeclared keys (spec drift) from the first record.
+        if staged:
+            undeclared = set(staged[0].keys()) - declared_names
+            for key in sorted(undeclared):
+                issues.append(FieldIssue(field=key, kind="undeclared"))
 
         for field in spec.fields:
             casts: list[tuple[dict[str, object], object]] = []
             failed_count = 0
-            null_count = 0
             sample_failures: list[str] = []
             castable = True
+            found_in_any = False
             for record in staged:
                 if field.name not in record:
                     continue
+                found_in_any = True
                 raw_value = record[field.name]
                 succeeded, coerced = _try_cast_field(raw_value, field.type)
-                if coerced is None and succeeded:
-                    null_count += 1
                 if not succeeded:
                     castable = False
                     failed_count += 1
@@ -596,17 +609,20 @@ class SpecExecutor:
                         sample_failures.append(repr(raw_value)[:60])
                     continue
                 casts.append((record, coerced))
+            if not found_in_any:
+                issues.append(
+                    FieldIssue(field=field.name, kind="missing", declared_type=field.type)
+                )
+                continue
             if not castable:
-                non_null = sum(1 for r in staged if field.name in r and r[field.name] is not None)
-                cast_fallbacks.append(
-                    {
-                        "field": field.name,
-                        "declared_type": field.type,
-                        "failed_count": failed_count,
-                        "non_null_count": non_null,
-                        "null_count": null_count,
-                        "sample_values": sample_failures,
-                    }
+                issues.append(
+                    FieldIssue(
+                        field=field.name,
+                        kind="uncastable",
+                        declared_type=field.type,
+                        failed_count=failed_count,
+                        sample_values=tuple(sample_failures),
+                    )
                 )
                 logger.debug(
                     "leaving column uncast: a value does not match the declared type",
@@ -616,11 +632,17 @@ class SpecExecutor:
             for record, coerced in casts:
                 record[field.name] = coerced
 
-        return staged, cast_fallbacks
+        report = ValidationReport(issues=tuple(issues))
+        if not report.ok:
+            logger.info(
+                "normalization validation issues",
+                extra={"dataset_id": spec.id, "issue_count": len(issues)},
+            )
+        return staged, report
 
     def _normalize_fields(
         self, spec: SpecDefinition, items: list[dict[str, object]]
-    ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    ) -> tuple[list[dict[str, object]], ValidationReport]:
         """Apply rename/transform/casting only when a fields[] declaration exists.
 
         Casting applies **per column, and only when every value succeeds**.
@@ -638,7 +660,7 @@ class SpecExecutor:
         declaration (#461).
         """
         if not spec.fields:
-            return items, []
+            return items, ValidationReport()
         staged = self._stage_fields(spec, items)
         return self._finalize_casting(spec, staged)
 
@@ -659,7 +681,7 @@ class SpecExecutor:
         payload = self._request(spec, params)
         self._check_error(spec, payload)
 
-        items, cast_fallbacks = self._normalize_fields(spec, self._extract_items(spec, payload))
+        items, validation = self._normalize_fields(spec, self._extract_items(spec, payload))
         total_count = self._extract_total_count(spec, payload)
 
         page = query.page or 1
@@ -674,16 +696,12 @@ class SpecExecutor:
         if not items:
             logger.debug("Spec executor: zero items", extra={"dataset_id": spec.id, "page": page})
 
-        meta: dict[str, object] = {}
-        if cast_fallbacks:
-            meta["normalization"] = {"cast_fallbacks": cast_fallbacks}
-
         return RecordBatch(
             items=items,
             dataset=dataset,
             total_count=total_count,
             next_page=next_page,
-            meta=meta,
+            validation=validation,
             raw=payload,
         )
 
@@ -1016,13 +1034,8 @@ class SpecDatasetAdapter:
             query = Query(filters=query.filters, page=page, page_size=query.page_size)
 
         # Global casting decision across all pages (#481).
-        finalized, cast_fallbacks = self._executor._finalize_casting(spec, all_staged)
+        finalized, validation = self._executor._finalize_casting(spec, all_staged)
 
-        meta: dict[str, object] = {}
-        if cast_fallbacks:
-            meta["normalization"] = {"cast_fallbacks": cast_fallbacks, "scope": "list_all"}
-
-        # Re-slice into per-page RecordBatch objects.
         result: list[RecordBatch] = []
         start = 0
         for batch_len in page_boundaries:
@@ -1033,7 +1046,7 @@ class SpecDatasetAdapter:
                     dataset=dataset,
                     total_count=total_count,
                     next_page=None,
-                    meta=meta,
+                    validation=validation,
                     raw=None,
                 )
             )
