@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-11T12:06:01+00:00",
+  "generated_at": "2026-09-28T08:32:32+00:00",
   "spec_datasets": {
-    "total": 22,
+    "total": 23,
     "verified": 22,
     "verified_recent_90d": 22,
     "per_dataset": {
@@ -22,7 +22,7 @@
         "status": "active"
       },
       "datago.apt_trade": {
-        "last_verified": "2026-09-11",
+        "last_verified": "2026-09-12",
         "status": "active"
       },
       "datago.hospital_info": {
@@ -32,6 +32,10 @@
       "datago.metro_fare": {
         "last_verified": "2026-09-09",
         "status": "active"
+      },
+      "datago.ocean_buoy": {
+        "last_verified": null,
+        "status": "unstable"
       },
       "datago.offi_rent": {
         "last_verified": "2026-09-09",
@@ -97,7 +101,7 @@
   },
   "catalogue_datasets": {
     "bok": 4,
-    "datago": 40,
+    "datago": 41,
     "fds": 1,
     "kipris": 1,
     "korean": 1,
@@ -112,8 +116,8 @@
     "sgis": 3
   },
   "supported_rows": {
-    "지원": 153,
-    "폐기": 2,
+    "지원": 154,
+    "폐기": 1,
     "예정": 1
   }
 }

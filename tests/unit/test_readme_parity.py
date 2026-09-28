@@ -75,3 +75,27 @@ def test_the_real_readmes_agree() -> None:
     """The check passes against this repository as it stands."""
     module = _load(Path(__file__).resolve().parents[2])
     assert module.main() == 0
+
+
+def test_the_status_page_is_current() -> None:
+    """docs/status.md is generated, and a generator nobody checks drifts (#498).
+
+    It claimed 22 spec and 149 catalogue datasets while the README said 23 and 150 —
+    two generated documents disagreeing about the same repository, because only one of
+    them was checked in CI.
+    """
+    import subprocess
+    import sys
+
+    repo_root = Path(__file__).resolve().parents[2]
+    result = subprocess.run(
+        [sys.executable, "scripts/gen_status_page.py", "--check"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, (
+        f"docs/status.md is stale: {result.stdout.strip()}\n"
+        "Run `python scripts/gen_status_page.py` and commit the result."
+    )

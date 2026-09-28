@@ -118,6 +118,17 @@ def render_md(status: dict[str, object]) -> str:
     return "\n".join(lines)
 
 
+def _without_timestamp(text: str) -> str:
+    """Drop the generation timestamp so drift means a content change.
+
+    Both outputs carry when they were rendered. Including that in the comparison makes
+    every check fail, which is indistinguishable from a real drift and gets the check
+    switched off — as it was.
+    """
+    text = re.sub(r"`\d{4}-\d{2}-\d{2}T[\d:+\-.]+`", "`<generated_at>`", text)
+    return re.sub(r'"generated_at":\s*"[^"]*"', '"generated_at": "<generated_at>"', text)
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point — generate or check drift."""
     parser = argparse.ArgumentParser(description="데이터셋 상태 페이지 생성")
@@ -129,8 +140,16 @@ def main(argv: list[str] | None = None) -> int:
     json_text = json.dumps(status, ensure_ascii=False, indent=2) + "\n"
     md_text = render_md(status)
     if args.check:
-        json_ok = STATUS_JSON.is_file() and STATUS_JSON.read_text(encoding="utf-8") == json_text
-        md_ok = STATUS_MD.is_file() and STATUS_MD.read_text(encoding="utf-8") == md_text
+        # The generation timestamp changes on every run, so comparing it would make the
+        # check fail for ever — which is why this was never wired into CI, and why
+        # docs/status.md drifted to claiming 22 spec datasets while the README said 23
+        # (#498). What matters is whether the content moved, not when it was rendered.
+        json_ok = STATUS_JSON.is_file() and _without_timestamp(
+            STATUS_JSON.read_text(encoding="utf-8")
+        ) == _without_timestamp(json_text)
+        md_ok = STATUS_MD.is_file() and _without_timestamp(
+            STATUS_MD.read_text(encoding="utf-8")
+        ) == _without_timestamp(md_text)
         if not (json_ok and md_ok):
             print("드리프트: 상태 페이지가 최신이 아님 — 재생성 후 커밋하세요.")
             return 1
