@@ -24,7 +24,7 @@ from kpubdata.core.executor import (
     extract_items,
     extract_total_count,
 )
-from kpubdata.core.models import DatasetRef, Query
+from kpubdata.core.models import DatasetRef, Query, RecordBatch
 from kpubdata.core.spec import SpecDefinition, load_spec_file
 from kpubdata.exceptions import (
     AuthError,
@@ -388,6 +388,26 @@ def test_query_fields_normalization() -> None:
     assert item["deal_amount"] == 120000
     assert "거래금액" not in item
     assert item["년"] == "2024"
+
+
+def _valid_full_result(
+    records: list[dict[str, object]], field_type: str = "integer"
+) -> RecordBatch:
+    """Normalize given records using valid_full spec and return the whole batch.
+
+    Tests that look at ``validation`` need the batch, not only its items.
+    """
+    spec = load_spec_file(FIXTURES_DIR / "specs" / "valid_full.yaml")
+    spec = replace(spec, fields=(replace(spec.fields[0], type=field_type),))
+    payload = {
+        "response": {
+            "header": {"resultCode": "00"},
+            "body": {"items": {"item": records}, "totalCount": str(len(records))},
+        }
+    }
+    transport = FakeTransport([FakeResponse(json.dumps(payload).encode())])
+    executor = _make_executor(transport)
+    return executor.query(spec, _ref(spec), Query())
 
 
 def _valid_full_batch(
@@ -865,3 +885,61 @@ class TestSpecExecutorRecognisesGatewayRejections:
         from kpubdata.core.executor import check_payload_error
 
         check_payload_error(self._spec(), {"response": {"header": {"resultCode": "00"}}})
+
+
+class TestTheReportShowsTheRatioNotJustTheCount:
+    """The failure count alone cannot say what is wrong (#572 follow-up).
+
+    ``#574`` was already counting these when it wrote diagnostics into ``meta``; the
+    typed report replaced that and dropped them.
+    """
+
+    def test_a_mostly_bad_column_reads_as_a_wrong_declaration(self) -> None:
+        """10 of 12 non-null failing means the spec is wrong, not the data."""
+        records = [{"거래금액": "협의"}] * 10 + [{"거래금액": "120,000"}] * 2
+        batch = _valid_full_result(records)
+
+        issue = batch.validation.issues_of("uncastable")[0]
+        assert issue.failed_count == 10
+        assert issue.non_null_count == 12
+        assert issue.null_count == 0
+
+    def test_nulls_are_counted_separately_from_failures(self) -> None:
+        """A column that is mostly null and fails on the rest is its own problem.
+
+        Nulls do not block casting, so they are not failures — but a report that folds
+        them into the total hides how little data there was to judge.
+        """
+        records = [{"거래금액": None}] * 8 + [{"거래금액": "협의"}, {"거래금액": "120,000"}]
+        batch = _valid_full_result(records)
+
+        issue = batch.validation.issues_of("uncastable")[0]
+        assert issue.failed_count == 1
+        assert issue.null_count == 8
+        assert issue.non_null_count == 2
+
+    def test_issues_of_returns_only_that_kind(self) -> None:
+        """The helper exists so the kind strings are not spelled out at each call site.
+
+        A typo in an inline filter reads as "no issues of that kind", which is the same
+        as clean.
+        """
+        batch = _valid_full_result(
+            [{"거래금액": "협의", "신규필드": "값"}, {"거래금액": "98,000", "신규필드": "값2"}]
+        )
+
+        assert [i.kind for i in batch.validation.issues_of("uncastable")] == ["uncastable"]
+        assert [i.field for i in batch.validation.issues_of("undeclared")] == ["신규필드"]
+        assert batch.validation.issues_of("missing") == ()
+
+    def test_counts_are_absent_rather_than_zero_when_not_applicable(self) -> None:
+        """A missing or undeclared field has no column to count, and says so.
+
+        Zero would claim the column was examined and found empty.
+        """
+        batch = _valid_full_result([{"거래금액": "120,000"}, {"년": "2024"}])
+
+        missing = batch.validation.issues_of("missing")
+        if missing:
+            assert missing[0].non_null_count is None
+            assert missing[0].null_count is None

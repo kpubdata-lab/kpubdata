@@ -185,6 +185,11 @@ class FieldIssue:
         declared_type: The spec's declared type (None for undeclared).
         failed_count: How many values failed (for uncastable).
         sample_values: Up to 3 repr'd failing values (for uncastable).
+        non_null_count: How many values were present at all. The ratio is what tells a
+            wrong declaration apart from a few dirty rows: "10 failed of 12 non-null"
+            and "10 failed of 500" ask for different fixes.
+        null_count: How many values were null. A column that is mostly null and fails
+            on the rest is a different problem from one that is mostly populated.
     """
 
     field: str
@@ -192,6 +197,8 @@ class FieldIssue:
     declared_type: str | None = None
     failed_count: int = 0
     sample_values: tuple[str, ...] = ()
+    non_null_count: int | None = None
+    null_count: int | None = None
 
 
 @_dataclass(slots=True, frozen=True)
@@ -209,6 +216,15 @@ class ValidationReport:
     def ok(self) -> bool:
         """Return True when no issues were found."""
         return len(self.issues) == 0
+
+    def issues_of(self, kind: str) -> tuple[FieldIssue, ...]:
+        """The issues of one kind.
+
+        Present so a consumer does not write the filter itself every time — and so the
+        kind strings live in one place rather than being spelled out at each call site,
+        where a typo reads as "no issues of that kind".
+        """
+        return tuple(issue for issue in self.issues if issue.kind == kind)
 
 
 @_dataclass(slots=True)
