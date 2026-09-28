@@ -1,0 +1,209 @@
+# Release under branch protection (#586).
+#
+# The old flow bumped the version, committed to main and tagged, all before any gate
+# ran. Protection refuses that push now, and the ordering was wrong anyway: the tag
+# existed before the tests did, so a failing build left a tag pointing at a commit
+# nobody wanted.
+#
+# Two entry points, neither of which writes to main directly.
+#
+#   workflow_dispatch                       opens a release pull request
+#   pull_request closed on `release/*`      runs the gates, tags, releases, publishes
+#
+# The second half cannot be a separate workflow triggered by the tag: events created
+# with GITHUB_TOKEN do not start workflows. So the gates, the tag and the release are
+# one job, and publishing is a reusable call rather than a copy.
+#
+# Known limit, and the reason the gates run again on merge: a pull request opened with
+# GITHUB_TOKEN does not trigger `pull_request` workflows either, so the release pull
+# request itself arrives without CI. Correctness does not depend on that — nothing is
+# tagged until the gates pass here. Giving the workflow a PAT would make the pull
+# request red before merging instead of after, and that needs a secret only the owner
+# can create.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Which part of the version to raise"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - pre
+        default: patch
+      dry_run:
+        description: "Work out the new version and stop — open no pull request"
+        required: false
+        type: boolean
+        default: false
+
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Open the release pull request
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Work out the new version
+        id: bump
+        run: python3 scripts/next_version.py "${{ inputs.bump }}" >> "$GITHUB_OUTPUT"
+
+      - name: Stop here on a dry run
+        if: inputs.dry_run
+        run: |
+          echo "dry run: would release ${{ steps.bump.outputs.tag }}"
+          echo "nothing written, no branch pushed, no pull request opened"
+
+      - name: Write the version
+        if: ${{ !inputs.dry_run }}
+        env:
+          NEW_VERSION: ${{ steps.bump.outputs.new_version }}
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, re
+          path = pathlib.Path("pyproject.toml")
+          path.write_text(
+              re.sub(
+                  r'^version = "[^"]+"',
+                  f'version = "{os.environ["NEW_VERSION"]}"',
+                  path.read_text(encoding="utf-8"),
+                  count=1,
+                  flags=re.MULTILINE,
+              ),
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Open the pull request
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.bump.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "release/${TAG}"
+          git add pyproject.toml
+          git commit -m "chore: release ${TAG}"
+          git push origin "release/${TAG}"
+          printf '%s\n' \
+            "\`${TAG}\` 릴리스 준비 (#586)." \
+            "" \
+            "이 PR 이 병합되면 게이트가 돌고, **통과한 뒤에** 태그·릴리스·PyPI 발행이 이어진다." \
+            "예전에는 순서가 반대였다 — 태그가 먼저 생기고 테스트가 나중에 돌았다." \
+            "" \
+            "실패하면 남는 것이 없다. 다시 눌러도 된다." \
+            > /tmp/release-body.md
+          gh pr create --base main --head "release/${TAG}" \
+            --title "chore: release ${TAG}" --body-file /tmp/release-body.md
+
+  release:
+    name: Gate, tag and release
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'release/')
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      # The merge commit itself, not `main`. Tagging main's head would tag whatever
+      # merged next, which is a different tree from the one gated below.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Read the version that was merged
+        id: tag
+        run: |
+          version=$(python3 -c "
+          import pathlib, re
+          text = pathlib.Path('pyproject.toml').read_text(encoding='utf-8')
+          print(re.search(r'^version = \"([^\"]+)\"', text, re.MULTILINE).group(1))
+          ")
+          echo "tag=v${version}" >> "$GITHUB_OUTPUT"
+          echo "releasing v${version}"
+
+      # The tag is read out of pyproject.toml in this same job, so the two cannot
+      # disagree by accident. This catches the one way they can: someone editing the
+      # release pull request. Tagging the wrong one is how an artifact ends up
+      # labelled with a version it does not contain (kpubdata-builder#690).
+      - name: The branch name and the file must agree
+        env:
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          if [ "${BRANCH}" != "release/${TAG}" ]; then
+            echo "::error::branch is ${BRANCH} but pyproject.toml says release/${TAG}"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: uv sync --frozen --extra dev
+
+      # Everything that has to be true before a tag exists. This is the ordering #586
+      # is about: a failure here leaves no tag, no release and nothing to clean up.
+      - name: Run quality gates
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run mypy src
+          uv run pytest -ra
+
+      - name: Tag and release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${TAG}"
+          git push origin "${TAG}"
+          gh release create "${TAG}" --title "${TAG}" --generate-notes \
+            --target "${{ github.event.pull_request.merge_commit_sha }}"
+
+  publish:
+    name: Publish
+    needs: [release]
+    # A release created with GITHUB_TOKEN does not fire `release: published`, so the
+    # publish is called rather than waited for.
+    uses: ./.github/workflows/publish-pypi.yml
+    with:
+      ref: ${{ needs.release.outputs.tag }}
+    permissions:
+      contents: read
+      id-token: write
+    secrets: inherit

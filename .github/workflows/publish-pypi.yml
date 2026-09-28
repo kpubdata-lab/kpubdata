@@ -1,110 +1,37 @@
+# Build and publish the distribution. Two ways in, and neither of them pushes to main.
+#
+#   release: published   — a release made by hand in the GitHub UI
+#   workflow_call        — release.yml, after a release pull request merged
+#
+# The version bump used to live here and committed straight to main (#586). Branch
+# protection refuses that now, and it should: the tag was created *before* the gates
+# ran, so a failing test produced a tag pointing at a commit nobody would want.
 name: Publish to PyPI
 
 on:
   release:
     types: [published]
 
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      bump:
-        description: "Version bump type"
+      ref:
+        description: "Tag or SHA to build from."
         required: true
-        type: choice
-        options:
-          - patch
-          - minor
-          - pre
-        default: patch
-      dry_run:
-        description: "Dry run (skip PyPI publish)"
-        required: false
-        type: boolean
-        default: false
+        type: string
 
 permissions:
-  contents: write
+  contents: read
   id-token: write
 
 jobs:
-  bump-version:
-    name: Bump Version
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
-    timeout-minutes: 5
-    outputs:
-      new_version: ${{ steps.bump.outputs.new_version }}
-      tag: ${{ steps.bump.outputs.tag }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Configure git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Bump version
-        id: bump
-        shell: bash
-        run: |
-          current=$(python3 -c "
-          import re, pathlib
-          m = re.search(r'version = \"([^\"]+)\"', pathlib.Path('pyproject.toml').read_text())
-          print(m.group(1))
-          ")
-          echo "Current version: ${current}"
-
-          bump="${{ inputs.bump }}"
-          new_version=$(python3 -c "
-          import re
-          v = '${current}'
-          parts = v.split('.')
-          major, minor = int(parts[0]), int(parts[1])
-          patch_raw = parts[2]
-
-          if '${bump}' == 'patch':
-              patch = int(re.match(r'\d+', patch_raw).group())
-              print(f'{major}.{minor}.{patch + 1}')
-          elif '${bump}' == 'minor':
-              print(f'{major}.{minor + 1}.0')
-          elif '${bump}' == 'pre':
-              if 'a' in patch_raw:
-                  patch, pre = patch_raw.split('a')
-                  print(f'{major}.{minor}.{patch}a{int(pre) + 1}')
-              else:
-                  patch = int(patch_raw)
-                  print(f'{major}.{minor}.{patch + 1}a0')
-          ")
-
-          python3 -c "
-          import pathlib
-          p = pathlib.Path('pyproject.toml')
-          p.write_text(p.read_text().replace('version = \"${current}\"', 'version = \"${new_version}\"'))
-          "
-
-          echo "new_version=${new_version}" >> "$GITHUB_OUTPUT"
-          echo "tag=v${new_version}" >> "$GITHUB_OUTPUT"
-          echo "Bumped: ${current} → ${new_version}"
-
-      - name: Commit and tag
-        run: |
-          git add pyproject.toml
-          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}"
-          git tag "${{ steps.bump.outputs.tag }}"
-          git push origin main --tags
-
   build:
     name: Build Package
     runs-on: ubuntu-latest
-    needs: [bump-version]
-    if: always() && (needs.bump-version.result == 'success' || needs.bump-version.result == 'skipped')
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
+          ref: ${{ inputs.ref || github.ref }}
 
       - uses: astral-sh/setup-uv@v7
         with:
@@ -118,6 +45,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen --extra dev
 
+      # The gates run before anything is published, and — through release.yml — before
+      # the tag exists at all. That ordering is the point of #586.
       - name: Run quality gates
         run: |
           uv run ruff check .
@@ -134,35 +63,10 @@ jobs:
           name: dist
           path: dist/
 
-  create-release:
-    name: Create GitHub Release
-    runs-on: ubuntu-latest
-    needs: [bump-version, build]
-    if: github.event_name == 'workflow_dispatch' && !inputs.dry_run
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: main
-
-      - name: Create release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create "${{ needs.bump-version.outputs.tag }}" \
-            --title "${{ needs.bump-version.outputs.tag }}" \
-            --generate-notes \
-            --target main
-
   publish:
     name: Publish to PyPI
     runs-on: ubuntu-latest
-    needs: [bump-version, build]
-    if: |
-      always() &&
-      needs.build.result == 'success' &&
-      (github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run))
+    needs: [build]
     environment: pypi
     steps:
       - name: Download artifacts
