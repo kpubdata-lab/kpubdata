@@ -5,13 +5,17 @@ The bump used to be an inline shell heredoc inside the release workflow, where i
 could not be run or tested without dispatching a release. Two things follow from
 moving it out: it is testable, and a mistake in it shows up before a tag exists.
 
-`pyproject.toml` is the source (see check_version_consistency.py). Output is the
-`key=value` lines a GitHub Actions step writes to `$GITHUB_OUTPUT`, so the workflow
-does not have to parse anything:
+The declaring file is the source. `pyproject.toml` and `package.json` are both
+understood, told apart by suffix, because Studio keeps its version in the second and
+one shared tool beats two that drift. Output is the `key=value` lines a GitHub Actions
+step writes to `$GITHUB_OUTPUT`, so the workflow does not have to parse anything:
 
     $ python3 scripts/next_version.py minor
     new_version=0.7.0
     tag=v0.7.0
+
+`.github/actions/next-version` wraps this so the other two repositories call it
+instead of copying it.
 
 The `pre` bump follows PEP 440's `aN` spelling, matching what the ten releases before
 this script used. Raising a pre-release raises the pre-release number; raising from a
@@ -29,7 +33,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-_VERSION = re.compile(r'^version = "([^"]+)"', re.MULTILINE)
+_TOML_VERSION = re.compile(r'^version = "([^"]+)"', re.MULTILINE)
+_JSON_VERSION = re.compile(r'"version"\s*:\s*"([^"]+)"')
 # major.minor.patch, with an optional PEP 440 pre-release segment on the patch.
 _PARTS = re.compile(r"^(\d+)\.(\d+)\.(\d+)(?:a(\d+))?$")
 
@@ -38,11 +43,18 @@ class VersionError(Exception):
     """The declared version is not one this script knows how to raise."""
 
 
-def declared_version(pyproject: Path) -> str:
-    """The version in ``pyproject.toml``."""
-    match = _VERSION.search(pyproject.read_text(encoding="utf-8"))
+def declared_version(path: Path) -> str:
+    """The version declared in ``path``.
+
+    A regular expression rather than a parser, in both formats. A TOML parser is 3.11+
+    and this project supports 3.10, and a JSON round-trip would reformat the whole of
+    `package.json` for a one-field change — a diff nobody can review.
+    """
+    text = path.read_text(encoding="utf-8")
+    pattern = _JSON_VERSION if path.suffix == ".json" else _TOML_VERSION
+    match = pattern.search(text)
     if match is None:
-        raise VersionError(f"{pyproject} has no [project] version")
+        raise VersionError(f"{path} declares no version")
     return match.group(1)
 
 
@@ -80,15 +92,16 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Print the next version as GITHUB_OUTPUT lines.")
     parser.add_argument("bump", choices=["patch", "minor", "pre"])
     parser.add_argument(
-        "--pyproject",
+        "--file",
+        dest="file",
         type=Path,
         default=REPO_ROOT / "pyproject.toml",
-        help="Where the current version is declared.",
+        help="Where the current version is declared (pyproject.toml or package.json).",
     )
     args = parser.parse_args(argv)
 
     try:
-        version = next_version(declared_version(args.pyproject), args.bump)
+        version = next_version(declared_version(args.file), args.bump)
     except VersionError as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
