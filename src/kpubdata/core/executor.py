@@ -18,8 +18,10 @@ but don't depend on it (verified: tests/unit/core/test_executor.py).
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import re
+from datetime import datetime, timezone
 from types import MappingProxyType
 from typing import cast
 
@@ -269,6 +271,65 @@ def _gateway_rejection(payload: dict[str, object]) -> tuple[str, str] | None:
     )
 
 
+def _build_provenance(
+    response: object, params: dict[str, str], spec: SpecDefinition
+) -> dict[str, object]:
+    """Build standardized provenance metadata for RecordBatch.meta (#479).
+
+    Fail-closed: if masking fails for any field, that field is omitted entirely
+    rather than leaking the unmasked value.
+    """
+    from kpubdata.transport._sensitive import SENSITIVE_PARAM_KEYS
+
+    provenance: dict[str, object] = {}
+
+    # fetched_at — UTC ISO-8601
+    provenance["fetched_at"] = datetime.now(tz=timezone.utc).isoformat(timespec="seconds")
+
+    # content_sha256 — hash of the raw response bytes
+    content = getattr(response, "content", None)
+    if content is not None and isinstance(content, bytes):
+        provenance["content_sha256"] = hashlib.sha256(content).hexdigest()
+
+    # content_type — declared or inferred
+    ct = getattr(response, "headers", None)
+    if ct is not None:
+        declared = ct.get("content-type", "")
+        if declared:
+            provenance["content_type"] = declared.split(";")[0].strip()
+
+    # cached — whether this came from the response cache
+    cached = getattr(response, "_from_cache", None)
+    if cached is not None:
+        provenance["cached"] = bool(cached)
+    else:
+        provenance["cached"] = False
+
+    # url — masked, fail-closed (omit if we cannot safely mask)
+    url = str(getattr(response, "url", ""))
+    if url:
+        try:
+            safe_url = url
+            for key, value in params.items():
+                if key.casefold() in SENSITIVE_PARAM_KEYS and value:
+                    safe_url = safe_url.replace(value, "[REDACTED]")
+            provenance["url"] = safe_url
+        except Exception:
+            pass  # fail-closed: omit rather than leak
+
+    # params — masked, fail-closed
+    try:
+        safe_params = {
+            k: ("[REDACTED]" if k.casefold() in SENSITIVE_PARAM_KEYS else v)
+            for k, v in params.items()
+        }
+        provenance["params"] = safe_params
+    except Exception:
+        pass  # fail-closed: omit rather than leak
+
+    return provenance
+
+
 class SpecExecutor:
     """Provider-agnostic executor that interprets spec to execute queries."""
 
@@ -436,7 +497,9 @@ class SpecExecutor:
             )
         return f"{spec.endpoint.base_url.rstrip('/')}/{spec.endpoint.operation.lstrip('/')}"
 
-    def _request(self, spec: SpecDefinition, params: dict[str, str]) -> dict[str, object]:
+    def _request(
+        self, spec: SpecDefinition, params: dict[str, str]
+    ) -> tuple[dict[str, object], dict[str, object]]:
         """Send GET request to spec endpoint and return decoded dict.
 
         Args:
@@ -495,7 +558,8 @@ class SpecExecutor:
             raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id) from exc
 
         if isinstance(decoded, dict):
-            return decoded
+            provenance = _build_provenance(response, params, spec)
+            return decoded, provenance
         msg = f"{spec.id}: 응답 페이로드가 객체가 아닙니다({type(decoded).__name__})."
         raise ProviderResponseError(msg, provider=spec.provider, dataset_id=spec.id)
 
@@ -689,7 +753,7 @@ class SpecExecutor:
         """Execute the query per spec and return a RecordBatch."""
         self._require_supported_envelope(spec)
         params = self.build_params(spec, query, format_hint=format_hint)
-        payload = self._request(spec, params)
+        payload, provenance = self._request(spec, params)
         self._check_error(spec, payload)
 
         items, validation = self._normalize_fields(spec, self._extract_items(spec, payload))
@@ -707,11 +771,13 @@ class SpecExecutor:
         if not items:
             logger.debug("Spec executor: zero items", extra={"dataset_id": spec.id, "page": page})
 
+        meta: dict[str, object] = {"provenance": provenance}
         return RecordBatch(
             items=items,
             dataset=dataset,
             total_count=total_count,
             next_page=next_page,
+            meta=meta,
             validation=validation,
             raw=payload,
         )
@@ -730,7 +796,7 @@ class SpecExecutor:
         """
         self._require_supported_envelope(spec)
         params = self.build_params(spec, query, format_hint=format_hint)
-        payload = self._request(spec, params)
+        payload, _provenance = self._request(spec, params)
         return params, payload
 
     def request_raw(
@@ -750,7 +816,8 @@ class SpecExecutor:
         format_param = spec.endpoint.format_param
         if format_param is not None and format_param.name and format_value is not None:
             string_params.setdefault(format_param.name, format_value)
-        return self._request(spec, string_params)
+        payload, _provenance = self._request(spec, string_params)
+        return payload
 
 
 def raise_for_code(spec: SpecDefinition, code: str, message: str) -> None:
@@ -1026,7 +1093,7 @@ class SpecDatasetAdapter:
         while len(page_boundaries) < effective_max:
             self._executor._require_supported_envelope(spec)
             params = self._executor.build_params(spec, query, format_hint=None)
-            payload = self._executor._request(spec, params)
+            payload, _prov = self._executor._request(spec, params)
             self._executor._check_error(spec, payload)
 
             items = self._executor._extract_items(spec, payload)
