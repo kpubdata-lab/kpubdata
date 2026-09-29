@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `kpubdata.core.status` — one canonical dataset status vocabulary
+  (`DatasetStatus`) with mappings from the spec, probe, `SUPPORTED_DATA.md` and
+  production-grade vocabularies; `spec._STATUSES` and `_probe.PROBE_STATUSES` are
+  now derived from it. ADR 0005 records the decision, and
+  `tests/unit/test_status_vocabulary.py` fails when a design document uses a name
+  the code does not define (#619).
+
+### Fixed
+
+- `docs/DATASET_STATUS.md` and `docs/LIVE_PROBE.md` contradicted each other and the
+  code: the failure threshold (3 against "2+"), code 32's classification, the
+  `PARAM_CHANGED` spelling, a nonexistent dataset key, a nonexistent module and the
+  neis/fds key sharing claim (#619).
+
 ### Fixed
 
 - The spec-dataset `list_all()` path honours `page_size`, `max_size` and `max_pages` (#614). `page_size` drives pagination instead of going out as a raw `page_size` parameter; a `page_size` above the spec's `max_size` no longer ends the walk after the first page; exceeding `max_pages` raises `InvalidRequestError` like the legacy path instead of truncating silently; and each batch keeps its own `raw`, `meta["provenance"]`, `next_page` and `validation`, with the whole-result report in `meta["validation_total"]`. The path still buffers every page before the first batch, because casting is decided across all pages (#481); this is now documented.
