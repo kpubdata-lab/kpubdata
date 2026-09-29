@@ -132,6 +132,7 @@ fields:
   description: 제목
 - name: zipcode
   type: string
+  semantic_kind: code
 examples:
 - name: gangnam_1km
   description: 강남역 반경 1km

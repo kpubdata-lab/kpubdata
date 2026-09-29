@@ -71,6 +71,7 @@ fields:
   description: 예보 날짜
 - name: fcstTime
   type: string
+  semantic_kind: code
   description: 예보 시각
 - name: fcstValue
   type: integer

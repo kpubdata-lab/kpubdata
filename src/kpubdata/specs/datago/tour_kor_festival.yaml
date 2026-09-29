@@ -133,6 +133,7 @@ fields:
   description: 제목
 - name: zipcode
   type: string
+  semantic_kind: code
 examples:
 - name: year_2026
   description: 2026년 전국 행사

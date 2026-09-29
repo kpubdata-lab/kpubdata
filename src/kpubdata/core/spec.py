@@ -149,6 +149,55 @@ class FieldSpec:
     unit: str | None = None
     transform: str | None = None
     description: str | None = None
+    #: What the value means, apart from how it is stored (ADR 0006, #651).
+    semantic_kind: str | None = None
+    #: Display name; maps to ``FieldDescriptor.title``.
+    title: str | None = None
+    #: Display format hint; maps to ``FieldConstraints.format``.
+    format: str | None = None
+
+
+#: ``semantic_kind`` → the storage types it allows (ADR 0006 section 2).
+SEMANTIC_KIND_TYPES: dict[str, frozenset[str]] = {
+    "code": frozenset({"string"}),
+    "measure": frozenset({"integer", "number"}),
+    "date": frozenset({"string"}),
+    "period": frozenset({"string"}),
+    "text": frozenset({"string"}),
+    "flag": frozenset({"boolean"}),
+}
+#: Transforms that turn text into numbers. A code keeps its source string.
+_NUMERIC_TRANSFORMS = frozenset({"to_int", "to_float", "strip_comma"})
+
+
+def field_conflicts(field: dict[str, object]) -> list[str]:
+    """Contradictions between a field's meaning and its storage (ADR 0006 section 5).
+
+    A field that declares no ``semantic_kind`` is not checked, so existing specs pass.
+    Shared by the loader and ``scripts/validate_spec.py``.
+    """
+    name = field.get("name")
+    kind = field.get("semantic_kind")
+    field_type = field.get("type") or "string"
+    problems: list[str] = []
+    if kind is None:
+        return problems
+    allowed = SEMANTIC_KIND_TYPES.get(str(kind))
+    if allowed is None:
+        return [f"fields.{name}: unknown semantic_kind {kind!r} ({sorted(SEMANTIC_KIND_TYPES)})"]
+    if field_type not in allowed:
+        problems.append(
+            f"fields.{name}: semantic_kind {kind!r} needs type {sorted(allowed)}, "
+            f"not {field_type!r}"
+        )
+    if kind == "code" and field.get("transform") in _NUMERIC_TRANSFORMS:
+        problems.append(
+            f"fields.{name}: a code keeps its source string; transform "
+            f"{field.get('transform')!r} makes it a number"
+        )
+    if field.get("unit") and kind != "measure":
+        problems.append(f"fields.{name}: unit belongs to a measure, not a {kind!r}")
+    return problems
 
 
 @dataclass(slots=True, frozen=True)
@@ -503,6 +552,10 @@ def from_mapping(data: dict[str, object]) -> SpecDefinition:
     params_parsed = _parse_params(data.get("params"), problems)
     last_verified = _parse_date(data.get("last_verified"), problems, "last_verified")
     license_parsed = _parse_license(data.get("license"), problems)
+    if isinstance(fields_list, list):
+        for item in fields_list:
+            if isinstance(item, dict):
+                problems.extend(field_conflicts(dict(item)))
 
     if problems:
         raise InvalidRequestError(
@@ -529,6 +582,9 @@ def from_mapping(data: dict[str, object]) -> SpecDefinition:
                     unit=_get_str(item_dict, "unit"),
                     transform=_get_str(item_dict, "transform"),
                     description=_get_str(item_dict, "description"),
+                    semantic_kind=_get_str(item_dict, "semantic_kind"),
+                    title=_get_str(item_dict, "title"),
+                    format=_get_str(item_dict, "format"),
                 )
             )
 

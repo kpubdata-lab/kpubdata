@@ -45,6 +45,7 @@ fields:
   type: string
 - name: clCd
   type: string
+  semantic_kind: code
 - name: clCdNm
   type: string
 - name: cmdcGdrCnt
@@ -83,6 +84,7 @@ fields:
   type: integer
 - name: postNo
   type: string
+  semantic_kind: code
 - name: sgguCd
   type: integer
 - name: sgguCdNm
