@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The field validation report no longer miscounts (#615): a 0-row page is reported clean instead of every declared field being `missing`; numeric null markers (`""`, `"-"`) count as nulls rather than non-null values; undeclared columns are detected across all records, not only the first.
+
+### Changed
+
+- `FieldIssue.kind` and `ValidationReport.issues_of()` take the `IssueKind` literal (`"uncastable"`, `"missing"`, `"undeclared"`); `issues_of()` raises `ValueError` on an unknown kind instead of silently returning nothing (#615).
+
+### Added
+
+- `ValidationReport.to_dict()` returns a JSON-serialisable form of the report (#615).
+
 - Provenance now reports `cached=True` for responses served from the response cache, and `fetched_at` keeps the original fetch time instead of the time of the cache read. The transport marks a cache hit in `httpx.Response.extensions`, and `ResponseCache.get_entry()` returns the stored `created_at` (#616).
 
 ## [0.7.0] — 2026-09-28

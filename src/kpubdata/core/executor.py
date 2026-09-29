@@ -659,11 +659,18 @@ class SpecExecutor:
         issues: list[FieldIssue] = []
         declared_names = {f.name for f in spec.fields}
 
-        # Detect undeclared keys (spec drift) from the first record.
-        if staged:
-            undeclared = set(staged[0].keys()) - declared_names
-            for key in sorted(undeclared):
-                issues.append(FieldIssue(field=key, kind="undeclared"))
+        # An empty page carries no evidence about columns at all. Reporting every
+        # declared field as missing would make a legitimate 0-row page look invalid.
+        if not staged:
+            return staged, ValidationReport()
+
+        # Detect undeclared keys (spec drift) across every record: a column that first
+        # appears on row 2 is just as much drift as one on row 1.
+        seen_keys: set[str] = set()
+        for record in staged:
+            seen_keys.update(record.keys())
+        for key in sorted(seen_keys - declared_names):
+            issues.append(FieldIssue(field=key, kind="undeclared"))
 
         for field in spec.fields:
             casts: list[tuple[dict[str, object], object]] = []
@@ -681,7 +688,14 @@ class SpecExecutor:
                     continue
                 found_in_any = True
                 raw_value = record[field.name]
-                if raw_value is None:
+                # Count on the value the cast actually sees: numeric null markers
+                # ("", "-") become None, so they are nulls, not non-null values.
+                effective = (
+                    _normalize_numeric_lexeme(raw_value)
+                    if field.type in ("integer", "number")
+                    else raw_value
+                )
+                if effective is None:
                     null_count += 1
                 else:
                     non_null_count += 1
