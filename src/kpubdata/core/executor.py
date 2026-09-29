@@ -182,6 +182,11 @@ def _normalize_numeric_lexeme(value: object) -> object:
 #: Rejects scientific notation ("1e3"), NaN/inf, and non-integral decimals (#461).
 _PLAIN_INTEGER_RE = re.compile(r"^[+-]?\d+$")
 _INTEGRAL_DECIMAL_RE = re.compile(r"^[+-]?\d+\.0+$")
+#: A leading zero before another digit ("06102", "0766") marks a code, not a
+#: quantity. Casting it would drop the zero, so it fails the cast and the
+#: all-or-nothing rule leaves the whole column as text, reported as uncastable —
+#: a safety net for a code column declared numeric by mistake (#613).
+_LEADING_ZERO_RE = re.compile(r"^[+-]?0\d")
 
 
 def _try_cast_field(value: object, field_type: str) -> tuple[bool, object]:
@@ -196,6 +201,8 @@ def _try_cast_field(value: object, field_type: str) -> tuple[bool, object]:
         normalized = _normalize_numeric_lexeme(value)
         if normalized is None:
             return True, None
+        if isinstance(normalized, str) and _LEADING_ZERO_RE.match(normalized):
+            return False, value
         value = normalized
     if field_type == "integer":
         if isinstance(value, bool):
@@ -665,8 +672,9 @@ class SpecExecutor:
     # Normalization
     # ------------------------------------------------------------------
 
+    @staticmethod
     def _stage_fields(
-        self, spec: SpecDefinition, items: list[dict[str, object]]
+        spec: SpecDefinition, items: list[dict[str, object]]
     ) -> list[dict[str, object]]:
         """Stage 1 only: rename + transform (no casting) (#481)."""
         if not spec.fields:
@@ -684,8 +692,9 @@ class SpecExecutor:
             staged.append(record)
         return staged
 
+    @staticmethod
     def _finalize_casting(
-        self, spec: SpecDefinition, staged: list[dict[str, object]]
+        spec: SpecDefinition, staged: list[dict[str, object]]
     ) -> tuple[list[dict[str, object]], ValidationReport]:
         """Stage 2 only: column-level all-or-nothing casting (#481, #572).
 
@@ -778,8 +787,9 @@ class SpecExecutor:
             )
         return staged, report
 
+    @staticmethod
     def _normalize_fields(
-        self, spec: SpecDefinition, items: list[dict[str, object]]
+        spec: SpecDefinition, items: list[dict[str, object]]
     ) -> tuple[list[dict[str, object]], ValidationReport]:
         """Apply rename/transform/casting only when a fields[] declaration exists.
 
@@ -799,8 +809,8 @@ class SpecExecutor:
         """
         if not spec.fields:
             return items, ValidationReport()
-        staged = self._stage_fields(spec, items)
-        return self._finalize_casting(spec, staged)
+        staged = SpecExecutor._stage_fields(spec, items)
+        return SpecExecutor._finalize_casting(spec, staged)
 
     # ------------------------------------------------------------------
     # Public API
@@ -992,6 +1002,18 @@ def _extract_neis_rows(spec: SpecDefinition, payload: dict[str, object]) -> list
         elif isinstance(row_value, dict):
             rows.append(row_value)
     return rows
+
+
+def normalize_items(
+    spec: SpecDefinition, items: list[dict[str, object]]
+) -> list[dict[str, object]]:
+    """Rename, transform and cast ``items`` exactly as a query would, with no transport.
+
+    Replay verification compared only ``extract_items`` — the values *before*
+    normalization — so a cast that dropped a leading zero ("06102" → 6102) passed
+    it (#613). This gives the verifier the values users actually receive.
+    """
+    return SpecExecutor._normalize_fields(spec, items)[0]
 
 
 def extract_total_count(spec: SpecDefinition, payload: dict[str, object]) -> int | None:
@@ -1239,5 +1261,6 @@ __all__ = [
     "check_payload_error",
     "extract_items",
     "extract_total_count",
+    "normalize_items",
     "raise_for_code",
 ]

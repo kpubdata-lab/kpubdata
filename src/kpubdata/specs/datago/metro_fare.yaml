@@ -39,7 +39,7 @@ fields:
 - name: addCrgExpln
   type: string
 - name: arvlStnCd
-  type: integer
+  type: string
 - name: arvlStnNm
   type: string
 - name: arvlStnNo
@@ -61,7 +61,7 @@ fields:
 - name: crtrYmd
   type: integer
 - name: dptreStnCd
-  type: integer
+  type: string
 - name: dptreStnNm
   type: string
 - name: dptreStnNo

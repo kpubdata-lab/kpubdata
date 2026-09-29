@@ -91,9 +91,9 @@ fields:
 - name: roadnmbcd
   type: integer
 - name: roadnmbonbun
-  type: integer
+  type: string
 - name: roadnmbubun
-  type: integer
+  type: string
 - name: roadnmcd
   type: integer
 - name: roadnmseq
