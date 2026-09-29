@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Dependencies with known vulnerabilities are upgraded in `uv.lock` (kpubdata-builder#691). pip-audit over every extra found 87 findings (48 distinct advisories) in 14 packages; none remain. urllib3 2.6.3 → 2.8.0, idna 3.11 → 3.20, cryptography 46.0.6 → 50.0.1, pyjwt 2.12.1 → 2.15.1, pillow 12.2.0 → 12.3.0, mcp 1.26.0 → 2.2.0 (with starlette 1.7.0, python-multipart 0.0.32, anyio 4.14.2, click 8.5.0; pydantic-settings drops out), pytest 9.1.1, mkdocs-material 9.7.7, pymdown-extensions 12.1 — all inside the declared ranges, so only the lock moves. A new `Security` workflow runs pip-audit over the locked dependencies, gitleaks over the full history, and CodeQL, on every pull request and weekly.
+
 ## [0.7.0] — 2026-09-28
 
 Mostly a security and correctness release. Users of 0.6.x should upgrade.

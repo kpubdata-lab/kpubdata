@@ -1,0 +1,86 @@
+name: Security
+
+# Supply-chain and secret checks (kpubdata-builder#691). Three questions, one job each:
+#
+#   dependency audit  does anything uv.lock installs have a known vulnerability?
+#   secret scan       does any commit in history carry a credential?
+#   CodeQL            does the Python source have a known-dangerous pattern?
+#
+# They run on every pull request and push to main, and weekly, because a dependency
+# gains an advisory without anyone touching this repository. None is a required check:
+# whether a new advisory should block every open pull request is a branch-protection
+# decision (#520), and scripts/check_required_checks.py keeps the required set honest.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * 1"  # Monday 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-audit:
+    name: Dependency audit (pip-audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+
+      # Every extra: an optional dependency is still installed by whoever asks for it.
+      # --no-deps: the export is already the full, pinned closure.
+      - name: Audit the locked dependencies
+        run: |
+          uv export --frozen --no-hashes --no-emit-project --all-extras -o requirements.txt
+          uvx pip-audit==2.10.1 -r requirements.txt --no-deps --disable-pip --progress-spinner off
+
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GITLEAKS_VERSION: "8.28.0"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # history, not just the tip: a key removed later is still leaked
+
+      # The checksum-verified binary rather than gitleaks-action, which needs a licence
+      # key for organisations — a secret added in order to scan for secrets.
+      - name: Install gitleaks
+        run: |
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfL -o "${archive}" "${base}/${archive}"
+          curl -sSfL "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt" \
+            | grep " ${archive}\$" | sha256sum -c -
+          tar xzf "${archive}" gitleaks
+
+      - name: Scan the full history
+        run: ./gitleaks git . --redact --no-banner --log-level warn
+
+  codeql:
+    name: CodeQL (python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: python
+          build-mode: none
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:python
