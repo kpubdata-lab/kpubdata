@@ -1,6 +1,8 @@
-# KPubData
+# KPubData Core
 
 **Korean public data, ready to query.**
+
+> KPubData family: [Core](https://github.com/yeongseon/kpubdata) (access layer) → [Engine](https://github.com/yeongseon/kpubdata-builder) (warehouse engine) → [Studio](https://github.com/yeongseon/kpubdata-studio) (visual workspace)
 
 [한국어](./README.md)
 
