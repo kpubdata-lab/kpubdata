@@ -976,7 +976,7 @@ source = { editable = "." }
 dependencies = [
     { name = "httpx" },
     { name = "pyyaml" },
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.12'" },
 ]
 
 [package.optional-dependencies]
@@ -1028,12 +1028,12 @@ requires-dist = [
     { name = "pydantic", marker = "extra == 'validation'", specifier = ">=2.7,<3" },
     { name = "pykrx", marker = "extra == 'dev'", specifier = ">=1.0.45,<2" },
     { name = "pykrx", marker = "extra == 'krx'", specifier = ">=1.0.45,<2" },
-    { name = "pymdown-extensions", marker = "extra == 'docs'", specifier = ">=10,<12" },
+    { name = "pymdown-extensions", marker = "extra == 'docs'", specifier = ">=10,<13" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.2,<10" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5,<8" },
     { name = "pyyaml", specifier = ">=6,<7" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.5,<1" },
-    { name = "typing-extensions", marker = "python_full_version < '3.11'", specifier = ">=4.10" },
+    { name = "typing-extensions", marker = "python_full_version < '3.12'", specifier = ">=4.10" },
     { name = "xmltodict", marker = "extra == 'dev'", specifier = ">=0.13,<2" },
     { name = "xmltodict", marker = "extra == 'xml'", specifier = ">=0.13,<2" },
 ]
