@@ -55,8 +55,10 @@ fails when this page uses a name the code does not define.
 | `live_verified` | _(same as production)_ | — | _(same as production)_ |
 | `fixture_verified` | any failure | ≥1 | `fixture_verified` _(no auto downgrade)_ |
 | `unstable` | `HEALTHY` | ≥3 | restore `previous_status` |
+| `unstable` | `SCHEMA_CHANGED`, `PARAMETER_CHANGED`, `ENDPOINT_CHANGED` | ≥1 | `broken` _(immediate)_ |
 | `unstable` | any failure (cumulative) | ≥7 | `broken` |
 | `broken` | `HEALTHY` | ≥1 | `fixture_verified` _(requires fixture re-record)_ |
+| `application_required` | `HEALTHY` | ≥1 | restore `previous_status` _(application approved)_ |
 | `retired` | all inputs | — | _(no transitions; manual only)_ |
 
 ## Core Principles
@@ -94,15 +96,17 @@ Labels: `type:bug`, `epic:trust`, plus `severity:major` for `broken`, `severity:
 
 ```python
 def transition(
-    current: str,
-    classification: str,
+    current: DatasetStatus | str,
+    classification: DriftClassification | str,
     streak: int,
     cumulative_failures: int = 0,
-    previous_status: str | None = None,
-) -> str:
+    previous_status: DatasetStatus | str | None = None,
+) -> DatasetStatus:
     """Compute the next dataset status from drift signal."""
 ```
 
-The vocabulary (`DatasetStatus`, `DriftClassification`, `TRANSIENT_FAILURE_STREAK`)
-lives in `src/kpubdata/core/status.py`. `transition()` itself is **not implemented
-yet** — that is #625.
+Implemented as `kpubdata.core.status.transition()` (#625), with the vocabulary
+(`DatasetStatus`, `DriftClassification`, `TRANSIENT_FAILURE_STREAK`). `restore
+previous_status` falls back to `live_verified` when there is none, or when it names a
+fault. `tests/unit/core/test_status_transition.py` runs every row of the table above
+against the function, so the table and the code cannot drift apart.

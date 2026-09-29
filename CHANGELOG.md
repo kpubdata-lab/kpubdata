@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `tests/unit/test_status_vocabulary.py` fails when a design document uses a name
   the code does not define (#619).
 
+- `kpubdata.core.status.transition()` — the pure dataset status state machine from `docs/DATASET_STATUS.md`. A table-driven test runs every row of that document's transition table against the function. `unstable` now also breaks immediately on a structural change, and `application_required` recovers on `HEALTHY` (#625).
+
 ### Fixed
 
 - `docs/DATASET_STATUS.md` and `docs/LIVE_PROBE.md` contradicted each other and the
