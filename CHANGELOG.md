@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `docs/status.md` no longer depends on the calendar: "recent" is measured from the newest `last_verified`, so `--check` stops failing every pull request from 2026-12-09. It also counts all six SUPPORTED_DATA levels instead of three (#620).
 - `docs/DATASET_STATUS.md` and `docs/LIVE_PROBE.md` contradicted each other and the
   code: the failure threshold (3 against "2+"), code 32's classification, the
   `PARAM_CHANGED` spelling, a nonexistent dataset key, a nonexistent module and the
