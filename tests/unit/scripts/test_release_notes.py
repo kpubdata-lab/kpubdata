@@ -213,3 +213,17 @@ def test_promote_does_not_fold_another_versions_prereleases(script) -> None:
 def test_prerelease_command(script, capsys, version: str, expected: bool) -> None:
     assert script.main(["prerelease", version]) == 0
     assert capsys.readouterr().out.strip() == str(expected).lower()
+
+
+@pytest.mark.parametrize("ending", ["\n", "\r\n"])
+def test_promote_keeps_the_files_line_endings(script, tmp_path: Path, ending: str) -> None:
+    """A CRLF CHANGELOG stays CRLF, and an LF one stays LF (#628)."""
+    changelog = tmp_path / "CHANGELOG.md"
+    changelog.write_bytes(BRACKETED.replace("\n", ending).encode("utf-8"))
+    assert script.main(["promote", "0.7.1", "--changelog", str(changelog)]) == 0
+    raw = changelog.read_bytes().decode("utf-8")
+    assert "## [0.7.1]" in raw
+    if ending == "\r\n":
+        assert raw.count("\n") == raw.count("\r\n")  # no bare LF was inserted
+    else:
+        assert "\r" not in raw
