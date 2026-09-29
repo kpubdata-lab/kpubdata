@@ -8,7 +8,7 @@ KPubData Product Family(Korea Public Data Product Family)는 한국 공공데이
 | :--- | :--- | :--- | :--- |
 | **KPubData Core** | [kpubdata](https://github.com/yeongseon/kpubdata) | 공공데이터를 가져오고 표준화하는 접근 계층 | Python 3.10+ |
 | **KPubData Engine** | [kpubdata-builder](https://github.com/yeongseon/kpubdata-builder) | 공공데이터를 검증 가능한 Table Snapshot 으로 만드는 실행·웨어하우스 엔진 | Python 3.10+ |
-| **KPubData Studio** | [kpubdata-studio](https://github.com/yeongseon/kpubdata-studio) | 공공데이터를 탐색하고 SQL 로 분석하는 웹 작업공간 | Vite + React Router + TypeScript (SPA) |
+| **KPubData Studio** | [kpubdata-studio](https://github.com/yeongseon/kpubdata-studio) | 한국 공공데이터를 수집하고, 출처와 이용 조건을 유지한 스냅샷으로 관리하며, 표와 SQL 로 분석하는 작업공간 | Vite + React Router + TypeScript (SPA) |
 
 ---
 
