@@ -149,16 +149,15 @@ git push origin feat/issue-12-add-bus-adapter
 # 5. GitHub 웹사이트에서 'Compare & pull request' 버튼을 눌러 PR을 생성합니다.
 ```
 
-### 3-5. 커밋 메시지 규칙
-커밋 메시지는 '무엇을 왜 바꿨는지' 설명합니다.
+### 3-5. 제목과 커밋 메시지 규칙
+이슈·PR·최종 커밋 제목의 **정본은 [POLICY 2.1.3](docs/governance/POLICY.md)** 입니다 — 형식,
+허용 type 11개, 금지 접두사, 이슈 번호 위치가 모두 거기 있습니다. 요약하면:
 
-| 접두사 | 의미 | 예시 |
-| :--- | :--- | :--- |
-| `feat:` | 새 기능 추가 | `feat: add air quality adapter` |
-| `fix:` | 버그 수정 | `fix: handle empty XML response` |
-| `docs:` | 문서 수정 | `docs: update API spec` |
-| `test:` | 테스트 추가/수정 | `test: add parser unit tests` |
-| `refactor:` | 리팩토링 (코드 구조 개선) | `refactor: simplify transport layer` |
+- `type: description` 또는 `type(scope): description`, 영어, 끝에 마침표 없음
+  (예: `fix: handle empty XML response`, `feat(datasets): add air quality spec`)
+- PR 제목이 squash 병합의 커밋 제목이 되므로 **PR 제목만** 규칙을 지키면 됩니다. 브랜치 안의
+  개별 커밋 메시지는 자유지만 '무엇을 왜 바꿨는지' 쓰기를 권합니다.
+- 이슈 번호는 제목이 아니라 PR 본문에 `Closes #123` 으로 적습니다.
 
 ### 3-6. 절대 금지 사항
 - **`main` 브랜치에 직접 push 금지**: 모든 작업은 브랜치에서 진행하세요.
