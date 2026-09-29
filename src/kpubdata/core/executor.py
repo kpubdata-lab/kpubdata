@@ -34,6 +34,7 @@ from kpubdata.config import KPubDataConfig
 from kpubdata.core.capability import Operation, PaginationMode, QuerySupport
 from kpubdata.core.models import (
     DatasetRef,
+    FieldDescriptor,
     FieldIssue,
     Query,
     RecordBatch,
@@ -1115,6 +1116,34 @@ def _spec_request_parameters(spec: SpecDefinition) -> tuple[MappingProxyType[str
     return tuple(parameters)
 
 
+def spec_schema(spec: SpecDefinition, dataset: DatasetRef) -> SchemaDescriptor | None:
+    """Build the ``SchemaDescriptor`` a spec's ``fields`` declare (#643)."""
+    if not spec.fields:
+        return None
+    fields = []
+    for declared in spec.fields:
+        extra = {
+            key: value
+            for key, value in (
+                ("unit", declared.unit),
+                ("source_name", declared.source_name),
+                ("transform", declared.transform),
+            )
+            if value
+        }
+        fields.append(
+            FieldDescriptor(
+                name=declared.name,
+                type=declared.type,
+                description=declared.description,
+                raw=MappingProxyType(extra),
+            )
+        )
+    return SchemaDescriptor(
+        dataset=dataset, fields=fields, raw=MappingProxyType({"source": "spec", "spec_id": spec.id})
+    )
+
+
 def build_spec_dataset_ref(spec: SpecDefinition) -> DatasetRef:
     """Convert SpecDefinition to DatasetRef with catalog-equivalent semantics."""
     paginated = spec.pagination.type in {"page_no_rows", "page_display", "pindex_psize"}
@@ -1136,7 +1165,10 @@ def build_spec_dataset_ref(spec: SpecDefinition) -> DatasetRef:
         dataset_key=spec.dataset_key,
         name=spec.title,
         representation=Representation.API_JSON,
-        operations=frozenset({Operation.LIST, Operation.RAW}),
+        # SCHEMA only where fields are declared: get_schema answers None otherwise.
+        operations=frozenset(
+            {Operation.LIST, Operation.RAW} | ({Operation.SCHEMA} if spec.fields else set())
+        ),
         query_support=query_support,
         description=spec.description,
         tags=(spec.provider, "spec"),
@@ -1293,8 +1325,23 @@ class SpecDatasetAdapter:
             )
 
     def get_schema(self, dataset: DatasetRef) -> SchemaDescriptor | None:
-        """Schema metadata is not supported yet (an honest declaration)."""
-        return None
+        """The schema a spec declares in ``fields``, in declaration order (#643).
+
+        Returns ``None`` when the spec declares no fields: the columns are then
+        unknown, and an empty list would claim there are none.
+
+        ``title`` and ``format`` stay unset — ``FieldSpec`` has neither, and their
+        mapping belongs to the column-metadata contract (#644), not to a guess here.
+        ``unit``, ``source_name`` and ``transform`` go in ``raw``.
+
+        Raises:
+            DatasetNotFoundError: The key has no spec.
+        """
+        spec = self._specs.get(dataset.dataset_key)
+        if spec is None:
+            msg = f"Unknown dataset key for spec adapter: {dataset.id}"
+            raise DatasetNotFoundError(msg, provider=self._provider, dataset_id=dataset.id)
+        return spec_schema(spec, dataset)
 
     def call_raw(self, dataset: DatasetRef, operation: str, params: dict[str, object]) -> object:
         """Guarantee the raw escape hatch returning the original payload."""
@@ -1313,5 +1360,6 @@ __all__ = [
     "extract_items",
     "extract_total_count",
     "normalize_items",
+    "spec_schema",
     "raise_for_code",
 ]

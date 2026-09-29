@@ -524,13 +524,6 @@ def test_spec_dataset_adapter_surface(
     assert isinstance(raw, dict) and "response" in raw
 
 
-def test_spec_dataset_adapter_get_schema_is_none(apt_spec: SpecDefinition) -> None:
-    """get_schema honestly returns None."""
-    executor = _make_executor(FakeTransport())
-    adapter = SpecDatasetAdapter("datago", [apt_spec], executor)
-    assert adapter.get_schema(adapter.get_dataset("apt_trade")) is None
-
-
 # ----------------------------------------------------------------------
 # Executor scope extension: path_segment·index_range·pindex_psize·$root·
 # array index·neis
