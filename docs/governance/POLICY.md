@@ -93,7 +93,7 @@ Milestone 계층은 만들지 않는다.
 | Epic (5절) | **`epic:*` 라벨** (2.1.1절) | 사람 |
 | Required Verification (18절) | Project 필드 + 이슈 본문 | 이슈 작성자, triage에서 확정 |
 | Target Release (33절) | Project 필드 | 사람 |
-| 유형 (bug / feat / docs / chore) | 라벨 | 누구나 |
+| 유형 (bug / feature / docs / chore) | **제목 접두사** → `type:*` 라벨은 파생 (2.1.3절) | 제목은 작성자, 라벨은 자동화만 |
 | Review Level (R0~R3) | 라벨 (경로 기반 자동 부여) | 자동. 낮추는 것은 사람만 |
 | Severity (9절) | 라벨 (bug만) | triage |
 | Triage 분류 (11절) | 감사 결과표에만 기록. 라벨로 만들지 않음 | triage |
@@ -166,6 +166,46 @@ Epic 과 같은 이유다(2.1.1절). Project 가 없으면 Priority 필드는 **
 Project 가 생기면 Status·Target Release 는 2.1절 표대로 Project 필드로 간다.
 Priority 는 Epic 과 함께 라벨로 남긴다 — 이슈 목록에서 바로 보이고 필터가 되는 것이
 보드를 열어야 보이는 것보다 낫다.
+
+## 2.1.3 유형은 제목이 정하고, 라벨은 따라온다 — 2026-09-29 개정
+
+이슈와 PR 제목은 Conventional Commits 형식으로 쓴다.
+
+```text
+type(scope): 설명
+fix(localdata): empty wrapper becomes a phantom row
+```
+
+**원본은 제목이고 `type:*` 라벨은 파생이다.** `.github/workflows/titles.yml` 이 이슈
+제목을 읽어 라벨을 붙이고 맞지 않는 `type:*` 라벨을 뗀다. 사람도 에이전트도
+`type:*` 라벨을 손으로 붙이지 않는다 — 손으로 붙이는 순간 유형이 두 곳에 살게 되고,
+이 절 앞부분이 말하는 대로 한쪽이 뒤처진다. 기계가 만드는 사본은 뒤처지지 않는다.
+
+| 제목의 type | 라벨 |
+|---|---|
+| `fix` | `type:bug` |
+| `feat` | `type:feature` |
+| `docs` | `type:docs` |
+| 그 밖 (`chore` `ci` `test` `refactor` `style` `perf` `build` `revert` `i18n`) | `type:chore` |
+
+허용 type 과 대응표의 정본은 `scripts/conventional_title.py` 다. 세 저장소가 같은
+파서를 쓴다.
+
+- **PR 제목은 게이트다.** 형식이 틀리면 `PR title` 체크가 실패한다. 스쿼시 병합이
+  PR 제목을 커밋으로 만들고, 그 커밋이 CHANGELOG 항목의 재료가 된다.
+- **이슈 제목은 게이트가 아니다.** 틀리면 고칠 방법을 적은 댓글 하나가 달리고, 고치면
+  지워진다. 버그를 신고하는 사람이 빨간 X 를 볼 이유는 없다.
+- **설명은 여전히 문제를 말한다.** 이슈를 열 때는 원인도 고칠 방법도 모를 수 있다.
+  `fix(localdata): empty wrapper becomes a phantom row` 처럼 증상을 적는다.
+- `bug` · `enhancement` · `documentation` 같은 GitHub 기본 라벨은 쓰지 않는다. 같은
+  정보의 세 번째 장소다.
+- 이 개정 전의 `type:refactor` · `type:architecture` 는 더 붙이지 않는다. 제목이 type 을
+  정하면 워크플로가 다른 `type:*` 라벨을 모두 떼므로, 이슈에는 `type:*` 가 하나만 남는다.
+- `GITHUB_TOKEN` 으로 만든 이슈는 `issues` 이벤트를 일으키지 않으므로 워크플로가
+  라벨을 붙이지 못한다(예: builder 의 `fix(freshness): …` 알림). 제목은 형식을 지킨다.
+
+[BACKLOG.md](BACKLOG.md) 의 "제목에 접두사를 붙이지 않는다" 는 **백로그 일련번호**
+(`GOV-01:`)에 대한 결정이고 그대로 유효하다. 이 절이 허용하는 접두사는 type 하나뿐이다.
 
 # 3. Product Direction
 

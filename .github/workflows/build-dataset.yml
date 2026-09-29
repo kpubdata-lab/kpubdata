@@ -119,7 +119,7 @@ jobs:
           fi
           git commit -m "feat: add dataset via agent procedure (issue #$ISSUE_NUMBER)"
           git push origin "$BRANCH"
-          gh pr create --title "[agent] dataset from #$ISSUE_NUMBER" \
+          gh pr create --title "feat(datasets): add dataset from #$ISSUE_NUMBER" \
             --body "에이전트 절차 산출물 — verify 통과 확인 후 사람 리뷰. Closes #$ISSUE_NUMBER" \
             --label agent-generated || true
 
