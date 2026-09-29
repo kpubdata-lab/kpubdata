@@ -12,30 +12,37 @@ KPubData Product Family는 세 저장소가 독립적으로 릴리스되지만, 
 
 ## 1. 호환성 매트릭스
 
-각 행은 builder/studio 릴리스가 명시적으로 검증된 의존 저장소 버전을 표시한다. **빈 셀은 검증되지 않았음을 의미**하며, 동작할 수도 있지만 보장되지는 않는다.
+builder 와 studio 는 **한 애플리케이션, 한 버전**이다(ADR 0004 1절). 그래서 표는 두 열이다 —
+애플리케이션 버전 × kpubdata 버전.
 
-### kpubdata-builder × kpubdata
+**kpubdata 열은 범위가 아니라 사실이다.** `pyproject.toml` 의 `kpubdata>=0.7.0,<0.8` 는
+의도이고, 릴리스 게이트는 `uv.lock` 이 고정한 **한 버전**으로 돌았다. 그 버전을 적는다.
+**빈 셀은 검증되지 않았음을 뜻한다** — 동작할 수도 있지만 보장하지 않는다.
 
-| kpubdata-builder | kpubdata | 비고 |
+| 애플리케이션 (builder = studio) | kpubdata (릴리스 게이트가 검증한 버전) | 비고 |
 | :--- | :--- | :--- |
-| main (다음 릴리스) | 0.7.x | 의존 핀 `>=0.7.0,<0.8` (builder#746). kpubdata 0.6.x 는 provider 키가 로그·traceback 에 남을 수 있어 올렸다. |
-| 0.4.0 | 0.6.x | 2026-09-28 태그·GitHub Release. 의존 핀 `>=0.6.0,<0.7`. |
-| 0.1.x | 0.5.x | Medallion(Bronze→Silver→Gold) 파이프라인 + 서비스 façade 도입. |
+| main (다음 릴리스) | 0.7.0 | 릴리스가 아니다 — 행은 릴리스 때 확정된다. 의존 핀 `>=0.7.0,<0.8` (builder#746). kpubdata 0.6.x 는 provider 키가 로그·traceback 에 남을 수 있어 올렸다. |
+| 0.4.0 | 0.6.0 | 2026-09-28, builder·studio 모두 태그·GitHub Release. Builder API 계약 v1.29.0. 의존 핀 `>=0.6.0,<0.7`. |
+| 0.1.x (builder 만) | 0.5.x | studio 가 같은 버전을 쓰기 전. Medallion(Bronze→Silver→Gold) 파이프라인 + 서비스 façade 도입. |
 
-> 선언과 태그가 맞춰졌다(builder#690). builder 와 studio 모두 `v0.4.0` 이 태그·
-> GitHub Release 로 나왔고, builder 의 `release.yml`·`docker.yml` 이
-> `scripts/check_version_consistency.py` 로 `pyproject.toml`·CHANGELOG·태그가 어긋나면
-> 태그와 이미지 발행을 거부한다. "main" 행은 릴리스가 아니다 — 설치 가능한 조합을
-> 말할 때는 버전 행을 쓴다.
+선언과 태그는 맞춰져 있다(builder#690). builder 의 `release.yml`·`docker.yml` 이
+`scripts/check_version_consistency.py` 로 `pyproject.toml`·CHANGELOG·태그가 어긋나면 태그와
+이미지 발행을 거부하고, studio 의 `release.yml` 은 버전을 고르지 않고 builder 의 최신 릴리스
+태그를 그대로 쓴다.
 
-### kpubdata-studio × kpubdata-builder
+### 표 갱신 절차 (builder#718)
 
-| kpubdata-studio | kpubdata-builder | 비고 |
-| :--- | :--- | :--- |
-| 0.4.0 | 0.4.0 | 2026-09-28 태그·GitHub Release. studio 는 builder 의 HTTP façade(OpenAPI 3.1, `contract/builder-api.yaml` **v1.29.0**)를 통해 통신한다. builder 와 studio 는 한 버전을 공유한다(ADR 0004). |
-| (TBD) | 0.1.x | |
+1. builder 릴리스가 끝나면 그 **GitHub Release 노트 마지막 줄**을 본다. `release.yml` 이
+   게이트를 통과한 직후 `scripts/release_facts.py` 로 적어 둔 것이다:
 
-> **표 갱신 규칙**: 새 minor 릴리스가 나면, 해당 릴리스가 호환되는 의존 저장소 버전 범위를 표에 새 행으로 추가한다. 이전 행은 보존(EOL 표시 가능)하여 사용자가 자신의 조합을 찾아볼 수 있게 한다.
+   ```
+   Tested with kpubdata **0.7.0** (pinned in `uv.lock` while the release gates ran) · Builder API contract **1.32.0**.
+   ```
+
+2. 위 표 맨 위(`main` 행 아래)에 새 행을 추가한다 — 애플리케이션 버전, 그 줄의 kpubdata 버전,
+   비고에 날짜와 계약 버전.
+3. 이전 행은 지우지 않는다(EOL 표시는 가능). 사용자가 자기 조합을 찾아볼 수 있어야 한다.
+4. studio 는 builder 의 태그를 따라가므로 행을 따로 만들지 않는다.
 
 ## 2. 버전 규약 — Semantic Versioning
 
