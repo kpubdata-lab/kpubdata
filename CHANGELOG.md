@@ -18,7 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `ValidationReport.to_dict()` returns a JSON-serialisable form of the report (#615).
-
 - Provenance now reports `cached=True` for responses served from the response cache, and `fetched_at` keeps the original fetch time instead of the time of the cache read. The transport marks a cache hit in `httpx.Response.extensions`, and `ResponseCache.get_entry()` returns the stored `created_at` (#616).
 
 ## [0.7.0] — 2026-09-28
