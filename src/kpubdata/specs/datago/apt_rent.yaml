@@ -91,9 +91,11 @@ fields:
 - name: roadnmbcd
   type: integer
 - name: roadnmbonbun
-  type: integer
+  type: string
+  semantic_kind: code
 - name: roadnmbubun
-  type: integer
+  type: string
+  semantic_kind: code
 - name: roadnmcd
   type: integer
 - name: roadnmseq

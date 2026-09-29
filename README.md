@@ -19,8 +19,8 @@ KPubData 는 그 차이를 어댑터가 흡수해, 하나의 Python 인터페이
 > 이 수치는 `scripts/gen_readme_datasets.py`로 생성했다 — 직접 편집 금지. 데이터셋별 상태는 [SUPPORTED_DATA.md](./SUPPORTED_DATA.md).
 <!-- END: datasets -->
 
-> **검증 수준 (#498)**: 위 표의 "실API 검증"은 `meta.json`이 있는 record 완료본입니다.
-> "지원"은 실API 검증 완료에만 사용하며, 스키마만/활용신청 대기는 [SUPPORTED_DATA.md](./SUPPORTED_DATA.md)를 참고하세요.
+> **검증 수준 (#498)**: [SUPPORTED_DATA.md](./SUPPORTED_DATA.md)의 "지원"은 `meta.json`이 있는 record 완료본(실API 검증)에만 씁니다.
+> 그 열은 `scripts/sync_supported_data.py`가 fixture에서 계산합니다. 스키마만/활용신청 대기도 거기서 확인하세요.
 
 ## 무엇을 해결하나
 

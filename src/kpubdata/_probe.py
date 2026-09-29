@@ -28,6 +28,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from kpubdata.config import KPubDataConfig
+from kpubdata.core import status as _status
 from kpubdata.core.models import DatasetRef, Query
 from kpubdata.core.spec import SpecDefinition, discover_specs, find_spec
 from kpubdata.exceptions import (
@@ -59,18 +60,10 @@ PROBE_RETRIES = 0
 #: made or one is pending, and no documented code distinguishes them, so inventing
 #: the distinction would mean guessing. Splitting them later needs a record of
 #: submitted applications, which does not exist yet.
-PROBE_STATUSES: tuple[str, ...] = (
-    "available",
-    "auth_unknown",
-    "application_required",
-    "params_invalid",
-    "rate_limited",
-    "temporarily_unavailable",
-    "network_error",
-    "insufficient_metadata",
-    "retired",
-)
+PROBE_STATUSES: tuple[str, ...] = tuple(status.value for status in _status.ProbeStatus)
 
+#: The values are plain strings in results and reports; ``core.status.ProbeStatus``
+#: is the enum that defines them (ADR 0005).
 ProbeStatus = str
 
 #: data.go.kr standard result codes, as mapped in ``core/executor.py``.

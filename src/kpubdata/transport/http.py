@@ -25,7 +25,12 @@ import httpx
 from kpubdata.exceptions import RateLimitError, TransportError, TransportTimeoutError
 from kpubdata.transport._envelope import is_upstream_error_envelope
 from kpubdata.transport._sensitive import SENSITIVE_PARAM_KEYS
-from kpubdata.transport.cache import ResponseCache, make_cache_key
+from kpubdata.transport.cache import (
+    CACHE_HIT_EXTENSION,
+    CACHED_AT_EXTENSION,
+    ResponseCache,
+    make_cache_key,
+)
 
 from .._typing import override
 
@@ -308,9 +313,8 @@ class HttpTransport:
             or _contains_sensitive_headers(headers)
         )
         if cache_key is not None and self._cache is not None:
-            cached = self._cache.get(cache_key)
+            cached = self._cache.get_entry(cache_key)
             if cached is not None:
-                cached_body, cached_type = cached
                 logger.debug(
                     "transport cache hit",
                     extra={
@@ -324,11 +328,18 @@ class HttpTransport:
                 # the same request could yield different results depending on
                 # cache state. Old entries (no stored type) return empty string,
                 # preserving the old behavior without headers.
+                # Mark the response as a cache hit and carry the original fetch
+                # time, so provenance reports ``cached=True`` and does not date a
+                # replayed body as freshly fetched (#616).
                 return httpx.Response(
                     status_code=200,
-                    content=cached_body,
-                    headers={"content-type": cached_type} if cached_type else None,
+                    content=cached.body,
+                    headers={"content-type": cached.content_type} if cached.content_type else None,
                     request=httpx.Request(method.upper(), url, params=params, headers=headers),
+                    extensions={
+                        CACHE_HIT_EXTENSION: True,
+                        CACHED_AT_EXTENSION: cached.created_at,
+                    },
                 )
 
         # Some Korean public APIs (e.g., Korea Tourism Org's KorService2) declare

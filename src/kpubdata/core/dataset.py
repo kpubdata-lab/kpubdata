@@ -222,9 +222,18 @@ class Dataset:
 
         # Spec-backed datasets: use global column casting across all pages (#481).
         # This prevents mixed types when page 1 casts a column but page 2 cannot.
+        # That path buffers every page before yielding the first (see
+        # SpecDatasetAdapter.query_records_all).
         query_records_all = getattr(self._adapter, "query_records_all", None)
-        if callable(query_records_all):
-            query = Query(filters=dict(kwargs))
+        # A composite adapter has the method for every key but serves only some
+        # (#611); it says which.
+        supports = getattr(self._adapter, "supports_query_records_all", None)
+        if callable(query_records_all) and (
+            not callable(supports) or supports(self._ref.dataset_key)
+        ):
+            # Split page/page_size/... out of the filters, as list() does, so they
+            # drive pagination instead of being sent as raw parameters (#614).
+            query = _build_query(kwargs)
             batches = query_records_all(self._ref, query, max_pages=effective_max_pages)
             for batch in batches:
                 yield batch

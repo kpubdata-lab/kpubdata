@@ -144,3 +144,86 @@ def test_this_repositorys_changelog_serves_the_released_version(script) -> None:
     """0.7.0 shipped with no section; the file must now answer for it."""
     text = (REPO_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     assert "Security" in script.extract(text, "0.7.0")
+
+
+AFTER_PRERELEASES = """# Changelog
+
+## [Unreleased]
+
+### Fixed
+
+- after a1 (#5)
+
+## [0.7.1a1] — 2026-10-20
+
+### Added
+
+- second pre-release (#4)
+
+## [0.7.1a0] — 2026-10-15
+
+### Fixed
+
+- first pre-release (#3)
+
+## [0.7.0] — 2026-09-28
+
+### Added
+
+- a feature (#2)
+"""
+
+
+def test_promote_final_folds_its_prereleases(script) -> None:
+    """#622: `promote 0.7.1` after `promote 0.7.1a0` used to find nothing to release."""
+    promoted = script.promote(AFTER_PRERELEASES, "0.7.1", DAY)
+    assert "0.7.1a" not in promoted
+    assert script.extract(promoted, "0.7.1") == (
+        "### Fixed\n\n- after a1 (#5)\n- first pre-release (#3)\n\n"
+        "### Added\n\n- second pre-release (#4)"
+    )
+    assert "## [Unreleased]\n\n## [0.7.1] — 2026-10-29" in promoted
+    assert promoted.endswith("## [0.7.0] — 2026-09-28\n\n### Added\n\n- a feature (#2)\n")
+
+
+def test_promote_final_works_with_an_empty_unreleased(script) -> None:
+    text = AFTER_PRERELEASES.replace("### Fixed\n\n- after a1 (#5)\n\n", "", 1)
+    promoted = script.promote(text, "0.7.1", DAY)
+    assert "second pre-release" in script.extract(promoted, "0.7.1")
+    assert "first pre-release" in script.extract(promoted, "0.7.1")
+
+
+def test_promote_prerelease_does_not_fold_siblings(script) -> None:
+    promoted = script.promote(AFTER_PRERELEASES, "0.7.1a2", DAY)
+    assert script.extract(promoted, "0.7.1a2") == "### Fixed\n\n- after a1 (#5)"
+    assert "## [0.7.1a1]" in promoted
+
+
+def test_promote_does_not_fold_another_versions_prereleases(script) -> None:
+    text = AFTER_PRERELEASES.replace("0.7.1a", "0.7.10a")
+    promoted = script.promote(text, "0.7.1", DAY)
+    assert "## [0.7.10a1]" in promoted
+    assert script.extract(promoted, "0.7.1") == "### Fixed\n\n- after a1 (#5)"
+
+
+@pytest.mark.parametrize(
+    ("version", "expected"),
+    [("0.7.1a0", True), ("v0.7.1rc1", True), ("0.7.1b2", True), ("0.7.1", False)],
+)
+def test_prerelease_command(script, capsys, version: str, expected: bool) -> None:
+    assert script.main(["prerelease", version]) == 0
+    assert capsys.readouterr().out.strip() == str(expected).lower()
+
+
+@pytest.mark.parametrize("ending", ["\n", "\r\n"])
+def test_promote_keeps_the_files_line_endings(script, tmp_path: Path, ending: str) -> None:
+    """A CRLF CHANGELOG stays CRLF, and an LF one stays LF (#628)."""
+    changelog = tmp_path / "CHANGELOG.md"
+    changelog.write_bytes(BRACKETED.replace("\n", ending).encode("utf-8"))
+    assert script.main(["promote", "0.7.1", "--changelog", str(changelog)]) == 0
+    raw = changelog.read_bytes().decode("utf-8")
+    assert "## [0.7.1]" in raw
+    if ending == "\r\n":
+        assert raw.count("\n") == raw.count("\r\n")  # no bare LF was inserted
+    else:
+        assert "\r" not in raw

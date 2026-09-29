@@ -29,9 +29,9 @@ import re
 import sys
 from dataclasses import dataclass
 
-# The types the three repositories have actually used, plus `build` and `revert`
-# from the Conventional Commits spec. `i18n` is this project's own: the comment and
-# docstring translation (#517) ran as its own type and should stay findable.
+# The eleven types POLICY 2.1.3 allows, the same in all three repositories. `i18n` was
+# dropped on 2026-09-29: translation work is `docs` or `chore(i18n)`, so it needs no
+# type of its own. Titles merged before then are history and are not rewritten.
 TYPES = (
     "feat",
     "fix",
@@ -44,7 +44,6 @@ TYPES = (
     "perf",
     "build",
     "revert",
-    "i18n",
 )
 
 # POLICY 2.1 names four kinds: bug, feature, docs, chore. Everything that is neither a
@@ -57,11 +56,14 @@ LABELS = {
 DEFAULT_LABEL = "type:chore"
 ALL_LABELS = ("type:bug", "type:feature", "type:docs", "type:chore")
 
+# One line only: a line break in the scope or description would let a title add its own
+# `key=value` lines to $GITHUB_OUTPUT (#628). `fullmatch` and the excluded \r\n keep a
+# title to exactly one line.
 _TITLE = re.compile(
-    r"^(?P<type>[a-z0-9]+)"
-    r"(?:\((?P<scope>[^()\s][^()]*)\))?"
+    r"(?P<type>[a-z0-9]+)"
+    r"(?:\((?P<scope>[^()\s][^()\r\n]*)\))?"
     r"(?P<breaking>!)?"
-    r": (?P<description>\S.*)$"
+    r": (?P<description>\S[^\r\n]*)"
 )
 
 _GITHUB_REVERT = re.compile(r'^Revert ".+"$')
@@ -95,11 +97,13 @@ def parse(title: str) -> Title:
         TitleError: The shape is wrong, or the type is not one of TYPES.
     """
     title = title.strip()
+    if "\n" in title or "\r" in title:
+        raise TitleError("title must be a single line")
     # GitHub's own "Revert" button writes `Revert "fix: ..."`. It is a revert whatever
     # it reverts, and refusing it would make undoing a merge fail a check.
     if _GITHUB_REVERT.match(title):
         return Title(type="revert", scope=None, breaking=False, description=title)
-    match = _TITLE.match(title)
+    match = _TITLE.fullmatch(title)
     if match is None:
         raise TitleError(
             f"title must look like `type(scope): description`, for example `{_EXAMPLE}`. "

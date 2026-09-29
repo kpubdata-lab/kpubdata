@@ -169,12 +169,54 @@ Priority 는 Epic 과 함께 라벨로 남긴다 — 이슈 목록에서 바로 
 
 ## 2.1.3 유형은 제목이 정하고, 라벨은 따라온다 — 2026-09-29 개정
 
-이슈와 PR 제목은 Conventional Commits 형식으로 쓴다.
+이슈, PR, 그리고 기본 브랜치의 최종(squash) 커밋 제목은 같은 형식을 쓴다. **이 절이 세
+저장소(kpubdata · kpubdata-builder · kpubdata-studio)의 제목 규칙 정본이다** — 각 저장소의
+AGENTS.md · CONTRIBUTING.md · PR 템플릿은 여기를 가리킨다.
 
 ```text
-type(scope): 설명
-fix(localdata): empty wrapper becomes a phantom row
+type: description
+type(scope): description
+type!: description          # 호환성을 깨는 변경 표기
+type(scope)!: description
 ```
+
+- 제목은 영어. `type` 과 `scope` 는 소문자, 콜론 뒤 공백 한 칸, 끝에 마침표를 붙이지 않는다.
+- `scope` 는 선택이다. 통일을 위해 모든 제목에 억지로 붙이지 않는다.
+- `description` 은 변경 대상과 의도를 구체적으로 쓴다. 소문자로 시작하되 API 이름·약어·
+  고유명사 표기는 유지한다. 짧게 만들려고 오류 코드·API 이름·핵심 증상을 지우지 않는다.
+- 이슈 제목은 **현상**을, PR 제목은 **해결 내용**을 말할 수 있다. 같은 범위면 둘을 맞추되,
+  범위가 다르면 문구까지 억지로 같게 하지 않는다. 원인이 확정되지 않은 조사 이슈에
+  `fix:` 를 붙여 해결책을 확정하지 않는다.
+- 우선순위·크기·상태·담당자, `[Bug]` `[Feature]` `[WIP]` 같은 접두사를 넣지 않는다 —
+  라벨과 Draft 상태가 그 일을 한다.
+- **PR 제목에 이슈 번호를 붙이지 않는다.** 본문에 `Closes #123` · `Refs #123` 으로 연결한다.
+  squash 병합이 최종 커밋 제목 끝에 PR 번호를 붙인다:
+  `fix: decode nonempty NULL-only collection results (#503)`.
+
+| type | 용도 |
+|---|---|
+| `feat` | 사용자에게 제공하는 기능 추가 |
+| `fix` | 제품 동작의 버그 수정 |
+| `docs` | 문서 변경 |
+| `test` | 테스트 추가·수정 |
+| `perf` | 성능 개선 |
+| `refactor` | 외부 동작을 유지하는 내부 구조 개선 |
+| `ci` | CI·자동화 워크플로 변경 |
+| `build` | 빌드·패키징·의존성 |
+| `chore` | 위에 해당하지 않는 유지보수 |
+| `style` | 동작 변경 없는 서식 변경 |
+| `revert` | 기존 변경 되돌리기 (GitHub 의 `Revert "…"` 제목도 허용) |
+
+`i18n` 은 2026-09-29 에 뺐다 — 번역은 `docs` 또는 `chore(i18n)` 이다. 그 전에 병합된 제목은
+이력이므로 고치지 않는다.
+
+**제목은 릴리스 분류를 정하지 않는다.** 버전은 `release.yml` prepare 의 `bump` 입력(사람이
+고른다, 14절)이, 릴리스 노트는 CHANGELOG 절이 정한다. `!` 는 리뷰어에게 주는 표시이고,
+호환성을 깨는지와 그에 따른 bump 는 릴리스 규칙(compatibility.md)에 따라 사람이 판단한다.
+
+**병합은 squash 하나뿐이다** (2026-09-29, 세 저장소 설정): merge commit·rebase merge 는 꺼져
+있고, squash 커밋 제목은 PR 제목, 본문은 커밋 메시지(각 커밋의 `Co-authored-by` 가 남는다)다.
+그래서 PR 제목이 곧 기본 브랜치의 커밋 제목이 된다.
 
 **원본은 제목이고 `type:*` 라벨은 파생이다.** `.github/workflows/titles.yml` 이 이슈
 제목을 읽어 라벨을 붙이고 맞지 않는 `type:*` 라벨을 뗀다. 사람도 에이전트도
@@ -186,15 +228,18 @@ fix(localdata): empty wrapper becomes a phantom row
 | `fix` | `type:bug` |
 | `feat` | `type:feature` |
 | `docs` | `type:docs` |
-| 그 밖 (`chore` `ci` `test` `refactor` `style` `perf` `build` `revert` `i18n`) | `type:chore` |
+| 그 밖 (`chore` `ci` `test` `refactor` `style` `perf` `build` `revert`) | `type:chore` |
 
 허용 type 과 대응표의 정본은 `scripts/conventional_title.py` 다. 세 저장소가 같은
 파서를 쓴다.
 
-- **PR 제목은 게이트다.** 형식이 틀리면 `PR title` 체크가 실패한다. 스쿼시 병합이
-  PR 제목을 커밋으로 만들고, 그 커밋이 CHANGELOG 항목의 재료가 된다.
-- **이슈 제목은 게이트가 아니다.** 틀리면 고칠 방법을 적은 댓글 하나가 달리고, 고치면
-  지워진다. 버그를 신고하는 사람이 빨간 X 를 볼 이유는 없다.
+- **PR 제목은 게이트다.** 형식이 틀리면 `PR title` 체크가 실패한다. 생성·제목 수정·재오픈·
+  새 커밋 때마다 다시 검사한다. 검사는 `pull_request` 이벤트에서 읽기 권한만으로 돌고, 제목은
+  환경변수로만 스크립트에 전달된다(셸 코드에 끼워 넣지 않는다). 개별 개발 커밋은 검사하지
+  않는다 — 기본 브랜치에 남는 것은 squash 커밋 하나다.
+- **이슈 제목은 게이트가 아니다.** 틀리면 고칠 방법을 적은 댓글이 **하나만** 달리고(다시
+  편집해도 늘지 않는다), 고치면 지워진다. 제목 때문에 이슈를 자동으로 닫지 않는다. 외부
+  기여자가 규칙을 몰라도 이슈를 열 수 있어야 한다.
 - **설명은 여전히 문제를 말한다.** 이슈를 열 때는 원인도 고칠 방법도 모를 수 있다.
   `fix(localdata): empty wrapper becomes a phantom row` 처럼 증상을 적는다.
 - `bug` · `enhancement` · `documentation` 같은 GitHub 기본 라벨은 쓰지 않는다. 같은

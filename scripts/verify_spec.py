@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 import sys
 from dataclasses import dataclass, field
@@ -128,9 +129,47 @@ def _verify_fixtures(spec: SpecDefinition) -> list[StepResult]:
             )
             continue
 
+        lost = _lost_leading_zeros(spec, items)
+        if lost:
+            results.append(
+                StepResult(
+                    f"replay[{example}] 코드값 보존",
+                    passed=False,
+                    detail=(
+                        "normalization drops leading zeros — declare these as string (#613): "
+                        + ", ".join(lost)
+                    ),
+                )
+            )
+            continue
+
         results.append(StepResult(f"fixture[{example}] + replay", passed=True))
 
     return results
+
+
+_CODE_VALUE = re.compile(r"^0\d+$")
+
+
+def _lost_leading_zeros(spec: SpecDefinition, items: list[dict[str, object]]) -> list[str]:
+    """Fields whose zero-led code values ("06102") do not survive normalization.
+
+    The replay above compares values *before* normalization, so a cast that turns
+    "06102" into 6102 passed it (#613). This compares what users receive.
+    """
+    from kpubdata.core.executor import normalize_items
+
+    normalized = normalize_items(spec, items)
+    lost: dict[str, str] = {}
+    for raw, out in zip(items, normalized, strict=True):
+        for declared in spec.fields:
+            if declared.transform or declared.name in lost:
+                continue
+            value = raw.get(declared.source_name or declared.name)
+            received = out.get(declared.name)
+            if isinstance(value, str) and _CODE_VALUE.match(value) and received != value:
+                lost[declared.name] = f"{declared.name} ({value!r} -> {received!r})"
+    return sorted(lost.values())
 
 
 def run_verify(dataset_id: str | None = None) -> int:

@@ -73,16 +73,28 @@ nav:
       - 지방행정인허가 (localdata): providers/localdata.md
       - 소상공인 상가정보 (semas): providers/semas.md
       - 통계지리정보 (sgis): providers/sgis.md
+      - 식품의약품안전처 (fds): providers/fds.md
+      - 특허정보검색 KIPRIS (kipris): providers/kipris.md
+      - 국립국어원 (korean): providers/korean.md
+      - 한국거래소 KRX (krx): providers/krx.md
+      - 국가법령정보센터 (law): providers/law.md
+      - 교육부 나이스 (neis): providers/neis.md
   - 아키텍처:
       - 시스템 구조: architecture-diagrams.md
       - Product Family: product-family-architecture.md
       - 호환성 매트릭스: compatibility.md
       - datago API 참고: datago-api-reference.md
+      - 데이터셋 상태 전이: DATASET_STATUS.md
+      - Live Probe: LIVE_PROBE.md
+      - Production-grade 기준: PRODUCTION_GRADE.md
+      - 데이터셋 수요 목록: dataset-demand-list.md
   - ADR:
       - "0001: Dialect 아키텍처": adrs/0001-dialect-inspired-architecture.md
       - "0002: UX 표준화": adrs/0002-standardize-ux-not-native-shape.md
       - "0003: 언어 정책": adrs/0003-language-policy.md
       - "0004: 버전 정책": adrs/0004-versioning-and-release.md
+      - "0005: 데이터셋 상태 어휘": adrs/0005-dataset-status-vocabulary.md
+      - "0006: 컬럼 메타 계약": adrs/0006-column-metadata-contract.md
   - 튜토리얼:
       - AI 에이전트 워크플로우: tutorial-ai-agent-workflow.md
   - 기여:

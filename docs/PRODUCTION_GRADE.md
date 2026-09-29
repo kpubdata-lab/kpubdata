@@ -10,6 +10,9 @@ A dataset progresses from **test-verified** to **production-grade** when it
 meets all the criteria below. Studio adds a second tier for datasets that
 are ready for the visual builder experience.
 
+In the canonical vocabulary ([ADR 0005](adrs/0005-dataset-status-vocabulary.md))
+these tiers are `fixture_verified` and `production`.
+
 ## Base Requirements (all providers)
 
 ### Source & Documentation

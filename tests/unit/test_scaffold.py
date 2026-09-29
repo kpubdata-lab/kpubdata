@@ -349,3 +349,26 @@ class TestScaffoldCli:
 
         assert exit_code == 1
         assert "scaffold failed" in captured.err
+
+
+def test_scaffolded_files_pass_the_english_comment_gate(tmp_path: Path) -> None:
+    """What `kpubdata scaffold` writes must pass check_english_comments.py (#626).
+
+    The templates are strings, so the gate never saw their Korean docstrings; the
+    files they produced failed it the moment a contributor ran the gate.
+    """
+    import importlib.util
+    import sys
+
+    script = Path(__file__).resolve().parents[2] / "scripts" / "check_english_comments.py"
+    spec = importlib.util.spec_from_file_location("_check_english_comments", script)
+    assert spec is not None and spec.loader is not None
+    gate = importlib.util.module_from_spec(spec)
+    sys.modules["_check_english_comments"] = gate
+    spec.loader.exec_module(gate)
+
+    result = scaffold_provider("my_prov", repo_root=_shared_repo_root(tmp_path), dataset_key="x")
+    generated = [path for path in result.created if path.suffix == ".py"]
+    assert generated
+    for path in generated:
+        assert gate.findings(path) == [], path
