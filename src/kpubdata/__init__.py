@@ -13,6 +13,7 @@ from kpubdata.core.models import (
     SchemaDescriptor,
 )
 from kpubdata.core.representation import Representation
+from kpubdata.core.spec import LicenseSpec
 from kpubdata.exceptions import (
     AuthError,
     ConfigError,
@@ -33,6 +34,7 @@ __all__ = [
     "__version__",
     "Client",
     "DatasetRef",
+    "LicenseSpec",
     "Query",
     "RecordBatch",
     "SchemaDescriptor",

@@ -9,6 +9,7 @@ from types import MappingProxyType
 
 from kpubdata.core.capability import Operation, QuerySupport, _dataclass
 from kpubdata.core.representation import Representation
+from kpubdata.core.spec import LicenseSpec
 from kpubdata.exceptions import InvalidRequestError
 
 
@@ -32,6 +33,10 @@ class DatasetRef:
         source_url: URL to original API docs or data portal page.
         query_support: Structured list-query capability metadata, if known.
         raw_metadata: Provider-specific exploration metadata for debugging.
+        license: The spec's licence terms — redistribution, attribution, quota and PII
+            columns — exactly as declared, or None when the dataset declares none
+            (#609). None means unknown, never "no restrictions"; ``quota`` is the
+            provider's own wording and is not parsed.
     """
 
     id: str
@@ -45,6 +50,7 @@ class DatasetRef:
     description: str | None = None
     tags: tuple[str, ...] = ()
     source_url: str | None = None
+    license: LicenseSpec | None = None
 
     def supports(self, op: Operation) -> bool:
         """Return whether this dataset supports the requested operation."""

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `DatasetRef.license` carries a spec's licence terms — redistribution, attribution, `quota`, PII columns — exactly as declared, and `LicenseSpec` is exported from `kpubdata` (#609). A dataset that declares no licence has `None`, which means unknown rather than unrestricted; `quota` is the provider's own wording and is not parsed. Catalogue-only datasets have `None`.
+
 ## [0.7.0] — 2026-09-28
 
 Mostly a security and correctness release. Users of 0.6.x should upgrade.
