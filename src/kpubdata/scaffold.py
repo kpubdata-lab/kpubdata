@@ -87,10 +87,10 @@ def _validate_dataset_key(key: str) -> None:
 def _adapter_module(provider_name: str, dataset_key: str) -> str:
     """Return the provider adapter module body as a string."""
     class_name = "".join(part.capitalize() for part in provider_name.split("_")) + "Adapter"
-    return f'''"""{provider_name} provider 어댑터 (TODO: 한 줄 설명).
+    return f'''"""{provider_name} provider adapter (TODO: one-line summary).
 
-PROVIDER_ADAPTER_CONTRACT.md의 책임을 따르는 skeleton — 실제 backend 호출은
-구현해야 한다(예: HTTP transport 호출, native 응답을 정규 RecordBatch로 변환).
+A skeleton following PROVIDER_ADAPTER_CONTRACT.md. The real backend calls still
+need writing (e.g. HTTP transport calls, turning native responses into RecordBatch).
 """
 
 from __future__ import annotations
@@ -113,12 +113,12 @@ _CATALOGUE_PATH = Path(__file__).parent / "catalogue.json"
 
 
 def _load_default_catalogue() -> tuple[DatasetRef, ...]:
-    """이 provider 패키지의 catalogue.json을 DatasetRef 튜플로 로드한다.
+    """Load this provider package's catalogue.json as a tuple of DatasetRef.
 
-    설치된 패키지에서는 ``importlib.resources`` 기반의 ``load_catalogue``를
-    사용하고(zip wheel 등에서도 동작), 그 경로가 실패하면(예: 스캐폴드 직후
-    아직 패키지가 import되기 전, 또는 spec_from_file_location으로 standalone
-    로드된 경우) ``__file__`` 기준 파일시스템 읽기로 폴백한다.
+    An installed package uses ``load_catalogue`` over ``importlib.resources`` (which
+    also works from a zipped wheel). When that fails -- right after scaffolding,
+    before the package is importable, or when loaded standalone through
+    spec_from_file_location -- it falls back to reading the file next to ``__file__``.
     """
     try:
         return load_catalogue("kpubdata.providers.{provider_name}", "{provider_name}")
@@ -128,16 +128,16 @@ def _load_default_catalogue() -> tuple[DatasetRef, ...]:
 
 
 class {class_name}:
-    """{provider_name} Provider 어댑터.
+    """{provider_name} provider adapter.
 
-    이 skeleton은 datasets discovery만 동작한다. query_records/call_raw 등
-    실제 fetch 로직은 backend 명세에 맞춰 채워야 한다.
+    Only dataset discovery works in this skeleton. The fetch logic --
+    query_records, call_raw -- has to be written against the backend's spec.
     """
 
-    requires_api_key: bool = True  # TODO: backend가 무인증이면 False로 변경.
+    requires_api_key: bool = True  # TODO: set to False if the backend needs no key.
 
     def __init__(self, *, catalogue: Sequence[DatasetRef] | None = None) -> None:
-        """provider catalogue를 로드한다(테스트에서는 catalogue를 주입할 수 있다)."""
+        """Load the provider catalogue (tests may inject one)."""
         self._datasets: tuple[DatasetRef, ...] = (
             tuple(catalogue) if catalogue is not None else _load_default_catalogue()
         )
@@ -147,15 +147,15 @@ class {class_name}:
 
     @property
     def name(self) -> str:
-        """정규 Provider 키."""
+        """Canonical provider key."""
         return "{provider_name}"
 
     def list_datasets(self) -> list[DatasetRef]:
-        """이 Provider에서 탐색 가능한 데이터셋."""
+        """Datasets discoverable from this provider."""
         return list(self._datasets)
 
     def search_datasets(self, text: str) -> list[DatasetRef]:
-        """텍스트로 데이터셋을 검색한다(이름/id casefold 매치)."""
+        """Search datasets by text (casefolded match on name and id)."""
         needle = text.casefold()
         return [
             d for d in self._datasets
@@ -163,7 +163,7 @@ class {class_name}:
         ]
 
     def get_dataset(self, dataset_key: str) -> DatasetRef:
-        """Provider 로컬 dataset_key를 DatasetRef로 해석한다."""
+        """Resolve a provider-local dataset_key to a DatasetRef."""
         dataset = self._datasets_by_key.get(dataset_key)
         if dataset is not None:
             return dataset
@@ -174,7 +174,7 @@ class {class_name}:
         )
 
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
-        """정규 list/query 호출. TODO: 실제 backend 호출 구현."""
+        """Canonical list/query call. TODO: implement the backend call."""
         raise InvalidRequestError(
             "query_records is not implemented yet — fill in backend logic.",
             provider="{provider_name}",
@@ -182,13 +182,13 @@ class {class_name}:
         )
 
     def get_schema(self, dataset: DatasetRef) -> SchemaDescriptor | None:
-        """선택적 스키마 메타데이터(미지원이면 None)."""
+        """Optional schema metadata (None when unsupported)."""
         return None
 
     def call_raw(
         self, dataset: DatasetRef, operation: str, params: dict[str, object]
     ) -> object:
-        """raw 비상구. TODO: backend의 원본 응답을 그대로 반환하도록 구현."""
+        """Raw escape hatch. TODO: return the backend's original response as-is."""
         raise InvalidRequestError(
             "call_raw is not implemented yet — fill in backend logic.",
             provider="{provider_name}",
@@ -204,7 +204,7 @@ def _init_module(provider_name: str) -> str:
     """Body of the provider package __init__.py."""
     class_name = "".join(part.capitalize() for part in provider_name.split("_")) + "Adapter"
     return (
-        f'"""{provider_name} Provider 어댑터 패키지."""\n\n'
+        f'"""{provider_name} provider adapter package."""\n\n'
         f"from __future__ import annotations\n\n"
         f"from .adapter import {class_name}\n\n"
         f'__all__ = ["{class_name}"]\n'
@@ -215,13 +215,13 @@ def _catalogue_seed(provider_name: str, dataset_key: str) -> str:
     """Initial catalogue.json body (one sample dataset)."""
     entry = {
         "dataset_key": dataset_key,
-        "name": f"{provider_name} {dataset_key} sample (TODO: 실명으로 교체)",
+        "name": f"{provider_name} {dataset_key} sample (TODO: replace with the real name)",
         "base_url": "https://example.invalid/api",
         "default_operation": "list",
         "representation": "api_json",
         "service_key_param": "serviceKey",
         "format_param": "type",
-        "description": "TODO: backend 데이터셋 설명을 채워주세요.",
+        "description": "TODO: describe the backend dataset.",
         "tags": [provider_name],
         "source_url": "https://example.invalid/dataset",
         "operations": ["list", "raw"],
@@ -255,7 +255,7 @@ def _contract_test(provider_name: str, dataset_key: str) -> str:
     class_name = "".join(part.capitalize() for part in provider_name.split("_")) + "Adapter"
     return f'''"""{provider_name} provider contract test (skeleton).
 
-query_records 등 backend 호출이 구현되면 해당 시나리오 테스트를 채워야 한다.
+Add scenario tests once query_records and the other backend calls are implemented.
 """
 
 from __future__ import annotations
@@ -265,23 +265,23 @@ from kpubdata.providers.{provider_name} import {class_name}
 
 
 def _adapter() -> {class_name}:
-    """테스트용 어댑터 인스턴스를 생성한다."""
+    """Create an adapter instance for the tests."""
     return {class_name}()
 
 
 def test_{provider_name}_adapter_name() -> None:
-    """Provider 이름이 정규 키와 일치한다."""
+    """The provider name matches the canonical key."""
     assert _adapter().name == "{provider_name}"
 
 
 def test_{provider_name}_lists_seed_dataset() -> None:
-    """catalogue.json의 시드 데이터셋이 list_datasets에 노출된다."""
+    """The seed dataset in catalogue.json appears in list_datasets."""
     datasets = _adapter().list_datasets()
     assert any(d.dataset_key == "{dataset_key}" for d in datasets)
 
 
 def test_{provider_name}_seed_dataset_metadata() -> None:
-    """시드 데이터셋이 list/raw 작업을 선언하는지 확인한다."""
+    """The seed dataset declares the list and raw operations."""
     dataset = _adapter().get_dataset("{dataset_key}")
     assert dataset.id == "{provider_name}.{dataset_key}"
     assert Operation.LIST in dataset.operations

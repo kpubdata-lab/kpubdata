@@ -55,7 +55,7 @@ release notes.
 | **Governance documents** (`AGENTS.md`, `CONTRIBUTING.md`) | English |
 | **Implementation contracts** (`PROVIDER_ADAPTER_CONTRACT.md`, `API_SPEC.md`) | English |
 | **Design rationale** (`VALIDATION.md`, `ARCHITECTURE.md`, ADRs) | Korean |
-| **README** | Korean first, with an English section in the same file |
+| **README** | Two files: `README.md` in Korean, `README.en.md` in English, kept in step by `scripts/check_readme_parity.py` (ADR 0003) |
 | **Issue titles** | English |
 | Issue bodies | Korean or English |
 | PR bodies and review comments | Korean or English |
@@ -72,10 +72,11 @@ Operating rules:
 ### Comments and docstrings are gated, not merely requested
 
 The rule above went unenforced long enough to accumulate thousands of Korean
-comments. `scripts/check_korean_comments.py` is a ratchet: it freezes the current
-per-file count and fails only when a count grows, or when a file absent from the
-baseline has any. Write new code in English; the existing debt is paid down
-separately (#517, #518).
+comments. That debt is paid, and in this repository the gate is
+`scripts/check_english_comments.py` with **zero tolerance**: any Korean comment or
+docstring under `src`, `tests` or `scripts` fails CI (#517). Files that
+`kpubdata scaffold` generates are held to the same gate (#626). The ratchet
+variant, `check_korean_comments.py`, is kpubdata-builder's.
 
 
 ## 확인은 기계가 한다
@@ -111,14 +112,20 @@ first draft of this section already dropped the Severity axis that POLICY define
 
 What is specific to agents:
 
-- A new issue carries **at least one `epic:*` and one `type:*`**.
+- A new issue carries **at least one `epic:*`**. Its title starts with a
+  Conventional Commits type — `fix(localdata): empty wrapper becomes a phantom row` —
+  and the `type:*` label follows from the title (POLICY 2.1.3). **Never set `type:*`
+  by hand**, and change the title rather than the label when the type was wrong.
+- Pull request titles use the same types; the `PR title` check fails otherwise. The
+  allowed list lives in kpubdata's `scripts/conventional_title.py`, and the rules in
+  [POLICY 2.1.3](docs/governance/POLICY.md) — the one place all three repositories read.
+  Merges are squash-only, so the PR title becomes the commit title on `main`. Do not put
+  an issue number in a PR title; write `Closes #N` in the body.
 - Leave Priority off when there is no evidence for it. POLICY 8 requires
   `Impact:`, `Blocks:` and `Evidence:` for High and above, and a rating without
   evidence is a wrong rating.
-- `type:feature` is the feature label, matching
-  `.github/ISSUE_TEMPLATE/feature_request.yml`. `type:feat` is retired.
 - Do not prefix a title with `GOV-01:` or `WH-03:`. Those are serial numbers from
-  a backlog document, not the issue's name. Labels do the classifying.
+  a backlog document, not the issue's name. The type is the only prefix.
 
 What an agent does not do:
 
@@ -282,7 +289,8 @@ When a public method, public model or canonical exception changes:
 
 - Update `API_SPEC.md`.
 - Update `PRD.md` if the requirement changed.
-- Add a release-note entry.
+- Add an entry under `## [Unreleased]` in `CHANGELOG.md`. The release job takes the
+  notes from that section and stops when it is empty.
 
 ---
 

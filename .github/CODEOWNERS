@@ -1,0 +1,16 @@
+# R3 paths — changes here require CODEOWNER review (#520)
+/.github/                         @yeongseon
+/src/kpubdata/config.py           @yeongseon
+/src/kpubdata/transport/          @yeongseon
+/src/kpubdata/specs/schema.json   @yeongseon
+/docs/governance/                 @yeongseon
+# Credential host allowlist (#519, #629)
+/src/kpubdata/_hosts.py           @yeongseon
+# Run by jobs holding `contents: write` — release notes, version, titles (#629)
+/scripts/release_notes.py         @yeongseon
+/scripts/set_version.py           @yeongseon
+/scripts/next_version.py          @yeongseon
+/scripts/conventional_title.py    @yeongseon
+# Dependencies (#629)
+/pyproject.toml                   @yeongseon
+/uv.lock                          @yeongseon

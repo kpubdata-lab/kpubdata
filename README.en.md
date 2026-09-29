@@ -1,6 +1,8 @@
-# KPubData
+# KPubData Core
 
 **Korean public data, ready to query.**
+
+> KPubData family: [Core](https://github.com/yeongseon/kpubdata) (access layer) → [Engine](https://github.com/yeongseon/kpubdata-builder) (warehouse engine) → [Studio](https://github.com/yeongseon/kpubdata-studio) (visual workspace)
 
 [한국어](./README.md)
 
@@ -16,6 +18,10 @@ key**, so it neither holds nor redistributes the data.
 
 > 이 수치는 `scripts/gen_readme_datasets.py`로 생성했다 — 직접 편집 금지. 데이터셋별 상태는 [SUPPORTED_DATA.md](./SUPPORTED_DATA.md).
 <!-- END: datasets -->
+
+> **Verification level (#498)**: in [SUPPORTED_DATA.md](./SUPPORTED_DATA.md), "지원" (supported) is used only for a
+> dataset with a recorded live-API response (`meta.json`). That column is computed from the fixtures by
+> `scripts/sync_supported_data.py`; schema-only and awaiting-application datasets are listed there too.
 
 ## 무엇을 해결하나
 

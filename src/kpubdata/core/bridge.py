@@ -17,6 +17,8 @@ bridge remains.
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
+from typing import cast
 
 from kpubdata.core.executor import SpecDatasetAdapter
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
@@ -110,6 +112,36 @@ class CompositeProviderAdapter:
             )
             return self._spec.query_records(dataset, query)
         return self._inner.query_records(dataset, query)
+
+    def supports_query_records_all(self, dataset_key: str) -> bool:
+        """Whether ``query_records_all`` serves this key (#611).
+
+        The method exists on every composite, so ``Dataset.list_all`` cannot tell
+        from its presence alone whether the key is spec-owned. Without this, the
+        composite had no ``query_records_all`` at all and every spec dataset
+        reached through ``Client`` took the per-page casting path — the page-to-page
+        type split 0.7.0 announced as fixed.
+        """
+        if self._spec_owns(dataset_key):
+            return True
+        return callable(getattr(self._inner, "query_records_all", None))
+
+    def query_records_all(
+        self, dataset: DatasetRef, query: Query, *, max_pages: int | None = None
+    ) -> Iterator[RecordBatch]:
+        """Multi-page query with global casting, delegated by ownership (#611).
+
+        Raises:
+            NotImplementedError: Neither adapter serves this key; check
+                ``supports_query_records_all`` first.
+        """
+        if self._spec_owns(dataset.dataset_key):
+            return self._spec.query_records_all(dataset, query, max_pages=max_pages)
+        inner_all = getattr(self._inner, "query_records_all", None)
+        if callable(inner_all):
+            return cast("Iterator[RecordBatch]", inner_all(dataset, query, max_pages=max_pages))
+        msg = f"{dataset.id} has no multi-page query path; use the per-page path"
+        raise NotImplementedError(msg)
 
     def get_schema(self, dataset: DatasetRef) -> SchemaDescriptor | None:
         """Delegate schema metadata query by ownership."""

@@ -16,7 +16,7 @@
       "builder": "0.4.0",
       "studio": "0.4.0",
       "status": "released",
-      "note": "2026-09 release. Builder and Studio share one version (kpubdata ADR 0004); the kpubdata column is what uv.lock pinned, not the declared range (>=0.6.0,<0.7). kpubdata 0.7.0 is outside it — see builder#746."
+      "note": "2026-09 release. Builder and Studio share one version (kpubdata ADR 0004); the kpubdata column is what uv.lock pinned, not the declared range (>=0.6.0,<0.7). kpubdata 0.7.0 is outside this release; builder main moved to >=0.7.0,<0.8 in builder#746, and the next release adds its own row."
     }
   ]
 }

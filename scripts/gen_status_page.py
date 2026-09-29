@@ -9,6 +9,11 @@ Outputs:
 - ``docs/status.md`` — mkdocs page (human summary)
 
 Feeds the monthly rollup (#384 6.5) and the smoke report.
+
+Nothing here reads the calendar. "Recent" is measured back from the newest
+``last_verified`` in the specs, not from today: a today-relative count changed the
+rendered page on 2026-12-09 with no content change, and ``--check`` would have failed
+every pull request from that day (#620).
 """
 
 from __future__ import annotations
@@ -17,10 +22,11 @@ import argparse
 import json
 import re
 import sys
-from datetime import date, datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from kpubdata.core.spec import discover_specs
+from kpubdata.core.status import SUPPORTED_DATA_LEVELS
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 STATUS_DIR = REPO_ROOT / "docs" / "status"
@@ -37,11 +43,20 @@ def _catalogue_counts() -> dict[str, int]:
     return counts
 
 
+#: Days a verification counts as recent.
+RECENT_DAYS = 90
+
+
 def _supported_summary() -> dict[str, int]:
-    """SUPPORTED_DATA status column summary (active/deprecated/other)."""
+    """SUPPORTED_DATA level column summary.
+
+    The levels come from ``SUPPORTED_DATA_LEVELS`` (ADR 0005). A hand-kept subset here
+    dropped every level added after it was written, so the totals stopped matching
+    the table (#620).
+    """
     counts: dict[str, int] = {}
     content = SUPPORTED.read_text(encoding="utf-8") if SUPPORTED.is_file() else ""
-    known = {"지원", "폐기", "예정"}
+    known = set(SUPPORTED_DATA_LEVELS)
     for line in content.splitlines():
         m = re.match(r"\| ([^|]+) \| ([^|]+) \|", line)
         if m and m.group(1).strip() in known:
@@ -54,15 +69,16 @@ def build_status() -> dict[str, object]:
     """Create current status snapshot."""
     specs = discover_specs()
     verified = [s for s in specs if s.last_verified]
-    fresh = [
-        s for s in verified if s.last_verified and s.last_verified.isoformat() >= _recent_cutoff()
-    ]
+    reference = max((s.last_verified for s in verified if s.last_verified), default=None)
+    cutoff = reference - timedelta(days=RECENT_DAYS) if reference else None
+    fresh = [s for s in verified if cutoff and s.last_verified and s.last_verified >= cutoff]
     return {
         "generated_at": datetime.now(tz=timezone.utc).isoformat(timespec="seconds"),
         "spec_datasets": {
             "total": len(specs),
             "verified": len(verified),
             "verified_recent_90d": len(fresh),
+            "recent_reference": reference.isoformat() if reference else None,
             "per_dataset": {
                 s.id: {
                     "last_verified": s.last_verified.isoformat() if s.last_verified else None,
@@ -74,13 +90,6 @@ def build_status() -> dict[str, object]:
         "catalogue_datasets": _catalogue_counts(),
         "supported_rows": _supported_summary(),
     }
-
-
-def _recent_cutoff() -> str:
-    """ISO date 90 days ago."""
-    from datetime import timedelta
-
-    return (date.today() - timedelta(days=90)).isoformat()
 
 
 def render_md(status: dict[str, object]) -> str:
@@ -96,12 +105,14 @@ def render_md(status: dict[str, object]) -> str:
         "## 요약",
         "",
         f"- spec 데이터셋: **{spec['total']}종** "
-        f"(검증 {spec['verified']}종, 최근 90일 {spec['verified_recent_90d']}종)",
+        f"(검증 {spec['verified']}종, 최신 검증일 {spec['recent_reference'] or '-'} "
+        f"기준 90일 이내 {spec['verified_recent_90d']}종)",
         f"- catalogue 데이터셋: {sum(catalogue.values())}종"  # type: ignore[call-arg]
         + " ("
         + ", ".join(f"{p} {n}" for p, n in sorted(catalogue.items()))
         + ")",  # type: ignore[union-attr]
-        f"- SUPPORTED_DATA 행 분포: {supported}",  # type: ignore[str-format]
+        f"- SUPPORTED_DATA 행 분포: {supported} "  # type: ignore[str-format]
+        f"(합계 {sum(supported.values())})",  # type: ignore[union-attr]
         "",
         "## spec 데이터셋별 최종 검증일",
         "",

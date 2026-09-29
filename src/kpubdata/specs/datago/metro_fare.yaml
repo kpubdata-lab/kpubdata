@@ -39,7 +39,8 @@ fields:
 - name: addCrgExpln
   type: string
 - name: arvlStnCd
-  type: integer
+  type: string
+  semantic_kind: code
 - name: arvlStnNm
   type: string
 - name: arvlStnNo
@@ -61,7 +62,8 @@ fields:
 - name: crtrYmd
   type: integer
 - name: dptreStnCd
-  type: integer
+  type: string
+  semantic_kind: code
 - name: dptreStnNm
   type: string
 - name: dptreStnNo
