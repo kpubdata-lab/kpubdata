@@ -14,7 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Spec `license` gains `redistribution` (`allowed` / `non_commercial` / `forbidden` / `unknown`; absent means unknown), `attribution` (the exact text to display), `quota` and `pii_columns` (#525, #605).
-
 - `Dataset.schema()` returns a `SchemaDescriptor` for spec datasets, built from the spec's `fields` in declaration order (name, type, description; `unit`, `source_name`, `transform` in `raw`), and spec datasets with fields declare `Operation.SCHEMA`. A spec with no fields still returns `None`. `title`/`format` stay unset until the column-metadata contract (#644) decides them (#643).
 - ADR 0006: the column-metadata contract separates storage type (`type`), meaning (`semantic_kind`: code, measure, date, period, text, flag) and display (reusing `FieldDescriptor.title` and `FieldConstraints.format`). Implementation is #651 (#644).
 - `kpubdata.core.status` — one canonical dataset status vocabulary
@@ -49,7 +48,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - All 59 `localdata` catalogue datasets are marked retired and `LocaldataAdapter.query_records` emits a `DeprecationWarning` (#527, #603). The retirement is disputed by the recorded evidence — see #618.
-
 - CODEOWNERS covers the credential host allowlist, the scripts run by `contents: write` release jobs, `pyproject.toml` and `uv.lock`; a test checks the required paths and that every pattern still names an existing path (#629).
 - **BREAKING:** code columns keep their leading zeros and come back as `str` (#613). Declared `string` now: `apt_trade` `bonbun`/`bubun`/`roadNmBonbun`/`roadNmBubun`/`roadNmSeq`, `apt_rent` `roadnmbonbun`/`roadnmbubun`, `hospital_info` `clCd`/`postNo`, `metro_fare` `arvlStnCd`/`dptreStnCd`, `tour_kor_*` `zipcode`, `village_fcst` `fcstTime`. As a safety net, a zero-led value (`"06102"`) no longer casts to a number, so a code column declared numeric stays text and is reported `uncastable`. Replay verification (`make verify`) now also fails when normalization drops a leading zero. See kpubdata-builder#702.
 - `FieldIssue.kind` and `ValidationReport.issues_of()` take the `IssueKind` literal (`"uncastable"`, `"missing"`, `"undeclared"`); `issues_of()` raises `ValueError` on an unknown kind instead of silently returning nothing (#615).
