@@ -172,6 +172,9 @@ agent.
   changing what a release contains are a person's (POLICY 14).
 - **Propose the bump from the CHANGELOG, with the reason.** In 0.x, a breaking change
   or a new feature is minor; fixes alone are patch.
+- **Write what a release changes under `## [Unreleased]` in `CHANGELOG.md`, as you
+  merge it.** The prepare job dates that section and the release job publishes it as
+  the notes (#595). An empty `[Unreleased]` stops the release.
 - **Builder and Studio share one version** (ADR 0004). They ship as one application,
   so a release that only changed one of them still raises both. Skipping a repository
   because it has no changes applies to kpubdata alone.
