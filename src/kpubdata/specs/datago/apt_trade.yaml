@@ -56,9 +56,11 @@ fields:
   type: string
 - name: bonbun
   type: string
+  semantic_kind: code
   description: 본번
 - name: bubun
   type: string
+  semantic_kind: code
   description: 부번
 - name: buildYear
   type: integer
@@ -109,12 +111,15 @@ fields:
   type: string
 - name: roadNmBonbun
   type: string
+  semantic_kind: code
 - name: roadNmBubun
   type: string
+  semantic_kind: code
 - name: roadNmCd
   type: integer
 - name: roadNmSeq
   type: string
+  semantic_kind: code
 - name: roadNmSggCd
   type: integer
 - name: roadNmbCd

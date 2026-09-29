@@ -347,6 +347,9 @@ class FieldDescriptor:
     nullable: bool | None = None
     raw: MappingProxyType[str, object] = field(default_factory=_empty_object_proxy)
     constraints: FieldConstraints | None = None
+    #: What the value means apart from its storage type — ``code``, ``measure``,
+    #: ``date``, ``period``, ``text`` or ``flag`` — or None when undeclared (ADR 0006).
+    semantic_kind: str | None = None
 
 
 @_dataclass(slots=True)

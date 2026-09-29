@@ -34,6 +34,7 @@ from kpubdata.config import KPubDataConfig
 from kpubdata.core.capability import Operation, PaginationMode, QuerySupport
 from kpubdata.core.models import (
     DatasetRef,
+    FieldConstraints,
     FieldDescriptor,
     FieldIssue,
     Query,
@@ -1134,9 +1135,12 @@ def spec_schema(spec: SpecDefinition, dataset: DatasetRef) -> SchemaDescriptor |
         fields.append(
             FieldDescriptor(
                 name=declared.name,
+                title=declared.title,
                 type=declared.type,
                 description=declared.description,
                 raw=MappingProxyType(extra),
+                constraints=FieldConstraints(format=declared.format) if declared.format else None,
+                semantic_kind=declared.semantic_kind,
             )
         )
     return SchemaDescriptor(
