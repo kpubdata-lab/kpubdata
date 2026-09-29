@@ -55,7 +55,7 @@ release notes.
 | **Governance documents** (`AGENTS.md`, `CONTRIBUTING.md`) | English |
 | **Implementation contracts** (`PROVIDER_ADAPTER_CONTRACT.md`, `API_SPEC.md`) | English |
 | **Design rationale** (`VALIDATION.md`, `ARCHITECTURE.md`, ADRs) | Korean |
-| **README** | Korean first, with an English section in the same file |
+| **README** | Two files: `README.md` in Korean, `README.en.md` in English, kept in step by `scripts/check_readme_parity.py` (ADR 0003) |
 | **Issue titles** | English |
 | Issue bodies | Korean or English |
 | PR bodies and review comments | Korean or English |
@@ -72,10 +72,11 @@ Operating rules:
 ### Comments and docstrings are gated, not merely requested
 
 The rule above went unenforced long enough to accumulate thousands of Korean
-comments. `scripts/check_korean_comments.py` is a ratchet: it freezes the current
-per-file count and fails only when a count grows, or when a file absent from the
-baseline has any. Write new code in English; the existing debt is paid down
-separately (#517, #518).
+comments. That debt is paid, and in this repository the gate is
+`scripts/check_english_comments.py` with **zero tolerance**: any Korean comment or
+docstring under `src`, `tests` or `scripts` fails CI (#517). Files that
+`kpubdata scaffold` generates are held to the same gate (#626). The ratchet
+variant, `check_korean_comments.py`, is kpubdata-builder's.
 
 
 ## 확인은 기계가 한다
