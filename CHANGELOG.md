@@ -152,7 +152,7 @@ These shipped in 0.6.0 but were left under Unreleased until 0.7.0.
 - Unreachable single-record adapter stubs
 - Single-record access from the provider and dataset public APIs
 
-## [0.1.0] - 2026-04-10
+## [0.1.0] - 2026-04-17
 
 ### Added
 
@@ -169,6 +169,9 @@ These shipped in 0.6.0 but were left under Unreleased until 0.7.0.
   - `bok.base_rate` — BOK base interest rate historical data
 - `KosisAdapter` for kosis.kr (KOSTAT):
   - `kosis.population_migration` — inter-regional population migration statistics
+- `LofinAdapter` for lofin365.go.kr (지방재정365, local government finance) (#105):
+  - `lofin.expenditure_budget`, `lofin.expenditure_function`, `lofin.revenue_budget`,
+    `lofin.debt_ratio`, `lofin.fiscal_independence`
 - Environment-based configuration for all providers (`KPUBDATA_BOK_API_KEY`, `KPUBDATA_KOSIS_API_KEY`)
 - Dataset discovery via `client.datasets.list()` and `client.datasets.search()`
 - Record querying via `client.dataset("datago.village_fcst").list(**params)`
