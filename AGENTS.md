@@ -295,6 +295,32 @@ When a public method, public model or canonical exception changes:
 - Add an entry under `## [Unreleased]` in `CHANGELOG.md`. The release job takes the
   notes from that section and stops when it is empty.
 
+## Independence rules
+
+> [ADR 0007](docs/adrs/0007-independence-rules.md) is canonical.
+
+KPubData is a standalone Python SDK. KPubData Builder and KPubData Studio are
+related projects built on top of it. Dependencies flow one way only:
+**Studio → Builder → KPubData**. "Core" is an architecture role word, never a
+product name.
+
+What this means for work in this repository:
+
+- **Never import or depend on `kpubdata_builder` or `kpubdata-studio`** — not in
+  `src/`, not in `pyproject.toml` (Rules 1–2).
+- **A public API must make sense without Builder or Studio**, and terminology is
+  not changed only for their UX (Rules 3–4).
+- **The public API is the names in `kpubdata.__all__`**, their documented methods
+  (`API_SPEC.md`) and the canonical model. Underscore modules (`_probe`, `_hosts`,
+  `_typing`), adapter helpers, transport internals, fixtures and the repository
+  layout are private. If Builder needs something private, propose a public API here
+  instead of letting Builder reach in (Rules 5–6).
+- **Compatibility across repositories is explicit and versioned**; "all the mains
+  work together today" is not a contract (Rules 11–12).
+
+ADR 0007 does not change ADR 0004. Rule 10 reads as "independently *releasable*";
+whether Studio keeps sharing Builder's version number is the owner's open decision.
+
 ---
 
 ## How this project fits together
