@@ -128,6 +128,88 @@ PROBE_TO_DRIFT: Mapping[ProbeStatus, DriftClassification | None] = MappingProxyT
     }
 )
 
+#: Signals that mean user code breaks now. No streak: one is enough.
+_STRUCTURAL = frozenset(
+    {
+        DriftClassification.SCHEMA_CHANGED,
+        DriftClassification.PARAMETER_CHANGED,
+        DriftClassification.ENDPOINT_CHANGED,
+    }
+)
+#: Signals that may clear on their own. They count toward ``unstable``.
+_TRANSIENT = frozenset(
+    {
+        DriftClassification.RATE_LIMIT,
+        DriftClassification.SERVICE_DOWN,
+        DriftClassification.UNKNOWN,
+        DriftClassification.NO_DATA,
+    }
+)
+_ACCESS = frozenset({DriftClassification.AUTH, DriftClassification.APPLICATION_REQUIRED})
+#: Statuses the drift signal moves. The others change only by hand or by evidence.
+_WATCHED = frozenset({DatasetStatus.PRODUCTION, DatasetStatus.LIVE_VERIFIED})
+#: Cumulative failures that turn ``unstable`` into ``broken``.
+UNSTABLE_TO_BROKEN_FAILURES = 7
+
+
+def transition(
+    current: DatasetStatus | str,
+    classification: DriftClassification | str,
+    streak: int,
+    cumulative_failures: int = 0,
+    previous_status: DatasetStatus | str | None = None,
+) -> DatasetStatus:
+    """Compute the next dataset status from a drift signal (docs/DATASET_STATUS.md).
+
+    Args:
+        current: The status now.
+        classification: The latest signal.
+        streak: How many times in a row ``classification`` has been seen, this one
+            included.
+        cumulative_failures: Failures seen while ``unstable``, for the 7-strike rule.
+        previous_status: The status held before ``unstable`` or
+            ``application_required``, restored when the dataset recovers.
+
+    Returns:
+        The next status. Pure: nothing is read or written.
+
+    Raises:
+        ValueError: A name outside the vocabulary, or a streak below 1.
+    """
+    status = DatasetStatus(current)
+    signal = DriftClassification(classification)
+    if streak < 1:
+        raise ValueError(f"streak counts the signal just seen, so it is at least 1: {streak}")
+    restore = DatasetStatus(previous_status) if previous_status else DatasetStatus.LIVE_VERIFIED
+    if restore not in _WATCHED:
+        # Restoring into a fault would loop; the verified level is the safe floor.
+        restore = DatasetStatus.LIVE_VERIFIED
+    healthy = signal is DriftClassification.HEALTHY
+
+    if status in _WATCHED:
+        if signal in _STRUCTURAL:
+            return DatasetStatus.BROKEN
+        if signal in _ACCESS:
+            return DatasetStatus.APPLICATION_REQUIRED
+        if signal in _TRANSIENT and streak >= TRANSIENT_FAILURE_STREAK:
+            return DatasetStatus.UNSTABLE
+        # HEALTHY, RETIRED (a person retires it) or a transient signal below the streak.
+        return status
+    if status is DatasetStatus.UNSTABLE:
+        if healthy:
+            return restore if streak >= TRANSIENT_FAILURE_STREAK else status
+        if signal in _STRUCTURAL or cumulative_failures >= UNSTABLE_TO_BROKEN_FAILURES:
+            return DatasetStatus.BROKEN
+        return status
+    if status is DatasetStatus.BROKEN:
+        # The fixture must be re-recorded before the dataset counts as verified again.
+        return DatasetStatus.FIXTURE_VERIFIED if healthy else status
+    if status is DatasetStatus.APPLICATION_REQUIRED:
+        # The application was approved: the dataset answers again.
+        return restore if healthy else status
+    # planned, in_progress, fixture_verified, retired: no automatic transition.
+    return status
+
 
 __all__ = [
     "PROBE_TO_DRIFT",
@@ -135,8 +217,10 @@ __all__ = [
     "SPEC_STATUS_OVERRIDE",
     "SUPPORTED_DATA_LEVELS",
     "TRANSIENT_FAILURE_STREAK",
+    "UNSTABLE_TO_BROKEN_FAILURES",
     "DatasetStatus",
     "DriftClassification",
     "ProbeStatus",
     "SpecStatus",
+    "transition",
 ]
