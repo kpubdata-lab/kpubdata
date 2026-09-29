@@ -1,13 +1,13 @@
 # KPubData Product Family — 전체 시스템 아키텍처
 
-KPubData Product Family(Korea Public Data Product Family)는 한국 공공데이터를 **수집하고, 테이블로 만들고, 탐색·분석**하는 세 제품의 모임입니다. 제품 이름과 저장소·패키지 이름은 다르다 — 저장소는 바꾸지 않는다([BRAND.md](brand/BRAND.md)).
+KPubData 는 한국 공공데이터 접근을 위한 **독립 Python SDK** 입니다. KPubData Builder 와 KPubData Studio 는 KPubData 위에 만들어진 **관련 프로젝트**이며, KPubData 는 이 둘 없이도 단독으로 설치·사용·릴리스됩니다. 이 문서는 세 제품을 함께 쓸 때의 관계를 설명합니다. 제품 이름과 저장소·패키지 이름은 다르다 — 저장소는 바꾸지 않는다([BRAND.md](brand/BRAND.md)).
 
-각 저장소는 독립적으로 동작할 수 있지만, 함께 사용할 때 공공데이터의 전체 생명주기를 하나의 흐름으로 처리할 수 있습니다.
+의존은 한 방향으로만 흐릅니다: **Studio → Builder → KPubData**. KPubData 는 Builder 나 Studio 를 알지 못하고, 함께 사용할 때에만 공공데이터의 전체 생명주기가 하나의 흐름으로 이어집니다.
 
 | 제품 | 저장소 · 패키지 | 한 줄 역할 | 기술 |
 | :--- | :--- | :--- | :--- |
-| **KPubData Core** | [kpubdata](https://github.com/yeongseon/kpubdata) | 공공데이터를 가져오고 표준화하는 접근 계층 | Python 3.10+ |
-| **KPubData Engine** | [kpubdata-builder](https://github.com/yeongseon/kpubdata-builder) | 공공데이터를 검증 가능한 Table Snapshot 으로 만드는 실행·웨어하우스 엔진 | Python 3.10+ |
+| **KPubData** | [kpubdata](https://github.com/yeongseon/kpubdata) | 한국 공공데이터 접근을 위한 독립 Python SDK | Python 3.10+ |
+| **KPubData Builder** | [kpubdata-builder](https://github.com/yeongseon/kpubdata-builder) | KPubData를 활용해 재현 가능한 데이터셋·테이블을 생성하고 관리 | Python 3.10+ |
 | **KPubData Studio** | [kpubdata-studio](https://github.com/yeongseon/kpubdata-studio) | 한국 공공데이터를 수집하고, 출처와 이용 조건을 유지한 스냅샷으로 관리하며, 표와 SQL 로 분석하는 작업공간 | Vite + React Router + TypeScript (SPA) |
 
 ---
@@ -18,12 +18,12 @@ KPubData Product Family(Korea Public Data Product Family)는 한국 공공데이
 
 ### 원유 채굴 → 정유소 → 제어실
 
-- **KPubData Core (`kpubdata`) = 원유 채굴·탈염 (Crude Extraction & Desalting)**
+- **KPubData (`kpubdata`) = 원유 채굴·탈염 (Crude Extraction & Desalting)**
   - 전 세계 유전(공공기관 [API](https://ko.wikipedia.org/wiki/API))에서 원유(데이터)를 채굴합니다.
   - 유전마다 원유의 성분(응답 형식)과 채굴 조건(인증 방식)이 제각각입니다.
   - 탈염·탈수 공정(정규화)을 거쳐 불순물을 제거하고, 파이프라인에 넣을 수 있는 표준 원유로 만듭니다.
 
-- **KPubData Engine (`kpubdata-builder`) = 정유소 (Refinery)**
+- **KPubData Builder (`kpubdata-builder`) = 정유소 (Refinery)**
   - 표준화된 원유를 레시피(빌드 기획서)에 따라 가솔린·경유·등유 등 다양한 석유 제품(Parquet, CSV, HuggingFace Dataset)으로 분리·가공합니다.
   - 같은 공정을 언제든 반복할 수 있도록 자동화된 플랜트를 운영합니다.
 
@@ -33,7 +33,7 @@ KPubData Product Family(Korea Public Data Product Family)는 한국 공공데이
 
 ```text
 [유전 / 원유 채굴]        [정유소]              [제어실]
-  KPubData Core     →   KPubData Engine   →   KPubData Studio
+  KPubData     →   KPubData Builder   →   KPubData Studio
   (kpubdata)            (kpubdata-builder)      (kpubdata-studio)
   (채굴·탈염·표준화)     (석유 제품 생산)        (공정 제어·모니터링)
 ```
@@ -48,18 +48,18 @@ KPubData Product Family(Korea Public Data Product Family)는 한국 공공데이
 graph TD
     U1([비개발자 / 기획자]) -->|웹 브라우저| Studio
     U2([데이터 엔지니어]) -->|CLI / Python API| Builder
-    U3([파이썬 개발자]) -->|Python SDK| Core
+    U3([파이썬 개발자]) -->|Python SDK| KPubData
 
     subgraph "KPubData Product Family"
         Studio["KPubData Studio<br/>(kpubdata-studio)<br/>웹 작업공간"]
-        Builder["KPubData Engine<br/>(kpubdata-builder)<br/>실행 · 웨어하우스 엔진"]
-        Core["KPubData Core<br/>(kpubdata)<br/>접근 계층"]
+        Builder["KPubData Builder<br/>(kpubdata-builder)<br/>데이터셋 · 테이블 생성"]
+        KPubData["KPubData<br/>(kpubdata)<br/>독립 Python SDK"]
     end
 
     Studio -->|"REST API 호출"| Builder
-    Builder -->|"Python import"| Core
-    Core -->|"HTTP 요청"| API1{{공공데이터포털<br/>data.go.kr}}
-    Core -->|"HTTP 요청"| API2{{기상청 / 환경부<br/>기타 공공기관}}
+    Builder -->|"Python import"| KPubData
+    KPubData -->|"HTTP 요청"| API1{{공공데이터포털<br/>data.go.kr}}
+    KPubData -->|"HTTP 요청"| API2{{기상청 / 환경부<br/>기타 공공기관}}
 
     Builder -->|"파일 생성"| Output[(Markdown / CSV<br/>JSONL / Parquet)]
 ```
@@ -73,8 +73,8 @@ graph TD
 ```mermaid
 sequenceDiagram
     participant P as 공공 API<br/>(data.go.kr 등)
-    participant C as KPubData Core<br/>(kpubdata)
-    participant B as KPubData Engine<br/>(kpubdata-builder)
+    participant C as KPubData<br/>(kpubdata)
+    participant B as KPubData Builder<br/>(kpubdata-builder)
     participant S as KPubData Studio<br/>(kpubdata-studio)
     participant U as 최종 사용자
 
@@ -99,19 +99,19 @@ sequenceDiagram
 
 ### 단계별 상세 설명
 
-1. **원본 데이터 확보** (KPubData Core — `kpubdata`)
+1. **원본 데이터 확보** (KPubData — `kpubdata`)
    - 각 공공기관의 API에 [HTTP](https://ko.wikipedia.org/wiki/HTTP)(인터넷 통신 규약) 요청을 보내 원본 데이터를 받아옵니다.
    - [XML](https://ko.wikipedia.org/wiki/XML)(태그 형식)이든 [JSON](https://ko.wikipedia.org/wiki/JSON)(중괄호 형식)이든 자동으로 판별하여 파이썬 객체로 변환합니다.
    - 기관마다 다른 에러 코드, 페이지 처리 방식 등을 표준 형태(`RecordBatch`)로 정규화합니다.
 
-2. **데이터 가공** (KPubData Engine — `kpubdata-builder`)
+2. **데이터 가공** (KPubData Builder — `kpubdata-builder`)
    - kpubdata를 파이썬 라이브러리로 불러와(`import`) 데이터를 수집합니다.
    - 빌드 기획서([YAML](https://ko.wikipedia.org/wiki/YAML) — 들여쓰기로 구조를 표현하는 설정 파일)에 정의된 규칙에 따라 데이터를 변환합니다.
    - [Markdown](https://ko.wikipedia.org/wiki/%EB%A7%88%ED%81%AC%EB%8B%A4%EC%9A%B4), [CSV](https://ko.wikipedia.org/wiki/CSV), [JSONL](https://jsonlines.org/), [Parquet](https://parquet.apache.org/) 등 원하는 형식의 파일을 생성합니다.
 
 3. **운영 및 모니터링** (KPubData Studio — `kpubdata-studio`)
    - 웹 브라우저를 통해 빌드를 시작하거나 상태를 확인합니다.
-   - Engine 이 제공하는 [REST API](https://ko.wikipedia.org/wiki/REST)(웹을 통해 데이터를 주고받는 방식)를 호출하여 통신합니다.
+   - Builder 가 제공하는 [REST API](https://ko.wikipedia.org/wiki/REST)(웹을 통해 데이터를 주고받는 방식)를 호출하여 통신합니다.
 
 4. **최종 서비스** (studio → 사용자)
    - 사용자는 웹 화면에서 빌드 결과물을 미리보기하고, 다운로드할 수 있습니다.
@@ -122,7 +122,7 @@ sequenceDiagram
 
 ### 역할 비교표
 
-| 구분 | KPubData Core (`kpubdata`) | KPubData Engine (`kpubdata-builder`) | KPubData Studio (`kpubdata-studio`) |
+| 구분 | KPubData (`kpubdata`) | KPubData Builder (`kpubdata-builder`) | KPubData Studio (`kpubdata-studio`) |
 | :--- | :--- | :--- | :--- |
 | **비유** | 원유 수입·정제 | 정유소 (Refinery) | 제어실 (Control Room) |
 | **핵심 역할** | 공공 API 연결, 인증, 데이터 정규화 | 데이터 변환, 파일 내보내기, 빌드 이력 관리 | 빌드 모니터링, 설정 UI, 결과 시각화 |
@@ -131,17 +131,17 @@ sequenceDiagram
 
 ### 하는 일 / 하지 않는 일
 
-**KPubData Core (`kpubdata`)**
+**KPubData (`kpubdata`)**
 - 하는 일: 공공 API 연결, API 키 인증 처리, XML/JSON 응답 파싱, 데이터 정규화, 에러 표준화, 원본 데이터 접근(`call_raw`)
 - 하지 않는 일: 데이터 저장, 복잡한 변환/가공, 파일 생성, 웹 UI 제공
 
-**KPubData Engine (`kpubdata-builder`)**
+**KPubData Builder (`kpubdata-builder`)**
 - 하는 일: 빌드 기획서(BuildSpec) 검증, kpubdata를 통한 데이터 수집, 데이터 결합/필터링, 다양한 형식으로 내보내기, Manifest 생성
 - 하지 않는 일: 직접적인 API 통신(kpubdata에 위임), 웹 UI 제공, 사용자 인증/인가
 
 **KPubData Studio (`kpubdata-studio`)**
 - 하는 일: 빌드 기획서 시각적 편집, 빌드 실행/상태 모니터링, 결과물 미리보기, 게시(Publish) 관리
-- 하지 않는 일: 데이터 직접 가공, 원본 API 호출, 빌드 로직 구현(Engine 에 위임)
+- 하지 않는 일: 데이터 직접 가공, 원본 API 호출, 빌드 로직 구현(Builder 에 위임)
 
 ---
 
@@ -151,13 +151,13 @@ sequenceDiagram
 
 ```mermaid
 graph LR
-    Studio["KPubData Studio<br/>(kpubdata-studio)"] -->|"의존"| Builder["KPubData Engine<br/>(kpubdata-builder)"]
-    Builder -->|"의존"| Core["KPubData Core<br/>(kpubdata)"]
-    Core -->|"의존"| ExtAPI["공공 데이터 API<br/>(외부 서비스)"]
+    Studio["KPubData Studio<br/>(kpubdata-studio)"] -->|"의존"| Builder["KPubData Builder<br/>(kpubdata-builder)"]
+    Builder -->|"의존"| KPubData["KPubData<br/>(kpubdata)"]
+    KPubData -->|"의존"| ExtAPI["공공 데이터 API<br/>(외부 서비스)"]
 
     style Studio fill:#e1f5fe,stroke:#0288d1,stroke-width:2px
     style Builder fill:#e8eaf6,stroke:#3f51b5,stroke-width:2px
-    style Core fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
+    style KPubData fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
     style ExtAPI fill:#fff3e0,stroke:#ff9800,stroke-width:2px
 ```
 
@@ -165,10 +165,10 @@ graph LR
 
 | 규칙 | 설명 | 비유 |
 | :--- | :--- | :--- |
-| **Studio → Engine** | Studio는 Engine 의 API를 호출할 수 있음 | 제어실이 정유소에 생산 명령을 내림 |
-| **Engine → Core** | Engine 은 Core(`kpubdata`)를 파이썬 라이브러리로 import하여 사용 | 정유소는 원유 수입사로부터 원유를 공급받음 |
-| **Core → 공공 API** | Core 는 외부 공공기관 서버에 HTTP 요청을 보냄 | 원유 수입사는 유전(공공기관)에서 원유를 채굴함 |
-| **역방향 금지** | Core 는 Engine 을, Engine 은 Studio 를 절대 import하거나 호출하지 않음 | 유전이 정유소에게 "이거 만들어"라고 지시하지 않음 |
+| **Studio → Builder** | Studio는 Builder 의 API를 호출할 수 있음 | 제어실이 정유소에 생산 명령을 내림 |
+| **Builder → KPubData** | Builder 는 KPubData(`kpubdata`)를 파이썬 라이브러리로 import하여 사용 | 정유소는 원유 수입사로부터 원유를 공급받음 |
+| **KPubData → 공공 API** | KPubData 는 외부 공공기관 서버에 HTTP 요청을 보냄 | 원유 수입사는 유전(공공기관)에서 원유를 채굴함 |
+| **역방향 금지** | KPubData 는 Builder 를, Builder 는 Studio 를 절대 import하거나 호출하지 않음 | 유전이 정유소에게 "이거 만들어"라고 지시하지 않음 |
 
 ---
 
@@ -178,6 +178,6 @@ graph LR
 
 | 제품 (저장소) | README | ARCHITECTURE |
 | :--- | :--- | :--- |
-| KPubData Core (`kpubdata`) | [README.md](https://github.com/yeongseon/kpubdata/blob/main/README.md) | [ARCHITECTURE.md](https://github.com/yeongseon/kpubdata/blob/main/ARCHITECTURE.md) |
-| KPubData Engine (`kpubdata-builder`) | [README.md](https://github.com/yeongseon/kpubdata-builder/blob/main/README.md) | [ARCHITECTURE.md](https://github.com/yeongseon/kpubdata-builder/blob/main/ARCHITECTURE.md) |
+| KPubData (`kpubdata`) | [README.md](https://github.com/yeongseon/kpubdata/blob/main/README.md) | [ARCHITECTURE.md](https://github.com/yeongseon/kpubdata/blob/main/ARCHITECTURE.md) |
+| KPubData Builder (`kpubdata-builder`) | [README.md](https://github.com/yeongseon/kpubdata-builder/blob/main/README.md) | [ARCHITECTURE.md](https://github.com/yeongseon/kpubdata-builder/blob/main/ARCHITECTURE.md) |
 | KPubData Studio (`kpubdata-studio`) | [README.md](https://github.com/yeongseon/kpubdata-studio/blob/main/README.md) | [ARCHITECTURE.md](https://github.com/yeongseon/kpubdata-studio/blob/main/ARCHITECTURE.md) |

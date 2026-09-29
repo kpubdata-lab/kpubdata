@@ -1,10 +1,15 @@
-# KPubData Core
+# KPubData
 
 **한국 공공데이터를, 바로 분석할 수 있는 테이블로.**
 
 [English](./README.en.md)
 
-> KPubData 제품군: [Core](https://github.com/yeongseon/kpubdata) (접근 계층) → [Engine](https://github.com/yeongseon/kpubdata-builder) (실행·웨어하우스) → [Studio](https://github.com/yeongseon/kpubdata-studio) (시각적 작업공간)
+> 한국 공공데이터 접근을 위한 독립 Python SDK. KPubData 는 다른 프로젝트 없이 단독으로 설치하고 사용합니다.
+>
+> 관련 프로젝트:
+>
+> - [KPubData Builder](https://github.com/yeongseon/kpubdata-builder) — KPubData를 활용해 재현 가능한 데이터셋·테이블을 생성하고 관리
+> - [KPubData Studio](https://github.com/yeongseon/kpubdata-studio) — KPubData Builder를 위한 시각적 작업공간
 
 공공데이터 API 는 기관마다 인증 방식·응답 형식·페이지 처리가 제각각입니다.
 KPubData 는 그 차이를 어댑터가 흡수해, 하나의 Python 인터페이스로 탐색하고 수집하게

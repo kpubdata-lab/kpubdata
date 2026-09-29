@@ -10,9 +10,9 @@ KPubData
 
 ```
 KPubData
-├── KPubData Core      Python SDK · 접근 계층
-├── KPubData Engine    수집 · 변환 · Snapshot · 질의
-└── KPubData Studio    Catalog · Tables · SQL · Lineage · Quality
+├── KPubData          독립 Python SDK · 한국 공공데이터 접근
+├── KPubData Builder  수집 · 변환 · Snapshot · 질의 (KPubData 사용)
+└── KPubData Studio   Catalog · Tables · SQL · Lineage · Quality (Builder 사용)
 ```
 
 AI 기능은 **독립 브랜드를 만들지 않는다.**
@@ -45,8 +45,8 @@ KPubData — Korean public data, ready to query.
 
 | | |
 |---|---|
-| **Core** | 한국 공공 API 의 차이를 흡수하는 provider-aware 접근 계층 |
-| **Engine** | 공공데이터를 검증 가능한 Table Snapshot 으로 만드는 실행·웨어하우스 엔진 |
+| **KPubData** | 한국 공공 API 의 차이를 흡수하는 독립 Python SDK |
+| **Builder** | KPubData를 활용해 재현 가능한 데이터셋·테이블을 생성하고 관리 |
 | **Studio** | 한국 공공데이터를 수집하고, 출처와 이용 조건을 유지한 스냅샷으로 관리하며, 표와 SQL 로 분석하는 작업공간 |
 
 ## 저장소 이름과 제품 이름은 다르다
@@ -54,8 +54,8 @@ KPubData — Korean public data, ready to query.
 저장소는 **바꾸지 않는다.**
 
 ```
-kpubdata          → 제품명 KPubData Core
-kpubdata-builder  → 제품명 KPubData Engine
+kpubdata          → 제품명 KPubData
+kpubdata-builder  → 제품명 KPubData Builder
 kpubdata-studio   → 제품명 KPubData Studio
 ```
 
