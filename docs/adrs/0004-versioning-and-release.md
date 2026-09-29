@@ -28,6 +28,9 @@ builder 의 선언이 태그보다 세 마이너 앞서 있고, studio 는 **버
 
 ## 원인 — 자동화가 있는 곳만 버전이 움직였다
 
+> 이 절의 흐름도는 2026-09-27 당시의 기록이다. 지금의 릴리스 흐름(release PR → 게이트 →
+> 태그 → `publish-pypi.yml` 수동 실행)은 [PACKAGING.md 6절](https://github.com/yeongseon/kpubdata/blob/main/PACKAGING.md#release)에 있다 (#623).
+
 세 저장소의 결정적 차이는 하나다.
 
 ```
