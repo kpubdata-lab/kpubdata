@@ -195,7 +195,13 @@ def main(argv: list[str] | None = None) -> int:
         text = args.changelog.read_text(encoding="utf-8")
         if args.command == "promote":
             today = dt.datetime.now(ZoneInfo("Asia/Seoul")).date()
-            args.changelog.write_text(promote(text, version, today), encoding="utf-8")
+            # Keep the file's own line endings (#628). read_text() folds CRLF into LF,
+            # so writing the result back as-is would rewrite every line of a CRLF file.
+            with args.changelog.open(encoding="utf-8", newline="") as handle:
+                crlf = "\r\n" in handle.read()
+            args.changelog.write_text(
+                promote(text, version, today), encoding="utf-8", newline="\r\n" if crlf else "\n"
+            )
             print(f"CHANGELOG.md: section for {version} is in place")
             return 0
         notes = extract(text, version)
