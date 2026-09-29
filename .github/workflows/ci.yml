@@ -69,6 +69,11 @@ jobs:
       - name: README parity
         run: uv run python scripts/check_readme_parity.py
 
+      # ADR 0007 Rules 1-2: KPubData never depends on KPubData Builder or Studio.
+      # Dependencies flow Studio -> Builder -> KPubData only (#668).
+      - name: Independence (no Builder or Studio dependency)
+        run: uv run python scripts/check_independence.py
+
       # fixture 는 "이 데이터셋은 검증됐다" 의 근거다. 판정 대상이 근거를 고칠 수
       # 있으면 판정이 반증 불가능해진다 (#497, #523).
       - name: Recorded evidence authorship
