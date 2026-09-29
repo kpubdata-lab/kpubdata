@@ -7,9 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- `RecordBatch.meta["provenance"]["url"]` no longer leaks the API key. It was masked with `str.replace` of the plain key, which missed a percent-encoded data.go.kr key (`+`, `/`, `=`) and a path-segment key; it is now masked by parameter name (including the spec's own auth parameter) and by every encoded form of the key, and omitted if a key form survives (#612).
+
 ### Added
 
+- Spec fields can declare `semantic_kind` (`code`, `measure`, `date`, `period`, `text`, `flag`), `title` and `format` (ADR 0006). `Dataset.schema()` returns them as `FieldDescriptor.semantic_kind`, `FieldDescriptor.title` and `FieldConstraints.format`. A kind that contradicts the storage type, a numeric transform on a `code`, a `unit` on anything but a `measure`, or an unknown kind fails the spec load and `validate_spec.py`; fields without a kind are not checked. The 16 code columns from #613 declare `semantic_kind: code` (#651).
+
+- Spec `license` gains `redistribution` (`allowed` / `non_commercial` / `forbidden` / `unknown`; absent means unknown), `attribution` (the exact text to display), `quota` and `pii_columns` (#525, #605).
 - `DatasetRef.license` carries a spec's licence terms — redistribution, attribution, `quota`, PII columns — exactly as declared, and `LicenseSpec` is exported from `kpubdata` (#609). A dataset that declares no licence has `None`, which means unknown rather than unrestricted; `quota` is the provider's own wording and is not parsed. Catalogue-only datasets have `None`.
+- `Dataset.schema()` returns a `SchemaDescriptor` for spec datasets, built from the spec's `fields` in declaration order (name, type, description; `unit`, `source_name`, `transform` in `raw`), and spec datasets with fields declare `Operation.SCHEMA`. A spec with no fields still returns `None`. `title`/`format` stay unset until the column-metadata contract (#644) decides them (#643).
+- ADR 0006: the column-metadata contract separates storage type (`type`), meaning (`semantic_kind`: code, measure, date, period, text, flag) and display (reusing `FieldDescriptor.title` and `FieldConstraints.format`). Implementation is #651 (#644).
+- `kpubdata.core.status` — one canonical dataset status vocabulary
+  (`DatasetStatus`) with mappings from the spec, probe, `SUPPORTED_DATA.md` and
+  production-grade vocabularies; `spec._STATUSES` and `_probe.PROBE_STATUSES` are
+  now derived from it. ADR 0005 records the decision, and
+  `tests/unit/test_status_vocabulary.py` fails when a design document uses a name
+  the code does not define (#619).
+
+- `kpubdata.core.status.transition()` — the pure dataset status state machine from `docs/DATASET_STATUS.md`. A table-driven test runs every row of that document's transition table against the function. `unstable` now also breaks immediately on a structural change, and `application_required` recovers on `HEALTHY` (#625).
+
+### Fixed
+
+- `scripts/release_notes.py promote` keeps a CRLF CHANGELOG's line endings instead of rewriting every line as LF (#628).
+- `kpubdata scaffold` generates English docstrings, so the files it writes pass `check_english_comments.py`; a test runs the gate on the generated files (#626).
+- A provider-reported total of `0` is kept as `RecordBatch.total_count == 0` instead of becoming `None`, so "no results" and "count unknown" are distinguishable; a reported 0 explicitly ends paging (#642).
+- `Client(...).dataset(...).list_all()` now reaches the spec path with column casting decided across all pages. `CompositeProviderAdapter` had no `query_records_all`, so every spec dataset reached through `Client` still cast per page and a column could be `int` on one page and `str` on the next — the split 0.7.0 recorded as fixed (#611).
+- `docs/status.md` no longer depends on the calendar: "recent" is measured from the newest `last_verified`, so `--check` stops failing every pull request from 2026-12-09. It also counts all six SUPPORTED_DATA levels instead of three (#620).
+- `docs/DATASET_STATUS.md` and `docs/LIVE_PROBE.md` contradicted each other and the
+  code: the failure threshold (3 against "2+"), code 32's classification, the
+  `PARAM_CHANGED` spelling, a nonexistent dataset key, a nonexistent module and the
+  neis/fds key sharing claim (#619).
+
+### Fixed
+
+- `scripts/release_notes.py promote` for a final version folds that version's pre-release sections (`aN`, `bN`, `rcN`) into one section, instead of failing with "nothing to release" after a pre-release. A `prerelease` command and the release-notes action's `prerelease` output tell the release job to mark a pre-release (#622).
+
+### Fixed
+
+- The spec-dataset `list_all()` path honours `page_size`, `max_size` and `max_pages` (#614). `page_size` drives pagination instead of going out as a raw `page_size` parameter; a `page_size` above the spec's `max_size` no longer ends the walk after the first page; exceeding `max_pages` raises `InvalidRequestError` like the legacy path instead of truncating silently; and each batch keeps its own `raw`, `meta["provenance"]`, `next_page` and `validation`, with the whole-result report in `meta["validation_total"]`. The path still buffers every page before the first batch, because casting is decided across all pages (#481); this is now documented.
+- The field validation report no longer miscounts (#615): a 0-row page is reported clean instead of every declared field being `missing`; numeric null markers (`""`, `"-"`) count as nulls rather than non-null values; undeclared columns are detected across all records, not only the first.
+
+### Changed
+
+- All 59 `localdata` catalogue datasets are marked retired and `LocaldataAdapter.query_records` emits a `DeprecationWarning` (#527, #603). The retirement is disputed by the recorded evidence — see #618.
+- CODEOWNERS covers the credential host allowlist, the scripts run by `contents: write` release jobs, `pyproject.toml` and `uv.lock`; a test checks the required paths and that every pattern still names an existing path (#629).
+- **BREAKING:** code columns keep their leading zeros and come back as `str` (#613). Declared `string` now: `apt_trade` `bonbun`/`bubun`/`roadNmBonbun`/`roadNmBubun`/`roadNmSeq`, `apt_rent` `roadnmbonbun`/`roadnmbubun`, `hospital_info` `clCd`/`postNo`, `metro_fare` `arvlStnCd`/`dptreStnCd`, `tour_kor_*` `zipcode`, `village_fcst` `fcstTime`. As a safety net, a zero-led value (`"06102"`) no longer casts to a number, so a code column declared numeric stays text and is reported `uncastable`. Replay verification (`make verify`) now also fails when normalization drops a leading zero. See kpubdata-builder#702.
+- `FieldIssue.kind` and `ValidationReport.issues_of()` take the `IssueKind` literal (`"uncastable"`, `"missing"`, `"undeclared"`); `issues_of()` raises `ValueError` on an unknown kind instead of silently returning nothing (#615).
+
+### Added
+
+- `ValidationReport.to_dict()` returns a JSON-serialisable form of the report (#615).
+- Provenance now reports `cached=True` for responses served from the response cache, and `fetched_at` keeps the original fetch time instead of the time of the cache read. The transport marks a cache hit in `httpx.Response.extensions`, and `ResponseCache.get_entry()` returns the stored `created_at` (#616).
 
 ## [0.7.0] — 2026-09-28
 

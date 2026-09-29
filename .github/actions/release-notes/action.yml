@@ -25,6 +25,9 @@ outputs:
   file:
     description: "The notes file (extract only)"
     value: ${{ steps.run.outputs.file }}
+  prerelease:
+    description: "true when the version is a pre-release (aN, bN, rcN) — pass --prerelease to gh release create (#622)"
+    value: ${{ steps.run.outputs.prerelease }}
 
 runs:
   using: composite
@@ -48,7 +51,15 @@ runs:
         fi
         OUTPUT="${OUTPUT:-${RUNNER_TEMP}/release-notes.md}"
         tag="v${VERSION#v}"
-        previous=$(git describe --tags --abbrev=0 --match 'v[0-9]*' HEAD 2>/dev/null || true)
+        prerelease=$(python3 "${script}" prerelease "${VERSION}")
+        echo "prerelease=${prerelease}" >> "$GITHUB_OUTPUT"
+        # A final release's notes fold in its pre-releases (#622), so its link
+        # compares against the previous final release, not the last pre-release.
+        exclude=()
+        if [ "${prerelease}" = "false" ]; then
+          exclude=(--exclude 'v*[a-z]*')
+        fi
+        previous=$(git describe --tags --abbrev=0 --match 'v[0-9]*' "${exclude[@]}" HEAD 2>/dev/null || true)
         if [ -n "${previous}" ] && [ "${previous}" != "${tag}" ]; then
           compare="https://github.com/${REPO}/compare/${previous}...${tag}"
         else

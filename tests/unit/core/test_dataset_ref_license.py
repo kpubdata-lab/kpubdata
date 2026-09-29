@@ -31,6 +31,8 @@ def test_the_declared_terms_are_carried_as_declared() -> None:
 
     terms = build_spec_dataset_ref(spec).license
 
+    # Every field, not only the four set above, is carried unchanged.
+    assert terms == spec.license
     assert terms is not None
     assert terms.quota == "개발계정 일 10,000건"
     assert terms.redistribution == "non_commercial"
@@ -48,9 +50,14 @@ def test_an_undeclared_licence_is_none_not_an_empty_one() -> None:
 
 def test_an_undeclared_quota_stays_none() -> None:
     """Negative: a licence without a quota does not invent one."""
-    terms = build_spec_dataset_ref(load_spec_file(_SPECS / "air_quality.yaml")).license
+    spec = load_spec_file(_SPECS / "air_quality.yaml")
+    terms = build_spec_dataset_ref(spec).license
 
+    # The bundled spec's declared terms arrive whole; which KOGL type it should declare
+    # is a separate question (kpubdata-builder#759), so the value is not pinned here.
+    assert terms == spec.license
     assert terms is not None
+    assert terms.type is not None
     assert terms.quota is None
 
 

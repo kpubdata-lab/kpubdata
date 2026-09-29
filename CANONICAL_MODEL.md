@@ -29,6 +29,7 @@ classDiagram
         +Representation representation
         +frozenset[Operation] operations
         +QuerySupport query_support
+        +LicenseSpec license
     }
     class Query {
         +dict filters
@@ -260,6 +261,7 @@ class DatasetRef:
     description: str | None = None
     tags: tuple[str, ...] = ()
     source_url: str | None = None
+    license: LicenseSpec | None = None
 ```
 
 Notes:
@@ -272,6 +274,7 @@ Notes:
 - `tags` are categorization keywords for discovery (e.g. `("weather", "forecast")`)
 - `source_url` links to the original API documentation or data portal page
 - `raw_metadata` is immutable provider-native discovery metadata for debugging and adapter internals
+- `license` is the spec's `license` section as parsed, or `None` when the dataset declares none — `None` means unknown, never "no restrictions" (#609)
 
 ### 6.4 Query
 

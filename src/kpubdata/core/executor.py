@@ -18,18 +18,24 @@ but don't depend on it (verified: tests/unit/core/test_executor.py).
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import logging
 import re
+from collections.abc import Iterator
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from types import MappingProxyType
 from typing import cast
+from urllib.parse import parse_qsl, quote, quote_plus, urlencode, urlsplit, urlunsplit
 
 from kpubdata._hosts import extra_hosts_env_var, host_is_allowed
 from kpubdata.config import KPubDataConfig
 from kpubdata.core.capability import Operation, PaginationMode, QuerySupport
 from kpubdata.core.models import (
     DatasetRef,
+    FieldConstraints,
+    FieldDescriptor,
     FieldIssue,
     Query,
     RecordBatch,
@@ -95,6 +101,39 @@ def _dot_get(payload: object, path: str | None) -> object | None:
     return current
 
 
+@dataclass(frozen=True, slots=True)
+class _FetchedPage:
+    """One page held by ``SpecDatasetAdapter.query_records_all`` until casting is decided."""
+
+    staged: list[dict[str, object]]
+    payload: dict[str, object]
+    provenance: dict[str, object]
+    next_page: int | None
+
+
+def _next_page(
+    spec: SpecDefinition, query: Query, total_count: int | None, item_count: int
+) -> int | None:
+    """The page after ``query``, or ``None`` when the result is exhausted.
+
+    ``page_size`` is capped to ``pagination.max_size`` exactly as
+    ``build_params`` caps the request, so the decision is made with the size
+    that was actually asked for (#614).
+    """
+    page = query.page or 1
+    page_size = query.page_size or _DEFAULT_PAGE_SIZE
+    if spec.pagination.max_size is not None:
+        page_size = min(page_size, spec.pagination.max_size)
+    if total_count == 0:
+        # The provider says there is nothing; no page follows (#642).
+        return None
+    if total_count is not None:
+        has_next = page * page_size < total_count
+    else:
+        has_next = item_count == page_size
+    return page + 1 if has_next else None
+
+
 def _to_int(value: object) -> int | None:
     """Convert string/integer to int (skip bool; return None on failure)."""
     if isinstance(value, bool):
@@ -147,6 +186,11 @@ def _normalize_numeric_lexeme(value: object) -> object:
 #: Rejects scientific notation ("1e3"), NaN/inf, and non-integral decimals (#461).
 _PLAIN_INTEGER_RE = re.compile(r"^[+-]?\d+$")
 _INTEGRAL_DECIMAL_RE = re.compile(r"^[+-]?\d+\.0+$")
+#: A leading zero before another digit ("06102", "0766") marks a code, not a
+#: quantity. Casting it would drop the zero, so it fails the cast and the
+#: all-or-nothing rule leaves the whole column as text, reported as uncastable —
+#: a safety net for a code column declared numeric by mistake (#613).
+_LEADING_ZERO_RE = re.compile(r"^[+-]?0\d")
 
 
 def _try_cast_field(value: object, field_type: str) -> tuple[bool, object]:
@@ -161,6 +205,8 @@ def _try_cast_field(value: object, field_type: str) -> tuple[bool, object]:
         normalized = _normalize_numeric_lexeme(value)
         if normalized is None:
             return True, None
+        if isinstance(normalized, str) and _LEADING_ZERO_RE.match(normalized):
+            return False, value
         value = normalized
     if field_type == "integer":
         if isinstance(value, bool):
@@ -271,20 +317,85 @@ def _gateway_rejection(payload: dict[str, object]) -> tuple[str, str] | None:
     )
 
 
+def _secret_forms(secrets: tuple[str, ...]) -> tuple[str, ...]:
+    """Each secret as sent and as it can appear percent-encoded in a URL (#612).
+
+    data.go.kr keys carry ``+``, ``/`` and ``=``; the response URL holds them as
+    ``%2B``, ``%2F`` and ``%3D``, so matching only the plain text misses them.
+    """
+    forms: set[str] = set()
+    for secret in secrets:
+        if not secret:
+            continue
+        forms.update({secret, quote(secret, safe=""), quote_plus(secret, safe="")})
+    return tuple(sorted(forms, key=len, reverse=True))
+
+
+def _mask_provenance_url(url: str, secret_param_names: set[str], secrets: tuple[str, ...]) -> str:
+    """Mask a URL by parameter name and by secret value; raise if a secret survives."""
+    parts = urlsplit(url)
+    path = parts.path
+    # By value, not by segment: a key containing "/" spans segments.
+    for secret in secrets:
+        path = path.replace(secret, "[REDACTED]")
+    query = urlencode(
+        [
+            (key, "[REDACTED]" if key.casefold() in secret_param_names else value)
+            for key, value in parse_qsl(parts.query, keep_blank_values=True)
+        ],
+        safe="[]",
+    )
+    masked = urlunsplit(parts._replace(path=path, query=query))
+    if any(secret in masked for secret in secrets):
+        msg = "a secret survived URL masking"
+        raise ValueError(msg)
+    return masked
+
+
 def _build_provenance(
-    response: object, params: dict[str, str], spec: SpecDefinition
+    response: object,
+    params: dict[str, str],
+    spec: SpecDefinition,
+    secret_values: tuple[str, ...] = (),
 ) -> dict[str, object]:
     """Build standardized provenance metadata for RecordBatch.meta (#479).
 
     Fail-closed: if masking fails for any field, that field is omitted entirely
     rather than leaking the unmasked value.
+
+    The URL is masked by **parameter name** — the sensitive names plus the spec's
+    own auth parameter — and by the key's value in every encoded form, path
+    segments included. The earlier ``str.replace`` of the plain key missed a
+    percent-encoded key and a key already removed from ``params`` for a path
+    segment (#612).
     """
     from kpubdata.transport._sensitive import SENSITIVE_PARAM_KEYS
 
+    secret_param_names = set(SENSITIVE_PARAM_KEYS)
+    if spec.auth.type != "none" and spec.auth.param_name:
+        secret_param_names.add(spec.auth.param_name.casefold())
+    secrets = _secret_forms(secret_values)
+    from kpubdata.transport.cache import CACHE_HIT_EXTENSION, CACHED_AT_EXTENSION
+
     provenance: dict[str, object] = {}
 
-    # fetched_at — UTC ISO-8601
-    provenance["fetched_at"] = datetime.now(tz=timezone.utc).isoformat(timespec="seconds")
+    # cached — whether this came from the response cache. The transport marks
+    # a cache hit in ``response.extensions`` together with the original fetch
+    # time (#616).
+    extensions = getattr(response, "extensions", None)
+    if not isinstance(extensions, dict):
+        extensions = {}
+    extensions = cast(dict[str, object], extensions)
+    cached = extensions.get(CACHE_HIT_EXTENSION) is True
+
+    # fetched_at — UTC ISO-8601. On a cache hit this is when the body was
+    # originally fetched, not when it was read back from disk.
+    cached_at = extensions.get(CACHED_AT_EXTENSION)
+    if cached and isinstance(cached_at, int | float) and not isinstance(cached_at, bool):
+        fetched = datetime.fromtimestamp(float(cached_at), tz=timezone.utc)
+    else:
+        fetched = datetime.now(tz=timezone.utc)
+    provenance["fetched_at"] = fetched.isoformat(timespec="seconds")
 
     # content_sha256 — hash of the raw response bytes
     content = getattr(response, "content", None)
@@ -298,29 +409,19 @@ def _build_provenance(
         if declared:
             provenance["content_type"] = declared.split(";")[0].strip()
 
-    # cached — whether this came from the response cache
-    cached = getattr(response, "_from_cache", None)
-    if cached is not None:
-        provenance["cached"] = bool(cached)
-    else:
-        provenance["cached"] = False
+    provenance["cached"] = cached
 
     # url — masked, fail-closed (omit if we cannot safely mask)
     url = str(getattr(response, "url", ""))
     if url:
-        try:
-            safe_url = url
-            for key, value in params.items():
-                if key.casefold() in SENSITIVE_PARAM_KEYS and value:
-                    safe_url = safe_url.replace(value, "[REDACTED]")
-            provenance["url"] = safe_url
-        except Exception:
-            pass  # fail-closed: omit rather than leak
+        # Fail-closed: omit rather than leak.
+        with contextlib.suppress(Exception):
+            provenance["url"] = _mask_provenance_url(url, secret_param_names, secrets)
 
     # params — masked, fail-closed
     try:
         safe_params = {
-            k: ("[REDACTED]" if k.casefold() in SENSITIVE_PARAM_KEYS else v)
+            k: ("[REDACTED]" if k.casefold() in secret_param_names or v in secrets else v)
             for k, v in params.items()
         }
         provenance["params"] = safe_params
@@ -525,6 +626,11 @@ class SpecExecutor:
             # ``base_url`` never mentions, which would walk past the check in
             # ``build_params``. Re-check what will actually be requested (#519).
             self._require_allowed_host(spec, url)
+        # Taken before a path-segment key leaves ``params``, so provenance can
+        # still mask it (#612).
+        secret_values = (
+            (params.get(spec.auth.param_name or "", ""),) if spec.auth.type != "none" else ()
+        )
         if spec.auth.type == "path_segment":
             params = {k: v for k, v in params.items() if k != (spec.auth.param_name or "")}
         try:
@@ -558,7 +664,7 @@ class SpecExecutor:
             raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id) from exc
 
         if isinstance(decoded, dict):
-            provenance = _build_provenance(response, params, spec)
+            provenance = _build_provenance(response, params, spec, secret_values)
             return decoded, provenance
         msg = f"{spec.id}: 응답 페이로드가 객체가 아닙니다({type(decoded).__name__})."
         raise ProviderResponseError(msg, provider=spec.provider, dataset_id=spec.id)
@@ -607,17 +713,21 @@ class SpecExecutor:
         return extract_items(spec, payload)
 
     def _extract_total_count(self, spec: SpecDefinition, payload: dict[str, object]) -> int | None:
-        """Extract total count using spec's total_count_path rule (None if absent)."""
+        """Extract total count using spec's total_count_path rule (None if absent).
+
+        ``0`` stays ``0``: "no results" and "count unknown" are different answers,
+        and ``coerced if coerced else None`` turned the first into the second (#642).
+        """
         raw = _dot_get(payload, spec.response.total_count_path)
-        coerced = _to_int(raw)
-        return coerced if coerced else None
+        return _to_int(raw)
 
     # ------------------------------------------------------------------
     # Normalization
     # ------------------------------------------------------------------
 
+    @staticmethod
     def _stage_fields(
-        self, spec: SpecDefinition, items: list[dict[str, object]]
+        spec: SpecDefinition, items: list[dict[str, object]]
     ) -> list[dict[str, object]]:
         """Stage 1 only: rename + transform (no casting) (#481)."""
         if not spec.fields:
@@ -635,8 +745,9 @@ class SpecExecutor:
             staged.append(record)
         return staged
 
+    @staticmethod
     def _finalize_casting(
-        self, spec: SpecDefinition, staged: list[dict[str, object]]
+        spec: SpecDefinition, staged: list[dict[str, object]]
     ) -> tuple[list[dict[str, object]], ValidationReport]:
         """Stage 2 only: column-level all-or-nothing casting (#481, #572).
 
@@ -648,11 +759,18 @@ class SpecExecutor:
         issues: list[FieldIssue] = []
         declared_names = {f.name for f in spec.fields}
 
-        # Detect undeclared keys (spec drift) from the first record.
-        if staged:
-            undeclared = set(staged[0].keys()) - declared_names
-            for key in sorted(undeclared):
-                issues.append(FieldIssue(field=key, kind="undeclared"))
+        # An empty page carries no evidence about columns at all. Reporting every
+        # declared field as missing would make a legitimate 0-row page look invalid.
+        if not staged:
+            return staged, ValidationReport()
+
+        # Detect undeclared keys (spec drift) across every record: a column that first
+        # appears on row 2 is just as much drift as one on row 1.
+        seen_keys: set[str] = set()
+        for record in staged:
+            seen_keys.update(record.keys())
+        for key in sorted(seen_keys - declared_names):
+            issues.append(FieldIssue(field=key, kind="undeclared"))
 
         for field in spec.fields:
             casts: list[tuple[dict[str, object], object]] = []
@@ -670,7 +788,14 @@ class SpecExecutor:
                     continue
                 found_in_any = True
                 raw_value = record[field.name]
-                if raw_value is None:
+                # Count on the value the cast actually sees: numeric null markers
+                # ("", "-") become None, so they are nulls, not non-null values.
+                effective = (
+                    _normalize_numeric_lexeme(raw_value)
+                    if field.type in ("integer", "number")
+                    else raw_value
+                )
+                if effective is None:
                     null_count += 1
                 else:
                     non_null_count += 1
@@ -715,8 +840,9 @@ class SpecExecutor:
             )
         return staged, report
 
+    @staticmethod
     def _normalize_fields(
-        self, spec: SpecDefinition, items: list[dict[str, object]]
+        spec: SpecDefinition, items: list[dict[str, object]]
     ) -> tuple[list[dict[str, object]], ValidationReport]:
         """Apply rename/transform/casting only when a fields[] declaration exists.
 
@@ -736,8 +862,8 @@ class SpecExecutor:
         """
         if not spec.fields:
             return items, ValidationReport()
-        staged = self._stage_fields(spec, items)
-        return self._finalize_casting(spec, staged)
+        staged = SpecExecutor._stage_fields(spec, items)
+        return SpecExecutor._finalize_casting(spec, staged)
 
     # ------------------------------------------------------------------
     # Public API
@@ -760,13 +886,7 @@ class SpecExecutor:
         total_count = self._extract_total_count(spec, payload)
 
         page = query.page or 1
-        page_size = query.page_size or _DEFAULT_PAGE_SIZE
-        if spec.pagination.max_size is not None:
-            page_size = min(page_size, spec.pagination.max_size)
-        has_next = (total_count and page * page_size < total_count) or (
-            not total_count and len(items) == page_size
-        )
-        next_page = page + 1 if has_next else None
+        next_page = _next_page(spec, query, total_count, len(items))
 
         if not items:
             logger.debug("Spec executor: zero items", extra={"dataset_id": spec.id, "page": page})
@@ -937,12 +1057,25 @@ def _extract_neis_rows(spec: SpecDefinition, payload: dict[str, object]) -> list
     return rows
 
 
+def normalize_items(
+    spec: SpecDefinition, items: list[dict[str, object]]
+) -> list[dict[str, object]]:
+    """Rename, transform and cast ``items`` exactly as a query would, with no transport.
+
+    Replay verification compared only ``extract_items`` — the values *before*
+    normalization — so a cast that dropped a leading zero ("06102" → 6102) passed
+    it (#613). This gives the verifier the values users actually receive.
+    """
+    return SpecExecutor._normalize_fields(spec, items)[0]
+
+
 def extract_total_count(spec: SpecDefinition, payload: dict[str, object]) -> int | None:
     """Extract total count using spec's total_count_path rule (None if absent)."""
     resolved = _resolve_path(spec.response.total_count_path, spec)
     raw = _dot_get(payload, resolved)
     coerced = _to_int(raw)
-    return coerced if coerced else None
+    # 0 is a count, not a missing one (#642).
+    return coerced
 
 
 def _message_path(code_path: str | None) -> str | None:
@@ -984,6 +1117,37 @@ def _spec_request_parameters(spec: SpecDefinition) -> tuple[MappingProxyType[str
     return tuple(parameters)
 
 
+def spec_schema(spec: SpecDefinition, dataset: DatasetRef) -> SchemaDescriptor | None:
+    """Build the ``SchemaDescriptor`` a spec's ``fields`` declare (#643)."""
+    if not spec.fields:
+        return None
+    fields = []
+    for declared in spec.fields:
+        extra = {
+            key: value
+            for key, value in (
+                ("unit", declared.unit),
+                ("source_name", declared.source_name),
+                ("transform", declared.transform),
+            )
+            if value
+        }
+        fields.append(
+            FieldDescriptor(
+                name=declared.name,
+                title=declared.title,
+                type=declared.type,
+                description=declared.description,
+                raw=MappingProxyType(extra),
+                constraints=FieldConstraints(format=declared.format) if declared.format else None,
+                semantic_kind=declared.semantic_kind,
+            )
+        )
+    return SchemaDescriptor(
+        dataset=dataset, fields=fields, raw=MappingProxyType({"source": "spec", "spec_id": spec.id})
+    )
+
+
 def build_spec_dataset_ref(spec: SpecDefinition) -> DatasetRef:
     """Convert SpecDefinition to DatasetRef with catalog-equivalent semantics."""
     paginated = spec.pagination.type in {"page_no_rows", "page_display", "pindex_psize"}
@@ -1005,7 +1169,10 @@ def build_spec_dataset_ref(spec: SpecDefinition) -> DatasetRef:
         dataset_key=spec.dataset_key,
         name=spec.title,
         representation=Representation.API_JSON,
-        operations=frozenset({Operation.LIST, Operation.RAW}),
+        # SCHEMA only where fields are declared: get_schema answers None otherwise.
+        operations=frozenset(
+            {Operation.LIST, Operation.RAW} | ({Operation.SCHEMA} if spec.fields else set())
+        ),
         query_support=query_support,
         description=spec.description,
         tags=(spec.provider, "spec"),
@@ -1072,12 +1239,31 @@ class SpecDatasetAdapter:
 
     def query_records_all(
         self, dataset: DatasetRef, query: Query, *, max_pages: int | None = None
-    ) -> list[RecordBatch]:
-        """Multi-page query with global column casting (#481).
+    ) -> Iterator[RecordBatch]:
+        """Multi-page query with global column casting (#481, #614).
 
-        Collects all pages first, then applies all-or-nothing column casting
-        once across the full result set. This prevents mixed types when
-        page 1 casts a column but page 2 cannot.
+        **This path buffers.** Casting is decided once across the whole
+        result (all-or-nothing per column, #481), so no page can be cast —
+        and therefore none can be yielded — until the last page has been
+        fetched. Every page is requested first, then one batch per page is
+        yielded. Memory is O(total rows), bounded by ``max_pages`` pages.
+
+        Pagination follows :meth:`SpecExecutor.query` exactly: ``page_size``
+        is capped to the spec's ``pagination.max_size`` and ``next_page`` is
+        computed from the capped value, so a request for more rows than the
+        provider serves does not end the walk early.
+
+        Each batch keeps what a single ``query()`` would carry: its own
+        ``raw`` payload, ``meta["provenance"]``, ``next_page`` and a
+        ``validation`` report for that page's rows. The report for the
+        whole result — the one that governed casting — is in
+        ``meta["validation_total"]`` on every batch.
+
+        Raises:
+            DatasetNotFoundError: The dataset key is unknown.
+            InvalidRequestError: More than ``max_pages`` pages would be
+                needed. As in the legacy ``Dataset.list_all`` path, the
+                ``max_pages`` batches already fetched are yielded first.
         """
         spec = self._specs.get(dataset.dataset_key)
         if spec is None:
@@ -1085,56 +1271,82 @@ class SpecDatasetAdapter:
             raise DatasetNotFoundError(msg, provider=self._provider, dataset_id=dataset.id)
 
         effective_max = max_pages if max_pages is not None else 1000
+        pages: list[_FetchedPage] = []
         all_staged: list[dict[str, object]] = []
-        page_boundaries: list[int] = []
         total_count: int | None = None
-        page = query.page or 1
-        page_size = query.page_size or _DEFAULT_PAGE_SIZE
+        page_query = query
+        next_page: int | None = None
 
-        while len(page_boundaries) < effective_max:
+        while True:
             self._executor._require_supported_envelope(spec)
-            params = self._executor.build_params(spec, query, format_hint=None)
-            payload, _prov = self._executor._request(spec, params)
+            params = self._executor.build_params(spec, page_query, format_hint=None)
+            payload, provenance = self._executor._request(spec, params)
             self._executor._check_error(spec, payload)
 
-            items = self._executor._extract_items(spec, payload)
-            staged = self._executor._stage_fields(spec, items)
-            all_staged.extend(staged)
-            page_boundaries.append(len(staged))
-
-            tc = self._executor._extract_total_count(spec, payload)
-            if total_count is None:
-                total_count = tc
-
-            has_next = (tc and page * page_size < tc) or (not tc and len(staged) == page_size)
-            if not has_next:
-                break
-            page += 1
-            query = Query(filters=query.filters, page=page, page_size=query.page_size)
-
-        # Global casting decision across all pages (#481).
-        finalized, validation = self._executor._finalize_casting(spec, all_staged)
-
-        result: list[RecordBatch] = []
-        start = 0
-        for batch_len in page_boundaries:
-            page_items = finalized[start : start + batch_len]
-            result.append(
-                RecordBatch(
-                    items=page_items,
-                    dataset=dataset,
-                    total_count=total_count,
-                    next_page=None,
-                    validation=validation,
-                    raw=None,
-                )
+            staged = self._executor._stage_fields(
+                spec, self._executor._extract_items(spec, payload)
             )
-            start += batch_len
-        return result
+            page_count = self._executor._extract_total_count(spec, payload)
+            if total_count is None:
+                total_count = page_count
+            next_page = _next_page(spec, page_query, page_count, len(staged))
+            pages.append(_FetchedPage(staged, payload, provenance, next_page))
+            all_staged.extend(staged)
+
+            if next_page is None or len(pages) >= effective_max:
+                break
+            page_query = replace(page_query, page=next_page)
+
+        # Global casting decision across all pages (#481). The per-page reports
+        # below run on copies of the staged rows, so they cannot disturb it.
+        per_page_staged = [[dict(record) for record in fetched.staged] for fetched in pages]
+        finalized, validation_total = self._executor._finalize_casting(spec, all_staged)
+
+        start = 0
+        for fetched, page_copy in zip(pages, per_page_staged, strict=True):
+            _, page_validation = self._executor._finalize_casting(spec, page_copy)
+            page_items = finalized[start : start + len(fetched.staged)]
+            start += len(fetched.staged)
+            yield RecordBatch(
+                items=page_items,
+                dataset=dataset,
+                total_count=total_count,
+                next_page=fetched.next_page,
+                meta={
+                    "provenance": fetched.provenance,
+                    "validation_total": validation_total,
+                },
+                validation=page_validation,
+                raw=fetched.payload,
+            )
+
+        if next_page is not None:
+            raise InvalidRequestError(
+                f"Pagination limit exceeded: reached {effective_max + 1} pages "
+                f"(max: {effective_max}). "
+                "This may indicate a bug in the provider API or an infinite pagination loop.",
+                provider=self._provider,
+                dataset_id=dataset.id,
+            )
 
     def get_schema(self, dataset: DatasetRef) -> SchemaDescriptor | None:
-        """Schema metadata is not supported yet (an honest declaration)."""
-        return None
+        """The schema a spec declares in ``fields``, in declaration order (#643).
+
+        Returns ``None`` when the spec declares no fields: the columns are then
+        unknown, and an empty list would claim there are none.
+
+        ``title`` and ``format`` stay unset — ``FieldSpec`` has neither, and their
+        mapping belongs to the column-metadata contract (#644), not to a guess here.
+        ``unit``, ``source_name`` and ``transform`` go in ``raw``.
+
+        Raises:
+            DatasetNotFoundError: The key has no spec.
+        """
+        spec = self._specs.get(dataset.dataset_key)
+        if spec is None:
+            msg = f"Unknown dataset key for spec adapter: {dataset.id}"
+            raise DatasetNotFoundError(msg, provider=self._provider, dataset_id=dataset.id)
+        return spec_schema(spec, dataset)
 
     def call_raw(self, dataset: DatasetRef, operation: str, params: dict[str, object]) -> object:
         """Guarantee the raw escape hatch returning the original payload."""
@@ -1152,5 +1364,7 @@ __all__ = [
     "check_payload_error",
     "extract_items",
     "extract_total_count",
+    "normalize_items",
+    "spec_schema",
     "raise_for_code",
 ]

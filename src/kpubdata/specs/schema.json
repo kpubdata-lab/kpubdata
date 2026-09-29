@@ -335,6 +335,25 @@
           },
           "description": {
             "type": "string"
+          },
+          "semantic_kind": {
+            "enum": [
+              "code",
+              "measure",
+              "date",
+              "period",
+              "text",
+              "flag"
+            ],
+            "description": "값의 의미 (ADR 0006). code 는 string 만, measure 는 integer/number 만. 생략 = 모름"
+          },
+          "title": {
+            "type": "string",
+            "description": "표시명 → FieldDescriptor.title"
+          },
+          "format": {
+            "type": "string",
+            "description": "표시 형식 힌트 → FieldConstraints.format (예: YYYY-MM)"
           }
         }
       }

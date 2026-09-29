@@ -82,55 +82,76 @@ uv run python -m build
 
 ### Release
 
-GitHub Actions `Publish to PyPI` workflow를 통해 배포합니다.
+릴리스는 사람이 누르고, 게이트를 통과한 **뒤에** 태그가 생긴다 (#586, ADR 0004). 세 단계다.
 
-#### 방법 1: 수동 트리거 (권장)
+#### 1. 릴리스 PR 준비 — `Release` 워크플로, `mode=prepare`
 
-1. GitHub → Actions → **Publish to PyPI** → **Run workflow**
-2. 옵션 선택:
-   - **bump**: `patch` (0.1.0 → 0.1.1), `minor` (0.1.0 → 0.2.0), `pre` (0.1.0 → 0.1.1a0)
-   - **dry_run**: 체크하면 PyPI 배포 없이 빌드만 확인
-3. workflow가 자동으로 수행하는 작업:
-   - `pyproject.toml` 버전 bump + commit + tag
-   - quality gates 실행 (ruff, mypy, pytest)
-   - sdist + wheel 빌드
-   - GitHub Release 생성 (자동 release notes)
-   - PyPI 배포 (trusted publisher / OIDC)
+1. GitHub → Actions → **Release** → **Run workflow** (브랜치 `main`)
+2. `mode=prepare`, `bump` 선택: `patch` (0.7.0 → 0.7.1), `minor` (0.7.0 → 0.8.0), `pre` (0.7.0 → 0.7.1a0)
+   - `dry_run` 을 켜면 새 버전만 계산하고 멈춘다 (브랜치·PR 없음)
+3. 워크플로가 `release/vX.Y.Z` 브랜치와 PR 을 연다. PR 에는
+   - `pyproject.toml` **과 `uv.lock`** 의 버전 (`.github/actions/set-version`)
+   - `CHANGELOG.md` 의 `## [Unreleased]` 가 `## [X.Y.Z] — 날짜` 로 바뀐 것 (`scripts/release_notes.py promote`)
+   가 들어간다. `[Unreleased]` 가 비어 있으면 여기서 멈춘다 — 먼저 변경 사항을 적는다.
+4. 알려진 한계: `GITHUB_TOKEN` 으로 연 PR 에는 CI 가 붙지 않는다. 게이트는 2단계에서 다시 돈다.
 
-#### 방법 2: GitHub Release 수동 생성
+#### 2. 병합 → 게이트 → 태그 → GitHub Release
 
-1. 직접 `pyproject.toml` 버전 수정 + commit + push
-2. GitHub → Releases → **Create a new release**
-3. 태그: `v{version}` (예: `v0.2.0`)
-4. Release 생성 시 workflow가 자동으로 빌드 + PyPI 배포
+릴리스 PR 을 병합하면 `Release` 워크플로의 release 잡이 **병합 커밋**에서
+1. 브랜치 이름(`release/vX.Y.Z`)과 `pyproject.toml` 버전이 같은지 확인
+2. 태그가 아직 없는지 확인
+3. `CHANGELOG.md` 의 해당 절을 릴리스 노트로 추출 (없거나 비면 실패)
+4. ruff · mypy · pytest 게이트
+5. 통과하면 태그 push + GitHub Release 생성
+
+첫 릴리스처럼 버전을 올리지 않고 선언된 버전을 그대로 내보낼 때는 `mode=release` 로
+`main` 에서 실행한다 — 같은 release 잡이 `main` 의 head 를 대상으로 돈다.
+
+#### 3. PyPI 발행 — `publish-pypi.yml` 을 태그로 실행
+
+```bash
+gh workflow run publish-pypi.yml -f ref=vX.Y.Z
+```
+
+PyPI trusted publisher 가 **시작된 워크플로 이름**(`publish-pypi.yml`)을 보기 때문에 release 잡에서
+호출하지 못하고 한 번 더 실행한다 (#593). `pypi` environment 승인이 필요하다. release 잡이
+끝나면 이 명령을 notice 로 출력한다.
+
+#### 실패하면 무엇이 남나
+
+| 멈춘 곳 | 남는 것 | 다시 하기 |
+|---|---|---|
+| 1단계 (promote·버전) | 없음 | 고치고 다시 실행 |
+| 2단계 게이트까지 | 병합된 릴리스 PR 만, 태그 없음 | 수정 PR 병합 후 `mode=release` |
+| 태그 push 후 Release 생성 실패 | 태그만 | 현재 워크플로는 재실행 시 "tag exists" 로 멈춘다 → 태그를 지우고 `mode=release`. #622 의 수정이 적용되면 재실행으로 이어진다 |
+| 3단계 (PyPI) | 태그·Release, 패키지 없음 (v0.7.0 에서 실제로 일어남) | `gh workflow run publish-pypi.yml -f ref=vX.Y.Z` 재실행 |
 
 #### 배포 전 체크리스트
 
-- [ ] main 브랜치에 모든 변경사항 merge 완료
-- [ ] CI 통과 확인 (ruff, mypy, pytest)
-- [ ] `SUPPORTED_DATA.md` 최신 상태
+- [ ] 릴리스에 들어갈 PR 이 모두 `main` 에 병합됨
+- [ ] `CHANGELOG.md` `## [Unreleased]` 에 사용자에게 보이는 변경이 모두 적힘
+- [ ] `SUPPORTED_DATA.md` 최신 상태 (`scripts/sync_supported_data.py --check`)
 
 #### 배포 흐름도
 
 ```mermaid
 flowchart TD
-    A[변경사항 main에 merge] --> B{배포 방식}
-    B -->|수동 트리거| C[Actions > Run workflow]
-    C --> D[bump type 선택]
-    D --> E[자동: 버전 bump + commit + tag]
-    B -->|Release 생성| F[수동: 버전 수정 + Release 생성]
-    E --> G[Quality gates]
-    F --> G
-    G --> H[Build sdist + wheel]
-    H --> I[GitHub Release 생성]
-    I --> J[PyPI 배포]
+    A[변경사항 main 에 병합] --> B[Release: mode=prepare]
+    B --> C[release/vX.Y.Z PR — 버전·uv.lock·CHANGELOG 날짜]
+    C --> D[PR 병합]
+    D --> E[release 잡: 게이트]
+    E -->|통과| F[태그 + GitHub Release]
+    E -->|실패| X[태그 없음 — 고치고 mode=release]
+    F --> G[gh workflow run publish-pypi.yml -f ref=vX.Y.Z]
+    G --> H[pypi environment 승인]
+    H --> I[PyPI 배포]
 ```
 
 #### 환경 설정
 
-- **PyPI trusted publisher**: GitHub Actions OIDC — 별도 API 토큰 불필요
+- **PyPI trusted publisher**: GitHub Actions OIDC, 워크플로 `publish-pypi.yml` — 별도 API 토큰 불필요
 - **GitHub environment**: `pypi` (Settings → Environments)
-- **Workflow 파일**: `.github/workflows/publish-pypi.yml`
+- **Workflow 파일**: `.github/workflows/release.yml`, `.github/workflows/publish-pypi.yml`
 
 ## 7. Versioning policy
 

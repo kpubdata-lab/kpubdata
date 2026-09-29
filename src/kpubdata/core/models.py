@@ -6,6 +6,7 @@ from collections.abc import Iterator
 from dataclasses import field
 from importlib import import_module
 from types import MappingProxyType
+from typing import Literal, get_args
 
 from kpubdata.core.capability import Operation, QuerySupport, _dataclass
 from kpubdata.core.representation import Representation
@@ -33,10 +34,9 @@ class DatasetRef:
         source_url: URL to original API docs or data portal page.
         query_support: Structured list-query capability metadata, if known.
         raw_metadata: Provider-specific exploration metadata for debugging.
-        license: The spec's licence terms — redistribution, attribution, quota and PII
-            columns — exactly as declared, or None when the dataset declares none
-            (#609). None means unknown, never "no restrictions"; ``quota`` is the
-            provider's own wording and is not parsed.
+        license: The spec's ``license`` section as parsed, or None when the dataset
+            declares none (#609). None means unknown, never "no restrictions";
+            ``quota`` is the provider's own wording and is not parsed.
     """
 
     id: str
@@ -181,13 +181,19 @@ class Query:
                 )
 
 
+IssueKind = Literal["uncastable", "missing", "undeclared"]
+"""The kinds of field-level validation issue (#572, #615)."""
+
+_ISSUE_KINDS: frozenset[str] = frozenset(get_args(IssueKind))
+
+
 @_dataclass(slots=True, frozen=True)
 class FieldIssue:
     """A single field-level validation issue found during normalization (#572).
 
     Attributes:
         field: The field name from the spec or response.
-        kind: One of 'uncastable', 'missing', 'undeclared'.
+        kind: One of 'uncastable', 'missing', 'undeclared' (see ``IssueKind``).
         declared_type: The spec's declared type (None for undeclared).
         failed_count: How many values failed (for uncastable).
         sample_values: Up to 3 repr'd failing values (for uncastable).
@@ -199,7 +205,7 @@ class FieldIssue:
     """
 
     field: str
-    kind: str
+    kind: IssueKind
     declared_type: str | None = None
     failed_count: int = 0
     sample_values: tuple[str, ...] = ()
@@ -223,14 +229,43 @@ class ValidationReport:
         """Return True when no issues were found."""
         return len(self.issues) == 0
 
-    def issues_of(self, kind: str) -> tuple[FieldIssue, ...]:
+    def issues_of(self, kind: IssueKind) -> tuple[FieldIssue, ...]:
         """The issues of one kind.
 
         Present so a consumer does not write the filter itself every time — and so the
         kind strings live in one place rather than being spelled out at each call site,
         where a typo reads as "no issues of that kind".
+
+        Raises:
+            ValueError: ``kind`` is not a known issue kind. A typo would otherwise
+                return an empty tuple, which is indistinguishable from "clean".
         """
+        if kind not in _ISSUE_KINDS:
+            msg = f"unknown issue kind {kind!r}; expected one of {sorted(_ISSUE_KINDS)}"
+            raise ValueError(msg)
         return tuple(issue for issue in self.issues if issue.kind == kind)
+
+    def to_dict(self) -> dict[str, object]:
+        """Return a JSON-serialisable representation of the report.
+
+        ``json.dumps(report)`` fails on the dataclass itself; this is the supported way
+        to log or persist a report.
+        """
+        return {
+            "ok": self.ok,
+            "issues": [
+                {
+                    "field": issue.field,
+                    "kind": issue.kind,
+                    "declared_type": issue.declared_type,
+                    "failed_count": issue.failed_count,
+                    "sample_values": list(issue.sample_values),
+                    "non_null_count": issue.non_null_count,
+                    "null_count": issue.null_count,
+                }
+                for issue in self.issues
+            ],
+        }
 
 
 @_dataclass(slots=True)
@@ -317,6 +352,9 @@ class FieldDescriptor:
     nullable: bool | None = None
     raw: MappingProxyType[str, object] = field(default_factory=_empty_object_proxy)
     constraints: FieldConstraints | None = None
+    #: What the value means apart from its storage type — ``code``, ``measure``,
+    #: ``date``, ``period``, ``text`` or ``flag`` — or None when undeclared (ADR 0006).
+    semantic_kind: str | None = None
 
 
 @_dataclass(slots=True)

@@ -1,9 +1,10 @@
 {
-  "generated_at": "2026-09-29T04:55:53+00:00",
+  "generated_at": "2026-09-29T14:16:17+00:00",
   "spec_datasets": {
     "total": 23,
     "verified": 22,
     "verified_recent_90d": 22,
+    "recent_reference": "2026-09-12",
     "per_dataset": {
       "datago.air_quality": {
         "last_verified": "2026-09-09",
@@ -116,8 +117,11 @@
     "sgis": 3
   },
   "supported_rows": {
-    "지원": 33,
+    "지원": 22,
+    "활용신청 대기": 94,
+    "스키마만": 38,
     "폐기": 1,
+    "진행 중": 1,
     "예정": 1
   }
 }

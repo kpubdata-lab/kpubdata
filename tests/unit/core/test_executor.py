@@ -524,13 +524,6 @@ def test_spec_dataset_adapter_surface(
     assert isinstance(raw, dict) and "response" in raw
 
 
-def test_spec_dataset_adapter_get_schema_is_none(apt_spec: SpecDefinition) -> None:
-    """get_schema honestly returns None."""
-    executor = _make_executor(FakeTransport())
-    adapter = SpecDatasetAdapter("datago", [apt_spec], executor)
-    assert adapter.get_schema(adapter.get_dataset("apt_trade")) is None
-
-
 # ----------------------------------------------------------------------
 # Executor scope extension: path_segment·index_range·pindex_psize·$root·
 # array index·neis
@@ -943,3 +936,126 @@ class TestTheReportShowsTheRatioNotJustTheCount:
         if missing:
             assert missing[0].non_null_count is None
             assert missing[0].null_count is None
+
+
+def test_provenance_reports_cache_hit_with_original_fetch_time(tmp_path: Path) -> None:
+    """A cache hit reports ``cached=True`` and keeps the original fetch time (#616).
+
+    Before the fix nothing marked a cached response, so provenance always said
+    ``cached=False`` and stamped ``fetched_at`` with the time of the cache read.
+    """
+    from datetime import datetime, timezone
+    from unittest.mock import patch
+
+    import httpx
+
+    from kpubdata.core.executor import _build_provenance
+    from kpubdata.transport.cache import ResponseCache
+    from kpubdata.transport.http import HttpTransport, TransportConfig
+
+    spec = _golden_spec("hospital_info")
+    url = "https://example.test/resource"
+    params = {"serviceKey": "secret", "pageNo": "1"}
+    original_fetch = 1_700_000_000.0  # 2023-11-14T22:13:20+00:00, far from "now"
+
+    cache = ResponseCache(base_dir=tmp_path)
+    transport = HttpTransport(TransportConfig(max_retries=0), cache=cache, cache_ttl_seconds=10**10)
+    network_response = httpx.Response(
+        200,
+        content=b'{"ok": true}',
+        headers={"content-type": "application/json"},
+        request=httpx.Request("GET", url),
+    )
+
+    with (
+        patch("kpubdata.transport.http.httpx.Client.send", return_value=network_response) as send,
+        patch("kpubdata.transport.cache.time.time", return_value=original_fetch),
+    ):
+        first = transport.request("GET", url, params=params)
+    second = transport.request("GET", url, params=params)
+    assert send.call_count == 1
+
+    first_provenance = _build_provenance(first, params, spec)
+    assert first_provenance["cached"] is False
+
+    provenance = _build_provenance(second, params, spec)
+    assert provenance["cached"] is True
+    expected = datetime.fromtimestamp(original_fetch, tz=timezone.utc)
+    assert provenance["fetched_at"] == expected.isoformat(timespec="seconds")
+    assert provenance["fetched_at"] == "2023-11-14T22:13:20+00:00"
+
+
+class TestTheReportCountsWhatTheCastSees:
+    """The validation report must not miscount (#615)."""
+
+    def test_an_empty_page_is_not_reported_as_missing_every_field(self) -> None:
+        """A 0-row page carries no evidence about columns; it is not invalid."""
+        batch = _valid_full_result([])
+
+        assert batch.validation is not None
+        assert batch.validation.ok
+        assert batch.validation.issues_of("missing") == ()
+
+    def test_null_markers_are_counted_as_nulls_not_values(self) -> None:
+        """ "-" becomes None during casting, so it is a null, not a non-null value."""
+        records: list[dict[str, object]] = [{"거래금액": "-"}] * 10 + [{"거래금액": "x"}]
+        batch = _valid_full_result(records)
+
+        assert batch.validation is not None
+        issue = batch.validation.issues_of("uncastable")[0]
+        assert issue.failed_count == 1
+        assert issue.non_null_count == 1
+        assert issue.null_count == 10
+
+    def test_a_column_first_seen_on_a_later_row_is_undeclared(self) -> None:
+        """Drift that starts on row 2 is still drift."""
+        batch = _valid_full_result([{"거래금액": "100"}, {"거래금액": "200", "신규필드": "값"}])
+
+        assert batch.validation is not None
+        assert [i.field for i in batch.validation.issues_of("undeclared")] == ["신규필드"]
+
+    def test_issue_kind_is_a_closed_set(self) -> None:
+        """A misspelt kind is rejected instead of reading as "no issues"."""
+        from typing import Literal, get_args, get_type_hints
+
+        from kpubdata.core.models import FieldIssue, IssueKind, ValidationReport
+
+        assert get_args(IssueKind) == ("uncastable", "missing", "undeclared")
+        assert get_type_hints(FieldIssue)["kind"] == IssueKind
+        assert get_type_hints(ValidationReport.issues_of)["kind"] == IssueKind
+        assert Literal["uncastable", "missing", "undeclared"] == IssueKind
+
+        with pytest.raises(ValueError, match="unknown issue kind"):
+            ValidationReport().issues_of(cast("IssueKind", "uncastabel"))
+
+    def test_the_report_is_json_serialisable(self) -> None:
+        """A report has to survive logging and persistence."""
+        batch = _valid_full_result(
+            [{"거래금액": "협의", "신규필드": "값"}, {"거래금액": None, "신규필드": "값2"}]
+        )
+
+        assert batch.validation is not None
+        data = batch.validation.to_dict()
+        assert json.loads(json.dumps(data)) == {
+            "ok": False,
+            "issues": [
+                {
+                    "field": "신규필드",
+                    "kind": "undeclared",
+                    "declared_type": None,
+                    "failed_count": 0,
+                    "sample_values": [],
+                    "non_null_count": None,
+                    "null_count": None,
+                },
+                {
+                    "field": "deal_amount",
+                    "kind": "uncastable",
+                    "declared_type": "integer",
+                    "failed_count": 1,
+                    "sample_values": ["'협의'"],
+                    "non_null_count": 1,
+                    "null_count": 1,
+                },
+            ],
+        }
