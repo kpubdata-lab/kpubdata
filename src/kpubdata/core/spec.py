@@ -164,13 +164,24 @@ class ExampleSpec:
 
 @dataclass(slots=True, frozen=True)
 class LicenseSpec:
-    """Data usage permission conditions declaration."""
+    """Data usage permission conditions declaration (#525).
+
+    redistribution: allowed / non_commercial / forbidden / unknown.
+    Default None means unknown — not knowing must not read as permission.
+    attribution: the exact attribution text to display (not just a flag).
+    quota: rate limit or traffic cap description from the provider.
+    pii_columns: column names that may contain personally identifiable information.
+    """
 
     type: str | None = None
     commercial_use: bool | None = None
     attribution_required: bool | None = None
     modification_allowed: bool | None = None
     note: str | None = None
+    redistribution: str | None = None
+    attribution: str | None = None
+    quota: str | None = None
+    pii_columns: tuple[str, ...] = ()
 
 
 @dataclass(slots=True, frozen=True)
@@ -242,12 +253,37 @@ def _parse_license(raw: object, problems: list[str]) -> LicenseSpec | None:
             return None
         return val
 
+    redistribution = _str_field("redistribution")
+    if redistribution is not None and redistribution not in (
+        "allowed",
+        "non_commercial",
+        "forbidden",
+        "unknown",
+    ):
+        problems.append(
+            f"license.redistribution must be one of "
+            f"allowed/non_commercial/forbidden/unknown: {redistribution!r}"
+        )
+        redistribution = None
+
+    pii_raw = raw.get("pii_columns")
+    pii_columns: tuple[str, ...] = ()
+    if pii_raw is not None:
+        if isinstance(pii_raw, list) and all(isinstance(c, str) for c in pii_raw):
+            pii_columns = tuple(pii_raw)
+        else:
+            problems.append("license.pii_columns은 문자열 리스트여야 합니다.")
+
     return LicenseSpec(
         type=_str_field("type"),
         commercial_use=_bool_field("commercial_use"),
         attribution_required=_bool_field("attribution_required"),
         modification_allowed=_bool_field("modification_allowed"),
         note=_str_field("note"),
+        redistribution=redistribution,
+        attribution=_str_field("attribution"),
+        quota=_str_field("quota"),
+        pii_columns=pii_columns,
     )
 
 

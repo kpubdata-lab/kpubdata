@@ -402,6 +402,31 @@
         "note": {
           "type": "string",
           "description": "라이선스 관련 부가 설명"
+        },
+        "redistribution": {
+          "type": "string",
+          "enum": [
+            "allowed",
+            "non_commercial",
+            "forbidden",
+            "unknown"
+          ],
+          "description": "Redistribution policy. Default unknown — not publishable (#525)."
+        },
+        "attribution": {
+          "type": "string",
+          "description": "Exact attribution text to display (#525)."
+        },
+        "quota": {
+          "type": "string",
+          "description": "Rate limit or traffic cap from the provider (#525)."
+        },
+        "pii_columns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Column names that may contain PII (#525)."
         }
       }
     },
