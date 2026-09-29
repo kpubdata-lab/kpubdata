@@ -72,6 +72,8 @@ Each `DatasetRef` returned by discovery exposes:
 - `description`: human-readable summary (may be ``None``)
 - `tags`: categorization keywords as a tuple (e.g. ``("weather", "forecast")``)
 - `source_url`: link to original API documentation (may be ``None``)
+- `license`: the spec's `license` section as parsed (`LicenseSpec`), or ``None`` when the
+  dataset declares none. ``None`` means unknown, never "no restrictions" (#609)
 
 ## 4. Bound dataset operations
 

@@ -1178,6 +1178,7 @@ def build_spec_dataset_ref(spec: SpecDefinition) -> DatasetRef:
         tags=(spec.provider, "spec"),
         source_url=spec.source.url if spec.source else None,
         raw_metadata=MappingProxyType(raw_metadata),
+        license=spec.license,
     )
 
 
