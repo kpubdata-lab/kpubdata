@@ -120,9 +120,13 @@ def _next_page(
     page_size = query.page_size or _DEFAULT_PAGE_SIZE
     if spec.pagination.max_size is not None:
         page_size = min(page_size, spec.pagination.max_size)
-    has_next = (total_count and page * page_size < total_count) or (
-        not total_count and item_count == page_size
-    )
+    if total_count == 0:
+        # The provider says there is nothing; no page follows (#642).
+        return None
+    if total_count is not None:
+        has_next = page * page_size < total_count
+    else:
+        has_next = item_count == page_size
     return page + 1 if has_next else None
 
 
@@ -649,10 +653,13 @@ class SpecExecutor:
         return extract_items(spec, payload)
 
     def _extract_total_count(self, spec: SpecDefinition, payload: dict[str, object]) -> int | None:
-        """Extract total count using spec's total_count_path rule (None if absent)."""
+        """Extract total count using spec's total_count_path rule (None if absent).
+
+        ``0`` stays ``0``: "no results" and "count unknown" are different answers,
+        and ``coerced if coerced else None`` turned the first into the second (#642).
+        """
         raw = _dot_get(payload, spec.response.total_count_path)
-        coerced = _to_int(raw)
-        return coerced if coerced else None
+        return _to_int(raw)
 
     # ------------------------------------------------------------------
     # Normalization
@@ -992,7 +999,8 @@ def extract_total_count(spec: SpecDefinition, payload: dict[str, object]) -> int
     resolved = _resolve_path(spec.response.total_count_path, spec)
     raw = _dot_get(payload, resolved)
     coerced = _to_int(raw)
-    return coerced if coerced else None
+    # 0 is a count, not a missing one (#642).
+    return coerced
 
 
 def _message_path(code_path: str | None) -> str | None:
