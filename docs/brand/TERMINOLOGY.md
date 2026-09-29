@@ -14,8 +14,8 @@ diff 가 커져 기능 회귀 위험만 올라간다.
 | 데이터를 다시 수집하는 일 | **Refresh** | build |
 | 그 실행 | **Refresh Run** | `BuildRun` |
 | 처음 만드는 일 | **Create Table** / **Materialize** | build |
-| 실행 계층 | **KPubData Engine** | `kpubdata-builder`, `BuilderService` |
-| 접근 계층 | **KPubData Core** | `kpubdata` |
+| 데이터셋·테이블 생성 | **KPubData Builder** | `kpubdata-builder`, `BuilderService` |
+| 공공데이터 접근 SDK | **KPubData** | `kpubdata` |
 | 웹 작업공간 | **KPubData Studio** | `kpubdata-studio` |
 | AI 도우미 | **Ask KPubData** | `features/kubi`, `features/assistant` |
 | 질의 화면 | **SQL Workspace** | query service |

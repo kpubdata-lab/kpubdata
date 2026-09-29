@@ -1,7 +1,7 @@
 """A spec dataset's ``schema()`` returns the fields its spec declares (#643).
 
 It returned ``None`` although every spec carries field names, types, units and
-descriptions, so Engine and Studio had no official way to read column metadata.
+descriptions, so Builder and Studio had no official way to read column metadata.
 """
 
 from __future__ import annotations

@@ -1,8 +1,13 @@
-# KPubData Core
+# KPubData
 
 **Korean public data, ready to query.**
 
-> KPubData family: [Core](https://github.com/yeongseon/kpubdata) (access layer) → [Engine](https://github.com/yeongseon/kpubdata-builder) (warehouse engine) → [Studio](https://github.com/yeongseon/kpubdata-studio) (visual workspace)
+> A standalone Python SDK for accessing Korean public data. KPubData installs and runs on its own, without any other project.
+>
+> Related projects:
+>
+> - [KPubData Builder](https://github.com/yeongseon/kpubdata-builder) — builds and manages reproducible datasets and tables on top of KPubData
+> - [KPubData Studio](https://github.com/yeongseon/kpubdata-studio) — a visual workspace for KPubData Builder
 
 [한국어](./README.md)
 
