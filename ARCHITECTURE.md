@@ -533,6 +533,17 @@ Do **not** change the core just because one adapter is weird.
 - keep provider-specific richness in metadata and raw channels
 - treat representation (`openapi`, `file`, `sheet`, `download`) as real metadata, not a footnote
 
+## 12. 독립성 규칙 (Independence Rules)
+
+KPubData 는 독립 Python SDK 다. KPubData Builder 와 KPubData Studio 는 그 위에 만들어진
+관련 프로젝트이고, 의존은 **Studio → Builder → KPubData** 한 방향으로만 흐른다.
+KPubData 는 Builder·Studio 에 의존하지 않고, 공개 API 는 둘 없이도 뜻이 성립해야 한다.
+
+12개 규칙 전체와 공개/비공개 API 경계는 [ADR 0007](./docs/adrs/0007-independence-rules.md)
+에 있다. 요약하면 공개 API 는 `kpubdata.__all__` 의 이름과 `API_SPEC.md` 에 문서화된
+메서드, 정규 모델이고, `_` 로 시작하는 모듈·어댑터 헬퍼·transport 내부·fixture·저장소
+구조는 비공개다.
+
 ---
 
 ## 관련 문서
@@ -546,6 +557,7 @@ Do **not** change the core just because one adapter is weird.
 | [PACKAGING.md](./PACKAGING.md) | 패키징 및 배포 전략 |
 | [architecture-diagrams.md](./docs/architecture-diagrams.md) | 아키텍처 다이어그램 |
 | [product-family-architecture.md](./docs/product-family-architecture.md) | **제품군 전체 시스템 아키텍처 (3개 저장소 관계도)** |
+| [ADR 0007](./docs/adrs/0007-independence-rules.md) | 독립성 규칙과 공개/비공개 API 경계 |
 
 ### KPubData Product Family
 | 저장소 | 문서 | 설명 |
