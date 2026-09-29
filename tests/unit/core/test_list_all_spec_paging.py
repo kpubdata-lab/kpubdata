@@ -10,8 +10,8 @@ every page at once (#481). These tests pin the five defects that path had:
 4. ``page_size > max_size`` ended the walk early,
 5. per-page ``raw``/``meta``/``next_page``/``validation`` were dropped.
 
-The ``Dataset`` is built directly on the adapter, because ``Client`` does not
-reach this path yet (#611).
+The ``Dataset`` is built directly on the adapter; the ``Client`` path is covered in
+``test_list_all_client_path.py`` (#611).
 """
 
 from __future__ import annotations
