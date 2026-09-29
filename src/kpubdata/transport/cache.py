@@ -12,7 +12,7 @@ import tempfile
 import time
 from collections.abc import Mapping
 from pathlib import Path
-from typing import TypedDict, cast
+from typing import NamedTuple, TypedDict, cast
 
 from kpubdata.transport._sensitive import SENSITIVE_PARAM_KEYS
 
@@ -40,6 +40,29 @@ class _CachePayload(TypedDict, total=False):
 
 _REDACTED_VALUE = "[REDACTED]"
 
+# Keys set in ``httpx.Response.extensions`` on a response served from the cache.
+# Extensions are httpx's documented place for per-response metadata, so a cache
+# hit is visible to callers without a private attribute on the response (#616).
+CACHE_HIT_EXTENSION = "kpubdata.cache_hit"
+CACHED_AT_EXTENSION = "kpubdata.cached_at"
+
+
+class CacheEntry(NamedTuple):
+    """A valid cache entry as returned by :meth:`ResponseCache.get_entry`.
+
+    Args:
+        body: Cached response body bytes.
+        content_type: Content-Type stored with the body, or ``""`` for old
+            entries written before the type was stored.
+        created_at: Unix timestamp of the original fetch. Provenance reports
+            this as ``fetched_at`` on a cache hit, so a replayed response is
+            not dated as if it had just been fetched (#616).
+    """
+
+    body: bytes
+    content_type: str
+    created_at: float
+
 
 class ResponseCache:
     """HTTP response body cache on disk with TTL expiration."""
@@ -62,6 +85,13 @@ class ResponseCache:
         Old entries without stored type return empty string to preserve backward
         compatibility (caller re-infers as before).
         """
+        entry = self.get_entry(key)
+        if entry is None:
+            return None
+        return entry.body, entry.content_type
+
+    def get_entry(self, key: str) -> CacheEntry | None:
+        """Read cache entry and return it with its original fetch time if valid."""
         payload_path = self._payload_path(key)
         try:
             if not payload_path.exists():
@@ -74,13 +104,15 @@ class ResponseCache:
                 self._delete_entry(key)
                 return None
             body_b64 = payload.get("body_b64")
-            if body_b64 is None:
+            created_at = payload.get("created_at")
+            if body_b64 is None or created_at is None:
                 self._delete_entry(key)
                 return None
             stored_type = payload.get("content_type")
-            return (
-                base64.b64decode(body_b64.encode("ascii")),
-                stored_type if isinstance(stored_type, str) else "",
+            return CacheEntry(
+                body=base64.b64decode(body_b64.encode("ascii")),
+                content_type=stored_type if isinstance(stored_type, str) else "",
+                created_at=float(created_at),
             )
         except Exception as exc:
             logger.debug(
@@ -265,4 +297,10 @@ def _load_payload(payload_path: Path) -> _CachePayload | None:
     return payload
 
 
-__all__ = ["ResponseCache", "make_cache_key"]
+__all__ = [
+    "CACHED_AT_EXTENSION",
+    "CACHE_HIT_EXTENSION",
+    "CacheEntry",
+    "ResponseCache",
+    "make_cache_key",
+]
