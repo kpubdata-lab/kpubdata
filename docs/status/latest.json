@@ -1,9 +1,10 @@
 {
-  "generated_at": "2026-09-29T10:48:55+00:00",
+  "generated_at": "2026-09-29T13:45:24+00:00",
   "spec_datasets": {
     "total": 23,
     "verified": 22,
     "verified_recent_90d": 22,
+    "recent_reference": "2026-09-12",
     "per_dataset": {
       "datago.air_quality": {
         "last_verified": "2026-09-09",
@@ -117,6 +118,8 @@
   },
   "supported_rows": {
     "지원": 22,
+    "활용신청 대기": 94,
+    "스키마만": 38,
     "폐기": 1,
     "예정": 1
   }
