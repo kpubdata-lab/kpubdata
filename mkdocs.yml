@@ -84,6 +84,7 @@ nav:
       - "0003: 언어 정책": adrs/0003-language-policy.md
       - "0004: 버전 정책": adrs/0004-versioning-and-release.md
       - "0005: 데이터셋 상태 어휘": adrs/0005-dataset-status-vocabulary.md
+      - "0006: 컬럼 메타 계약": adrs/0006-column-metadata-contract.md
   - 튜토리얼:
       - AI 에이전트 워크플로우: tutorial-ai-agent-workflow.md
   - 기여:

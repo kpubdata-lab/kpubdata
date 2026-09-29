@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- ADR 0006: the column-metadata contract separates storage type (`type`), meaning (`semantic_kind`: code, measure, date, period, text, flag) and display (reusing `FieldDescriptor.title` and `FieldConstraints.format`). Implementation is #651 (#644).
 - `kpubdata.core.status` — one canonical dataset status vocabulary
   (`DatasetStatus`) with mappings from the spec, probe, `SUPPORTED_DATA.md` and
   production-grade vocabularies; `spec._STATUSES` and `_probe.PROBE_STATUSES` are
