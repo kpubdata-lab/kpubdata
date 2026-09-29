@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **BREAKING:** code columns keep their leading zeros and come back as `str` (#613). Declared `string` now: `apt_trade` `bonbun`/`bubun`/`roadNmBonbun`/`roadNmBubun`/`roadNmSeq`, `apt_rent` `roadnmbonbun`/`roadnmbubun`, `hospital_info` `clCd`/`postNo`, `metro_fare` `arvlStnCd`/`dptreStnCd`, `tour_kor_*` `zipcode`, `village_fcst` `fcstTime`. As a safety net, a zero-led value (`"06102"`) no longer casts to a number, so a code column declared numeric stays text and is reported `uncastable`. Replay verification (`make verify`) now also fails when normalization drops a leading zero. See kpubdata-builder#702.
 - `FieldIssue.kind` and `ValidationReport.issues_of()` take the `IssueKind` literal (`"uncastable"`, `"missing"`, `"undeclared"`); `issues_of()` raises `ValueError` on an unknown kind instead of silently returning nothing (#615).
 
 ### Added

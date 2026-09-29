@@ -132,7 +132,7 @@ fields:
   type: string
   description: 제목
 - name: zipcode
-  type: integer
+  type: string
 examples:
 - name: year_2026
   description: 2026년 전국 행사

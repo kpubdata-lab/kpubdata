@@ -131,7 +131,7 @@ fields:
   type: string
   description: 제목
 - name: zipcode
-  type: integer
+  type: string
 examples:
 - name: gangnam_1km
   description: 강남역 반경 1km

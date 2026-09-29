@@ -124,7 +124,7 @@ fields:
   type: string
   description: 제목
 - name: zipcode
-  type: integer
+  type: string
 examples:
 - name: gangnam_keyword
   description: 키워드 강남 음식점

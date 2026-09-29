@@ -44,7 +44,7 @@ fields:
 - name: addr
   type: string
 - name: clCd
-  type: integer
+  type: string
 - name: clCdNm
   type: string
 - name: cmdcGdrCnt
@@ -82,7 +82,7 @@ fields:
 - name: pnursCnt
   type: integer
 - name: postNo
-  type: integer
+  type: string
 - name: sgguCd
   type: integer
 - name: sgguCdNm
