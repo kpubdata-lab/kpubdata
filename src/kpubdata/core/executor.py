@@ -18,6 +18,7 @@ but don't depend on it (verified: tests/unit/core/test_executor.py).
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import logging
 import re
@@ -26,6 +27,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from types import MappingProxyType
 from typing import cast
+from urllib.parse import parse_qsl, quote, quote_plus, urlencode, urlsplit, urlunsplit
 
 from kpubdata._hosts import extra_hosts_env_var, host_is_allowed
 from kpubdata.config import KPubDataConfig
@@ -302,15 +304,64 @@ def _gateway_rejection(payload: dict[str, object]) -> tuple[str, str] | None:
     )
 
 
+def _secret_forms(secrets: tuple[str, ...]) -> tuple[str, ...]:
+    """Each secret as sent and as it can appear percent-encoded in a URL (#612).
+
+    data.go.kr keys carry ``+``, ``/`` and ``=``; the response URL holds them as
+    ``%2B``, ``%2F`` and ``%3D``, so matching only the plain text misses them.
+    """
+    forms: set[str] = set()
+    for secret in secrets:
+        if not secret:
+            continue
+        forms.update({secret, quote(secret, safe=""), quote_plus(secret, safe="")})
+    return tuple(sorted(forms, key=len, reverse=True))
+
+
+def _mask_provenance_url(url: str, secret_param_names: set[str], secrets: tuple[str, ...]) -> str:
+    """Mask a URL by parameter name and by secret value; raise if a secret survives."""
+    parts = urlsplit(url)
+    path = parts.path
+    # By value, not by segment: a key containing "/" spans segments.
+    for secret in secrets:
+        path = path.replace(secret, "[REDACTED]")
+    query = urlencode(
+        [
+            (key, "[REDACTED]" if key.casefold() in secret_param_names else value)
+            for key, value in parse_qsl(parts.query, keep_blank_values=True)
+        ],
+        safe="[]",
+    )
+    masked = urlunsplit(parts._replace(path=path, query=query))
+    if any(secret in masked for secret in secrets):
+        msg = "a secret survived URL masking"
+        raise ValueError(msg)
+    return masked
+
+
 def _build_provenance(
-    response: object, params: dict[str, str], spec: SpecDefinition
+    response: object,
+    params: dict[str, str],
+    spec: SpecDefinition,
+    secret_values: tuple[str, ...] = (),
 ) -> dict[str, object]:
     """Build standardized provenance metadata for RecordBatch.meta (#479).
 
     Fail-closed: if masking fails for any field, that field is omitted entirely
     rather than leaking the unmasked value.
+
+    The URL is masked by **parameter name** — the sensitive names plus the spec's
+    own auth parameter — and by the key's value in every encoded form, path
+    segments included. The earlier ``str.replace`` of the plain key missed a
+    percent-encoded key and a key already removed from ``params`` for a path
+    segment (#612).
     """
     from kpubdata.transport._sensitive import SENSITIVE_PARAM_KEYS
+
+    secret_param_names = set(SENSITIVE_PARAM_KEYS)
+    if spec.auth.type != "none" and spec.auth.param_name:
+        secret_param_names.add(spec.auth.param_name.casefold())
+    secrets = _secret_forms(secret_values)
     from kpubdata.transport.cache import CACHE_HIT_EXTENSION, CACHED_AT_EXTENSION
 
     provenance: dict[str, object] = {}
@@ -350,19 +401,14 @@ def _build_provenance(
     # url — masked, fail-closed (omit if we cannot safely mask)
     url = str(getattr(response, "url", ""))
     if url:
-        try:
-            safe_url = url
-            for key, value in params.items():
-                if key.casefold() in SENSITIVE_PARAM_KEYS and value:
-                    safe_url = safe_url.replace(value, "[REDACTED]")
-            provenance["url"] = safe_url
-        except Exception:
-            pass  # fail-closed: omit rather than leak
+        # Fail-closed: omit rather than leak.
+        with contextlib.suppress(Exception):
+            provenance["url"] = _mask_provenance_url(url, secret_param_names, secrets)
 
     # params — masked, fail-closed
     try:
         safe_params = {
-            k: ("[REDACTED]" if k.casefold() in SENSITIVE_PARAM_KEYS else v)
+            k: ("[REDACTED]" if k.casefold() in secret_param_names or v in secrets else v)
             for k, v in params.items()
         }
         provenance["params"] = safe_params
@@ -567,6 +613,11 @@ class SpecExecutor:
             # ``base_url`` never mentions, which would walk past the check in
             # ``build_params``. Re-check what will actually be requested (#519).
             self._require_allowed_host(spec, url)
+        # Taken before a path-segment key leaves ``params``, so provenance can
+        # still mask it (#612).
+        secret_values = (
+            (params.get(spec.auth.param_name or "", ""),) if spec.auth.type != "none" else ()
+        )
         if spec.auth.type == "path_segment":
             params = {k: v for k, v in params.items() if k != (spec.auth.param_name or "")}
         try:
@@ -600,7 +651,7 @@ class SpecExecutor:
             raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id) from exc
 
         if isinstance(decoded, dict):
-            provenance = _build_provenance(response, params, spec)
+            provenance = _build_provenance(response, params, spec, secret_values)
             return decoded, provenance
         msg = f"{spec.id}: 응답 페이로드가 객체가 아닙니다({type(decoded).__name__})."
         raise ProviderResponseError(msg, provider=spec.provider, dataset_id=spec.id)
