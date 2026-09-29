@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """Derive SUPPORTED_DATA.md's level columns from the evidence; keep the table well-formed (#621).
 
-The document defines "지원" as a record with a ``meta.json`` — a response recorded from the
-live API. The level was typed by hand and drifted from that definition in both
-directions. This recomputes the three level columns of every dataset row from
-``tests/fixtures``:
+The document defines the "supported" level as a record with a ``meta.json`` — a
+response recorded from the live API. The level was typed by hand and drifted from
+that definition in both directions. This recomputes the three level columns of every
+dataset row from ``tests/fixtures``:
 
-- a ``meta.json`` exists for the dataset → ``지원 | 실API 검증 | <latest recorded_at date>``
-- none exists but the row claims ``지원`` → ``스키마만 | 테스트 검증 | -``
-- any other level (활용신청 대기, 폐기, 진행 중 …) is a human judgement and is kept
+- a ``meta.json`` exists for the dataset → supported, live-verified, ``<latest recorded_at date>``
+- none exists but the row claims supported → schema-only, test-verified, ``-``
+- any other level (awaiting activation, retired, in progress …) is a human judgement
+  and is kept
 
 It also normalises the row shape: every row has exactly as many cells as the header
 and ends with ``|``. Text written after the closing pipe (which GitHub drops from the

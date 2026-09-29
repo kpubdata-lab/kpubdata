@@ -1,6 +1,6 @@
 """SUPPORTED_DATA.md's level columns come from the evidence, and its table stays well-formed (#621).
 
-"지원" means a recorded live-API response (`meta.json`). The level used to be typed by
+The "supported" level means a recorded live-API response (`meta.json`). The level used to be typed by
 hand and drifted both ways; the table also had rows with text after the closing pipe,
 which GitHub drops, and rows with a cell too many or a pipe missing.
 """
