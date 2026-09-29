@@ -2,7 +2,8 @@
 
 ADR 0005 is the rationale. Before it, six places named a dataset's state in six
 vocabularies with no mapping between them, so a reader could not tell whether
-``스키마만``, ``fixture-verified`` and ``test-verified`` were the same thing.
+SUPPORTED_DATA's schema-only level, ``fixture-verified`` and ``test-verified``
+were the same thing.
 
 Three kinds of name live here, and they are deliberately different types:
 
