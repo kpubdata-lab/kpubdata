@@ -1,0 +1,74 @@
+name: Security
+
+# Supply-chain checks (kpubdata-builder#691). Two questions, one job each:
+#
+#   dependency audit  does anything uv.lock installs have a known vulnerability?
+#   CodeQL            does the Python source have a known-dangerous pattern?
+#
+# They run on every pull request and push to main, and weekly, because a dependency
+# gains an advisory without anyone touching this repository. Neither gates merges yet:
+# whether a new advisory should block every open pull request is the owner's decision
+# left open in #631. The secret scan does gate merges — it runs in ci.yml under
+# `CI gate`, because a leaked credential is never acceptable to merge.
+#
+# Actions are pinned by commit SHA, the same SHAs kpubdata-builder uses.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * 1"  # Monday 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-audit:
+    name: Dependency audit (pip-audit, Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # The lock resolves differently on each side of `python_full_version < '3.12'`
+        # (anyio, typing-extensions), and `uv export` keeps the markers, which pip-audit
+        # evaluates against the interpreter it runs on. Auditing on 3.10 and 3.12 covers
+        # both sides.
+        python: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4  # v10.1.0
+
+      # Every extra: an optional dependency is still installed by whoever asks for it.
+      # --no-deps: the export is already the full, pinned closure.
+      - name: Audit the locked dependencies
+        env:
+          PYTHON: ${{ matrix.python }}
+        run: |
+          uv export --frozen --no-hashes --no-emit-project --all-extras -o requirements.txt
+          uvx --python "${PYTHON}" pip-audit==2.10.1 -r requirements.txt --no-deps --disable-pip \
+            --progress-spinner off
+
+  codeql:
+    name: CodeQL (python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2  # v4.38.2
+        with:
+          languages: python
+          build-mode: none
+      - uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2  # v4.38.2
+        with:
+          category: /language:python

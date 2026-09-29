@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - `RecordBatch.meta["provenance"]["url"]` no longer leaks the API key. It was masked with `str.replace` of the plain key, which missed a percent-encoded data.go.kr key (`+`, `/`, `=`) and a path-segment key; it is now masked by parameter name (including the spec's own auth parameter) and by every encoded form of the key, and omitted if a key form survives (#612).
+- Dependencies with known vulnerabilities are upgraded in `uv.lock` (kpubdata-builder#691). pip-audit over every extra reported 87 findings (48 distinct advisories) in 14 packages; none remain. urllib3 2.6.3 → 2.8.0, idna 3.11 → 3.20, cryptography 46.0.6 → 50.0.1, pyjwt 2.12.1 → 2.15.1, pillow 12.2.0 → 12.3.0, mcp 1.26.0 → 2.2.0 (with starlette 1.7.0, python-multipart 0.0.32, click 8.5.0; anyio 4.14.2 on Python < 3.12 and 4.15.1 on ≥ 3.12, typing-extensions 4.15.0 / 4.16.0 likewise; adds httpx2, httpcore2, httpx2-jsfetch, truststore, opentelemetry-api and mcp-types; drops httpx-sse, python-dotenv and pydantic-settings), pytest 9.1.1, mkdocs-material 9.7.7, pymdown-extensions 12.1 — all inside the declared ranges, so only the lock moves. The gitleaks secret scan over the full history now runs in CI and gates merges through `CI gate`; a `Security` workflow runs pip-audit over the locked dependencies (for Python 3.10 and 3.12, so both sides of the `< 3.12` markers are audited) and CodeQL on every pull request and weekly — gating those two is left to #631.
 
 ### Added
 
