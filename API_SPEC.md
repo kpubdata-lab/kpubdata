@@ -95,7 +95,18 @@ for batch in dataset.list_all(lawd_code="11680", deal_ym="202503"):
 ```
 
 `list_all()` yields one `RecordBatch` per page and follows `next_page`
-automatically until pagination is exhausted.
+automatically until pagination is exhausted. `page` and `page_size` are
+pagination controls, not filters: they are never sent as raw provider
+parameters. When more than `max_pages` pages (default 1000) would be needed,
+the pages fetched so far are yielded and then `InvalidRequestError` is raised.
+
+For spec-backed datasets, `list_all()` decides column casting across all pages
+at once, so it **buffers**: every page is fetched before the first batch is
+yielded, and memory grows with the total result (bounded by `max_pages`).
+`page_size` is capped to the spec's `pagination.max_size`, as in `list()`. Each
+batch still carries its own page's `raw`, `meta["provenance"]`, `next_page` and
+`validation`; `meta["validation_total"]` holds the report for the whole result,
+which is the one that decided casting.
 
 Dataset metadata may expose provider-specific pagination styles through
 `DatasetRef.query_support.pagination`, including `offset`, `cursor`, and

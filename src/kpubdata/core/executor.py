@@ -21,6 +21,8 @@ from __future__ import annotations
 import hashlib
 import logging
 import re
+from collections.abc import Iterator
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from types import MappingProxyType
 from typing import cast
@@ -93,6 +95,35 @@ def _dot_get(payload: object, path: str | None) -> object | None:
         if current is None:
             return None
     return current
+
+
+@dataclass(frozen=True, slots=True)
+class _FetchedPage:
+    """One page held by ``SpecDatasetAdapter.query_records_all`` until casting is decided."""
+
+    staged: list[dict[str, object]]
+    payload: dict[str, object]
+    provenance: dict[str, object]
+    next_page: int | None
+
+
+def _next_page(
+    spec: SpecDefinition, query: Query, total_count: int | None, item_count: int
+) -> int | None:
+    """The page after ``query``, or ``None`` when the result is exhausted.
+
+    ``page_size`` is capped to ``pagination.max_size`` exactly as
+    ``build_params`` caps the request, so the decision is made with the size
+    that was actually asked for (#614).
+    """
+    page = query.page or 1
+    page_size = query.page_size or _DEFAULT_PAGE_SIZE
+    if spec.pagination.max_size is not None:
+        page_size = min(page_size, spec.pagination.max_size)
+    has_next = (total_count and page * page_size < total_count) or (
+        not total_count and item_count == page_size
+    )
+    return page + 1 if has_next else None
 
 
 def _to_int(value: object) -> int | None:
@@ -785,13 +816,7 @@ class SpecExecutor:
         total_count = self._extract_total_count(spec, payload)
 
         page = query.page or 1
-        page_size = query.page_size or _DEFAULT_PAGE_SIZE
-        if spec.pagination.max_size is not None:
-            page_size = min(page_size, spec.pagination.max_size)
-        has_next = (total_count and page * page_size < total_count) or (
-            not total_count and len(items) == page_size
-        )
-        next_page = page + 1 if has_next else None
+        next_page = _next_page(spec, query, total_count, len(items))
 
         if not items:
             logger.debug("Spec executor: zero items", extra={"dataset_id": spec.id, "page": page})
@@ -1096,12 +1121,31 @@ class SpecDatasetAdapter:
 
     def query_records_all(
         self, dataset: DatasetRef, query: Query, *, max_pages: int | None = None
-    ) -> list[RecordBatch]:
-        """Multi-page query with global column casting (#481).
+    ) -> Iterator[RecordBatch]:
+        """Multi-page query with global column casting (#481, #614).
 
-        Collects all pages first, then applies all-or-nothing column casting
-        once across the full result set. This prevents mixed types when
-        page 1 casts a column but page 2 cannot.
+        **This path buffers.** Casting is decided once across the whole
+        result (all-or-nothing per column, #481), so no page can be cast —
+        and therefore none can be yielded — until the last page has been
+        fetched. Every page is requested first, then one batch per page is
+        yielded. Memory is O(total rows), bounded by ``max_pages`` pages.
+
+        Pagination follows :meth:`SpecExecutor.query` exactly: ``page_size``
+        is capped to the spec's ``pagination.max_size`` and ``next_page`` is
+        computed from the capped value, so a request for more rows than the
+        provider serves does not end the walk early.
+
+        Each batch keeps what a single ``query()`` would carry: its own
+        ``raw`` payload, ``meta["provenance"]``, ``next_page`` and a
+        ``validation`` report for that page's rows. The report for the
+        whole result — the one that governed casting — is in
+        ``meta["validation_total"]`` on every batch.
+
+        Raises:
+            DatasetNotFoundError: The dataset key is unknown.
+            InvalidRequestError: More than ``max_pages`` pages would be
+                needed. As in the legacy ``Dataset.list_all`` path, the
+                ``max_pages`` batches already fetched are yielded first.
         """
         spec = self._specs.get(dataset.dataset_key)
         if spec is None:
@@ -1109,52 +1153,63 @@ class SpecDatasetAdapter:
             raise DatasetNotFoundError(msg, provider=self._provider, dataset_id=dataset.id)
 
         effective_max = max_pages if max_pages is not None else 1000
+        pages: list[_FetchedPage] = []
         all_staged: list[dict[str, object]] = []
-        page_boundaries: list[int] = []
         total_count: int | None = None
-        page = query.page or 1
-        page_size = query.page_size or _DEFAULT_PAGE_SIZE
+        page_query = query
+        next_page: int | None = None
 
-        while len(page_boundaries) < effective_max:
+        while True:
             self._executor._require_supported_envelope(spec)
-            params = self._executor.build_params(spec, query, format_hint=None)
-            payload, _prov = self._executor._request(spec, params)
+            params = self._executor.build_params(spec, page_query, format_hint=None)
+            payload, provenance = self._executor._request(spec, params)
             self._executor._check_error(spec, payload)
 
-            items = self._executor._extract_items(spec, payload)
-            staged = self._executor._stage_fields(spec, items)
-            all_staged.extend(staged)
-            page_boundaries.append(len(staged))
-
-            tc = self._executor._extract_total_count(spec, payload)
-            if total_count is None:
-                total_count = tc
-
-            has_next = (tc and page * page_size < tc) or (not tc and len(staged) == page_size)
-            if not has_next:
-                break
-            page += 1
-            query = Query(filters=query.filters, page=page, page_size=query.page_size)
-
-        # Global casting decision across all pages (#481).
-        finalized, validation = self._executor._finalize_casting(spec, all_staged)
-
-        result: list[RecordBatch] = []
-        start = 0
-        for batch_len in page_boundaries:
-            page_items = finalized[start : start + batch_len]
-            result.append(
-                RecordBatch(
-                    items=page_items,
-                    dataset=dataset,
-                    total_count=total_count,
-                    next_page=None,
-                    validation=validation,
-                    raw=None,
-                )
+            staged = self._executor._stage_fields(
+                spec, self._executor._extract_items(spec, payload)
             )
-            start += batch_len
-        return result
+            page_count = self._executor._extract_total_count(spec, payload)
+            if total_count is None:
+                total_count = page_count
+            next_page = _next_page(spec, page_query, page_count, len(staged))
+            pages.append(_FetchedPage(staged, payload, provenance, next_page))
+            all_staged.extend(staged)
+
+            if next_page is None or len(pages) >= effective_max:
+                break
+            page_query = replace(page_query, page=next_page)
+
+        # Global casting decision across all pages (#481). The per-page reports
+        # below run on copies of the staged rows, so they cannot disturb it.
+        per_page_staged = [[dict(record) for record in fetched.staged] for fetched in pages]
+        finalized, validation_total = self._executor._finalize_casting(spec, all_staged)
+
+        start = 0
+        for fetched, page_copy in zip(pages, per_page_staged, strict=True):
+            _, page_validation = self._executor._finalize_casting(spec, page_copy)
+            page_items = finalized[start : start + len(fetched.staged)]
+            start += len(fetched.staged)
+            yield RecordBatch(
+                items=page_items,
+                dataset=dataset,
+                total_count=total_count,
+                next_page=fetched.next_page,
+                meta={
+                    "provenance": fetched.provenance,
+                    "validation_total": validation_total,
+                },
+                validation=page_validation,
+                raw=fetched.payload,
+            )
+
+        if next_page is not None:
+            raise InvalidRequestError(
+                f"Pagination limit exceeded: reached {effective_max + 1} pages "
+                f"(max: {effective_max}). "
+                "This may indicate a bug in the provider API or an infinite pagination loop.",
+                provider=self._provider,
+                dataset_id=dataset.id,
+            )
 
     def get_schema(self, dataset: DatasetRef) -> SchemaDescriptor | None:
         """Schema metadata is not supported yet (an honest declaration)."""
