@@ -19,6 +19,7 @@ from pathlib import Path
 
 import yaml
 
+from kpubdata.core.status import SpecStatus
 from kpubdata.exceptions import InvalidRequestError
 
 # Enum sets kept in sync with schema.json (runtime structure validation).
@@ -49,7 +50,7 @@ _ENVELOPES = frozenset(
 _ERROR_STYLES = frozenset(
     {"header_result_code", "result_code", "status_code", "err_cd", "err_field", "http_status"}
 )
-_STATUSES = frozenset({"active", "deprecated", "broken", "unstable"})
+_STATUSES = frozenset(status.value for status in SpecStatus)
 
 
 @dataclass(slots=True, frozen=True)

@@ -2,6 +2,12 @@
 
 Mapping from Drift Classification (#382) to Dataset Status (#439).
 
+Status names are the canonical set from
+[ADR 0005](adrs/0005-dataset-status-vocabulary.md) and
+`kpubdata.core.status.DatasetStatus`; classifications are
+`kpubdata.core.status.DriftClassification`. `tests/unit/test_status_vocabulary.py`
+fails when this page uses a name the code does not define.
+
 ## State Diagram
 
 ```
@@ -16,13 +22,13 @@ Mapping from Drift Classification (#382) to Dataset Status (#439).
     └─────────┬────────────────┬───────────────┬──────────────┘
               │                │               │
     SCHEMA_CHANGED    RATE_LIMIT /     AUTH /
-    PARAM_CHANGED     SERVICE_DOWN /   APPLICATION_
+    PARAMETER_CHANGED SERVICE_DOWN /   APPLICATION_
     ENDPOINT_CHANGED  UNKNOWN (≥3)     REQUIRED (≥1)
     (≥1, immediate)   │               │
               │       │               │
               ▼       ▼               ▼
     ┌─────────────┐ ┌─────────┐ ┌──────────────────┐
-    │   broken    │ │unstable │ │application-required│
+    │   broken    │ │unstable │ │application_required│
     └──────┬──────┘ └────┬────┘ └──────────────────┘
            │             │
     HEALTHY (≥1)   HEALTHY (≥3)
@@ -31,8 +37,8 @@ Mapping from Drift Classification (#382) to Dataset Status (#439).
            │       │
            ▼       ▼
     ┌─────────────┐ ┌─────────────────┐
-    │   fixture-  │ │ previous status │
-    │   verified  │ │ (or live-verif.)│
+    │   fixture_  │ │ previous status │
+    │   verified  │ │ (or live_verif.)│
     └─────────────┘ └─────────────────┘
 ```
 
@@ -43,19 +49,21 @@ Mapping from Drift Classification (#382) to Dataset Status (#439).
 | `production` | `RATE_LIMIT`, `SERVICE_DOWN`, `UNKNOWN` | 1–2 | _(no change, record only)_ |
 | `production` | `RATE_LIMIT`, `SERVICE_DOWN`, `UNKNOWN` | ≥3 | `unstable` |
 | `production` | `SCHEMA_CHANGED`, `PARAMETER_CHANGED`, `ENDPOINT_CHANGED` | ≥1 | `broken` _(immediate)_ |
-| `production` | `AUTH`, `APPLICATION_REQUIRED` | ≥1 | `application-required` |
+| `production` | `AUTH`, `APPLICATION_REQUIRED` | ≥1 | `application_required` |
 | `production` | `NO_DATA` | ≥3 | `unstable` |
-| `live-verified` | _(same as production)_ | — | _(same as production)_ |
-| `fixture-verified` | any failure | ≥1 | `fixture-verified` _(no auto downgrade)_ |
+| `production` | `RETIRED` | ≥1 | _(no change; drift issue filed — a person retires it)_ |
+| `live_verified` | _(same as production)_ | — | _(same as production)_ |
+| `fixture_verified` | any failure | ≥1 | `fixture_verified` _(no auto downgrade)_ |
 | `unstable` | `HEALTHY` | ≥3 | restore `previous_status` |
 | `unstable` | any failure (cumulative) | ≥7 | `broken` |
-| `broken` | `HEALTHY` | ≥1 | `fixture-verified` _(requires fixture re-record)_ |
+| `broken` | `HEALTHY` | ≥1 | `fixture_verified` _(requires fixture re-record)_ |
 | `retired` | all inputs | — | _(no transitions; manual only)_ |
 
 ## Core Principles
 
 1. **Schema/Parameter/Endpoint changes break immediately** — user code breaks, no delay
-2. **Transient failures (429, 5xx) use a 3-strike rule** — prevents false positives
+2. **Transient failures (429, 5xx) use a 3-strike rule** — prevents false positives.
+   The number is `TRANSIENT_FAILURE_STREAK`; LIVE_PROBE.md files its drift issue on the same count
 3. **`broken` never auto-restores to `production`** — a human must re-record fixtures and pass contract tests
 4. **`retired` is terminal** — only manual transitions
 
@@ -69,8 +77,8 @@ Simple, co-located with the data it describes, and inspectable without GitHub AP
 `fixtures/<dataset>/status_history.json`:
 ```json
 [
-  {"from": "live-verified", "to": "unstable", "reason": "SERVICE_DOWN", "streak": 3, "at": "2026-09-29"},
-  {"from": "unstable", "to": "live-verified", "reason": "HEALTHY", "streak": 3, "at": "2026-09-30"}
+  {"from": "live_verified", "to": "unstable", "reason": "SERVICE_DOWN", "streak": 3, "at": "2026-09-29"},
+  {"from": "unstable", "to": "live_verified", "reason": "HEALTHY", "streak": 3, "at": "2026-09-30"}
 ]
 ```
 
@@ -78,7 +86,7 @@ Simple, co-located with the data it describes, and inspectable without GitHub AP
 ```
 [drift] <dataset_id>: <from_status> → <to_status> (<classification>)
 ```
-Example: `[drift] datago.apt_trade: live-verified → broken (SCHEMA_CHANGED)`
+Example: `[drift] datago.apt_trade: live_verified → broken (SCHEMA_CHANGED)`
 
 Labels: `type:bug`, `epic:trust`, plus `severity:major` for `broken`, `severity:minor` for `unstable`.
 
@@ -95,4 +103,6 @@ def transition(
     """Compute the next dataset status from drift signal."""
 ```
 
-See `src/kpubdata/core/status.py` for implementation.
+The vocabulary (`DatasetStatus`, `DriftClassification`, `TRANSIENT_FAILURE_STREAK`)
+lives in `src/kpubdata/core/status.py`. `transition()` itself is **not implemented
+yet** — that is #625.
