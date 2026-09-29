@@ -990,3 +990,79 @@ def test_provenance_reports_cache_hit_with_original_fetch_time(tmp_path: Path) -
     expected = datetime.fromtimestamp(original_fetch, tz=timezone.utc)
     assert provenance["fetched_at"] == expected.isoformat(timespec="seconds")
     assert provenance["fetched_at"] == "2023-11-14T22:13:20+00:00"
+
+
+class TestTheReportCountsWhatTheCastSees:
+    """The validation report must not miscount (#615)."""
+
+    def test_an_empty_page_is_not_reported_as_missing_every_field(self) -> None:
+        """A 0-row page carries no evidence about columns; it is not invalid."""
+        batch = _valid_full_result([])
+
+        assert batch.validation is not None
+        assert batch.validation.ok
+        assert batch.validation.issues_of("missing") == ()
+
+    def test_null_markers_are_counted_as_nulls_not_values(self) -> None:
+        """ "-" becomes None during casting, so it is a null, not a non-null value."""
+        records: list[dict[str, object]] = [{"거래금액": "-"}] * 10 + [{"거래금액": "x"}]
+        batch = _valid_full_result(records)
+
+        assert batch.validation is not None
+        issue = batch.validation.issues_of("uncastable")[0]
+        assert issue.failed_count == 1
+        assert issue.non_null_count == 1
+        assert issue.null_count == 10
+
+    def test_a_column_first_seen_on_a_later_row_is_undeclared(self) -> None:
+        """Drift that starts on row 2 is still drift."""
+        batch = _valid_full_result([{"거래금액": "100"}, {"거래금액": "200", "신규필드": "값"}])
+
+        assert batch.validation is not None
+        assert [i.field for i in batch.validation.issues_of("undeclared")] == ["신규필드"]
+
+    def test_issue_kind_is_a_closed_set(self) -> None:
+        """A misspelt kind is rejected instead of reading as "no issues"."""
+        from typing import Literal, get_args, get_type_hints
+
+        from kpubdata.core.models import FieldIssue, IssueKind, ValidationReport
+
+        assert get_args(IssueKind) == ("uncastable", "missing", "undeclared")
+        assert get_type_hints(FieldIssue)["kind"] == IssueKind
+        assert get_type_hints(ValidationReport.issues_of)["kind"] == IssueKind
+        assert Literal["uncastable", "missing", "undeclared"] == IssueKind
+
+        with pytest.raises(ValueError, match="unknown issue kind"):
+            ValidationReport().issues_of(cast("IssueKind", "uncastabel"))
+
+    def test_the_report_is_json_serialisable(self) -> None:
+        """A report has to survive logging and persistence."""
+        batch = _valid_full_result(
+            [{"거래금액": "협의", "신규필드": "값"}, {"거래금액": None, "신규필드": "값2"}]
+        )
+
+        assert batch.validation is not None
+        data = batch.validation.to_dict()
+        assert json.loads(json.dumps(data)) == {
+            "ok": False,
+            "issues": [
+                {
+                    "field": "신규필드",
+                    "kind": "undeclared",
+                    "declared_type": None,
+                    "failed_count": 0,
+                    "sample_values": [],
+                    "non_null_count": None,
+                    "null_count": None,
+                },
+                {
+                    "field": "deal_amount",
+                    "kind": "uncastable",
+                    "declared_type": "integer",
+                    "failed_count": 1,
+                    "sample_values": ["'협의'"],
+                    "non_null_count": 1,
+                    "null_count": 1,
+                },
+            ],
+        }

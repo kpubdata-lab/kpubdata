@@ -153,6 +153,19 @@ Rules:
 
 Returns `RecordBatch`.
 
+`RecordBatch.validation` is a `ValidationReport | None` (`None` when the adapter did
+not run field-level validation). A report holds `issues: tuple[FieldIssue, ...]` and
+exposes:
+
+| Member | Description |
+|---|---|
+| `ok` | `True` when there are no issues |
+| `issues_of(kind)` | Issues of one `IssueKind` (`"uncastable"`, `"missing"`, `"undeclared"`); raises `ValueError` for an unknown kind |
+| `to_dict()` | JSON-serialisable `{"ok": bool, "issues": [...]}` |
+
+Counts are taken on the value the cast sees, so numeric null markers (`""`, `"-"`)
+count as nulls. A page with no records produces an empty (ok) report.
+
 ### `list_all()`
 
 Returns a generator of `RecordBatch` values, one per page.
