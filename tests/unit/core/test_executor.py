@@ -943,3 +943,50 @@ class TestTheReportShowsTheRatioNotJustTheCount:
         if missing:
             assert missing[0].non_null_count is None
             assert missing[0].null_count is None
+
+
+def test_provenance_reports_cache_hit_with_original_fetch_time(tmp_path: Path) -> None:
+    """A cache hit reports ``cached=True`` and keeps the original fetch time (#616).
+
+    Before the fix nothing marked a cached response, so provenance always said
+    ``cached=False`` and stamped ``fetched_at`` with the time of the cache read.
+    """
+    from datetime import datetime, timezone
+    from unittest.mock import patch
+
+    import httpx
+
+    from kpubdata.core.executor import _build_provenance
+    from kpubdata.transport.cache import ResponseCache
+    from kpubdata.transport.http import HttpTransport, TransportConfig
+
+    spec = _golden_spec("hospital_info")
+    url = "https://example.test/resource"
+    params = {"serviceKey": "secret", "pageNo": "1"}
+    original_fetch = 1_700_000_000.0  # 2023-11-14T22:13:20+00:00, far from "now"
+
+    cache = ResponseCache(base_dir=tmp_path)
+    transport = HttpTransport(TransportConfig(max_retries=0), cache=cache, cache_ttl_seconds=10**10)
+    network_response = httpx.Response(
+        200,
+        content=b'{"ok": true}',
+        headers={"content-type": "application/json"},
+        request=httpx.Request("GET", url),
+    )
+
+    with (
+        patch("kpubdata.transport.http.httpx.Client.send", return_value=network_response) as send,
+        patch("kpubdata.transport.cache.time.time", return_value=original_fetch),
+    ):
+        first = transport.request("GET", url, params=params)
+    second = transport.request("GET", url, params=params)
+    assert send.call_count == 1
+
+    first_provenance = _build_provenance(first, params, spec)
+    assert first_provenance["cached"] is False
+
+    provenance = _build_provenance(second, params, spec)
+    assert provenance["cached"] is True
+    expected = datetime.fromtimestamp(original_fetch, tz=timezone.utc)
+    assert provenance["fetched_at"] == expected.isoformat(timespec="seconds")
+    assert provenance["fetched_at"] == "2023-11-14T22:13:20+00:00"

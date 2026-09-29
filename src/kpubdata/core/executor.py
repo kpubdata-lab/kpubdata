@@ -280,11 +280,27 @@ def _build_provenance(
     rather than leaking the unmasked value.
     """
     from kpubdata.transport._sensitive import SENSITIVE_PARAM_KEYS
+    from kpubdata.transport.cache import CACHE_HIT_EXTENSION, CACHED_AT_EXTENSION
 
     provenance: dict[str, object] = {}
 
-    # fetched_at — UTC ISO-8601
-    provenance["fetched_at"] = datetime.now(tz=timezone.utc).isoformat(timespec="seconds")
+    # cached — whether this came from the response cache. The transport marks
+    # a cache hit in ``response.extensions`` together with the original fetch
+    # time (#616).
+    extensions = getattr(response, "extensions", None)
+    if not isinstance(extensions, dict):
+        extensions = {}
+    extensions = cast(dict[str, object], extensions)
+    cached = extensions.get(CACHE_HIT_EXTENSION) is True
+
+    # fetched_at — UTC ISO-8601. On a cache hit this is when the body was
+    # originally fetched, not when it was read back from disk.
+    cached_at = extensions.get(CACHED_AT_EXTENSION)
+    if cached and isinstance(cached_at, int | float) and not isinstance(cached_at, bool):
+        fetched = datetime.fromtimestamp(float(cached_at), tz=timezone.utc)
+    else:
+        fetched = datetime.now(tz=timezone.utc)
+    provenance["fetched_at"] = fetched.isoformat(timespec="seconds")
 
     # content_sha256 — hash of the raw response bytes
     content = getattr(response, "content", None)
@@ -298,12 +314,7 @@ def _build_provenance(
         if declared:
             provenance["content_type"] = declared.split(";")[0].strip()
 
-    # cached — whether this came from the response cache
-    cached = getattr(response, "_from_cache", None)
-    if cached is not None:
-        provenance["cached"] = bool(cached)
-    else:
-        provenance["cached"] = False
+    provenance["cached"] = cached
 
     # url — masked, fail-closed (omit if we cannot safely mask)
     url = str(getattr(response, "url", ""))
