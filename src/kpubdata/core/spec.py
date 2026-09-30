@@ -13,6 +13,8 @@ Design principles:
 
 from __future__ import annotations
 
+import hashlib
+import re
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -726,6 +728,28 @@ def find_spec(
     return None
 
 
+#: The one line the recorder rewrites after a successful record (#522).
+_LAST_VERIFIED_LINE = re.compile(r"^last_verified:.*$\n?", re.MULTILINE)
+
+
+def spec_file_digest(path: Path) -> str | None:
+    """Digest a spec file's pipeline-relevant content (#522).
+
+    Evidence binding hashes what the recorder executed, so the digest must
+    stay stable across the one rewrite the recorder itself performs after
+    recording: ``record.py`` syncs ``last_verified`` to the record date —
+    provenance, not pipeline. Those lines are dropped before hashing; any
+    other change moves the digest and voids evidence recorded against the
+    old spec. None when the file cannot be read.
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    normalized = _LAST_VERIFIED_LINE.sub("", text)
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
 def _sorted(values: frozenset[str]) -> str:
     """Convert enum set to human-readable choice string."""
     return "|".join(sorted(values))
@@ -748,5 +772,6 @@ __all__ = [
     "find_spec",
     "from_mapping",
     "load_spec_file",
+    "spec_file_digest",
     "spec_index",
 ]

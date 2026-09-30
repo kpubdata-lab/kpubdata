@@ -36,7 +36,7 @@ from kpubdata.core.executor import (
     extract_total_count,
 )
 from kpubdata.core.models import Query
-from kpubdata.core.spec import find_spec
+from kpubdata.core.spec import find_spec, spec_file_digest
 from kpubdata.transport.http import HttpTransport
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -98,6 +98,20 @@ def record_dataset(
     out_dir = fixtures_root / spec.provider / spec.dataset_key
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    # Evidence binding (#522): the spec content this record executed, and —
+    # when the environment says so — the commit and the run that executed it.
+    # `spec_file_digest` ignores the last_verified line this function syncs
+    # below, so that sync does not void the record it just made.
+    spec_path = spec_root / spec.provider / f"{spec.dataset_key}.yaml"
+    spec_sha = spec_file_digest(spec_path)
+    run_binding: dict[str, str] = {}
+    commit = os.environ.get("KPUBDATA_RECORD_COMMIT") or os.environ.get("GITHUB_SHA")
+    if commit:
+        run_binding["record_commit"] = commit
+    run_ref = os.environ.get("KPUBDATA_RECORD_RUN") or os.environ.get("GITHUB_RUN_ID")
+    if run_ref:
+        run_binding["run_ref"] = run_ref
+
     written: list[Path] = []
     for example in spec.examples:
         query = Query(
@@ -128,10 +142,12 @@ def record_dataset(
             "params": safe_params,
             "format": example.format or spec.response.format,
             "response_sha256": hashlib.sha256(payload_text.encode("utf-8")).hexdigest(),
+            "spec_sha256": spec_sha,
             "recorded_by": recorded_by
             or os.environ.get("KPUBDATA_RECORDER")
             or ("ci" if os.environ.get("CI") else "human"),
         }
+        meta.update(run_binding)
 
         raw_path.write_text(payload_text, encoding="utf-8")
         meta_path.write_text(_canon(meta), encoding="utf-8")
@@ -150,7 +166,6 @@ def record_dataset(
     #    ``last_verified`` is the source for SUPPORTED_DATA.md, docs/status.md, README tables
     #    "re-verify if >90 days" rule hangs here — if tests update it, that rule
     #    no longer holds.
-    spec_path = spec_root / spec.provider / f"{spec.dataset_key}.yaml"
     if _is_live_transport(resolved_transport) and spec_path.is_file():
         text = spec_path.read_text(encoding="utf-8")
         today = datetime.now(tz=timezone.utc).date().isoformat()

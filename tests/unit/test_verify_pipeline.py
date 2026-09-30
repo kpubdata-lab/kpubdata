@@ -189,6 +189,114 @@ def test_verify_fails_on_hash_tamper(tmp_path: Path, monkeypatch: pytest.MonkeyP
     assert any("해시" in step.name and not step.passed for step in steps)
 
 
+# ----------------------------------------------------------------------
+# evidence binding: spec digest + commit + run (#522)
+# ----------------------------------------------------------------------
+
+
+def test_record_binds_the_spec_commit_and_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """meta carries the digest of the spec it executed, and the commit and
+    run only when the environment provides them."""
+    for name in ("GITHUB_SHA", "GITHUB_RUN_ID", "KPUBDATA_RECORD_COMMIT", "KPUBDATA_RECORD_RUN"):
+        monkeypatch.delenv(name, raising=False)
+    _record_apt(tmp_path)
+
+    meta_path = next((tmp_path / "datago" / "apt_trade").glob("*.meta.json"))
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+
+    from kpubdata.core.spec import spec_file_digest
+
+    expected = spec_file_digest(Path(record_mod.SPEC_ROOT) / "datago" / "apt_trade.yaml")
+    assert meta["spec_sha256"] == expected
+    assert "record_commit" not in meta
+    assert "run_ref" not in meta
+
+
+def test_record_captures_the_commit_and_run_when_ci_provides_them(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("GITHUB_SHA", "abc123def456")
+    monkeypatch.setenv("GITHUB_RUN_ID", "9876543210")
+    _record_apt(tmp_path)
+
+    meta_path = next((tmp_path / "datago" / "apt_trade").glob("*.meta.json"))
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+
+    assert meta["record_commit"] == "abc123def456"
+    assert meta["run_ref"] == "9876543210"
+
+
+def test_verify_voids_evidence_when_the_spec_changed_after_recording(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The issue's negative test: a spec edit after recording makes the
+    evidence void, and verify says so instead of replaying it silently."""
+    _record_apt(tmp_path)
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
+
+    source = (Path(verify_mod.SPEC_ROOT) / "datago" / "apt_trade.yaml").read_text(encoding="utf-8")
+    spec_root = tmp_path / "specs"
+    (spec_root / "datago").mkdir(parents=True)
+    (spec_root / "datago" / "apt_trade.yaml").write_text(
+        source + "\n# a field changed after recording\n", encoding="utf-8"
+    )
+    monkeypatch.setattr(verify_mod, "SPEC_ROOT", spec_root)
+
+    steps = verify_mod._verify_fixtures(_spec("datago.apt_trade"))
+
+    binding = [step for step in steps if "spec 결속" in step.name]
+    assert binding and not binding[0].passed
+    assert "재기록" in binding[0].detail
+
+
+def test_verify_tolerates_the_last_verified_sync(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The recorder rewrites last_verified after recording — that rewrite
+    must not void the record it just made."""
+    _record_apt(tmp_path)
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
+
+    source = (Path(verify_mod.SPEC_ROOT) / "datago" / "apt_trade.yaml").read_text(encoding="utf-8")
+    stripped = "\n".join(
+        line for line in source.splitlines() if not line.startswith("last_verified:")
+    )
+    spec_root = tmp_path / "specs"
+    (spec_root / "datago").mkdir(parents=True)
+    (spec_root / "datago" / "apt_trade.yaml").write_text(
+        stripped + '\nlast_verified: "1999-12-31"\n', encoding="utf-8"
+    )
+    monkeypatch.setattr(verify_mod, "SPEC_ROOT", spec_root)
+
+    steps = verify_mod._verify_fixtures(_spec("datago.apt_trade"))
+
+    assert all(step.passed for step in steps)
+
+
+def test_verify_passes_legacy_evidence_without_a_spec_digest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Fixtures recorded before the digest existed stay valid — retrofitting
+    them is the issue's non-goal, so absence reports, not fails."""
+    _record_apt(tmp_path)
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
+    meta_path = next((tmp_path / "datago" / "apt_trade").glob("*.meta.json"))
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    del meta["spec_sha256"]
+    meta_path.write_text(
+        json.dumps(meta, ensure_ascii=False, sort_keys=True, indent=1) + "\n",
+        encoding="utf-8",
+    )
+
+    steps = verify_mod._verify_fixtures(_spec("datago.apt_trade"))
+
+    assert all(step.passed for step in steps)
+    binding = [step for step in steps if "spec 결속" in step.name]
+    assert binding and "legacy" in binding[0].detail
+
+
 def test_verify_fails_when_spec_field_changed(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

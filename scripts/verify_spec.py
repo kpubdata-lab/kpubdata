@@ -23,10 +23,16 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from kpubdata.core.spec import SpecDefinition, discover_specs, find_spec
+from kpubdata.core.spec import (
+    SpecDefinition,
+    discover_specs,
+    find_spec,
+    spec_file_digest,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FIXTURES_ROOT = REPO_ROOT / "tests" / "fixtures"
+SPEC_ROOT = REPO_ROOT / "src" / "kpubdata" / "specs"
 
 
 @dataclass
@@ -101,6 +107,42 @@ def _verify_fixtures(spec: SpecDefinition) -> list[StepResult]:
                 )
             )
             continue
+
+        # 2-c. Spec binding (#522): evidence recorded against a spec digest
+        # that no longer matches the file is void — the spec changed after
+        # recording. Fixtures recorded before the digest existed are legacy
+        # (TRUST-04), reported rather than failed: retrofitting them is a
+        # non-goal of the issue.
+        recorded_spec = meta.get("spec_sha256")
+        if isinstance(recorded_spec, str) and recorded_spec:
+            current_spec = spec_file_digest(SPEC_ROOT / spec.provider / f"{spec.dataset_key}.yaml")
+            if current_spec != recorded_spec:
+                results.append(
+                    StepResult(
+                        f"fixture[{example}] spec 결속",
+                        passed=False,
+                        detail=(
+                            "spec이 기록 후 변경됨 — 증거 무효. "
+                            f"`make record DATASET={spec.id}` 로 재기록"
+                        ),
+                    )
+                )
+                continue
+            results.append(
+                StepResult(
+                    f"fixture[{example}] spec 결속",
+                    passed=True,
+                    detail=recorded_spec[:12],
+                )
+            )
+        else:
+            results.append(
+                StepResult(
+                    f"fixture[{example}] spec 결속",
+                    passed=True,
+                    detail="spec_sha256 없음 — legacy 증거 (TRUST-04)",
+                )
+            )
 
         # 3. replay contract — changing spec fields should fail at this stage
         from kpubdata.core.executor import check_payload_error, extract_items, extract_total_count
