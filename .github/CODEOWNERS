@@ -6,11 +6,12 @@
 /docs/governance/                 @yeongseon
 # Credential host allowlist (#519, #629)
 /src/kpubdata/_hosts.py           @yeongseon
-# Run by jobs holding `contents: write` — release notes, version, titles (#629)
+# Run by jobs holding `contents: write` — release notes, version, titles, window (#629, #685)
 /scripts/release_notes.py         @yeongseon
 /scripts/set_version.py           @yeongseon
 /scripts/next_version.py          @yeongseon
 /scripts/conventional_title.py    @yeongseon
+/scripts/release_window.py        @yeongseon
 # Dependencies (#629)
 /pyproject.toml                   @yeongseon
 /uv.lock                          @yeongseon

@@ -965,7 +965,8 @@ Required Verification: V4
 - **R0~R3**: 18.1절의 변경 유형 표가 사실상의 기준이다. R3는 사람 리뷰가
   반드시 필요한 등급이고, 이 문서를 바꾸는 변경이 여기 해당한다(0절).
 - **Target Release**: GitHub Project 필드로만 관리하고 사람이 설정한다(2.1절).
-  값은 버전이 아니라 정기 릴리스의 달(`YYYY-MM`)이다 — 일정과 순서는
+  값은 버전이 아니라 릴리스의 달(`YYYY-MM`)이다 — builder·studio 는 그 달의 월간
+  창, kpubdata 는 그 달 안의 수시 릴리스(7일 간격)다. 규칙과 게이트는
   [compatibility.md 5.1절](../compatibility.md#release-cadence)에 있다.
 - **Stable**: 증거 기반 지원 대상(1.2절). 승격 결정은 사람이 한다(14절).
 

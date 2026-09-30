@@ -1,0 +1,76 @@
+name: Release window
+description: >
+  Refuse a release outside the release rule (#685, docs/compatibility.md §5.1).
+  `on-demand` (kpubdata) allows one final release every seven days; `monthly`
+  (kpubdata-builder, kpubdata-studio) allows only the week holding the month's last
+  Thursday, in Korean Standard Time. A critical patch that names its issue passes
+  either. Wraps scripts/release_window.py so the three repositories run one rule.
+
+inputs:
+  policy:
+    description: "on-demand or monthly"
+    required: true
+  critical_patch:
+    description: "true to release outside the rule as a critical patch"
+    required: false
+    default: "false"
+  critical_issue:
+    description: "The issue a critical patch fixes, e.g. #123 — required when critical_patch is true"
+    required: false
+    default: ""
+  min_interval_days:
+    description: "on-demand only: days that must pass after the last final release"
+    required: false
+    default: "7"
+  today:
+    description: "Override today's date (YYYY-MM-DD, KST); for tests only"
+    required: false
+    default: ""
+  report_only:
+    description: "true to warn instead of failing — for dry runs"
+    required: false
+    default: "false"
+
+outputs:
+  allowed:
+    description: "true or false"
+    value: ${{ steps.run.outputs.allowed }}
+  reason:
+    description: "Why"
+    value: ${{ steps.run.outputs.reason }}
+  critical_issue:
+    description: "The critical patch's issue, when one was declared"
+    value: ${{ steps.run.outputs.critical_issue }}
+
+runs:
+  using: composite
+  steps:
+    # The last final release is read from the calling repository, not from kpubdata,
+    # skipping drafts and pre-releases — that is what "final" means here. Only the
+    # on-demand policy needs it. A failed lookup fails the step rather than reading as
+    # "no earlier release", which would let the release through. Every input reaches
+    # the script through the environment, never by expansion into the shell line.
+    - id: run
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+        POLICY: ${{ inputs.policy }}
+        CRITICAL_PATCH: ${{ inputs.critical_patch }}
+        CRITICAL_ISSUE: ${{ inputs.critical_issue }}
+        MIN_INTERVAL_DAYS: ${{ inputs.min_interval_days }}
+        TODAY: ${{ inputs.today }}
+        REPORT_ONLY: ${{ inputs.report_only }}
+      run: |
+        last=""
+        if [ "${POLICY}" = "on-demand" ]; then
+          last=$(gh release list --repo "${REPO}" --exclude-drafts --exclude-pre-releases \
+            --limit 1 --json publishedAt --jq '.[0].publishedAt // ""')
+        fi
+        args=(--policy "${POLICY}" --min-interval-days "${MIN_INTERVAL_DAYS}"
+              --critical-patch "${CRITICAL_PATCH}" --critical-issue "${CRITICAL_ISSUE}"
+              --last-release "${last}")
+        if [ -n "${TODAY}" ]; then args+=(--today "${TODAY}"); fi
+        if [ "${REPORT_ONLY}" = "true" ]; then args+=(--report-only); fi
+        python3 "${{ github.action_path }}/../../../scripts/release_window.py" "${args[@]}" \
+          >> "$GITHUB_OUTPUT"
