@@ -42,14 +42,21 @@ def test_the_declared_terms_are_carried_as_declared() -> None:
 
 def test_an_undeclared_licence_is_none_not_an_empty_one() -> None:
     """Negative: no licence section means unknown, never zero or empty terms."""
-    spec = from_mapping({
-        "id": "test.no_license", "provider": "test", "title": "No licence",
-        "endpoint": {"base_url": "https://example.test/api", "operation": "list"},
-        "auth": {"type": "none"},
-        "response": {"format": "json", "envelope": "datago_standard",
-                      "error": {"style": "header_result_code", "code_path": "response.header.resultCode"}},
-        "pagination": {"type": "none"},
-    })
+    spec = from_mapping(
+        {
+            "id": "test.no_license",
+            "provider": "test",
+            "title": "No licence",
+            "endpoint": {"base_url": "https://example.test/api", "operation": "list"},
+            "auth": {"type": "none"},
+            "response": {
+                "format": "json",
+                "envelope": "datago_standard",
+                "error": {"style": "header_result_code", "code_path": "response.header.resultCode"},
+            },
+            "pagination": {"type": "none"},
+        }
+    )
     assert spec.license is None
 
     assert build_spec_dataset_ref(spec).license is None
