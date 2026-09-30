@@ -54,22 +54,85 @@ jobs:
           KPUBDATA_KOREAN_API_KEY: ${{ secrets.KPUBDATA_KOREAN_API_KEY }}
           KPUBDATA_LAW_API_KEY: ${{ secrets.KPUBDATA_LAW_API_KEY }}
         run: |
-          uv run kpubdata probe --output docs/status/probe-result.json
+          uv run kpubdata probe --output docs/status/probe-result.json --runner github-actions
 
       - name: Summarize
         run: |
           echo "## Probe results" >> $GITHUB_STEP_SUMMARY
           uv run python -c "
           import json
+          from collections import Counter
           data = json.load(open('docs/status/probe-result.json'))
           results = data.get('results', [])
-          from collections import Counter
           counts = Counter(r.get('status', 'unknown') for r in results)
-          for status, count in sorted(counts.items()):
-              print(f'- {status}: {count}' >> open('$GITHUB_STEP_SUMMARY', 'a'))
+          with open('$GITHUB_STEP_SUMMARY', 'a') as summary:
+              for status, count in sorted(counts.items()):
+                  print(f'- {status}: {count}', file=summary)
           "
 
       - uses: actions/upload-artifact@v7
         with:
           name: probe-result
           path: docs/status/probe-result.json
+
+  drift:
+    name: Detect drift against the previous night
+    needs: probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Filing the transition issue needs issues: write; the probe job stays at
+    # the workflow-level contents: read.
+    permissions:
+      contents: read
+      issues: write
+    env:
+      REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --frozen --extra dev
+
+      # This run's verdict, uploaded by the probe job a moment ago.
+      - uses: actions/download-artifact@v7
+        with:
+          name: probe-result
+          path: current
+
+      # The previous successful run: its verdict to compare against, and the
+      # drift state its drift step left behind. `--status success` cannot see
+      # this still-running run, so index 0 is the previous night. A first-ever
+      # run downloads nothing and the state starts empty.
+      - name: Download the previous run's artifacts
+        run: |
+          run_id=$(gh run list --repo "${REPO}" --workflow live-probe.yml \
+            --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          if [ -n "${run_id}" ]; then
+            gh run download "${run_id}" --repo "${REPO}" -n probe-result -D previous || true
+            gh run download "${run_id}" --repo "${REPO}" -n drift-state -D state || true
+            mkdir -p docs/status
+            cp state/drift-state.json docs/status/ 2>/dev/null || true
+          fi
+
+      - name: Detect drift
+        run: |
+          args=(--current current/probe-result.json --state docs/status/drift-state.json)
+          if [ -f previous/probe-result.json ]; then
+            args+=(--previous previous/probe-result.json)
+          fi
+          uv run python scripts/drift_detect.py "${args[@]}" --create-issues true
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: drift-state
+          path: docs/status/drift-state.json
