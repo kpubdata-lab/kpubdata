@@ -84,6 +84,12 @@ uv run python -m build
 
 릴리스는 사람이 누르고, 게이트를 통과한 **뒤에** 태그가 생긴다 (#586, ADR 0004). 세 단계다.
 
+**언제 내는가는 [호환성 문서 §5.1](docs/compatibility.md#release-cadence) 이 정한다** — kpubdata 는
+수시, 직전 정식 릴리스로부터 7일에 한 번까지. prepare·release 두 경로 모두 첫 단계가
+`release-window` 게이트(`scripts/release_window.py`, `policy: on-demand`)이고, 7일 안이면
+버전을 계산하기 전에 멈춘다. 보안 수정·릴리스를 막는 결함은 `critical_patch: true` 와
+`critical_issue: #N` 으로 넘는다(이슈 번호 필수).
+
 #### 1. 릴리스 PR 준비 — `Release` 워크플로, `mode=prepare`
 
 1. GitHub → Actions → **Release** → **Run workflow** (브랜치 `main`)
@@ -94,6 +100,10 @@ uv run python -m build
    - `CHANGELOG.md` 의 `## [Unreleased]` 가 `## [X.Y.Z] — 날짜` 로 바뀐 것 (`scripts/release_notes.py promote`)
    가 들어간다. `[Unreleased]` 가 비어 있으면 여기서 멈춘다 — 먼저 변경 사항을 적는다.
 4. 알려진 한계: `GITHUB_TOKEN` 으로 연 PR 에는 CI 가 붙지 않는다. 게이트는 2단계에서 다시 돈다.
+5. 현재 저장소 설정은 Actions 가 PR 을 만드는 것을 막는다 — 2026-09-30 prepare 실행은
+   `release/v0.8.0` 브랜치를 push 한 뒤 "GitHub Actions is not permitted to create or approve
+   pull requests" 로 실패했다. 그러면 사람이 그 브랜치에서 PR 을 연다(개인 토큰으로 연 PR 에는
+   CI 가 붙는다). 설정을 바꾸거나 `RELEASE_PR_TOKEN`(#589)을 두기 전까지는 이 단계가 수동이다.
 
 #### 2. 병합 → 게이트 → 태그 → GitHub Release
 
@@ -123,7 +133,8 @@ PyPI trusted publisher 가 **시작된 워크플로 이름**(`publish-pypi.yml`)
 |---|---|---|
 | 1단계 (promote·버전) | 없음 | 고치고 다시 실행 |
 | 2단계 게이트까지 | 병합된 릴리스 PR 만, 태그 없음 | 수정 PR 병합 후 `mode=release` |
-| 태그 push 후 Release 생성 실패 | 태그만 | 현재 워크플로는 재실행 시 "tag exists" 로 멈춘다 → 태그를 지우고 `mode=release`. #622 의 수정이 적용되면 재실행으로 이어진다 |
+| 태그 push 후 Release 생성 실패 | 태그만 | 재실행하면 태그가 같은 커밋을 가리키는 한 Release 생성부터 이어간다 (#687) |
+| `release-window` 거부 | 병합된 릴리스 PR 만, 태그 없음 | 실패한 job 재실행은 소용없다(같은 이벤트). 창 안에서, 또는 `critical_patch`·`critical_issue` 와 함께 `mode=release` 로 낸다 (§5.1) |
 | 3단계 (PyPI) | 태그·Release, 패키지 없음 (v0.7.0 에서 실제로 일어남) | `gh workflow run publish-pypi.yml -f ref=vX.Y.Z` 재실행 |
 
 #### 배포 전 체크리스트

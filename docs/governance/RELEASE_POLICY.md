@@ -1,6 +1,11 @@
-# Release Policy (#528)
+# Release Policy
 
-> A release happens only when every condition below is met.
+> This file lists **what is checked** before a release (#528). **When** each
+> repository may release is decided in one place,
+> [compatibility.md §5.1](../compatibility.md#release-cadence): kpubdata on demand,
+> at most once every seven days; KPubData Builder and KPubData Studio once a month,
+> in the week holding the month's last Thursday; a critical patch, with an issue
+> number, is the only exception. The `release-window` gate enforces it.
 > The release decision itself is a human action (POLICY §14).
 
 ## Version Scheme
@@ -41,27 +46,39 @@ studio:     MAJOR.MINOR.PATCH
 The release workflow (`.github/workflows/release.yml`) enforces the ordering:
 
 ```
+0. window   → release-window gate (§5.1) — first step of prepare and release
 1. prepare  → opens a release PR (version bump + CHANGELOG date)
 2. review   → a human reviews and merges the PR
 3. release  → CI gates run on the merged commit, then tag + GitHub Release
-4. publish  → PyPI via publish-pypi.yml (trusted publisher)
+4. publish  → a person dispatches publish-pypi.yml with the tag (trusted publisher)
 ```
 
-No tag exists before the gates pass (#586). Re-runs are safe (#622).
+No tag exists before the gates pass (#586). A re-run after the tag was pushed but the
+GitHub Release was not created finishes the release (#687). A re-run after a
+`release-window` refusal does nothing — it replays the same event; release with
+`mode=release` inside the window, or with `critical_patch` and `critical_issue`.
+[PACKAGING.md](https://github.com/yeongseon/kpubdata/blob/main/PACKAGING.md#release) has the step-by-step procedure.
 
 ## Version Alignment
 
 All three repositories must declare versions that match their tags and artifacts.
-`uv lock --check` catches lockfile drift in CI (#624). Builder and studio must
-update their kpubdata dependency pin in the same Target Release or the next.
+`uv lock --check` catches lockfile drift in CI (#624). Builder's kpubdata pin raise
+may merge at any time — a pin is not a release; users get it with the next monthly
+Builder release (§5.1). Studio has no kpubdata pin: it depends only on Builder's
+HTTP/OpenAPI contract (ADR 0007).
 
 ## First Formal Releases
 
-| Repository | Version | Status |
+Facts from `gh release list` (2026-09-30):
+
+| Repository | Latest release | Date |
 |---|---|---|
-| kpubdata | 0.8.0 | ✅ Released 2026-09-30 (#630) |
-| builder | 0.1.0 | ✅ Released (tag exists) |
-| studio | 0.1.0 | ✅ Released (package.json version) |
+| kpubdata | v0.8.0 | 2026-09-30 |
+| kpubdata-builder | v0.4.0 | 2026-09-28 (v0.1.0 on 2026-05-28 before it) |
+| kpubdata-studio | v0.4.0 | 2026-09-28 (its first release; same version as Builder, ADR 0004) |
+
+Whether these count as the first *formal* releases under the criteria above is a
+person's call (POLICY §14).
 
 ## Quarterly Re-check
 

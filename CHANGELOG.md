@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configured keys are masked out of `ProbeResult.detail` by value (every percent-encoded form) before the message is truncated, so a key cut at the boundary cannot survive as a prefix (#694).
 - httpx's own INFO line `HTTP Request: GET <url> ...` carried the query string, and with it a data.go.kr `serviceKey`, verbatim. A filter on the `httpx` logger now masks the credential parameters named in `SENSITIVE_PARAM_KEYS` (#694).
 
+### Documentation
+
+- Docs follow the 2026-09-30 decisions (#695): the compatibility page names the three products and the one-way dependency (Studio → Builder → KPubData) and moves the `main` row to kpubdata 0.8.0 with Builder's `>=0.8.0,<0.9` pin; TERMINOLOGY says Builder owns the Access vocabulary; `RELEASE_POLICY.md` points to §5.1 for cadence, adds the `release-window` step, and states the real latest releases; PACKAGING describes the window gate, the manual release-PR step while Actions cannot open PRs, and re-runs after #687; SECURITY no longer says versions and tags are being reconciled.
+
 ## [0.8.0] — 2026-09-30
 
 ### Security
