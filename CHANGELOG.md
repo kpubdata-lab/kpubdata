@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Release rule** (#685): kpubdata now releases on demand — when a downstream repository is blocked, for a security fix, or for accumulated changes — at most once every seven days, and is no longer part of the monthly release week, which stays for kpubdata-builder and kpubdata-studio. `scripts/release_window.py`, wrapped by the `.github/actions/release-window` composite action, is the one implementation: `on-demand` refuses a release less than seven days after the last final GitHub Release, `monthly` refuses outside the Monday-to-Sunday week holding the month's last Thursday, both in KST, and a critical patch passes either only when it names its issue (`critical_patch`/`critical_issue` inputs, or a `Critical-Patch: #N` line in the release pull request). `release.yml` runs it first on both the prepare and the release path; a dry run reports the decision without stopping. `docs/compatibility.md` §5.1, AGENTS.md and POLICY say the same.
 
+### Fixed
+
+- The release workflows after #683 (ref validation): `publish-pypi.yml`'s tag pattern was written `\\.`, which grep reads as a literal backslash, so no version tag matched and every dispatched publish failed — it is one pattern now, `v0.8.0` and `v0.7.1a1` match and `v0.8` does not. The ref is validated on the `release: published` path too, reaches the shell through the environment instead of `${{ inputs.ref }}`, must be a tag in this repository and must be on `main` (`git merge-base --is-ancestor`). In `release.yml` the merge path only fires for pull requests into `main`, a re-run after the tag was pushed but `gh release create` failed finishes the release when the tag is on the same commit instead of stopping at "tag must not exist", and the `release` concurrency group moved from the workflow to the two jobs, so ordinary pull requests closing no longer queue in it and cannot cancel a waiting release. #683 itself had no CHANGELOG entry: it makes a release run only from `main` and validates the publish ref.
+
 ## [0.8.0] — 2026-09-30
 
 ### Security

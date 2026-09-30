@@ -174,8 +174,12 @@ builder 의 릴리스를 받는다. builder 가 끝났고 studio 가 준비됐�
 `scripts/release_window.py` 가 규칙의 유일한 구현이고, `.github/actions/release-window`
 가 그것을 감싸 세 저장소의 `release.yml` 이 **prepare 와 release 두 경로의 첫 단계**로
 부른다. 창 밖이면 버전을 계산하거나 브랜치를 만들기 전에 멈춘다. `dry_run` 은 판단을
-경고로만 보여주고 계속한다. PR 병합 경로에서 거부되면 올린 버전이 태그 없이 `main`
-에 남고, 창이 열린 뒤 `mode=release` 로 내면 된다.
+경고로만 보여주고 계속한다. 거부는 prepare 에서 먼저 일어나므로, PR 병합 경로에서
+거부되는 것은 규칙 밖에서 병합된 release PR 뿐이다. 그때도 태그·릴리스 전에 멈추므로
+되돌릴 것은 없다 — 올린 버전이 태그 없이 `main` 에 남고, 창 안에서 또는 지금
+`critical_patch`·`critical_issue` 와 함께 `mode=release` 로 내면 된다. 실패한 job 을
+다시 돌리는 것은 소용없다 — 같은 이벤트를 다시 읽으므로 병합 뒤 본문에 추가한
+`Critical-Patch` 줄은 보이지 않는다.
 
 **동결을 막는 게이트는 아직 없다.** 릴리스 자체는 막지만, 동결 기간에 릴리스가 아닌
 PR 이 builder·studio `main` 에 들어오는 것은 기계가 막지 않는다.

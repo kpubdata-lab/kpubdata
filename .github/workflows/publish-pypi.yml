@@ -41,9 +41,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # Full history, so the ref can be checked against main below.
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref || github.ref }}
+          fetch-depth: 0
 
       - uses: astral-sh/setup-uv@v7
         with:
@@ -54,20 +56,37 @@ jobs:
         with:
           python-version: "3.12"
 
+      # On both ways in: a release made by hand in the UI skipped this before, and it
+      # is the path most likely to name the wrong tag. The ref reaches the shell through
+      # the environment, never by expansion. One pattern: a version tag, optionally
+      # with a PEP 440 pre-release (`v0.7.1a1`), with or without `refs/tags/`.
       - name: Validate the publish ref (#622)
-        if: github.event_name == 'workflow_dispatch'
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_REF: ${{ inputs.ref }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          REF="${{ inputs.ref }}"
-          if ! echo "$REF" | grep -qE '^refs/tags/v[0-9]+\\.[0-9]+\\.[0-9]+[a-z]?[0-9]*$' && ! echo "$REF" | grep -qE '^v[0-9]+\\.[0-9]+\\.[0-9]+[a-z]?[0-9]*$'; then
-            echo "::error::ref must be a version tag (vX.Y.Z), got: $REF"
-            exit 1
-          fi
+          if [ "${EVENT}" = "workflow_dispatch" ]; then REF="${INPUT_REF}"; else REF="${RELEASE_TAG}"; fi
           TAG="${REF#refs/tags/}"
-          PYPROJECT_VER=$(grep '^version' pyproject.toml | cut -d'"' -f2)
-          if [ "$TAG" != "v$PYPROJECT_VER" ]; then
-            echo "::error::tag $TAG does not match pyproject version $PYPROJECT_VER"
+          if ! printf '%s\n' "${TAG}" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+([a-z]+[0-9]+)?$'; then
+            echo "::error::ref must be a version tag (vX.Y.Z), got: ${REF}"
             exit 1
           fi
+          if ! git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            echo "::error::${TAG} is not a tag in this repository"
+            exit 1
+          fi
+          PYPROJECT_VER=$(grep '^version' pyproject.toml | cut -d'"' -f2)
+          if [ "${TAG}" != "v${PYPROJECT_VER}" ]; then
+            echo "::error::tag ${TAG} does not match pyproject version ${PYPROJECT_VER}"
+            exit 1
+          fi
+          # Only what main contains is published — not a tag pushed on a side branch.
+          if ! git merge-base --is-ancestor "refs/tags/${TAG}" origin/main; then
+            echo "::error::${TAG} is not on main"
+            exit 1
+          fi
+          echo "publishing ${TAG}"
 
       - name: Install dependencies
         run: uv sync --frozen --extra dev
