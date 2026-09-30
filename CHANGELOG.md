@@ -29,6 +29,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `kpubdata.core.status.transition()` — the pure dataset status state machine from `docs/DATASET_STATUS.md`. A table-driven test runs every row of that document's transition table against the function. `unstable` now also breaks immediately on a structural change, and `application_required` recovers on `HEALTHY` (#625).
 
+- `ValidationReport.to_dict()` returns a JSON-serialisable form of the report (#615).
+- Provenance now reports `cached=True` for responses served from the response cache, and `fetched_at` keeps the original fetch time instead of the time of the cache read. The transport marks a cache hit in `httpx.Response.extensions`, and `ResponseCache.get_entry()` returns the stored `created_at` (#616).
+
+### Changed
+
+- **BREAKING:** code columns keep their leading zeros and come back as `str` (#613). Declared `string` now: `apt_trade` `bonbun`/`bubun`/`roadNmBonbun`/`roadNmBubun`/`roadNmSeq`, `apt_rent` `roadnmbonbun`/`roadnmbubun`, `hospital_info` `clCd`/`postNo`, `metro_fare` `arvlStnCd`/`dptreStnCd`, `tour_kor_*` `zipcode`, `village_fcst` `fcstTime`. As a safety net, a zero-led value (`"06102"`) no longer casts to a number, so a code column declared numeric stays text and is reported `uncastable`. Replay verification (`make verify`) now also fails when normalization drops a leading zero. See kpubdata-builder#702.
+
+- KPubData is documented as a standalone Python SDK; KPubData Builder and KPubData Studio are listed as related projects, not as stages after it (#666). ADR 0007 records the independence rules — dependencies run Studio → Builder → KPubData only, and the public API is what `kpubdata.__all__` and `API_SPEC.md` name (#667) — and `scripts/check_independence.py` fails CI if KPubData imports or depends on Builder or Studio (#668).
+
+- All 59 `localdata` catalogue datasets are marked retired and `LocaldataAdapter.query_records` emits a `DeprecationWarning` (#527, #603). The retirement is disputed by the recorded evidence — see #618.
+- CODEOWNERS covers the credential host allowlist, the scripts run by `contents: write` release jobs, `pyproject.toml` and `uv.lock`; a test checks the required paths and that every pattern still names an existing path (#629).
+- `FieldIssue.kind` and `ValidationReport.issues_of()` take the `IssueKind` literal (`"uncastable"`, `"missing"`, `"undeclared"`); `issues_of()` raises `ValueError` on an unknown kind instead of silently returning nothing (#615).
+
 ### Fixed
 
 - `scripts/release_notes.py promote` keeps a CRLF CHANGELOG's line endings instead of rewriting every line as LF (#628).
@@ -41,26 +54,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `PARAM_CHANGED` spelling, a nonexistent dataset key, a nonexistent module and the
   neis/fds key sharing claim (#619).
 
-### Fixed
-
 - `scripts/release_notes.py promote` for a final version folds that version's pre-release sections (`aN`, `bN`, `rcN`) into one section, instead of failing with "nothing to release" after a pre-release. A `prerelease` command and the release-notes action's `prerelease` output tell the release job to mark a pre-release (#622).
-
-### Fixed
 
 - The spec-dataset `list_all()` path honours `page_size`, `max_size` and `max_pages` (#614). `page_size` drives pagination instead of going out as a raw `page_size` parameter; a `page_size` above the spec's `max_size` no longer ends the walk after the first page; exceeding `max_pages` raises `InvalidRequestError` like the legacy path instead of truncating silently; and each batch keeps its own `raw`, `meta["provenance"]`, `next_page` and `validation`, with the whole-result report in `meta["validation_total"]`. The path still buffers every page before the first batch, because casting is decided across all pages (#481); this is now documented.
 - The field validation report no longer miscounts (#615): a 0-row page is reported clean instead of every declared field being `missing`; numeric null markers (`""`, `"-"`) count as nulls rather than non-null values; undeclared columns are detected across all records, not only the first.
-
-### Changed
-
-- All 59 `localdata` catalogue datasets are marked retired and `LocaldataAdapter.query_records` emits a `DeprecationWarning` (#527, #603). The retirement is disputed by the recorded evidence — see #618.
-- CODEOWNERS covers the credential host allowlist, the scripts run by `contents: write` release jobs, `pyproject.toml` and `uv.lock`; a test checks the required paths and that every pattern still names an existing path (#629).
-- **BREAKING:** code columns keep their leading zeros and come back as `str` (#613). Declared `string` now: `apt_trade` `bonbun`/`bubun`/`roadNmBonbun`/`roadNmBubun`/`roadNmSeq`, `apt_rent` `roadnmbonbun`/`roadnmbubun`, `hospital_info` `clCd`/`postNo`, `metro_fare` `arvlStnCd`/`dptreStnCd`, `tour_kor_*` `zipcode`, `village_fcst` `fcstTime`. As a safety net, a zero-led value (`"06102"`) no longer casts to a number, so a code column declared numeric stays text and is reported `uncastable`. Replay verification (`make verify`) now also fails when normalization drops a leading zero. See kpubdata-builder#702.
-- `FieldIssue.kind` and `ValidationReport.issues_of()` take the `IssueKind` literal (`"uncastable"`, `"missing"`, `"undeclared"`); `issues_of()` raises `ValueError` on an unknown kind instead of silently returning nothing (#615).
-
-### Added
-
-- `ValidationReport.to_dict()` returns a JSON-serialisable form of the report (#615).
-- Provenance now reports `cached=True` for responses served from the response cache, and `fetched_at` keeps the original fetch time instead of the time of the cache read. The transport marks a cache hit in `httpx.Response.extensions`, and `ResponseCache.get_entry()` returns the stored `created_at` (#616).
 
 ## [0.7.0] — 2026-09-28
 
