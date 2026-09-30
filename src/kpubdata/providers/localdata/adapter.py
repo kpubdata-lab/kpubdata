@@ -1,43 +1,32 @@
-"""Localdata provider adapter — RETIRED (#527).
-
-The localdata upstream closed on 2026-04-16. All 59 datasets are retired.
-Calls emit a DeprecationWarning and will fail against the dead endpoints.
+"""Localdata provider adapter.
 
 Uses shared data.go.kr family implementation (:mod:`kpubdata.providers._datago_family`)
 directly — authentication, envelope, and pagination conventions match datago.
 Previously localdata and semas each had 375-line copies; comparing by normalizing
 names showed **0 lines of code difference**. That duplication caused "03"
 (NODATA) handling to exist in only one, creating #470 regression.
+
+The original localdata.go.kr closed on 2026-04-16, but the data was **migrated
+to data.go.kr** (`apis.data.go.kr/1741000/...`). Three datasets (bakery,
+general_restaurant, rest_cafe) pass live-API verification as of 2026-09-09.
+The remaining 56 need activation on data.go.kr — they return 403,
+not because the endpoint is dead but because the key lacks permission (#618).
 """
 
 from __future__ import annotations
 
-import warnings
-
-from kpubdata.core.models import DatasetRef, Query, RecordBatch
 from kpubdata.providers._datago_family import DataGoFamilyAdapter
-
-_RETIRED_MSG = (
-    "localdata upstream closed on 2026-04-16. All 59 datasets are retired (#527). "
-    "Calls will fail. Check data.go.kr Localdata 2.0 for replacements."
-)
 
 
 class LocaldataAdapter(DataGoFamilyAdapter):
-    """Localdata (Local Administrative License) dataset adapter — retired.
+    """Localdata (Local Administrative License) dataset adapter.
 
-    The upstream API shut down on 2026-04-16. Every call emits a
-    DeprecationWarning naming the retirement, then attempts the request
-    (which will fail with a transport error against the dead endpoints).
+    Data was migrated from localdata.go.kr to data.go.kr. The API is alive;
+    datasets without activation return 403 (application required, not retired).
     """
 
     provider_name = "localdata"
     catalogue_package = "kpubdata.providers.localdata"
-
-    def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
-        """Emit retirement warning, then attempt the (failing) query."""
-        warnings.warn(_RETIRED_MSG, DeprecationWarning, stacklevel=2)
-        return super().query_records(dataset, query)
 
 
 __all__ = ["LocaldataAdapter"]

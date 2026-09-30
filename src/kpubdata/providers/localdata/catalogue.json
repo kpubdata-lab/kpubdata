@@ -92,10 +92,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "rest_cafe",
@@ -190,10 +187,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "bakery",
@@ -288,10 +282,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "hospital",
@@ -386,10 +377,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "clinic",
@@ -484,10 +472,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "pharmacy",
@@ -582,10 +567,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "animal_hospital",
@@ -680,10 +662,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "optical_shop",
@@ -778,10 +757,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "public_bath",
@@ -876,10 +852,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "laundry",
@@ -974,10 +947,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "barber_shop",
@@ -1072,10 +1042,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "beauty_salon",
@@ -1170,10 +1137,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "pet_grooming",
@@ -1268,10 +1232,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "dance_academy",
@@ -1366,10 +1327,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "karaoke",
@@ -1464,10 +1422,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "singing_bar",
@@ -1562,10 +1517,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "billiard_hall",
@@ -1660,10 +1612,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "performance_hall",
@@ -1758,10 +1707,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "movie_theater",
@@ -1856,10 +1802,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "swimming_pool",
@@ -1954,10 +1897,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "fitness_center",
@@ -2052,10 +1992,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "ice_rink",
@@ -2150,10 +2087,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "golf_course",
@@ -2248,10 +2182,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "golf_practice_range",
@@ -2346,10 +2277,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "horse_riding",
@@ -2444,10 +2372,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "ski_resort",
@@ -2542,10 +2467,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "affiliated_medical_institution",
@@ -2640,10 +2562,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "postpartum_care",
@@ -2738,10 +2657,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "dental_lab",
@@ -2836,10 +2752,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "animal_import",
@@ -2934,10 +2847,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "slaughterhouse",
@@ -3032,10 +2942,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "hatchery",
@@ -3130,10 +3037,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "youth_game_provider",
@@ -3228,10 +3132,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "tourist_performance_hall",
@@ -3326,10 +3227,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "tourism_business",
@@ -3424,10 +3322,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "general_amusement_facility",
@@ -3522,10 +3417,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "comprehensive_amusement_facility",
@@ -3620,10 +3512,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "video_viewing_room",
@@ -3718,10 +3607,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "tourist_accommodation",
@@ -3816,10 +3702,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "tourist_pension",
@@ -3914,10 +3797,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "online_music_service",
@@ -4012,10 +3892,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "door_to_door_sales",
@@ -4110,10 +3987,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "dance_hall",
@@ -4208,10 +4082,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "yacht_marina",
@@ -4306,10 +4177,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "comprehensive_sports_facility",
@@ -4404,10 +4272,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "food_vending_machine",
@@ -4502,10 +4367,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "milk_collection",
@@ -4600,10 +4462,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "livestock_processing",
@@ -4698,10 +4557,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "livestock_storage",
@@ -4796,10 +4652,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "entertainment_bar",
@@ -4894,10 +4747,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "tourist_restaurant",
@@ -4992,10 +4842,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "tourist_entertainment_restaurant",
@@ -5090,10 +4937,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "log_production",
@@ -5188,10 +5032,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "sawmill",
@@ -5286,10 +5127,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "high_pressure_gas",
@@ -5384,10 +5222,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "groundwater_construction",
@@ -5482,10 +5317,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "water_tank_cleaning",
@@ -5580,10 +5412,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "publisher",
@@ -5678,10 +5507,7 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   },
   {
     "dataset_key": "logistics_warehouse",
@@ -5776,9 +5602,6 @@
         "title": "Y좌표(위도)",
         "type": "string"
       }
-    ],
-    "lifecycle": "retired",
-    "retired_at": "2026-04-16",
-    "retirement_note": "Upstream closed. Use data.go.kr Localdata 2.0 equivalents."
+    ]
   }
 ]
