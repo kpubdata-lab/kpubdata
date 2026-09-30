@@ -5,6 +5,13 @@ Provider key lookup order:
 2. Environment variable: KPUBDATA_{PROVIDER}_API_KEY (upper case)
 3. Environment variable: {PROVIDER}_API_KEY (upper case, fallback)
 
+Steps 2 and 3 are skipped when ``env_fallback`` is False — the
+explicit-keys-only mode (#694). A caller holding someone else's key (a
+multi-user service probing with a user's key, for example) must not have a
+missing entry silently filled in from the process environment: the call would
+run on the operator's key, spend the operator's quota and report a verdict
+that is not the user's.
+
 data.go.kr family providers (localdata, lofin, semas) all use the "datago"
 key. Setting KPUBDATA_DATAGO_API_KEY once covers every data.go.kr based
 provider.
@@ -31,6 +38,9 @@ class KPubDataConfig:
     timeout: float = 30.0
     max_retries: int = 3
     extra: dict[str, object] = field(default_factory=dict)
+    #: When False, only ``provider_keys`` is consulted; environment variables are
+    #: never read for credentials (#694).
+    env_fallback: bool = True
 
     def __repr__(self) -> str:
         """Return a concise debug representation that exposes no secrets."""
@@ -40,7 +50,8 @@ class KPubDataConfig:
             f"providers={providers}, "
             f"timeout={self.timeout}, "
             f"max_retries={self.max_retries}, "
-            f"extra_keys={sorted(self.extra.keys())}"
+            f"extra_keys={sorted(self.extra.keys())}, "
+            f"env_fallback={self.env_fallback}"
             ")"
         )
 
@@ -51,6 +62,9 @@ class KPubDataConfig:
         explicit = _get_explicit_key(self.provider_keys, normalized_provider)
         if explicit:
             return explicit
+
+        if not self.env_fallback:
+            return None
 
         provider_token = _provider_env_token(normalized_provider)
         kpub_var = f"KPUBDATA_{provider_token}_API_KEY"

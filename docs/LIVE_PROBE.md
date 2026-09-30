@@ -26,6 +26,25 @@ the classification table disagrees with the code.
             changes file one immediately (DATASET_STATUS.md).
 ```
 
+## Python API
+
+The probe is public on `Client` (#694). `kpubdata probe` is a thin wrapper
+over the same calls.
+
+```python
+from kpubdata import Client
+
+client = Client(provider_keys={"datago": user_key}, env_keys=False)
+result = client.probe("datago.apt_trade")  # ProbeResult | None
+results = client.probe_all(provider="datago")  # list[ProbeResult]
+```
+
+`result.status` is one of `kpubdata.PROBE_STATUSES` (see
+[Failure Classification](#failure-classification)). With `env_keys=False` the
+client uses only the keys passed to it: a provider with no key is reported as
+`auth_unknown` without a call, even when an environment variable holds a key for
+it. Keys never appear in `ProbeResult.detail` or in log records.
+
 ## Core Principle
 
 > **E2E validates the pipeline. Probe validates the external API.**

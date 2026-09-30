@@ -140,6 +140,9 @@ root.setLevel(logging.DEBUG)
 servicekey, service_key, api_key, apikey, token, authorization, secret, password, key
 ```
 
+httpx 가 INFO 로 남기는 `HTTP Request: GET <url> ...` 줄도 같은 이름 목록으로
+URL 쿼리를 마스킹합니다 (#694). 이전에는 이 줄에 `serviceKey` 가 그대로 남았습니다.
+
 이 외에 어댑터/사용자 정의 자격 증명이 다른 키로 전달된다면, 직접 마스킹하거나 해당 로거의 레벨을 낮추세요.
 
 ## 운영 권장 사항

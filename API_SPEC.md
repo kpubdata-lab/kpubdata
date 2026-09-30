@@ -31,6 +31,14 @@ client = Client(
   - `True`: use default disk cache directory
   - `ResponseCache(...)`: use a caller-supplied cache instance
 - `cache_ttl_seconds: int = 86400`
+- `env_keys: bool = True`
+  - `True`: a provider missing from `provider_keys` is looked up in the
+    environment (`KPUBDATA_<PROVIDER>_API_KEY`, then `<PROVIDER>_API_KEY`)
+  - `False`: explicit-keys-only — only `provider_keys` is used, for every call
+    (including `probe`), and no credential is read from the environment
+    (including `KPUBDATA_SGIS_CONSUMER_SECRET`). Use it when the client holds
+    someone else's key, so a missing entry is never filled with the operator's
+    key (#694)
 
 ### Environment construction
 
@@ -145,6 +153,32 @@ schema = dataset.schema()
 raw = dataset.call_raw(operation="list", lawd_code="11680", deal_ym="202503")
 ```
 
+## 4a. Reachability probe
+
+```python
+from kpubdata import PROBE_STATUSES, Client, ProbeResult
+
+client = Client(provider_keys={"datago": user_key}, env_keys=False)
+one: ProbeResult | None = client.probe("datago.apt_trade")
+every: list[ProbeResult] = client.probe_all(provider="datago")
+```
+
+- `Client.probe(dataset_id) -> ProbeResult | None` — at most one call per
+  dataset, classified into `PROBE_STATUSES` (the `ProbeStatus` vocabulary of
+  ADR 0005). `None` when no spec exists for the id: only spec-defined datasets
+  can be probed.
+- `Client.probe_all(*, provider=None) -> list[ProbeResult]` — every
+  spec-defined dataset, or those of one provider.
+- A failed call is the verdict, not an exception.
+- Probing uses its own fast-fail transport (15 s timeout, zero retries, no
+  cache), not the client's `timeout`, `max_retries` or `cache`.
+- When the dataset needs a key the client does not have, no call is made and
+  the status is `auth_unknown`.
+- `ProbeResult` is a frozen dataclass: `dataset_id`, `service_id` (the
+  data.go.kr service the activation request is made for), `status`,
+  `probed_at` (ISO 8601, UTC) and `detail`. Configured keys never appear in
+  `detail`, in log records or in exception messages.
+
 ## 5. Convenience aliases
 
 Optional convenience aliases may be added for common datasets, but only if they do not obscure the canonical dataset id.
@@ -208,6 +242,7 @@ KPubData promises stability for:
 
 - `Client`
 - `Client.from_env()`
+- `Client.probe()` / `Client.probe_all()`, `ProbeResult`, `PROBE_STATUSES`
 - dataset discovery methods
 - `Dataset.list/list_all/schema/call_raw`
 - canonical model classes
