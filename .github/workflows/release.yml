@@ -60,16 +60,19 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: release
-  cancel-in-progress: false
-
 jobs:
   prepare:
     name: Open the release pull request
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && inputs.mode == 'prepare'
     timeout-minutes: 10
+    # At job level, not workflow level: every closed pull request starts this
+    # workflow, and a workflow-level group queued those runs against a real release —
+    # a pending run in a group is replaced by the next one, so an ordinary PR closing
+    # could cancel a release waiting its turn.
+    concurrency:
+      group: release
+      cancel-in-progress: false
     permissions:
       contents: write
       pull-requests: write
@@ -150,8 +153,12 @@ jobs:
       (github.event_name == 'workflow_dispatch' && inputs.mode == 'release' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'pull_request' &&
        github.event.pull_request.merged == true &&
+       github.event.pull_request.base.ref == 'main' &&
        startsWith(github.event.pull_request.head.ref, 'release/'))
     timeout-minutes: 20
+    concurrency:
+      group: release
+      cancel-in-progress: false
     permissions:
       contents: write
     outputs:
@@ -207,16 +214,26 @@ jobs:
 
       # Before the gates, not after. #586 is about a release that failed with a tag
       # already created; spending ten minutes to then say "tag exists" is the same
-      # shape of waste one step earlier.
-      - name: The tag must not exist yet
+      # shape of waste one step earlier. A tag already on *this* commit is a re-run
+      # after the push succeeded and `gh release create` did not; that run carries on
+      # and finishes the release instead of being stuck for ever.
+      - name: The tag is free, or already on this commit
+        id: existing
         env:
           TAG: ${{ steps.tag.outputs.tag }}
+          SHA: ${{ steps.commit.outputs.sha }}
         run: |
-          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
-            echo "::error::${TAG} already exists. Nothing to release, or the version was not raised."
-            exit 1
+          if tagged=$(git rev-parse -q --verify "refs/tags/${TAG}^{commit}"); then
+            if [ "${tagged}" != "${SHA}" ]; then
+              echo "::error::${TAG} already exists on ${tagged}, not on ${SHA}. Nothing to release, or the version was not raised."
+              exit 1
+            fi
+            echo "::notice::${TAG} already points at ${SHA}; finishing the release"
+            echo "tag=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "${TAG} is free"
+            echo "tag=false" >> "$GITHUB_OUTPUT"
           fi
-          echo "${TAG} is free"
 
       # The notes are the CHANGELOG section, not a list of pull request titles. Taken
       # before the gates so a missing or empty section stops the release while there
@@ -244,14 +261,22 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.tag.outputs.tag }}
+          SHA: ${{ steps.commit.outputs.sha }}
+          TAGGED: ${{ steps.existing.outputs.tag }}
+          NOTES: ${{ steps.notes.outputs.file }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "${TAG}"
-          git push origin "${TAG}"
-          gh release create "${TAG}" --title "${TAG}" \
-            --notes-file "${{ steps.notes.outputs.file }}" \
-            --target "${{ steps.commit.outputs.sha }}"
+          if [ "${TAGGED}" != "true" ]; then
+            git tag "${TAG}" "${SHA}"
+            git push origin "${TAG}"
+          fi
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            echo "::notice::the ${TAG} release already exists"
+          else
+            gh release create "${TAG}" --title "${TAG}" \
+              --notes-file "${NOTES}" --target "${SHA}"
+          fi
 
   # Publishing is not called from here. PyPI's trusted publisher matches the
   # workflow GitHub started, so a reusable call made the certificate say
