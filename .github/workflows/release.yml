@@ -60,6 +60,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   prepare:
     name: Open the release pull request
@@ -143,7 +147,7 @@ jobs:
     name: Gate, tag and release
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'workflow_dispatch' && inputs.mode == 'release') ||
+      (github.event_name == 'workflow_dispatch' && inputs.mode == 'release' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'pull_request' &&
        github.event.pull_request.merged == true &&
        startsWith(github.event.pull_request.head.ref, 'release/'))
