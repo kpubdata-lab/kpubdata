@@ -1,0 +1,106 @@
+name: Release freeze
+description: >
+  Refuse pull requests that are not release pull requests while Builder or Studio
+  `main` is frozen (#701, docs/compatibility.md §5.1). The freeze starts on the
+  release week's Monday and ends when Studio ships in that week; a release pull
+  request is a `release/*` branch, a pull request touching only release files
+  (version, CHANGELOG, dependency pins, compatibility documents), or a body line
+  `Critical-Patch: #N`. Not applicable — not a pull request, or not targeting
+  `main` — exits 0, so the calling job is never skipped and the CI gate that needs
+  it keeps its meaning. Wraps scripts/release_freeze.py so the two repositories run
+  one rule.
+
+inputs:
+  github_token:
+    description: "A token with pull-request read access; the default works in the calling repository"
+    required: false
+    default: ${{ github.token }}
+  studio_repo:
+    description: "The repository whose shipping ends the freeze"
+    required: false
+    default: "yeongseon/kpubdata-studio"
+  report_only:
+    description: "true to warn instead of failing — for dry runs"
+    required: false
+    default: "false"
+
+outputs:
+  frozen:
+    description: "true or false — whether main is frozen for this pull request"
+    value: ${{ steps.run.outputs.frozen }}
+  allowed:
+    description: "true or false"
+    value: ${{ steps.run.outputs.allowed }}
+  reason:
+    description: "Why"
+    value: ${{ steps.run.outputs.reason }}
+
+runs:
+  using: composite
+  steps:
+    # Every fact reaches the script through files or the environment, never by
+    # expansion into the shell line — a pull request body can contain anything
+    # (#628). Studio's releases are read cross-repository; both repositories are
+    # public, so the calling token can read them.
+    - id: run
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        PR_URL: ${{ github.event.pull_request.html_url }}
+        BASE_REF: ${{ github.event.pull_request.base.ref }}
+        STUDIO_REPO: ${{ inputs.studio_repo }}
+        REPORT_ONLY: ${{ inputs.report_only }}
+      run: |
+        not_applicable() {
+          echo "frozen=false" >> "$GITHUB_OUTPUT"
+          echo "allowed=true" >> "$GITHUB_OUTPUT"
+          echo "reason=$1" >> "$GITHUB_OUTPUT"
+          echo "::notice::$1"
+          exit 0
+        }
+
+        if [ -z "${PR_URL}" ]; then
+          not_applicable "not a pull request event — the freeze does not apply"
+        fi
+        if [ "${BASE_REF}" != "main" ]; then
+          not_applicable "targets '${BASE_REF}', not main — the freeze does not apply"
+        fi
+
+        pr_json=$(mktemp)
+        branch_file=$(mktemp)
+        body_file=$(mktemp)
+        files_file=$(mktemp)
+        gh pr view "${PR_URL}" --json headRefName,body,files > "${pr_json}" \
+          || { echo "::error::could not read the pull request"; exit 1; }
+
+        python3 - "${pr_json}" "${branch_file}" "${body_file}" "${files_file}" <<'PY'
+        import json
+        import sys
+
+        pr = json.load(open(sys.argv[1], encoding="utf-8"))
+        with open(sys.argv[2], "w", encoding="utf-8") as out:
+            out.write(pr["headRefName"])
+        with open(sys.argv[3], "w", encoding="utf-8") as out:
+            out.write(pr["body"] or "")
+        with open(sys.argv[4], "w", encoding="utf-8") as out:
+            out.write("\n".join(f["path"] for f in pr["files"]))
+        PY
+        head_branch=$(cat "${branch_file}")
+
+        # Studio's final releases: a publish inside this window ends the freeze.
+        studio_times=$(gh release list --repo "${STUDIO_REPO}" \
+          --exclude-drafts --exclude-pre-releases --limit 100 \
+          --json publishedAt --jq '.[].publishedAt' | tr '\n' ' ')
+
+        args=(--head-branch "${head_branch}"
+              --body-file "${body_file}"
+              --files-from "${files_file}"
+              --studio-release-times "${studio_times}")
+        if [ "${REPORT_ONLY}" = "true" ]; then args+=(--report-only); fi
+
+        python3 "${{ github.action_path }}/../../../scripts/release_freeze.py" \
+          "${args[@]}" >> "$GITHUB_OUTPUT"
+        freeze_status=$?
+
+        rm -f "${pr_json}" "${branch_file}" "${body_file}" "${files_file}"
+        exit "${freeze_status}"
