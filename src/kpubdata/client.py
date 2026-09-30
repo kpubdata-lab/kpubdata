@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import cast
+from typing import Any, cast
 
+from kpubdata import _probe
+from kpubdata._probe import ProbeResult
 from kpubdata.bootstrap import register_builtin_providers
 from kpubdata.catalog import Catalog
 from kpubdata.config import KPubDataConfig
@@ -32,6 +34,7 @@ class Client:
         max_retries: int = 3,
         cache: bool | ResponseCache = False,
         cache_ttl_seconds: int = 86400,
+        env_keys: bool = True,
         **extra: object,
     ) -> None:
         """Initialize the client with explicit provider/transport settings.
@@ -40,6 +43,12 @@ class Client:
         behavior is configured through ``timeout`` and ``max_retries``.
         Built-in providers (datago, bok, kosis, lofin) are registered
         lazily by default.
+
+        A provider missing from ``provider_keys`` is looked up in the
+        environment (``KPUBDATA_<PROVIDER>_API_KEY``, then
+        ``<PROVIDER>_API_KEY``). ``env_keys=False`` turns that off: the client
+        then uses only the keys passed here, for every call including
+        ``probe`` (#694).
         """
 
         self._config: KPubDataConfig = KPubDataConfig(
@@ -47,6 +56,7 @@ class Client:
             timeout=timeout,
             max_retries=max_retries,
             extra=dict(extra),
+            env_fallback=env_keys,
         )
         self._registry: ProviderRegistry = ProviderRegistry()
         resolved_cache = _resolve_cache(cache)
@@ -73,6 +83,7 @@ class Client:
                 "cache_enabled": resolved_cache is not None,
                 "cache_ttl_seconds": cache_ttl_seconds,
                 "explicit_provider_keys": sorted(self._config.provider_keys.keys()),
+                "env_keys": self._config.env_fallback,
             },
         )
 
@@ -109,7 +120,9 @@ class Client:
             max_retries=config.max_retries,
             cache=_resolve_cache_from_env(cache_override),
             cache_ttl_seconds=cache_ttl_seconds,
-            **config.extra,
+            # ``extra`` is free-form; the cast keeps mypy from matching it
+            # against the typed keyword parameters such as ``env_keys``.
+            **cast(dict[str, Any], config.extra),
         )
 
     def __enter__(self) -> Client:
@@ -160,6 +173,30 @@ class Client:
             },
         )
         return Dataset(ref=ref, adapter=adapter)
+
+    def probe(self, dataset_id: str) -> ProbeResult | None:
+        """Classify whether one dataset is reachable with this client's keys.
+
+        Makes at most one call, with the probe's fast-fail transport
+        (``PROBE_TIMEOUT_SECONDS``, ``PROBE_RETRIES``, no cache) rather than
+        this client's own, and never raises for a failed call: the failure is
+        the verdict. ``status`` is one of ``PROBE_STATUSES`` (ADR 0005).
+
+        When the dataset needs a key this client does not have, no call is
+        made and the status is ``auth_unknown``. Returns ``None`` when no spec
+        exists for ``dataset_id`` — only spec-defined datasets can be probed.
+        """
+        logger.debug("Probing dataset", extra={"dataset_id": dataset_id})
+        return _probe.probe_dataset(dataset_id, config=self._config)
+
+    def probe_all(self, *, provider: str | None = None) -> list[ProbeResult]:
+        """Probe every spec-defined dataset, or those of one ``provider``.
+
+        One call per dataset, as in ``probe``; the run shares a single
+        fast-fail transport that is closed before returning.
+        """
+        logger.debug("Probing datasets", extra={"provider": provider})
+        return _probe.probe_all(provider=provider, config=self._config)
 
     def register_provider(self, adapter: object) -> None:
         """Register a provider adapter on this client's registry.

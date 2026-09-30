@@ -160,7 +160,7 @@ CLI도 `Client.from_env()`와 동일한 환경 변수 규칙을 따릅니다.
 | `KPUBDATA_CACHE_DIR` | 캐시 디렉터리를 지정합니다. |
 | `KPUBDATA_CACHE_TTL` | 캐시 TTL(초)을 지정합니다. |
 
-`--provider-key PROVIDER=KEY`는 같은 Provider에 대해 환경 변수보다 우선합니다. `--cache`를 주면 캐시를 명시적으로 켠 것으로 간주합니다.
+`--provider-key PROVIDER=KEY`는 같은 Provider에 대해 환경 변수보다 우선합니다. `kpubdata probe`도 이 옵션을 따릅니다 (`Client.probe`/`Client.probe_all` 위에서 동작, #694). `--cache`를 주면 캐시를 명시적으로 켠 것으로 간주합니다.
 
 ## 종료 코드
 

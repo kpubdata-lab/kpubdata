@@ -35,6 +35,39 @@ from kpubdata.transport.cache import (
 from .._typing import override
 
 logger = logging.getLogger("kpubdata.transport")
+
+
+class _HttpxUrlRedactingFilter(logging.Filter):
+    """Mask credential query parameters in the URLs httpx itself logs (#694).
+
+    httpx logs every request at INFO on the ``httpx`` logger as
+    ``HTTP Request: GET <full url> ...``. kpubdata masks the URLs in its own logs
+    and exceptions, but that line carried the query string -- and so a
+    data.go.kr ``serviceKey`` -- verbatim to any application that logs at INFO.
+    For a multi-user service holding its users' keys, that is a leak.
+
+    Masking is by parameter name (``SENSITIVE_PARAM_KEYS``). A key embedded in a
+    path segment is not visible to a name-based filter; those providers already
+    avoid putting the URL anywhere kpubdata logs.
+    """
+
+    @override
+    def filter(self, record: logging.LogRecord) -> bool:
+        args = record.args
+        if isinstance(args, tuple) and args:
+            record.args = tuple(
+                _mask_url(str(arg)) if isinstance(arg, httpx.URL) else arg for arg in args
+            )
+        return True
+
+
+def _install_httpx_redaction() -> None:
+    """Attach the redacting filter to the ``httpx`` logger once."""
+    httpx_logger = logging.getLogger("httpx")
+    if not any(isinstance(f, _HttpxUrlRedactingFilter) for f in httpx_logger.filters):
+        httpx_logger.addFilter(_HttpxUrlRedactingFilter())
+
+
 _DEFAULT_MAX_RESPONSE_BYTES = 50 * 1024 * 1024
 
 
@@ -811,3 +844,6 @@ def _parse_retry_after(header_value: str) -> float | None:
 
 
 __all__ = ["HttpTransport", "TransportConfig", "TransportRequirements"]
+
+
+_install_httpx_redaction()

@@ -206,13 +206,15 @@ def _run_command(args: argparse.Namespace) -> int:
     if command == "scaffold":
         return _handle_scaffold_command(args)
 
-    # probe builds its own fast-fail transport (15s timeout, zero retries) —
-    # the shared client would let cache and retries interfere with the
-    # question "is this key reachable right now".
-    if command == "probe":
-        return _handle_probe_command(args)
-
     provider_keys = _parse_assignments(provider_key_values, flag_name="--provider-key")
+
+    # probe goes through the public Client.probe / Client.probe_all (#694),
+    # which use their own fast-fail transport (15s timeout, zero retries) — the
+    # client's cache and retries would interfere with the question "is this key
+    # reachable right now". The client is built without the response cache.
+    if command == "probe":
+        return _handle_probe_command(args, provider_keys=provider_keys)
+
     client = _create_client(cache_enabled=cache_enabled, provider_keys=provider_keys)
     try:
         if command == "datasets":
@@ -226,23 +228,29 @@ def _run_command(args: argparse.Namespace) -> int:
         client.close()
 
 
-def _handle_probe_command(args: argparse.Namespace) -> int:
+def _handle_probe_command(args: argparse.Namespace, *, provider_keys: dict[str, str]) -> int:
     """``kpubdata probe`` — reachability classification and the activation checklist (#499)."""
     from pathlib import Path
 
     from kpubdata._probe import (
         DEFAULT_REPORT_PATH,
         merge_with_existing,
-        probe_all,
         render_apply_report,
         summarize,
         write_report,
     )
 
-    results = probe_all(
-        provider=getattr(args, "provider", None),
-        dataset_id=getattr(args, "dataset", None),
-    )
+    dataset_id = cast(str | None, getattr(args, "dataset", None))
+    provider = cast(str | None, getattr(args, "provider", None))
+    client = Client.from_env(provider_keys=provider_keys, cache=False)
+    try:
+        if dataset_id:
+            one = client.probe(dataset_id)
+            results = [one] if one is not None else []
+        else:
+            results = client.probe_all(provider=provider)
+    finally:
+        client.close()
     if not results:
         print("프로브 대상이 없습니다.", file=sys.stderr)
         return 1

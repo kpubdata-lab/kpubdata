@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from kpubdata._probe import PROBE_STATUSES, ProbeResult
 from kpubdata.client import Client
 from kpubdata.config import KPubDataConfig
 from kpubdata.core.capability import Operation, PaginationMode, QuerySupport
@@ -36,6 +37,8 @@ __all__ = [
     "Client",
     "KPubDataConfig",
     "discover_specs",
+    "ProbeResult",
+    "PROBE_STATUSES",
     "find_spec",
     "DatasetRef",
     "LicenseSpec",
