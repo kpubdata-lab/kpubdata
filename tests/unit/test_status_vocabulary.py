@@ -123,7 +123,7 @@ def test_live_probe_example_uses_real_names() -> None:
     for result in example["results"]:
         assert ProbeStatus(result["status"])
         assert DriftClassification(result["classification"])
-        assert spec_module.find_spec(result["dataset"]) is not None, result["dataset"]
+        assert spec_module.find_spec(result["dataset_id"]) is not None, result["dataset_id"]
 
 
 @pytest.mark.parametrize("provider", ["neis", "fds"])

@@ -25,6 +25,7 @@ from kpubdata._probe import (
     write_report,
 )
 from kpubdata.core.spec import find_spec
+from kpubdata.core.status import DriftClassification
 from kpubdata.exceptions import (
     AuthError,
     DatasetNotFoundError,
@@ -130,13 +131,19 @@ class TestReportFile:
         write_report([_result("datago.x", "XSvc", "application_required")], out)
 
         payload = json.loads(out.read_text(encoding="utf-8"))
-        assert set(payload) == {"probed_at", "results"}
+        assert set(payload) == {"probed_at", "runner", "results"}
+        assert payload["runner"] == "local"
         assert payload["results"][0] == {
             "dataset_id": "datago.x",
             "service_id": "XSvc",
             "status": "application_required",
             "probed_at": _NOW,
             "detail": "",
+            "http_status": None,
+            "result_code": None,
+            "latency_ms": None,
+            "schema_hash": None,
+            "classification": None,
         }
 
     def test_results_are_sorted_so_the_file_is_diffable(self, tmp_path: Path) -> None:
@@ -148,6 +155,154 @@ class TestReportFile:
 
         ids = [r["dataset_id"] for r in json.loads(out.read_text(encoding="utf-8"))["results"]]
         assert ids == sorted(ids)
+
+
+class TestEvidenceFields:
+    """The drift step reads the evidence fields off the report (#625, LIVE_PROBE.md).
+
+    Each field is None where it could not be observed — inventing a value would
+    invent a signal nobody measured."""
+
+    def test_schema_hash_fingerprints_field_names_not_values(self) -> None:
+        from kpubdata._probe import _schema_hash
+
+        assert _schema_hash([{"b": 1, "a": 2}]) == _schema_hash([{"a": 9}, {"b": 0, "a": 1}])
+
+    def test_schema_hash_moves_when_a_field_appears(self) -> None:
+        from kpubdata._probe import _schema_hash
+
+        assert _schema_hash([{"a": 1}]) != _schema_hash([{"a": 1, "b": 2}])
+
+    def test_schema_hash_is_none_for_an_empty_page(self) -> None:
+        from kpubdata._probe import _schema_hash
+
+        assert _schema_hash([]) is None
+
+    def test_classification_follows_the_documented_mapping(self) -> None:
+        from kpubdata._probe import _classification_of
+
+        assert _classification_of("available") == DriftClassification.HEALTHY
+        assert _classification_of("retired") == DriftClassification.RETIRED
+        # params_invalid says the probe config is wrong, and an unknown name is
+        # not a signal anybody measured.
+        assert _classification_of("params_invalid") is None
+        assert _classification_of("not-a-status") is None
+
+    def test_the_runner_is_recorded_in_the_header(self, tmp_path: Path) -> None:
+        out = tmp_path / "probe-result.json"
+
+        write_report([_result("datago.x", "XSvc", "available")], out, runner="github-actions")
+
+        assert json.loads(out.read_text(encoding="utf-8"))["runner"] == "github-actions"
+
+    def test_a_row_from_the_evidence_schema_survives_a_merge(self, tmp_path: Path) -> None:
+        report = tmp_path / "probe-result.json"
+        enriched = ProbeResult(
+            dataset_id="datago.x",
+            service_id="XSvc",
+            status="available",
+            probed_at=_NOW,
+            http_status=200,
+            latency_ms=342,
+            schema_hash="a3f5c8d0e1b2",
+            classification=DriftClassification.HEALTHY,
+        )
+        write_report([enriched], report)
+
+        assert merge_with_existing([], report) == [enriched]
+
+    def test_a_row_with_bogus_evidence_reads_as_none(self, tmp_path: Path) -> None:
+        report = tmp_path / "probe-result.json"
+        report.write_text(
+            json.dumps(
+                {
+                    "probed_at": _NOW,
+                    "results": [
+                        {
+                            "dataset_id": "datago.x",
+                            "service_id": "XSvc",
+                            "status": "available",
+                            "probed_at": _NOW,
+                            "classification": "NOT-A-SIGNAL",
+                            "http_status": True,
+                            "schema_hash": "",
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        merged = merge_with_existing([], report)
+
+        assert merged[0].classification is None
+        assert merged[0].http_status is None
+        assert merged[0].schema_hash is None
+
+    def test_a_successful_call_carries_its_evidence(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from typing import cast
+
+        from kpubdata._probe import _call_and_classify, _schema_hash, new_probe_transport
+        from kpubdata.config import KPubDataConfig
+        from kpubdata.core import executor as executor_module
+        from kpubdata.core.models import DatasetRef, RecordBatch
+
+        spec = find_spec("datago.apt_trade")
+        assert spec is not None
+
+        class StubExecutor:
+            def __init__(self, *, config: object, transport: object) -> None:
+                pass
+
+            def query(self, spec: object, ref: object, query: object) -> RecordBatch:
+                return RecordBatch(
+                    items=[{"dealAmount": "1,000", "aptNm": "래미안"}],
+                    dataset=cast(DatasetRef, ref),
+                )
+
+        monkeypatch.setattr(executor_module, "SpecExecutor", StubExecutor)
+
+        result = _call_and_classify(
+            spec,
+            KPubDataConfig(provider_keys={"datago": "probe-key"}),
+            new_probe_transport(),
+        )
+
+        assert result.status == "available"
+        assert result.http_status == 200
+        assert result.result_code is None  # success does not parse the envelope code
+        assert result.latency_ms is not None and result.latency_ms >= 0
+        assert result.schema_hash == _schema_hash([{"dealAmount": "1,000", "aptNm": "래미안"}])
+        assert result.classification is DriftClassification.HEALTHY
+
+    def test_an_error_call_carries_its_codes(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from kpubdata._probe import _call_and_classify, new_probe_transport
+        from kpubdata.config import KPubDataConfig
+        from kpubdata.core import executor as executor_module
+
+        spec = find_spec("datago.apt_trade")
+        assert spec is not None
+
+        class StubExecutor:
+            def __init__(self, *, config: object, transport: object) -> None:
+                pass
+
+            def query(self, spec: object, ref: object, query: object) -> object:
+                raise AuthError("denied", status_code=403, provider_code="30")
+
+        monkeypatch.setattr(executor_module, "SpecExecutor", StubExecutor)
+
+        result = _call_and_classify(
+            spec,
+            KPubDataConfig(provider_keys={"datago": "probe-key"}),
+            new_probe_transport(),
+        )
+
+        assert result.status == "application_required"
+        assert result.http_status == 403
+        assert result.result_code == "30"
+        assert result.schema_hash is None
+        assert result.classification is DriftClassification.APPLICATION_REQUIRED
 
 
 def test_summarize_counts_each_bucket() -> None:

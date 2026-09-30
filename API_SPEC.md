@@ -176,8 +176,17 @@ every: list[ProbeResult] = client.probe_all(provider="datago")
   the status is `auth_unknown`.
 - `ProbeResult` is a frozen dataclass: `dataset_id`, `service_id` (the
   data.go.kr service the activation request is made for), `status`,
-  `probed_at` (ISO 8601, UTC) and `detail`. Configured keys never appear in
-  `detail`, in log records or in exception messages.
+  `probed_at` (ISO 8601, UTC), `detail`, and the evidence fields the drift
+  step reads (docs/LIVE_PROBE.md): `http_status` (200 on success, the raised
+  error's status otherwise), `result_code` (the provider code read off the
+  raised error; `None` on success — a successful query does not parse the
+  envelope), `latency_ms` (the one call), `schema_hash` (a fingerprint of the
+  returned field names; `None` when the call failed or the page was empty)
+  and `classification` (the `DriftClassification` this outcome feeds the
+  dataset status machine; `None` when the outcome says nothing about the
+  upstream API). Each evidence field is `None` where it could not be
+  observed — never guessed. Configured keys never appear in `detail`, in log
+  records or in exception messages.
 
 ## 5. Convenience aliases
 
