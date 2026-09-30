@@ -96,6 +96,10 @@ fields:
 - name: umdNm
   type: string
   description: 법정동 이름
+license:
+  type: "공공누리_1유형"
+  redistribution: allowed
+  note: "Terms not yet confirmed — fill from provider page (#524)"
 examples:
 - name: seoul_gangnam
   description: 서울 강남구 2024-01

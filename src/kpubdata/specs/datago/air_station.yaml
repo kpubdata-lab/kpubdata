@@ -103,6 +103,10 @@ fields:
 - name: so2Value
   type: string
   description: SO2 농도
+license:
+  type: "공공누리_1유형"
+  redistribution: allowed
+  note: "Terms not yet confirmed — fill from provider page (#524)"
 examples:
 - name: baengnyeong_daily
   description: 백령도 측정소 일평균 최근 자료

@@ -81,6 +81,10 @@ fields:
 - name: ny
   type: integer
   description: 격자 Y
+license:
+  type: "공공누리_1유형"
+  redistribution: allowed
+  note: "Terms not yet confirmed — fill from provider page (#524)"
 examples:
 - name: seoul_1530
   description: 서울(55,127) 15:30 발표 초단기예보

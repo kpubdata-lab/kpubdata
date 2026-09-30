@@ -86,6 +86,10 @@ fields:
   type: integer
 - name: yungDscntFare
   type: integer
+license:
+  type: "공공누리_1유형"
+  redistribution: allowed
+  note: "Terms not yet confirmed — fill from provider page (#524)"
 examples:
 - name: default
   description: 필터 없음 첫 페이지
