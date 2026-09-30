@@ -173,10 +173,18 @@ is registered, the caller's IP is not, and applying again would not help.
 ```
 
 ### #382 Drift Detection
-```yaml
-# In kpubdata's drift workflow  
-- name: Compare with previous probe
-  run: |
-    # Load previous + current probe-result.json
-    # File drift issue after TRANSIENT_FAILURE_STREAK (3) consecutive failures
-```
+
+Implemented by `scripts/drift_detect.py`, run by this workflow's **drift** job
+every night:
+
+- Compares the current and the previous `probe-result.json`; a differing
+  `schema_hash` emits `SCHEMA_CHANGED` itself (it is not a probe outcome).
+- Applies `kpubdata.core.status.transition` per dataset
+  ([DATASET_STATUS.md](DATASET_STATUS.md)): transient failures move nothing
+  before `TRANSIENT_FAILURE_STREAK` (3) consecutive nights, schema/parameter/
+  endpoint changes break immediately, restores file nothing.
+- Streaks and `previous_status` survive between runs in the `drift-state`
+  artifact.
+- Files one `[drift] <dataset_id>: <from> → <to> (<classification>)` issue per
+  transition that needs a person, skipping datasets with an open drift issue;
+  the status_history entry to apply rides in the issue body.

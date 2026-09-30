@@ -92,6 +92,16 @@ Example: `[drift] datago.apt_trade: live_verified → broken (SCHEMA_CHANGED)`
 
 Labels: `type:bug`, `epic:trust`, plus `severity:major` for `broken`, `severity:minor` for `unstable`.
 
+### 구현 (#625)
+
+이 절의 결정은 `scripts/drift_detect.py` 가 구현하고, `live-probe` 워크플로의 **drift** 잡이
+매일 밤 실행한다. 드리프트 상태(스트릭·`previous_status`·누적 실패)는 `drift-state.json`
+아티팩트로 밤사이 이어지고, 전이가 일어나면 위 규약대로 이슈를 연다 — 같은 데이터셋에
+열려 있는 `[drift]` 이슈가 있으면 다시 열지 않는다. `status_history.json` 기록은
+`--write-history` 에서 담당하며, nightly 에는 끈다: 게이트가 저장소에 쓸 수는 없으므로
+이슈 본문에 추가할 항목을 싣고, 사람(또는 에이전트)이 적용한다. `RETIRED` 는 상태를
+움직이지 않지만 이슈는 연다 — 폐기는 사람의 판단이다.
+
 ## Pure Function
 
 ```python
