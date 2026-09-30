@@ -525,3 +525,4 @@ flowchart TD
 | :--- | :--- | :--- |
 | [kpubdata-builder](https://github.com/yeongseon/kpubdata-builder) | [AGENTS.md](https://github.com/yeongseon/kpubdata-builder/blob/main/AGENTS.md) | Builder agent guide |
 | [kpubdata-studio](https://github.com/yeongseon/kpubdata-studio) | [AGENTS.md](https://github.com/yeongseon/kpubdata-studio/blob/main/AGENTS.md) | Studio agent guide |
+| [kpubdata-watch](https://github.com/yeongseon/kpubdata-watch) | [AGENTS.md](https://github.com/yeongseon/kpubdata-watch/blob/main/AGENTS.md) | Watch agent guide — public-data reliability |
