@@ -69,7 +69,8 @@ rw = _load_release_window()
 # work too.
 _CRITICAL_PATCH = re.compile(r"^Critical-Patch:[ \t]*(\S+)[ \t]*$", re.MULTILINE)
 
-# Files a release pull request may touch (§5.1: 버전·CHANGELOG·의존 핀·호환성 문서).
+# Files a release pull request may touch (§5.1: the version, the CHANGELOG,
+# dependency pins, the compatibility documents).
 # Builder keeps its version in `pyproject.toml`; Studio is a Node application whose
 # version sits in `package.json`. Lock files are the dependency pins. Matched against
 # the basename, so the list stays the same wherever a repo keeps its files.
