@@ -5,10 +5,11 @@
 > - `kpubdata`
 > - `kpubdata-builder`
 > - `kpubdata-studio`
+> - `kpubdata-watch`
 >
 > 목적
 >
-> 세 저장소를 독립 프로젝트가 아니라 하나의 제품군으로 관리한다.
+> 네 저장소를 독립 프로젝트가 아니라 하나의 제품군으로 관리한다.
 > Issue 수, PR 수, 테스트 수, 구현된 기능 수가 아니라
 > **검증되어 사용자에게 전달할 수 있는 제품 가치**를 진척으로 본다.
 >
@@ -24,7 +25,7 @@
 # 0. 문서 위치와 우선순위
 
 - 이 문서의 정본은 `kpubdata/docs/governance/POLICY.md` 하나다.
-- 세 저장소의 `AGENTS.md`, `CONTRIBUTING.md`는 이 문서를 링크하고, 여기와 충돌하는 규칙을 두지 않는다.
+- 네 저장소의 `AGENTS.md`, `CONTRIBUTING.md`는 이 문서를 링크하고, 여기와 충돌하는 규칙을 두지 않는다.
 - 충돌이 생기면 이 문서가 우선한다.
 - 저장소별 문서에는 해당 저장소 고유의 절차(빌드 명령, 디렉터리 규칙)만 남긴다.
 - 이 문서를 바꾸는 변경은 R3(25절)로 취급한다.
@@ -40,6 +41,7 @@
 | `kpubdata` | Provider / Data Access / Spec / Validation |
 | `kpubdata-builder` | Build / Transform / Policy / Publish |
 | `kpubdata-studio` | User Experience / Onboarding |
+| `kpubdata-watch` | Public Data Reliability / 관측 · Public Status |
 | Cross-repo | 실제 제품 사용자 여정 |
 
 저장소별로 최적화하지 않는다.
