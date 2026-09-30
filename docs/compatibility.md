@@ -1,12 +1,13 @@
 # Cross-Repo 호환성 매트릭스 및 릴리스 정책
 
 KPubData Product Family는 세 저장소가 독립적으로 릴리스되지만, 함께 사용될 때의 호환성을 보장하기 위해 다음 규칙을 따른다.
+의존은 **Studio → Builder → KPubData** 한 방향으로만 흐른다([ADR 0007](adrs/0007-independence-rules.md)).
 
-| 저장소 | 역할 | Python | 의존 관계 |
+| 저장소 (제품명) | 역할 | Python | 의존 관계 |
 | :--- | :--- | :--- | :--- |
-| [kpubdata](https://github.com/yeongseon/kpubdata) | 데이터 수집·정규화 코어 | 3.10+ | (없음) |
-| [kpubdata-builder](https://github.com/yeongseon/kpubdata-builder) | 빌드 파이프라인 | 3.10+ | `kpubdata` |
-| [kpubdata-studio](https://github.com/yeongseon/kpubdata-studio) | 웹 대시보드 | Node **22+** | `kpubdata-builder` (REST) |
+| [kpubdata](https://github.com/yeongseon/kpubdata) (KPubData) | 한국 공공데이터 접근을 위한 독립 Python SDK | 3.10+ | (없음) |
+| [kpubdata-builder](https://github.com/yeongseon/kpubdata-builder) (KPubData Builder) | KPubData 로 재현 가능한 데이터셋·테이블을 만들고 관리 | 3.10+ | `kpubdata` 공개 API, **릴리스된 버전만** |
+| [kpubdata-studio](https://github.com/yeongseon/kpubdata-studio) (KPubData Studio) | KPubData Builder 의 시각적 작업공간 | Node **22+** | Builder HTTP/OpenAPI 계약만 (kpubdata 를 직접 쓰지 않는다) |
 
 전체 아키텍처 관계는 [Product Family 아키텍처](product-family-architecture.md) 문서를 참고한다.
 
@@ -15,13 +16,13 @@ KPubData Product Family는 세 저장소가 독립적으로 릴리스되지만, 
 builder 와 studio 는 **한 애플리케이션, 한 버전**이다(ADR 0004 1절). 그래서 표는 두 열이다 —
 애플리케이션 버전 × kpubdata 버전.
 
-**kpubdata 열은 범위가 아니라 사실이다.** `pyproject.toml` 의 `kpubdata>=0.7.0,<0.8` 는
+**kpubdata 열은 범위가 아니라 사실이다.** `pyproject.toml` 의 `kpubdata>=0.8.0,<0.9` 는
 의도이고, 릴리스 게이트는 `uv.lock` 이 고정한 **한 버전**으로 돌았다. 그 버전을 적는다.
 **빈 셀은 검증되지 않았음을 뜻한다** — 동작할 수도 있지만 보장하지 않는다.
 
 | 애플리케이션 (builder = studio) | kpubdata (릴리스 게이트가 검증한 버전) | 비고 |
 | :--- | :--- | :--- |
-| main (다음 릴리스) | 0.7.0 | 릴리스가 아니다 — 행은 릴리스 때 확정된다. 의존 핀 `>=0.7.0,<0.8` (builder#746). kpubdata 0.6.x 는 provider 키가 로그·traceback 에 남을 수 있어 올렸다. |
+| main (다음 릴리스) | 0.8.0 | 릴리스가 아니다 — 행은 릴리스 때 확정된다. 의존 핀 `>=0.8.0,<0.9` (builder#882, 2026-09-30). 0.8.0 은 코드 열의 앞자리 0 을 보존해 `str` 로 돌려준다(BREAKING, #613). |
 | 0.4.0 | 0.6.0 | 2026-09-28, builder·studio 모두 태그·GitHub Release. Builder API 계약 v1.29.0. 의존 핀 `>=0.6.0,<0.7`. |
 | 0.1.x (builder 만) | 0.5.x | studio 가 같은 버전을 쓰기 전. Medallion(Bronze→Silver→Gold) 파이프라인 + 서비스 façade 도입. |
 

@@ -38,9 +38,10 @@ anything that makes published data violate its provider's terms.
 
 ## Supported versions
 
-Only the latest release of each component receives fixes. Version and tag are
-being reconciled (kpubdata-builder#690); until that lands, report against a
-commit SHA rather than a version number.
+Only the latest release of each component receives fixes. Declared versions and
+tags agree (kpubdata-builder#690, closed 2026-09-30), so report against a
+release version: kpubdata's own, or the version KPubData Builder and KPubData
+Studio share (ADR 0004). For unreleased code, give the commit SHA.
 
 ## Known limits, stated deliberately
 

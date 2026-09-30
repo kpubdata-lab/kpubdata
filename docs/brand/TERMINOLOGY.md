@@ -58,8 +58,11 @@ Table Snapshot   (특정 버전)
 | Access | Available · Key required · Application required · Unavailable · Unknown · Retired |
 | Maturity | Stable · Beta · Experimental |
 
-Access 축은 `kpubdata` 의 probe 분류(`PROBE_STATUSES`)와 같은 어휘를 쓴다 — 한쪽만
-바뀌면 사용자가 보는 말과 측정된 값이 어긋난다.
+Access 축의 어휘는 **KPubData Builder 가 소유한다**(`AccessStatus`, kpubdata-builder#831).
+Builder 는 kpubdata 의 probe 분류를 명시적인 매핑으로 옮기고, 매핑에 없는 값은 `unknown`
+으로 보낸다 — kpubdata 의 enum 이 그대로 wire 로 나가지 않는다. 지금은 값이 probe 분류와
+같지만 그것은 매핑의 결과이지 계약이 아니다. Studio 는 Builder OpenAPI 의 값만 본다
+([ADR 0007](../adrs/0007-independence-rules.md) Rule 8·9).
 
 ## 현재 규모 (실측 2026-09-27)
 
