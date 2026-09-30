@@ -68,6 +68,8 @@ def test_a_clean_repository_passes(tmp_path: Path) -> None:
         "def f():\n    import kpubdata_studio\n",
         "import importlib\nimportlib.import_module('kpubdata_builder')\n",
         "__import__('kpubdata_builder.spec')\n",
+        "import kpubdata_watch\n",
+        "from kpubdata_watch.status import Verdict\n",
     ],
 )
 def test_importing_builder_or_studio_fails(tmp_path: Path, source: str) -> None:
@@ -95,6 +97,7 @@ def test_a_violation_deep_in_the_tree_is_found(tmp_path: Path) -> None:
         '"kpubdata_builder"',
         "\"KPubData.Studio ; python_version >= '3.11'\"",
         '"kpubdata-studio[extra]==1.0"',
+        '"kpubdata-watch>=0.1"',
     ],
 )
 def test_declaring_builder_or_studio_as_a_dependency_fails(
@@ -120,6 +123,7 @@ def test_a_uv_source_key_fails(tmp_path: Path) -> None:
     [
         "import kpubdata\n",
         "import kpubdata_builderish\n",
+        "import kpubdata_watchdog\n",
         "from . import builder\n",
         "NAME = 'kpubdata_builder'\n",
     ],

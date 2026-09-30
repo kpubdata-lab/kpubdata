@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""KPubData must not depend on KPubData Builder or KPubData Studio (#668).
+"""KPubData must not depend on KPubData Builder, Studio or Watch (#668, #703).
 
-ADR 0007 fixes the dependency direction as Studio -> Builder -> KPubData. Rules 1
-and 2 say the reverse edges do not exist: this package never imports
-`kpubdata_builder` or `kpubdata_studio`, and never declares either distribution
-as a dependency. A rule without a gate is a wish, so this is the gate.
+ADR 0007 fixes the dependency direction as Studio -> Builder -> KPubData, with
+Watch -> KPubData beside it (§5). Rules 1, 2 and 13 say the reverse edges do not
+exist: this package never imports `kpubdata_builder`, `kpubdata_studio` or
+`kpubdata_watch`, and never declares any of those distributions as a
+dependency. A rule without a gate is a wish, so this is the gate.
 
 Two things are checked:
 
@@ -12,7 +13,7 @@ Two things are checked:
   `importlib.import_module("...")` or `__import__("...")` that names a forbidden
   package fails;
 - every quoted string in `pyproject.toml` whose requirement name normalises to
-  `kpubdata-builder` or `kpubdata-studio` fails, as does a bare TOML key with that
+  `kpubdata-builder`, `kpubdata-studio` or `kpubdata-watch` fails, as does a bare TOML key with that
   name (as `[tool.uv.sources]` would use). The file is scanned as text rather than
   parsed, because `tomllib` does not exist on Python 3.10 and one code path on
   every supported version is easier to trust than two.
@@ -32,8 +33,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-FORBIDDEN_MODULES = ("kpubdata_builder", "kpubdata_studio")
-FORBIDDEN_DISTRIBUTIONS = ("kpubdata-builder", "kpubdata-studio")
+FORBIDDEN_MODULES = ("kpubdata_builder", "kpubdata_studio", "kpubdata_watch")
+FORBIDDEN_DISTRIBUTIONS = ("kpubdata-builder", "kpubdata-studio", "kpubdata-watch")
 
 _QUOTED = re.compile(r"""["']([^"'\n]*)["']""")
 _BARE_KEY = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)\s*=", re.MULTILINE)
@@ -125,19 +126,20 @@ def main(argv: list[str] | None = None) -> int:
     problems.extend(dependency_violations(pyproject, root))
 
     if problems:
-        print("KPubData depends on KPubData Builder or KPubData Studio.\n", file=sys.stderr)
+        print("KPubData depends on KPubData Builder, Studio or Watch.\n", file=sys.stderr)
         for line in problems:
             print(f"  {line}", file=sys.stderr)
         print(
-            "\nADR 0007 Rules 1-2: dependencies flow Studio -> Builder -> KPubData only."
-            "\nIf Builder needs something from here, add it to KPubData's public API.",
+            "\nADR 0007 Rules 1-2 and 13: dependencies flow Studio -> Builder -> KPubData"
+            " and Watch -> KPubData only."
+            "\nIf Builder or Watch needs something from here, add it to KPubData's public API.",
             file=sys.stderr,
         )
         return 1
 
     print(
         f"KPubData stands alone: {len(sources)} source files and pyproject.toml "
-        f"name neither {' nor '.join(FORBIDDEN_DISTRIBUTIONS)}"
+        f"name none of {', '.join(FORBIDDEN_DISTRIBUTIONS)}"
     )
     return 0
 
