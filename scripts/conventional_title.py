@@ -68,6 +68,10 @@ _TITLE = re.compile(
 
 _GITHUB_REVERT = re.compile(r'^Revert ".+"$')
 
+# POLICY 2.1.3: PR titles do not carry issue numbers (#699). Squash merge appends
+# the PR number, so "(#123)" in a title becomes "... (#123) (#456)" in the commit.
+_ISSUE_NUMBER = re.compile(r"\(#[0-9]+\)\s*$")
+
 _EXAMPLE = "fix(localdata): empty wrapper becomes a phantom row"
 
 
@@ -99,6 +103,15 @@ def parse(title: str) -> Title:
     title = title.strip()
     if "\n" in title or "\r" in title:
         raise TitleError("title must be a single line")
+    # POLICY 2.1.3: no issue numbers in PR titles (#699). Squash merge appends the PR
+    # number, so a trailing "(#123)" becomes "... (#123) (#456)" in the commit title.
+    # Link issues from the body with `Closes #123` instead.
+    if _ISSUE_NUMBER.search(title):
+        raise TitleError(
+            "PR titles do not carry issue numbers — squash merge appends the PR number "
+            "and the final commit would read `... (#123) (#456)`. Link the issue from "
+            "the body with `Closes #123`."
+        )
     # GitHub's own "Revert" button writes `Revert "fix: ..."`. It is a revert whatever
     # it reverts, and refusing it would make undoing a merge fail a check.
     if _GITHUB_REVERT.match(title):
