@@ -39,12 +39,12 @@ def test_query_records_emits_no_deprecation_warning() -> None:
         transport=HttpTransport(),
     )
     dataset = _no_retirement_dataset()
+    import contextlib
+
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        try:
+        with contextlib.suppress(Exception):  # network fails in test — the point is no warning
             adapter.query_records(dataset, Query())
-        except Exception:
-            pass  # network call fails in test — the point is no DeprecationWarning
 
 
 def test_catalogue_has_no_retired_lifecycle() -> None:
