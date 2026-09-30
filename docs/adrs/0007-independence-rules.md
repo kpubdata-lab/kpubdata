@@ -141,8 +141,8 @@ Builder 와 Watch 사이에 상호운용이 필요해지면 의존이 아니라 
 
 규칙 14·15 는 Watch 저장소 쪽에서 지키는 규칙이며, Watch 의 `scripts/check_independence.py`
 가 `kpubdata_builder`·`kpubdata_studio` import 와 의존성 선언을 CI 에서 막는다. 규칙 13 은 이
-저장소의 규칙이지만 아직 이 저장소의 게이트(#668)가 `kpubdata_watch` 를 검사하지 않는다 —
-게이트 확장은 별도 작업으로 남긴다.
+저장소의 게이트(#668)가 지킨다 — `scripts/check_independence.py` 가 `kpubdata_watch` import 와
+`kpubdata-watch` 의존성 선언을 Builder·Studio 와 같은 방식으로 막는다.
 
 규칙 3·4 의 "Builder·Studio 없이" 는 Watch 에도 같은 뜻으로 읽는다. 공개 API 를 바꿀 때
 "Watch 가 이렇게 쓰니까" 도 근거가 되지 않는다.
