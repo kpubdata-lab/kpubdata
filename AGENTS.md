@@ -162,10 +162,18 @@ Cadence and order live in [docs/compatibility.md §5.1](docs/compatibility.md#re
 who may do what lives in POLICY 14. This section keeps only what applies to an
 agent.
 
-- **Release week is a freeze.** From the Monday of the month's last week until
-  kpubdata-studio is released on Thursday, open only release pull requests against
-  `main`: version, CHANGELOG, dependency pin, compatibility documents, or a fix for
-  a failing release gate. Other work waits on its branch.
+- **kpubdata releases on demand, at most once every seven days** (#685). It releases
+  when there is a reason — a downstream repository is blocked, a security fix, or
+  accumulated changes — and the `release-window` gate refuses a release less than
+  seven days after the last final one, in KST. kpubdata `main` is never frozen.
+- **Builder and Studio release once a month**, in the week holding the month's last
+  Thursday, and that week freezes *their* `main` branches. A critical patch (a
+  security fix or a release-blocking defect) may go out at any time, and must name its
+  issue: `critical_patch` + `critical_issue` on a dispatch, or a `Critical-Patch: #N`
+  line in the release pull request's body.
+- **Never recommend a release outside the rule to unblock work.** Work that needs an
+  unreleased kpubdata change runs against kpubdata `main` in Builder's early-warning
+  job, and the pin moves with the next kpubdata release.
 - **Prepare, do not release.** An agent may tidy the CHANGELOG's Unreleased section,
   run a release workflow with `dry_run`, and draft the version and pin pull requests.
   Pushing a tag, creating a GitHub Release, approving the PyPI environment and
@@ -176,8 +184,8 @@ agent.
   merge it.** The prepare job dates that section and the release job publishes it as
   the notes (#595). An empty `[Unreleased]` stops the release.
 - **Builder and Studio share one version** (ADR 0004). They ship as one application,
-  so a release that only changed one of them still raises both. Skipping a repository
-  because it has no changes applies to kpubdata alone.
+  so a release that only changed one of them still raises both. kpubdata releases only
+  when it has a reason, so it has nothing to skip.
 - **Target Release is a month (`2026-10`), not a version.**
 
 ## When to write a plan

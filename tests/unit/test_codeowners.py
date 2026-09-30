@@ -23,6 +23,7 @@ REQUIRED = [
     "/scripts/release_notes.py",
     "/scripts/set_version.py",
     "/scripts/next_version.py",
+    "/scripts/release_window.py",
     "/scripts/conventional_title.py",
     "/pyproject.toml",
     "/uv.lock",
