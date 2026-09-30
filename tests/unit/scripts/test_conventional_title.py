@@ -83,6 +83,9 @@ def test_valid_titles(script, title, kind, scope, breaking, label) -> None:
         "i18n: translate core layer to English",  # dropped on 2026-09-29
         "feat!:",
         "[WIP] fix: something",
+        "docs: establish the release policy (#528)",  # #699: squash adds the PR number
+        "feat(core): cast whole columns (#481)",
+        "fix: keep leading zeros (#574) ",  # trailing space still counts after strip()
     ],
 )
 def test_invalid_titles(script, title: str) -> None:
@@ -93,6 +96,23 @@ def test_invalid_titles(script, title: str) -> None:
 def test_githubs_revert_button_is_a_revert(script) -> None:
     parsed = script.parse('Revert "fix(core): stop discarding problems"')
     assert (parsed.type, parsed.label) == ("revert", "type:chore")
+
+
+def test_revert_of_a_numbered_title_still_parses(script) -> None:
+    """GitHub revert titles end with a quote, so the trailing-number rule cannot hit them."""
+    parsed = script.parse('Revert "docs: establish the release policy (#528)"')
+    assert parsed.type == "revert"
+
+
+def test_mid_title_issue_reference_is_allowed(script) -> None:
+    """The rule is about the *trailing* tag; a mid-sentence reference is fine."""
+    parsed = script.parse("fix: adapters registered twice since #612 are deduped")
+    assert parsed.type == "fix"
+
+
+def test_numbered_title_error_names_the_remedy(script) -> None:
+    with pytest.raises(script.TitleError, match="Closes #123"):
+        script.parse("docs: establish the release policy (#528)")
 
 
 def test_unknown_type_names_the_allowed_ones(script) -> None:
