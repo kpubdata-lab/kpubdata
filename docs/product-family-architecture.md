@@ -1,14 +1,15 @@
 # KPubData Product Family — 전체 시스템 아키텍처
 
-KPubData 는 한국 공공데이터 접근을 위한 **독립 Python SDK** 입니다. KPubData Builder 와 KPubData Studio 는 KPubData 위에 만들어진 **관련 프로젝트**이며, KPubData 는 이 둘 없이도 단독으로 설치·사용·릴리스됩니다. 이 문서는 세 제품을 함께 쓸 때의 관계를 설명합니다. 제품 이름과 저장소·패키지 이름은 다르다 — 저장소는 바꾸지 않는다([BRAND.md](brand/BRAND.md)).
+KPubData 는 한국 공공데이터 접근을 위한 **독립 Python SDK** 입니다. KPubData Builder 와 KPubData Studio 는 KPubData 위에 만들어진 **관련 프로젝트**이며, KPubData Watch 는 KPubData 의 공개 API 만 써서 공공데이터 신뢰도를 관측하는 **형제 제품**입니다. KPubData 는 이 셋 없이도 단독으로 설치·사용·릴리스됩니다. 이 문서는 네 제품을 함께 쓸 때의 관계를 설명합니다. 제품 이름과 저장소·패키지 이름은 다르다 — 저장소는 바꾸지 않는다([BRAND.md](brand/BRAND.md)).
 
-의존은 한 방향으로만 흐릅니다: **Studio → Builder → KPubData**. KPubData 는 Builder 나 Studio 를 알지 못하고, 함께 사용할 때에만 공공데이터의 전체 생명주기가 하나의 흐름으로 이어집니다.
+의존은 한 방향으로만 흐릅니다: **Studio → Builder → KPubData**, 그리고 **Watch → KPubData** (Watch 는 Builder 에 의존하지 않습니다). KPubData 는 Builder 나 Studio 나 Watch 를 알지 못하고, 함께 사용할 때에만 공공데이터의 전체 생명주기가 하나의 흐름으로 이어집니다.
 
 | 제품 | 저장소 · 패키지 | 한 줄 역할 | 기술 |
 | :--- | :--- | :--- | :--- |
 | **KPubData** | [kpubdata](https://github.com/yeongseon/kpubdata) | 한국 공공데이터 접근을 위한 독립 Python SDK | Python 3.10+ |
 | **KPubData Builder** | [kpubdata-builder](https://github.com/yeongseon/kpubdata-builder) | KPubData를 활용해 재현 가능한 데이터셋·테이블을 생성하고 관리 | Python 3.10+ |
 | **KPubData Studio** | [kpubdata-studio](https://github.com/yeongseon/kpubdata-studio) | 한국 공공데이터를 수집하고, 출처와 이용 조건을 유지한 스냅샷으로 관리하며, 표와 SQL 로 분석하는 작업공간 | Vite + React Router + TypeScript (SPA) |
+| **KPubData Watch** | [kpubdata-watch](https://github.com/yeongseon/kpubdata-watch) | 한국 공공데이터 API를 지속 관측해 신뢰도를 근거와 함께 공개 (MVP: Public Status) | Python |
 
 ---
 

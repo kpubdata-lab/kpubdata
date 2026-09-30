@@ -17,6 +17,7 @@ diff 가 커져 기능 회귀 위험만 올라간다.
 | 데이터셋·테이블 생성 | **KPubData Builder** | `kpubdata-builder`, `BuilderService` |
 | 공공데이터 접근 SDK | **KPubData** | `kpubdata` |
 | 웹 작업공간 | **KPubData Studio** | `kpubdata-studio` |
+| 공공데이터 신뢰도 관측 | **KPubData Watch** | `kpubdata-watch` |
 | AI 도우미 | **Ask KPubData** | `features/kubi`, `features/assistant` |
 | 질의 화면 | **SQL Workspace** | query service |
 | 원천 탐색 | **Catalog** | discover, add-data |

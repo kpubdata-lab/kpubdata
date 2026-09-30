@@ -6,9 +6,10 @@
 
 ## 요약 (English summary)
 
-> KPubData is a standalone Python SDK. KPubData Builder and KPubData Studio are
-> related projects built on top of it, and dependencies flow one way only:
-> **Studio → Builder → KPubData**. This ADR records twelve Independence Rules as
+> KPubData is a standalone Python SDK. KPubData Builder, KPubData Studio and
+> KPubData Watch are related projects built on top of it, and dependencies flow one
+> way only: **Studio → Builder → KPubData** and **Watch → KPubData**. This ADR
+> records fourteen Independence Rules as
 > architecture invariants, defines what counts as KPubData's public API (the names
 > in `kpubdata.__all__`, as specified in `API_SPEC.md`) and what does not
 > (underscore modules, internal helpers, fixtures, repository layout). It does not
@@ -37,11 +38,14 @@
 
 ```text
 KPubData Studio  →  KPubData Builder  →  KPubData
+KPubData Watch   →  KPubData
 ```
 
 의존은 이 한 방향으로만 흐른다. 역방향(KPubData → Builder, KPubData → Studio,
-Builder → Studio)은 금지다. Studio 는 KPubData 에 직접 의존하지 않고 Builder 가 소유한
-계약만 쓴다.
+Builder → Studio)과 Watch 의 역방향(KPubData → Watch, Watch → Builder·Studio)은
+금지다. Studio 는 KPubData 에 직접 의존하지 않고 Builder 가 소유한
+계약만 쓴다. Watch 는 Builder 를 거치지 않고 KPubData 의 공개 API 를 직접 쓰는
+형제 제품이다 (#703).
 
 ### 2. 독립성 규칙 (Independence Rules)
 
@@ -59,9 +63,12 @@ Builder → Studio)은 금지다. Studio 는 KPubData 에 직접 의존하지 �
 | 10 | 각 저장소는 독립적으로 설치·테스트·버전 관리·릴리스할 수 **있다**. |
 | 11 | 저장소 간 호환성은 명시적이고 버전화되어 있다. |
 | 12 | 각 저장소의 main 브랜치끼리 맞는다는 사실은 암묵적 호환성 계약이 아니다. |
+| 13 | Watch 는 KPubData 의 **문서화된 공개 API** 에만 의존한다 (규칙 5 와 같은 기준). |
+| 14 | Watch 는 KPubData Builder(`kpubdata-builder`)·KPubData Studio(`kpubdata-studio`)에 의존하지 않는다. |
 
 규칙 1·2 는 이 저장소의 CI 게이트로 확인한다 (#668). 규칙 5–9 는 Builder·Studio
-저장소 쪽에서 지키는 규칙이며, 각 저장소가 자기 게이트를 둔다.
+저장소 쪽에서 지키는 규칙이며, 각 저장소가 자기 게이트를 둔다. 규칙 13·14 도 Watch
+저장소가 자기 게이트(`scripts/check_independence.py`)로 지킨다 (#703).
 
 ### 3. 공개 API 의 경계
 
