@@ -1,7 +1,7 @@
 """Client assembly (bootstrap) layer (#230).
 
 A factory layer that separates provider/transport **assembly** concerns from
-\`Client\` — the Client itself handles runtime behavior (discovery, querying,
+`Client` — the Client itself handles runtime behavior (discovery, querying,
 lifecycle), while this module decides which built-in providers to register
 and how. The public API is unchanged.
 """
