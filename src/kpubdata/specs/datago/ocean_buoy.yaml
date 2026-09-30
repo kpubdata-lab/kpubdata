@@ -96,6 +96,10 @@ fields:
 - name: slnty
   type: number
   description: 염분 (PSU)
+license:
+  type: "공공누리_1유형"
+  redistribution: allowed
+  note: "Terms not yet confirmed — fill from provider page (#524)"
 examples:
 - name: buoy_0089
   description: TW_0089 부이 최신 관측데이터

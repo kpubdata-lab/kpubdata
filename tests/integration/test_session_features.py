@@ -23,9 +23,27 @@ class TestLicenseFieldIntegration:
         assert spec.license.attribution_required is True
 
     def test_spec_without_license_loads(self) -> None:
-        """Spec without license loads as None."""
-        spec = find_spec("datago.hospital_info")
-        assert spec is not None
+        """Spec without license loads as None (synthetic — all real specs now have one)."""
+        from kpubdata.core.spec import from_mapping
+
+        spec = from_mapping(
+            {
+                "id": "test.no_license",
+                "provider": "test",
+                "title": "No licence",
+                "endpoint": {"base_url": "https://example.test/api", "operation": "list"},
+                "auth": {"type": "none"},
+                "response": {
+                    "format": "json",
+                    "envelope": "datago_standard",
+                    "error": {
+                        "style": "header_result_code",
+                        "code_path": "response.header.resultCode",
+                    },
+                },
+                "pagination": {"type": "none"},
+            }
+        )
         assert spec.license is None
 
     def test_all_specs_valid_license_or_none(self) -> None:

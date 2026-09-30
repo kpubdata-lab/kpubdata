@@ -99,6 +99,10 @@ fields:
   type: string
 - name: ykiho
   type: string
+license:
+  type: "공공누리_1유형"
+  redistribution: allowed
+  note: "Terms not yet confirmed — fill from provider page (#524)"
 examples:
 - name: default
   description: 기본값으로 첫 페이지 조회

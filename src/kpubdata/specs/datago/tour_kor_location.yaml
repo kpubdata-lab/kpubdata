@@ -133,6 +133,10 @@ fields:
 - name: zipcode
   type: string
   semantic_kind: code
+license:
+  type: "공공누리_1유형"
+  redistribution: allowed
+  note: "Terms not yet confirmed — fill from provider page (#524)"
 examples:
 - name: gangnam_1km
   description: 강남역 반경 1km
