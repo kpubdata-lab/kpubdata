@@ -204,7 +204,9 @@ ds = client.dataset("seoul.bike_realtime")
 result = ds.list(page_size=5)
 
 for item in result.items:
-    print(item["stationName"], f"거치대:{item['rackTotCnt']}", f"자전거:{item['parkingBikeTotCnt']}")
+    print(
+        item["stationName"], f"거치대:{item['rackTotCnt']}", f"자전거:{item['parkingBikeTotCnt']}"
+    )
 ```
 
 ### 따릉이 대여소 마스터 정보 `list()`

@@ -121,7 +121,11 @@ for item in net_migration[:5]:
 result = ds.list(start_date="202401", end_date="202401")
 
 # 전입지 기준 총 이동자수 (전출지='전국', 전입지!='전국')
-rank_data = [i for i in result.items if i["C1_NM"] == "전국" and i["C2_NM"] != "전국" and i["ITM_NM"] == "이동자수"]
+rank_data = [
+    i
+    for i in result.items
+    if i["C1_NM"] == "전국" and i["C2_NM"] != "전국" and i["ITM_NM"] == "이동자수"
+]
 sorted_rank = sorted(rank_data, key=lambda x: int(x["DT"]), reverse=True)
 
 for i, item in enumerate(sorted_rank[:5], 1):

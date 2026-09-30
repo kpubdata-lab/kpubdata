@@ -125,15 +125,11 @@ ref = DatasetRef(
     description="Korea Meteorological Administration short-range forecast",
     tags=("weather", "forecast"),
     source_url="https://www.data.go.kr",
-    operations=frozenset([Operation.LIST])
+    operations=frozenset([Operation.LIST]),
 )
 
 # 2. 검색 조건을 만들 때 (Query)
-query = Query(
-    filters={"base_date": "20250401", "nx": "55"},
-    page=1,
-    page_size=10
-)
+query = Query(filters={"base_date": "20250401", "nx": "55"}, page=1, page_size=10)
 ```
 
 ### 4.2 타입을 사용하는 시나리오
@@ -178,6 +174,7 @@ for item in batch.items:
 ```python
 from enum import Enum
 
+
 class Operation(str, Enum):
     LIST = "list"
     GET = "get"
@@ -185,11 +182,13 @@ class Operation(str, Enum):
     RAW = "raw"
     DOWNLOAD = "download"
 
+
 class PaginationMode(str, Enum):
     OFFSET = "offset"
     INDEX = "index"
     CURSOR = "cursor"
     NONE = "none"
+
 
 @dataclass(slots=True, frozen=True)
 class QuerySupport:
@@ -206,6 +205,7 @@ class QuerySupport:
 
 ```python
 from enum import Enum
+
 
 class Representation(str, Enum):
     API_JSON = "api_json"
@@ -248,6 +248,7 @@ graph TD
 from dataclasses import dataclass, field
 from types import MappingProxyType
 
+
 @dataclass(slots=True, frozen=True)
 class DatasetRef:
     id: str
@@ -281,6 +282,7 @@ Notes:
 ```python
 from dataclasses import dataclass, field
 from typing import Any
+
 
 @dataclass(slots=True)
 class Query:
@@ -326,6 +328,7 @@ This separation ensures that invalid canonical inputs are rejected early (before
 from dataclasses import dataclass, field
 from typing import Any
 
+
 @dataclass(slots=True)
 class RecordBatch:
     items: list[dict[str, Any]]
@@ -343,6 +346,7 @@ class RecordBatch:
 from dataclasses import dataclass, field
 from types import MappingProxyType
 
+
 @dataclass(slots=True)
 class FieldConstraints:
     max_length: int | None = None
@@ -351,6 +355,7 @@ class FieldConstraints:
     pattern: str | None = None
     allowed_values: tuple[str, ...] | None = None
     format: str | None = None
+
 
 @dataclass(slots=True)
 class FieldDescriptor:
@@ -361,6 +366,7 @@ class FieldDescriptor:
     nullable: bool | None = None
     constraints: FieldConstraints | None = None
     raw: MappingProxyType[str, object] = field(default_factory=_empty_object_proxy)
+
 
 @dataclass(slots=True)
 class SchemaDescriptor:
@@ -373,18 +379,44 @@ class SchemaDescriptor:
 
 ```python
 class PublicDataError(Exception): ...
+
+
 class ConfigError(PublicDataError): ...
+
+
 class AuthError(PublicDataError): ...
+
+
 class TransportError(PublicDataError): ...
+
+
 class TransportTimeoutError(TransportError): ...
+
+
 class RateLimitError(TransportError): ...
+
+
 class ServiceUnavailableError(TransportError): ...
+
+
 class ParseError(PublicDataError): ...
+
+
 class InvalidRequestError(PublicDataError): ...
+
+
 class ProviderResponseError(PublicDataError): ...
+
+
 class UnsupportedCapabilityError(PublicDataError): ...
+
+
 class DatasetNotFoundError(PublicDataError): ...
+
+
 class ProviderNotRegisteredError(PublicDataError): ...
+
+
 class CapabilityContractError(PublicDataError): ...
 ```
 
