@@ -9,7 +9,7 @@ names showed **0 lines of code difference**. That duplication caused "03"
 The original localdata.go.kr closed on 2026-04-16, but the data was **migrated
 to data.go.kr** (`apis.data.go.kr/1741000/...`). Three datasets (bakery,
 general_restaurant, rest_cafe) pass live-API verification as of 2026-09-09.
-The remaining 56 need activation (활용신청) on data.go.kr — they return 403,
+The remaining 56 need activation on data.go.kr — they return 403,
 not because the endpoint is dead but because the key lacks permission (#618).
 """
 
