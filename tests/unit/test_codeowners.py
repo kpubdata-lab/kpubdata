@@ -17,9 +17,15 @@ REQUIRED = [
     "/.github/",
     "/src/kpubdata/config.py",
     "/src/kpubdata/transport/",
-    "/src/kpubdata/specs/schema.json",
+    "/src/kpubdata/specs/",
     "/docs/governance/",
     "/src/kpubdata/_hosts.py",
+    "/scripts/record.py",
+    "/scripts/verify_spec.py",
+    "/scripts/check_fixture_authorship.py",
+    "/tests/fixtures/**/*.raw.json",
+    "/tests/fixtures/**/*.meta.json",
+    "/tests/fixtures/**/*.expected.json",
     "/scripts/release_notes.py",
     "/scripts/set_version.py",
     "/scripts/next_version.py",
@@ -42,4 +48,13 @@ def test_required_path_is_owned(path: str) -> None:
 
 @pytest.mark.parametrize("pattern", _patterns())
 def test_every_pattern_names_something_that_exists(pattern: str) -> None:
-    assert (REPO_ROOT / pattern.lstrip("/")).exists(), pattern
+    """A literal pattern must exist; a glob pattern must match at least one file.
+
+    GitHub silently ignores a pattern that matches nothing, so a typo in a
+    wildcard pattern is a silent coverage drop the same way a renamed path is.
+    """
+    relative = pattern.lstrip("/")
+    if "*" in relative:
+        assert list(REPO_ROOT.glob(relative)), pattern
+    else:
+        assert (REPO_ROOT / relative).exists(), pattern

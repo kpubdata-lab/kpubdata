@@ -2,10 +2,19 @@
 /.github/                         @yeongseon
 /src/kpubdata/config.py           @yeongseon
 /src/kpubdata/transport/          @yeongseon
-/src/kpubdata/specs/schema.json   @yeongseon
+/src/kpubdata/specs/              @yeongseon
 /docs/governance/                 @yeongseon
 # Credential host allowlist (#519, #629)
 /src/kpubdata/_hosts.py           @yeongseon
+# Evidence creation and judgement (#714) — the recorder, the verifier, the
+# authorship gate, and the evidence files themselves. A dataset is "verified"
+# by these paths; whoever changes them changes what verified means.
+/scripts/record.py                @yeongseon
+/scripts/verify_spec.py           @yeongseon
+/scripts/check_fixture_authorship.py @yeongseon
+/tests/fixtures/**/*.raw.json     @yeongseon
+/tests/fixtures/**/*.meta.json    @yeongseon
+/tests/fixtures/**/*.expected.json @yeongseon
 # Run by jobs holding `contents: write` — release notes, version, titles, window (#629, #685)
 /scripts/release_notes.py         @yeongseon
 /scripts/set_version.py           @yeongseon
