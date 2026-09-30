@@ -282,19 +282,19 @@ def test_verify_passes_legacy_evidence_without_a_spec_digest(
     them is the issue's non-goal, so absence reports, not fails."""
     _record_apt(tmp_path)
     monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
-    meta_path = next((tmp_path / "datago" / "apt_trade").glob("*.meta.json"))
-    meta = json.loads(meta_path.read_text(encoding="utf-8"))
-    del meta["spec_sha256"]
-    meta_path.write_text(
-        json.dumps(meta, ensure_ascii=False, sort_keys=True, indent=1) + "\n",
-        encoding="utf-8",
-    )
+    for meta_path in (tmp_path / "datago" / "apt_trade").glob("*.meta.json"):
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        del meta["spec_sha256"]
+        meta_path.write_text(
+            json.dumps(meta, ensure_ascii=False, sort_keys=True, indent=1) + "\n",
+            encoding="utf-8",
+        )
 
     steps = verify_mod._verify_fixtures(_spec("datago.apt_trade"))
 
     assert all(step.passed for step in steps)
     binding = [step for step in steps if "spec 결속" in step.name]
-    assert binding and "legacy" in binding[0].detail
+    assert binding and all("legacy" in step.detail for step in binding)
 
 
 def test_verify_fails_when_spec_field_changed(
