@@ -10,6 +10,7 @@
 >
 > - [KPubData Builder](https://github.com/yeongseon/kpubdata-builder) — KPubData를 활용해 재현 가능한 데이터셋·테이블을 생성하고 관리
 > - [KPubData Studio](https://github.com/yeongseon/kpubdata-studio) — KPubData Builder를 위한 시각적 작업공간
+> - [KPubData Watch](https://github.com/yeongseon/kpubdata-watch) — 공공데이터 API 를 지속 관측해 지금 믿고 쓸 수 있는지 근거와 함께 공개
 
 공공데이터 API 는 기관마다 인증 방식·응답 형식·페이지 처리가 제각각입니다.
 KPubData 는 그 차이를 어댑터가 흡수해, 하나의 Python 인터페이스로 탐색하고 수집하게
@@ -91,6 +92,7 @@ API 키 발급과 환경 변수 설정은 [빠른 시작](docs/quickstart.md), �
 | **kpubdata** | 수집과 정규화 — 이 저장소 |
 | [kpubdata-builder](https://github.com/yeongseon/kpubdata-builder) | 파이프라인과 게시 |
 | [kpubdata-studio](https://github.com/yeongseon/kpubdata-studio) | 화면과 워크플로 |
+| [kpubdata-watch](https://github.com/yeongseon/kpubdata-watch) | 공공데이터 신뢰성 관측 — KPubData 에만 의존 |
 
 ## 라이선스
 

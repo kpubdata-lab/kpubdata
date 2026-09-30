@@ -12,7 +12,8 @@ KPubData
 KPubData
 ├── KPubData          독립 Python SDK · 한국 공공데이터 접근
 ├── KPubData Builder  수집 · 변환 · Snapshot · 질의 (KPubData 사용)
-└── KPubData Studio   Catalog · Tables · SQL · Lineage · Quality (Builder 사용)
+├── KPubData Studio   Catalog · Tables · SQL · Lineage · Quality (Builder 사용)
+└── KPubData Watch    공공데이터 API 신뢰성 관측 · Public Status (KPubData 사용, Builder 의 형제)
 ```
 
 AI 기능은 **독립 브랜드를 만들지 않는다.**
@@ -48,6 +49,7 @@ KPubData — Korean public data, ready to query.
 | **KPubData** | 한국 공공 API 의 차이를 흡수하는 독립 Python SDK |
 | **Builder** | KPubData를 활용해 재현 가능한 데이터셋·테이블을 생성하고 관리 |
 | **Studio** | 한국 공공데이터를 수집하고, 출처와 이용 조건을 유지한 스냅샷으로 관리하며, 표와 SQL 로 분석하는 작업공간 |
+| **Watch** | 한국 공공데이터 API 를 지속 관측해 "이 공공데이터를 지금 믿고 사용할 수 있는가?" 를 근거와 함께 공개하는 Public Data Reliability 서비스 |
 
 ## 저장소 이름과 제품 이름은 다르다
 
@@ -57,9 +59,10 @@ KPubData — Korean public data, ready to query.
 kpubdata          → 제품명 KPubData
 kpubdata-builder  → 제품명 KPubData Builder
 kpubdata-studio   → 제품명 KPubData Studio
+kpubdata-watch    → 제품명 KPubData Watch
 ```
 
-패키지 이름(`kpubdata`, `kpubdata-builder`)도 그대로다. rename 은 설치된 사용자와
+패키지 이름(`kpubdata`, `kpubdata-builder`, `kpubdata-watch`)도 그대로다. rename 은 설치된 사용자와
 의존 관계를 깨뜨리는 일이고, 제품명 정리와는 별개 결정이다. **향후 rename 여부는
 결정하지 않은 상태로 남긴다.**
 

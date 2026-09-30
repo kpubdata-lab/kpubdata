@@ -8,6 +8,7 @@
 >
 > - [KPubData Builder](https://github.com/yeongseon/kpubdata-builder) — builds and manages reproducible datasets and tables on top of KPubData
 > - [KPubData Studio](https://github.com/yeongseon/kpubdata-studio) — a visual workspace for KPubData Builder
+> - [KPubData Watch](https://github.com/yeongseon/kpubdata-watch) — continuously observes Korean public data APIs and publishes, with evidence, whether they can be trusted right now
 
 [한국어](./README.md)
 
@@ -97,6 +98,7 @@ The project runs on [POLICY.md](docs/governance/POLICY.md) and
 | **kpubdata** | Collection and normalisation — this repository |
 | [kpubdata-builder](https://github.com/yeongseon/kpubdata-builder) | Pipeline and publishing |
 | [kpubdata-studio](https://github.com/yeongseon/kpubdata-studio) | Screens and workflow |
+| [kpubdata-watch](https://github.com/yeongseon/kpubdata-watch) | Public data reliability — depends on KPubData only |
 
 ## 라이선스
 

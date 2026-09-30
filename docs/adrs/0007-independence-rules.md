@@ -4,6 +4,8 @@
 
 채택됨(Accepted) — 2026-09-30
 
+2026-10-01 추가 — §5 KPubData Watch (#703). 기존 §1–§4 는 바꾸지 않았다.
+
 ## 요약 (English summary)
 
 > KPubData is a standalone Python SDK. KPubData Builder and KPubData Studio are
@@ -14,6 +16,12 @@
 > (underscore modules, internal helpers, fixtures, repository layout). It does not
 > change ADR 0004; whether Studio keeps sharing Builder's version number is left
 > to the owner.
+>
+> *Added 2026-10-01 (#703):* KPubData Watch (`kpubdata-watch`) is a sibling of
+> Builder. The allowed edge is **Watch → KPubData**; **Watch → Builder** and
+> **Watch → Studio** are forbidden, as is any edge into Watch from KPubData. Like
+> Builder, Watch may use only KPubData's documented public API (§3), so rules 5
+> and 6 apply to Watch as well. Rules 13–15 record this.
 
 ## 배경
 
@@ -101,6 +109,47 @@ Builder → Studio)은 금지다. Studio 는 KPubData 에 직접 의존하지 �
 다른 저장소를 함께 고치지 않고도 설치·테스트·릴리스할 수 있다 — 로 읽는다. Studio 가
 Builder 와 같은 버전 번호를 계속 쓸지는 소유자가 정할 열린 결정으로 남긴다.
 
+### 5. KPubData Watch — 2026-10-01 추가
+
+2026-09-30 새 제품 저장소 [`kpubdata-watch`](https://github.com/yeongseon/kpubdata-watch) 가
+생겼다. **KPubData Watch** 는 한국 공공데이터 API 를 지속 관측해 "이 공공데이터를 지금 믿고
+사용할 수 있는가?" 를 근거와 함께 공개하는 Public Data Reliability 서비스다 (#703).
+
+Watch 는 Builder 가 만든 산출물이 아니라 공공 API 자체를 관측한다. Builder 에 의존하면 관측
+대상과 무관한 파이프라인의 변경·릴리스에 묶인다. 그래서 Watch 는 Builder 의 하위 단계가 아니라
+**형제 제품**이다 (Watch PRD D-016,
+[Watch ADR 0004](https://github.com/yeongseon/kpubdata-watch/blob/main/docs/decisions/0004-depend-on-kpubdata-only.md)).
+
+```text
+kpubdata-watch  →  kpubdata            (허용)
+kpubdata-watch  →  kpubdata-builder    (금지)
+kpubdata-watch  →  kpubdata-studio     (금지)
+```
+
+§1 의 한 방향 원칙은 그대로다. Watch 가 들어와도 KPubData 는 여전히 아무것에도 의존하지 않는
+맨 아래 층이고, Watch 로 향하는 의존(KPubData → Watch, Builder → Watch, Studio → Watch)은 없다.
+Builder 와 Watch 사이에 상호운용이 필요해지면 의존이 아니라 Manifest · Artifact · Protocol 로
+처리한다.
+
+규칙 1–12 는 바꾸지 않고 다음을 덧붙인다.
+
+| # | 규칙 |
+|---|---|
+| 13 | KPubData 는 KPubData Watch(`kpubdata-watch`)에 의존하지 않는다. |
+| 14 | Watch 는 Builder 와 **같은 조건으로** KPubData 에 의존한다 — 문서화된 공개 API(§3)에만 의존하고 비공개 구현 세부에는 의존하지 않는다. 규칙 5·6 과 §3 의 공개/비공개 경계가 Watch 에도 그대로 적용된다. |
+| 15 | Watch 는 Builder·Studio 에 의존하지 않는다. |
+
+규칙 14·15 는 Watch 저장소 쪽에서 지키는 규칙이며, Watch 의 `scripts/check_independence.py`
+가 `kpubdata_builder`·`kpubdata_studio` import 와 의존성 선언을 CI 에서 막는다. 규칙 13 은 이
+저장소의 규칙이지만 아직 이 저장소의 게이트(#668)가 `kpubdata_watch` 를 검사하지 않는다 —
+게이트 확장은 별도 작업으로 남긴다.
+
+규칙 3·4 의 "Builder·Studio 없이" 는 Watch 에도 같은 뜻으로 읽는다. 공개 API 를 바꿀 때
+"Watch 가 이렇게 쓰니까" 도 근거가 되지 않는다.
+
+Watch 의 릴리스 주기, POLICY 대상 저장소 목록, compatibility 표에 Watch 열을 둘지는 이 절이
+정하지 않는다 — #703 의 열린 결정으로 남긴다.
+
 ## 결과
 
 - KPubData 의 README 와 문서는 KPubData 를 독립 SDK 로 소개하고, Builder·Studio 를
@@ -120,6 +169,7 @@ Builder 와 같은 버전 번호를 계속 쓸지는 소유자가 정할 열린 
 
 ## 참조
 
-- #666 (명칭 정리), #667 (이 ADR), #668 (규칙 1·2 의 CI 게이트)
+- #666 (명칭 정리), #667 (이 ADR), #668 (규칙 1·2 의 CI 게이트), #703 (§5 KPubData Watch 추가)
+- [KPubData Watch ADR 0004](https://github.com/yeongseon/kpubdata-watch/blob/main/docs/decisions/0004-depend-on-kpubdata-only.md) — Watch 쪽의 같은 결정
 - [ADR 0004](0004-versioning-and-release.md), [`docs/compatibility.md`](../compatibility.md)
 - [`docs/product-family-architecture.md`](../product-family-architecture.md)
