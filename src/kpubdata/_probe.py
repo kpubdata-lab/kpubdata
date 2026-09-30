@@ -13,6 +13,10 @@ four-way split: **failing to distinguish retirement from a transient
 outage makes a quota overrun read as retirement**, telling the user to
 give up on something they only needed to wait for (#514).
 
+The public surface is ``Client.probe`` / ``Client.probe_all`` together with
+``kpubdata.ProbeResult`` and ``kpubdata.PROBE_STATUSES`` (#694); this module is
+the implementation and stays private.
+
 It reuses the fast-fail transport settings of ``batch_record.py``
 (15s timeout, zero retries) — failing datasets must not slow the whole
 run, and here failure is a normal result.
@@ -84,7 +88,12 @@ _CODE_STATUS: Mapping[str, ProbeStatus] = {
 
 @dataclass(frozen=True)
 class ProbeResult:
-    """Reachability verdict for a single dataset."""
+    """Reachability verdict for a single dataset.
+
+    Public as ``kpubdata.ProbeResult`` and returned by ``Client.probe`` and
+    ``Client.probe_all`` (#694). ``status`` is one of ``PROBE_STATUSES``.
+    ``detail`` never carries a configured key.
+    """
 
     dataset_id: str
     service_id: str
@@ -107,7 +116,9 @@ def service_id_of(spec: SpecDefinition) -> str:
     return path.rsplit("/", 1)[-1] if path else ""
 
 
-def classify(error: BaseException | None) -> tuple[ProbeStatus, str]:
+def classify(
+    error: BaseException | None, *, secrets: tuple[str, ...] = ()
+) -> tuple[ProbeStatus, str]:
     """Map a call outcome onto one of ``PROBE_STATUSES``.
 
     The provider result code is consulted first where there is one. ``executor``
@@ -121,10 +132,13 @@ def classify(error: BaseException | None) -> tuple[ProbeStatus, str]:
     ``TransportError``, so checking the base first would bury them. A quota
     overrun previously classified as retirement, which told a user to abandon
     something they only had to wait for.
+
+    ``secrets`` are masked out of the message **before** it is truncated, so a
+    key cut in half at the truncation boundary cannot survive as a prefix (#694).
     """
     if error is None:
         return "available", ""
-    detail = f"{type(error).__name__}: {str(error)[:120]}"
+    detail = f"{type(error).__name__}: {_redact(str(error), secrets)[:120]}"
 
     code = getattr(error, "provider_code", None)
     if isinstance(code, str) and code.strip() in _CODE_STATUS:
@@ -170,6 +184,42 @@ def classify(error: BaseException | None) -> tuple[ProbeStatus, str]:
     return "network_error", detail
 
 
+def _redact(text: str, secrets: tuple[str, ...]) -> str:
+    """Replace every form of every secret in ``text`` with ``[REDACTED]``.
+
+    The transport already masks credentials in the URLs it puts into exception
+    messages. This is the second line: a provider that echoes the key back in an
+    error body, or a message built somewhere the transport does not see, must
+    still not carry the key into ``ProbeResult.detail`` (#694).
+    """
+    from kpubdata.core.executor import _secret_forms
+
+    for form in _secret_forms(secrets):
+        text = text.replace(form, "[REDACTED]")
+    return text
+
+
+def _configured_secrets(config: KPubDataConfig, provider: str | None) -> tuple[str, ...]:
+    """Every key value this probe could have sent."""
+    values = {value for value in config.provider_keys.values() if value}
+    if provider:
+        resolved = config.get_provider_key(provider)
+        if resolved:
+            values.add(resolved)
+    return tuple(values)
+
+
+def new_probe_transport() -> HttpTransport:
+    """A fast-fail transport: ``PROBE_TIMEOUT_SECONDS``, ``PROBE_RETRIES``, no cache.
+
+    A cache or retries would interfere with the question "is this reachable with
+    this key right now", and here failure is a normal result.
+    """
+    return HttpTransport(
+        config=TransportConfig(timeout=PROBE_TIMEOUT_SECONDS, max_retries=PROBE_RETRIES, cache=None)
+    )
+
+
 def _now() -> str:
     return datetime.now(tz=timezone.utc).isoformat(timespec="seconds")
 
@@ -211,12 +261,22 @@ def probe_dataset(
             detail=f"no credential configured for provider {missing!r}",
         )
 
-    resolved_transport = transport or HttpTransport(
-        config=TransportConfig(timeout=PROBE_TIMEOUT_SECONDS, max_retries=PROBE_RETRIES, cache=None)
-    )
+    owned = transport is None
+    resolved_transport = transport if transport is not None else new_probe_transport()
+    try:
+        return _call_and_classify(spec, resolved_config, resolved_transport)
+    finally:
+        if owned:
+            resolved_transport.close()
+
+
+def _call_and_classify(
+    spec: SpecDefinition, config: KPubDataConfig, transport: HttpTransport
+) -> ProbeResult:
+    """Make the one probe call and classify its outcome."""
     from kpubdata.core.executor import SpecExecutor
 
-    executor = SpecExecutor(config=resolved_config, transport=resolved_transport)
+    executor = SpecExecutor(config=config, transport=transport)
     example = spec.examples[0] if spec.examples else None
     query = (
         Query(filters=dict(example.params), page=example.page, page_size=example.page_size)
@@ -232,7 +292,8 @@ def probe_dataset(
     except Exception as exc:  # noqa: BLE001 — the probe must classify every failure
         error = exc
 
-    status, detail = classify(error)
+    provider = spec.auth.provider_key or spec.provider
+    status, detail = classify(error, secrets=_configured_secrets(config, provider))
     return ProbeResult(
         dataset_id=spec.id,
         service_id=service_id_of(spec),
@@ -263,19 +324,30 @@ def probe_all(
     config: KPubDataConfig | None = None,
     transport: HttpTransport | None = None,
 ) -> list[ProbeResult]:
-    """Probe every dataset in scope."""
-    if dataset_id:
-        one = probe_dataset(dataset_id, config=config, transport=transport)
-        return [one] if one else []
+    """Probe every dataset in scope.
 
-    results: list[ProbeResult] = []
-    for spec in discover_specs():
-        if provider and spec.provider != provider:
-            continue
-        one = probe_dataset(spec.id, config=config, transport=transport)
-        if one is not None:
-            results.append(one)
-    return results
+    One fast-fail transport is shared by the whole run and closed at the end,
+    unless the caller passed its own.
+    """
+    resolved_config = config or KPubDataConfig.from_env()
+    owned = transport is None
+    resolved_transport = transport if transport is not None else new_probe_transport()
+    try:
+        if dataset_id:
+            one = probe_dataset(dataset_id, config=resolved_config, transport=resolved_transport)
+            return [one] if one else []
+
+        results: list[ProbeResult] = []
+        for spec in discover_specs():
+            if provider and spec.provider != provider:
+                continue
+            one = probe_dataset(spec.id, config=resolved_config, transport=resolved_transport)
+            if one is not None:
+                results.append(one)
+        return results
+    finally:
+        if owned:
+            resolved_transport.close()
 
 
 def render_apply_report(results: list[ProbeResult]) -> str:

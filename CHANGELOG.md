@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Public probe API** (#694): `Client.probe(dataset_id) -> ProbeResult | None` and `Client.probe_all(*, provider=None) -> list[ProbeResult]` classify reachability with the client's own keys, and `ProbeResult` and `PROBE_STATUSES` (the ADR 0005 `ProbeStatus` vocabulary) are exported from `kpubdata`. Probing keeps its fast-fail transport (`PROBE_TIMEOUT_SECONDS`, `PROBE_RETRIES`, no cache), and a run shares one transport that is closed at the end — previously every dataset opened its own and none was closed. `kpubdata probe` now goes through these methods; its output and report are unchanged, and it now honors the global `--provider-key` option, which it silently ignored before.
+- **Explicit-keys-only mode** (#694): `Client(..., env_keys=False)` (backed by `KPubDataConfig.env_fallback`) uses only `provider_keys` and never reads a credential from the environment — not `KPUBDATA_<P>_API_KEY`, `<P>_API_KEY` or `KPUBDATA_SGIS_CONSUMER_SECRET`. A service probing with a user's key no longer has a missing entry silently filled with the operator's key. With no key the probe makes no call and reports `auth_unknown`. The default (`env_keys=True`) is unchanged.
+
 ### Changed
 
 - **Release rule** (#685): kpubdata now releases on demand — when a downstream repository is blocked, for a security fix, or for accumulated changes — at most once every seven days, and is no longer part of the monthly release week, which stays for kpubdata-builder and kpubdata-studio. `scripts/release_window.py`, wrapped by the `.github/actions/release-window` composite action, is the one implementation: `on-demand` refuses a release less than seven days after the last final GitHub Release, `monthly` refuses outside the Monday-to-Sunday week holding the month's last Thursday, both in KST, and a critical patch passes either only when it names its issue (`critical_patch`/`critical_issue` inputs, or a `Critical-Patch: #N` line in the release pull request). `release.yml` runs it first on both the prepare and the release path; a dry run reports the decision without stopping. `docs/compatibility.md` §5.1, AGENTS.md and POLICY say the same.
@@ -14,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - The release workflows after #683 (ref validation): `publish-pypi.yml`'s tag pattern was written `\\.`, which grep reads as a literal backslash, so no version tag matched and every dispatched publish failed — it is one pattern now, `v0.8.0` and `v0.7.1a1` match and `v0.8` does not. The ref is validated on the `release: published` path too, reaches the shell through the environment instead of `${{ inputs.ref }}`, must be a tag in this repository and must be on `main` (`git merge-base --is-ancestor`). In `release.yml` the merge path only fires for pull requests into `main`, a re-run after the tag was pushed but `gh release create` failed finishes the release when the tag is on the same commit instead of stopping at "tag must not exist", and the `release` concurrency group moved from the workflow to the two jobs, so ordinary pull requests closing no longer queue in it and cannot cancel a waiting release. #683 itself had no CHANGELOG entry: it makes a release run only from `main` and validates the publish ref.
+
+### Security
+
+- Configured keys are masked out of `ProbeResult.detail` by value (every percent-encoded form) before the message is truncated, so a key cut at the boundary cannot survive as a prefix (#694).
+- httpx's own INFO line `HTTP Request: GET <url> ...` carried the query string, and with it a data.go.kr `serviceKey`, verbatim. A filter on the `httpx` logger now masks the credential parameters named in `SENSITIVE_PARAM_KEYS` (#694).
 
 ### Documentation
 

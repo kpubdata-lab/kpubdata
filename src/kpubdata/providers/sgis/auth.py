@@ -113,7 +113,11 @@ class SgisAuthClient:
     def _resolve_credentials(self) -> tuple[str, str]:
         """Resolve credentials from configuration and defaults."""
         consumer_key_raw = self._config.require_provider_key(_SGIS_PROVIDER)
-        consumer_secret_env = os.environ.get(_SECRET_ENV)
+        # The explicit-keys-only mode (#694) reads no credential from the
+        # environment, and the consumer secret is a credential.
+        consumer_secret_env = (
+            os.environ.get(_SECRET_ENV) if getattr(self._config, "env_fallback", True) else None
+        )
 
         if consumer_secret_env:
             return consumer_key_raw, consumer_secret_env

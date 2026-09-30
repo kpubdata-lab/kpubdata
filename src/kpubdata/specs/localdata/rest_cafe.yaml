@@ -1,12 +1,9 @@
-# catalogue 일괄 변환 생성 (scripts/gen_specs_from_catalogue.py) — 수동 보강 가능
 id: localdata.rest_cafe
 provider: localdata
 title: 휴게음식점 인허가 (Rest Cafe Permits)
 description: 휴게음식점 인허가 (Rest Cafe Permits) 데이터셋 (catalogue 일괄 변환).
-
 source:
   url: https://www.data.go.kr
-
 endpoint:
   base_url: http://apis.data.go.kr/1741000/rest_cafes
   operation: info
@@ -16,14 +13,11 @@ endpoint:
     values:
       json: json
       xml: xml
-
 auth:
   type: query_param
   param_name: serviceKey
   provider_key: datago
-
 params: []
-
 response:
   format: json
   envelope: datago_standard
@@ -32,14 +26,15 @@ response:
   error:
     style: header_result_code
     code_path: response.header.resultCode
-    ok_values: ["00", "000", 0]
-
+    ok_values:
+    - '00'
+    - '000'
+    - 0
 pagination:
   type: page_no_rows
   page_param: pageNo
   size_param: numOfRows
   max_size: 100
-
 fields: []
 
 license:
@@ -47,11 +42,14 @@ license:
   redistribution: allowed
   note: "Terms not yet confirmed — fill from provider page (#524)"
 examples:
-  - name: default
-    description: 필터 없음 첫 페이지
-    params: {}
-    page: 1
-    page_size: 10
-
+- name: default
+  description: 필터 없음 첫 페이지
+  params: {}
+  page: 1
+  page_size: 10
 status: active
-last_verified: "2026-09-09"
+last_verified: '2026-09-09'
+license:
+  pii_columns:
+  - TELNO
+  - TRDTN_BSNSSP_PRINC_FD
