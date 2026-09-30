@@ -5,6 +5,13 @@
   "update_policy": "Update on every kpubdata release. Builder/Studio link here, never copy.",
   "matrix": [
     {
+      "kpubdata": ">=0.8.0,<0.9",
+      "builder": "latest",
+      "studio": "latest",
+      "status": "supported",
+      "note": "0.8.0 released 2026-09-30. Licence fields, schema(), provenance, validation report."
+    },
+    {
       "kpubdata": "main",
       "builder": "main",
       "studio": "main",
