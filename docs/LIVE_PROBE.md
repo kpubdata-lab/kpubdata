@@ -58,23 +58,28 @@ it. Keys never appear in `ProbeResult.detail` or in log records.
   "runner": "github-actions",
   "results": [
     {
-      "dataset": "datago.apt_trade",
+      "dataset_id": "datago.apt_trade",
+      "service_id": "RTMSDataSvcAptTrade",
       "status": "available",
       "http_status": 200,
-      "result_code": "00",
+      "result_code": null,
       "classification": "HEALTHY",
       "latency_ms": 342,
-      "schema_hash": "a3f5c8...",
-      "probed_at": "2026-09-29T00:00:01+00:00"
+      "schema_hash": "a3f5c8d0e1b2",
+      "probed_at": "2026-09-29T00:00:01+00:00",
+      "detail": ""
     },
     {
-      "dataset": "datago.airkorea_forecast",
+      "dataset_id": "datago.airkorea_forecast",
+      "service_id": "ArpltnInforInqireSvc",
       "status": "application_required",
       "http_status": 403,
       "result_code": "30",
       "classification": "APPLICATION_REQUIRED",
-      "latency_ms": 0,
-      "probed_at": "2026-09-29T00:00:02+00:00"
+      "latency_ms": 187,
+      "schema_hash": null,
+      "probed_at": "2026-09-29T00:00:02+00:00",
+      "detail": "AuthError: SERVICE_KEY_IS_NOT_REGISTERED"
     }
   ]
 }
@@ -87,6 +92,13 @@ it. Keys never appear in `ProbeResult.detail` or in log records.
 - `classification` is the drift signal that outcome feeds the state machine, one of
   `DriftClassification`, or `null` when the outcome says nothing about the upstream
   API. The mapping is `PROBE_TO_DRIFT`.
+- `result_code` is the provider code read off the **raised error** — on success it
+  is `null`, because a successful query does not parse the envelope. `http_status`
+  is `200` on success (the executor raises on anything else) and the error's status
+  otherwise.
+- `schema_hash` fingerprints the field names of the returned page; it is `null`
+  when the call failed or the page was empty. Every evidence field is `null` where
+  it could not be observed — never guessed.
 - A schema change is not a probe outcome. The drift step compares `schema_hash`
   with the previous run and emits `SCHEMA_CHANGED` itself.
 

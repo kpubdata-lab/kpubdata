@@ -143,6 +143,11 @@ def _build_parser() -> argparse.ArgumentParser:
     _ = probe_parser.add_argument(
         "--output", help="Write the report here instead of the default location"
     )
+    _ = probe_parser.add_argument(
+        "--runner",
+        default="local",
+        help="Record who ran the probe in the report header (nightly CI uses github-actions)",
+    )
 
     scaffold_parser = subparsers.add_parser(
         "scaffold", help="Generate skeleton files for a new provider adapter"
@@ -265,7 +270,7 @@ def _handle_probe_command(args: argparse.Namespace, *, provider_keys: dict[str, 
     # for specs that have since been removed or renamed, and the report would go
     # on naming a dataset that no longer exists.
     rows = merge_with_existing(results, report_path) if filtered else results
-    write_report(rows, report_path)
+    write_report(rows, report_path, runner=cast(str, getattr(args, "runner", None) or "local"))
     counts = summarize(results)
     print(
         "프로브 "

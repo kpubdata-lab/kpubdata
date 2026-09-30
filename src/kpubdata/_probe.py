@@ -24,7 +24,9 @@ run, and here failure is a normal result.
 
 from __future__ import annotations
 
+import hashlib
 import json
+import time
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -33,7 +35,7 @@ from urllib.parse import urlsplit
 
 from kpubdata.config import KPubDataConfig
 from kpubdata.core import status as _status
-from kpubdata.core.models import DatasetRef, Query
+from kpubdata.core.models import DatasetRef, Query, RecordBatch
 from kpubdata.core.spec import SpecDefinition, discover_specs, find_spec
 from kpubdata.exceptions import (
     AuthError,
@@ -93,6 +95,14 @@ class ProbeResult:
     Public as ``kpubdata.ProbeResult`` and returned by ``Client.probe`` and
     ``Client.probe_all`` (#694). ``status`` is one of ``PROBE_STATUSES``.
     ``detail`` never carries a configured key.
+
+    The evidence fields (#625, docs/LIVE_PROBE.md) feed drift detection.
+    ``http_status`` and ``result_code`` are read off the raised error; a
+    successful query implies HTTP 200 but does not parse the envelope code,
+    so ``result_code`` stays ``None`` on success. ``latency_ms`` measures the
+    one call. ``schema_hash`` fingerprints the field names of the returned
+    page, so the drift step can see ``SCHEMA_CHANGED`` without re-deriving
+    it. Each field is ``None`` where it could not be observed.
     """
 
     dataset_id: str
@@ -100,6 +110,61 @@ class ProbeResult:
     status: ProbeStatus
     probed_at: str
     detail: str = ""
+    http_status: int | None = None
+    result_code: str | None = None
+    latency_ms: int | None = None
+    schema_hash: str | None = None
+    classification: _status.DriftClassification | None = None
+
+
+def _classification_of(status: ProbeStatus) -> _status.DriftClassification | None:
+    """The drift signal this probe outcome feeds the state machine with."""
+    try:
+        return _status.PROBE_TO_DRIFT.get(_status.ProbeStatus(status))
+    except ValueError:
+        return None
+
+
+def _schema_hash(items: list[dict[str, object]]) -> str | None:
+    """Fingerprint the field names of one page of records (docs/LIVE_PROBE.md).
+
+    The drift step compares consecutive hashes to see ``SCHEMA_CHANGED``; the
+    values are excluded on purpose — data changes every day, field names are
+    the contract. ``None`` for an empty page: there is no schema to
+    fingerprint, and reporting a hash would claim one.
+    """
+    if not items:
+        return None
+    fields = sorted({key for record in items for key in record})
+    digest = hashlib.sha256("\x1f".join(fields).encode("utf-8")).hexdigest()
+    return digest[:12]
+
+
+def _row_int(value: object) -> int | None:
+    """Rebuild an optional int from a report row, tolerating anything else."""
+    if isinstance(value, bool) or not isinstance(value, int):
+        return None
+    return value
+
+
+def _row_str(value: object) -> str | None:
+    """Rebuild an optional non-empty string from a report row."""
+    return value if isinstance(value, str) and value else None
+
+
+def _row_classification(value: object) -> _status.DriftClassification | None:
+    """Rebuild the classification from a report row; unknown names read as None.
+
+    A report older than the evidence fields has no classification at all, and
+    a hand-edited one can carry a name outside the vocabulary — guessing a
+    translation would invent a signal nobody measured.
+    """
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        return _status.DriftClassification(value)
+    except ValueError:
+        return None
 
 
 def service_id_of(spec: SpecDefinition) -> str:
@@ -259,6 +324,7 @@ def probe_dataset(
             status="auth_unknown",
             probed_at=_now(),
             detail=f"no credential configured for provider {missing!r}",
+            classification=_classification_of("auth_unknown"),
         )
 
     owned = transport is None
@@ -285,21 +351,31 @@ def _call_and_classify(
     )
 
     error: BaseException | None = None
+    batch: RecordBatch | None = None
+    started = time.perf_counter()
     try:
-        _ = executor.query(spec, _ref_for(spec), query)
+        batch = executor.query(spec, _ref_for(spec), query)
     except PublicDataError as exc:
         error = exc
     except Exception as exc:  # noqa: BLE001 — the probe must classify every failure
         error = exc
+    latency_ms = int((time.perf_counter() - started) * 1000)
 
     provider = spec.auth.provider_key or spec.provider
     status, detail = classify(error, secrets=_configured_secrets(config, provider))
+    http_status = 200 if error is None else getattr(error, "status_code", None)
+    result_code = None if error is None else getattr(error, "provider_code", None)
     return ProbeResult(
         dataset_id=spec.id,
         service_id=service_id_of(spec),
         status=status,
         probed_at=_now(),
         detail=detail,
+        http_status=http_status if isinstance(http_status, int) else None,
+        result_code=result_code if isinstance(result_code, str) and result_code else None,
+        latency_ms=latency_ms,
+        schema_hash=_schema_hash(batch.items) if error is None and batch is not None else None,
+        classification=_classification_of(status),
     )
 
 
@@ -416,6 +492,11 @@ def merge_with_existing(results: list[ProbeResult], path: Path) -> list[ProbeRes
                     status=status,
                     probed_at=str(row.get("probed_at", "")),
                     detail=str(row.get("detail", "")),
+                    http_status=_row_int(row.get("http_status")),
+                    result_code=_row_str(row.get("result_code")),
+                    latency_ms=_row_int(row.get("latency_ms")),
+                    schema_hash=_row_str(row.get("schema_hash")),
+                    classification=_row_classification(row.get("classification")),
                 )
             except (TypeError, ValueError):
                 continue
@@ -424,16 +505,21 @@ def merge_with_existing(results: list[ProbeResult], path: Path) -> list[ProbeRes
     return sorted(existing.values(), key=lambda r: r.dataset_id)
 
 
-def write_report(results: list[ProbeResult], path: Path = DEFAULT_REPORT_PATH) -> Path:
+def write_report(
+    results: list[ProbeResult], path: Path = DEFAULT_REPORT_PATH, *, runner: str = "local"
+) -> Path:
     """Write the report atomically.
 
     A crash midway through a plain ``write_text`` leaves a truncated JSON file,
     and the next run reads it as "no previous verdicts" -- so a partial write
-    silently erases the report it was extending.
+    silently erases the report it was extending. ``runner`` records who ran the
+    probe (docs/LIVE_PROBE.md names ``github-actions`` for the nightly run);
+    the drift step treats the header as provenance, not a signal.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "probed_at": _now(),
+        "runner": runner,
         "results": [asdict(r) for r in sorted(results, key=lambda r: r.dataset_id)],
     }
     rendered = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
