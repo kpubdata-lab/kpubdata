@@ -142,6 +142,7 @@ flowchart TD
 ```python
 from typing import Protocol
 
+
 class ProviderAdapter(Protocol):
     name: str
 
@@ -150,7 +151,9 @@ class ProviderAdapter(Protocol):
     def get_dataset(self, dataset_id: str) -> DatasetRef: ...
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch: ...
     def get_schema(self, dataset: DatasetRef) -> SchemaDescriptor | None: ...
-    def call_raw(self, dataset: DatasetRef, operation: str, params: dict[str, object]) -> object: ...
+    def call_raw(
+        self, dataset: DatasetRef, operation: str, params: dict[str, object]
+    ) -> object: ...
 ```
 
 ```mermaid

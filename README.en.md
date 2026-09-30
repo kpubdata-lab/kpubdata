@@ -54,10 +54,8 @@ pip install kpubdata
 ```python
 from kpubdata import Client
 
-client = Client()                              # reads KPUBDATA_DATAGO_API_KEY
-batch = client.dataset("datago.apt_trade").list(
-    LAWD_CD="11110", DEAL_YMD="202501"
-)
+client = Client()  # reads KPUBDATA_DATAGO_API_KEY
+batch = client.dataset("datago.apt_trade").list(LAWD_CD="11110", DEAL_YMD="202501")
 print(batch.records[0])
 ```
 
