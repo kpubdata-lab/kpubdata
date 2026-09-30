@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from kpubdata.client import Client
+from kpubdata.config import KPubDataConfig
 from kpubdata.core.capability import Operation, PaginationMode, QuerySupport
 from kpubdata.core.models import (
     DatasetRef,
@@ -13,7 +14,7 @@ from kpubdata.core.models import (
     SchemaDescriptor,
 )
 from kpubdata.core.representation import Representation
-from kpubdata.core.spec import LicenseSpec
+from kpubdata.core.spec import LicenseSpec, discover_specs, find_spec
 from kpubdata.exceptions import (
     AuthError,
     ConfigError,
@@ -33,6 +34,9 @@ from kpubdata.exceptions import (
 __all__ = [
     "__version__",
     "Client",
+    "KPubDataConfig",
+    "discover_specs",
+    "find_spec",
     "DatasetRef",
     "LicenseSpec",
     "Query",
