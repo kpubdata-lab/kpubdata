@@ -1,6 +1,6 @@
 """Adapter for the National Institute of Korean Language dictionary API (#222).
 
-stdict open API(\`stdict.korean.go.kr/api\`) does not use the standard data.go.kr
+stdict open API(`stdict.korean.go.kr/api`) does not use the standard data.go.kr
 envelope; it has a shape of its own::
 
     {"channel": {
@@ -8,9 +8,9 @@ envelope; it has a shape of its own::
         "item": [{"target_code": "...", "word": "...", "sense": [...], ...}],
     }}
 
-- Authentication uses the \`key\` query parameter, issued on the stdict site
-- Errors arrive in the JSON body as \`statusCode\` (\`"000"\` means success)
-- Pagination uses \`start\`/\`num\` (1-based start index, page size, max 100)
+- Authentication uses the `key` query parameter, issued on the stdict site
+- Errors arrive in the JSON body as `statusCode` (`"000"` means success)
+- Pagination uses `start`/`num` (1-based start index, page size, max 100)
 """
 
 from __future__ import annotations
@@ -196,9 +196,9 @@ class KoreanAdapter:
     ) -> tuple[list[dict[str, object]], int]:
         """Extract ``(items, total_count)`` from the stdict channel envelope.
 
-        A polysemous headword carries several \`sense\` entries. They are
+        A polysemous headword carries several `sense` entries. They are
         flattened to one record per sense, because headword plus definition is
-        the unit callers work with. Errors map from \`statusCode\`; \`019\`
+        the unit callers work with. Errors map from `statusCode`; `019`
         is an authentication failure and becomes AuthError.
         """
         status_code = payload.get("statusCode")
