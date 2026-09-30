@@ -1,0 +1,75 @@
+# Live probe — nightly reachability check (#465, #625)
+#
+# Runs `kpubdata probe` against real APIs and writes the result to
+# docs/status/probe-result.json. Consumers:
+#   - builder cross-repo E2E reads this to decide live vs fixture (#282)
+#   - drift detection compares consecutive results (#382)
+#
+# Fork PRs cannot access secrets, so the probe is skipped there entirely.
+name: Live probe
+
+on:
+  schedule:
+    - cron: "0 18 * * *"  # 03:00 KST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Probe all spec datasets
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Skip on fork PRs (no secrets available)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Run probe
+        env:
+          KPUBDATA_DATAGO_API_KEY: ${{ secrets.KPUBDATA_DATAGO_API_KEY }}
+          KPUBDATA_BOK_API_KEY: ${{ secrets.KPUBDATA_BOK_API_KEY }}
+          KPUBDATA_KOSIS_API_KEY: ${{ secrets.KPUBDATA_KOSIS_API_KEY }}
+          KPUBDATA_SEOUL_API_KEY: ${{ secrets.KPUBDATA_SEOUL_API_KEY }}
+          KPUBDATA_SGIS_API_KEY: ${{ secrets.KPUBDATA_SGIS_API_KEY }}
+          KPUBDATA_SGIS_CONSUMER_SECRET: ${{ secrets.KPUBDATA_SGIS_CONSUMER_SECRET }}
+          KPUBDATA_KIPRIS_API_KEY: ${{ secrets.KPUBDATA_KIPRIS_API_KEY }}
+          KPUBDATA_KOREAN_API_KEY: ${{ secrets.KPUBDATA_KOREAN_API_KEY }}
+          KPUBDATA_LAW_API_KEY: ${{ secrets.KPUBDATA_LAW_API_KEY }}
+        run: |
+          uv run kpubdata probe --output docs/status/probe-result.json
+
+      - name: Summarize
+        run: |
+          echo "## Probe results" >> $GITHUB_STEP_SUMMARY
+          uv run python -c "
+          import json
+          data = json.load(open('docs/status/probe-result.json'))
+          results = data.get('results', [])
+          from collections import Counter
+          counts = Counter(r.get('status', 'unknown') for r in results)
+          for status, count in sorted(counts.items()):
+              print(f'- {status}: {count}' >> open('$GITHUB_STEP_SUMMARY', 'a'))
+          "
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: probe-result
+          path: docs/status/probe-result.json
