@@ -279,6 +279,42 @@ def _parse_date(value: object, problems: list[str], label: str) -> date | None:
     return None
 
 
+#: What each KOGL (Korea Open Government License) type forbids: commercial use for types 2 and 4,
+#: modification for types 3 and 4. Type 1 forbids neither (#719).
+_KOGL_FORBIDS: dict[str, tuple[bool, bool]] = {
+    "공공누리_1유형": (False, False),
+    "공공누리_2유형": (True, False),
+    "공공누리_3유형": (False, True),
+    "공공누리_4유형": (True, True),
+}
+
+
+def _check_kogl_terms(
+    license_type: str | None,
+    commercial_use: bool | None,
+    modification_allowed: bool | None,
+    problems: list[str],
+) -> None:
+    """Refuse a licence whose KOGL type contradicts its own flags (#719).
+
+    A consumer may read either the type or the flags, so a spec that says
+    "type 3, modification allowed" tells two readers two different things.
+    Only an explicit ``True`` that the type forbids is refused; a flag left
+    undeclared says nothing.
+    """
+    if license_type is None or license_type not in _KOGL_FORBIDS:
+        return
+    no_commercial, no_modification = _KOGL_FORBIDS[license_type]
+    if no_commercial and commercial_use is True:
+        problems.append(
+            f"license.commercial_use is true, but {license_type} forbids commercial use"
+        )
+    if no_modification and modification_allowed is True:
+        problems.append(
+            f"license.modification_allowed is true, but {license_type} forbids modification"
+        )
+
+
 def _parse_license(raw: object, problems: list[str]) -> LicenseSpec | None:
     """Convert license section to LicenseSpec."""
     if raw is None:
@@ -326,11 +362,16 @@ def _parse_license(raw: object, problems: list[str]) -> LicenseSpec | None:
         else:
             problems.append("license.pii_columns은 문자열 리스트여야 합니다.")
 
+    license_type = _str_field("type")
+    commercial_use = _bool_field("commercial_use")
+    modification_allowed = _bool_field("modification_allowed")
+    _check_kogl_terms(license_type, commercial_use, modification_allowed, problems)
+
     return LicenseSpec(
-        type=_str_field("type"),
-        commercial_use=_bool_field("commercial_use"),
+        type=license_type,
+        commercial_use=commercial_use,
         attribution_required=_bool_field("attribution_required"),
-        modification_allowed=_bool_field("modification_allowed"),
+        modification_allowed=modification_allowed,
         note=_str_field("note"),
         redistribution=redistribution,
         attribution=_str_field("attribution"),

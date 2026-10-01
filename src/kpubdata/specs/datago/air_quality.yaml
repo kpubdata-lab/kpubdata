@@ -102,9 +102,9 @@ examples:
 status: active
 last_verified: '2026-09-09'
 license:
-  type: 공공누리_1유형
+  type: 공공누리_3유형
   commercial_use: true
   attribution_required: true
-  modification_allowed: true
+  modification_allowed: false
   redistribution: forbidden
   attribution: "공공누리 제3유형(변경금지) — 한국환경공단 대기오염정보"

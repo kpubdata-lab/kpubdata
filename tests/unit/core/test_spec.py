@@ -136,6 +136,71 @@ def test_from_mapping_license_bad_type_is_rejected() -> None:
     assert "license.commercial_use" in str(exc.value)
 
 
+def _licensed_spec(license_block: dict[str, object]) -> dict[str, object]:
+    return {
+        "id": "test.kogl",
+        "provider": "test",
+        "title": "KOGL",
+        "endpoint": {"base_url": "https://example.test/api", "operation": "op", "method": "GET"},
+        "auth": {"type": "none"},
+        "response": {
+            "format": "json",
+            "envelope": "datago_standard",
+            "error": {"style": "http_status"},
+        },
+        "pagination": {"type": "none"},
+        "status": "active",
+        "license": license_block,
+    }
+
+
+@pytest.mark.parametrize(
+    ("license_block", "field"),
+    [
+        ({"type": "공공누리_3유형", "modification_allowed": True}, "license.modification_allowed"),
+        ({"type": "공공누리_4유형", "modification_allowed": True}, "license.modification_allowed"),
+        ({"type": "공공누리_2유형", "commercial_use": True}, "license.commercial_use"),
+        ({"type": "공공누리_4유형", "commercial_use": True}, "license.commercial_use"),
+    ],
+)
+def test_kogl_type_contradicting_its_flags_is_rejected(
+    license_block: dict[str, object], field: str
+) -> None:
+    """A KOGL type and a flag that says the opposite cannot both be published (#719)."""
+    with pytest.raises(InvalidRequestError) as exc:
+        from_mapping(_licensed_spec(license_block))
+
+    assert field in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    "license_block",
+    [
+        {"type": "공공누리_1유형", "commercial_use": True, "modification_allowed": True},
+        {"type": "공공누리_3유형", "commercial_use": True, "modification_allowed": False},
+        {"type": "공공누리_4유형", "commercial_use": False, "modification_allowed": False},
+        {"type": "공공누리_3유형"},
+        {"type": "KRX_별도계약", "commercial_use": True, "modification_allowed": True},
+    ],
+)
+def test_consistent_or_undeclared_kogl_terms_load(license_block: dict[str, object]) -> None:
+    spec = from_mapping(_licensed_spec(license_block))
+
+    assert spec.license is not None
+    assert spec.license.type == license_block["type"]
+
+
+def test_bundled_specs_have_no_kogl_contradiction() -> None:
+    """Every bundled spec loads under the KOGL check; air_quality is type 3 (#719)."""
+    specs = {spec.id: spec for spec in discover_specs()}
+    air = specs["datago.air_quality"].license
+
+    assert air is not None
+    assert air.type == "공공누리_3유형"
+    assert air.modification_allowed is False
+    assert air.redistribution == "forbidden"
+
+
 def test_from_mapping_license_none_when_absent() -> None:
     """license section is None when absent."""
     data: dict[str, object] = {
