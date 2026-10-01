@@ -110,7 +110,12 @@ jobs:
           # 변경은 "이번 데이터셋의 줄 한 줄 삭제"뿐이다. 추가·교체·스펙이
           # https 로 바뀌지 않은 삭제는 needs-human 으로 멈춘다 — 개수만 보는
           # 래칫을 에이전트 PR 로 다시 넓히는 구멍(일반화는 #766)을 여기서 막는다.
-          if [ -n "$DATASET" ] && ! python3 scripts/check_baseline_shrink.py --dataset "$DATASET"; then
+          # 가드는 에이전트가 작업 트리를 마음대로 쓴 뒤에 돌기 때문에 실행하는
+          # 사본은 기준 커밋에서 꺼낸다 — 작업 트리의 스크립트를 그대로 실행하면
+          # 에이전트(이슈 본문이 입력이다)가 가드를 "항상 통과"으로 바꿔도
+          # 스크립트 수정은 staging 되지 않아 흔적이 남지 않는다.
+          git show HEAD:scripts/check_baseline_shrink.py > /tmp/check_baseline_shrink.py
+          if [ -n "$DATASET" ] && ! python3 /tmp/check_baseline_shrink.py --dataset "$DATASET" --root "$PWD"; then
             gh issue edit "$ISSUE_NUMBER" --add-label needs-human || true
             exit 1
           fi

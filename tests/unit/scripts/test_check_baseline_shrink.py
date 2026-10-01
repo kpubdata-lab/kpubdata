@@ -127,6 +127,27 @@ def test_main_passes_the_earned_shrink_end_to_end(script, tmp_path: Path) -> Non
     )
 
 
+def test_a_quoted_base_url_still_counts_as_https(script, tmp_path: Path) -> None:
+    """The #765 review: a quoted value must not read as a missing switch."""
+    root = _git_repo_with_baseline(tmp_path, after="datago.village_fcst\n")
+    spec = root / "src" / "kpubdata" / "specs" / "datago" / "apt_trade.yaml"
+    spec.write_text(f'endpoint:\n  base_url: "{HTTPS}"\n', encoding="utf-8")
+
+    assert (
+        script.main(
+            [
+                "--dataset",
+                "datago.apt_trade",
+                "--baseline",
+                "scripts/insecure_http_baseline.txt",
+                "--root",
+                str(root),
+            ]
+        )
+        == 0
+    )
+
+
 def test_main_refuses_an_addition_end_to_end(script, tmp_path: Path, capsys) -> None:
     root = _git_repo_with_baseline(
         tmp_path, after="datago.apt_trade\ndatago.village_fcst\ndatago.rider\n"

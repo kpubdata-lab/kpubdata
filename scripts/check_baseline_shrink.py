@@ -33,7 +33,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-_BASE_URL = re.compile(r"^\s*base_url:\s*(\S+)", re.MULTILINE)
+_BASE_URL = re.compile(r'^\s*base_url:\s*"?([^"\s]+)"?', re.MULTILINE)
 
 
 def _changed_lines(diff_text: str, marker: str) -> list[str]:
