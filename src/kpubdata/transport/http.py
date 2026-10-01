@@ -24,7 +24,7 @@ import httpx
 
 from kpubdata.exceptions import RateLimitError, TransportError, TransportTimeoutError
 from kpubdata.transport._envelope import is_upstream_error_envelope
-from kpubdata.transport._sensitive import SENSITIVE_PARAM_KEYS
+from kpubdata.transport._sensitive import SENSITIVE_PARAM_KEYS, _secret_forms
 from kpubdata.transport.cache import (
     CACHE_HIT_EXTENSION,
     CACHED_AT_EXTENSION,
@@ -403,7 +403,7 @@ class HttpTransport:
                         extra={
                             "method": method,
                             "url": log_url,
-                            "params": _sanitize_params(params),
+                            "params": _sanitize_params(params, secret_values=secret_values),
                             **request_context,
                         },
                     )
@@ -704,14 +704,23 @@ def _merge_headers(
     return merged_headers
 
 
-def _sanitize_params(params: dict[str, str] | None) -> dict[str, str]:
-    """Build a copy of params with sensitive values masked for logging."""
+def _sanitize_params(
+    params: dict[str, str] | None, *, secret_values: tuple[str, ...] = ()
+) -> dict[str, str]:
+    """Build a copy of params with sensitive values masked for logging.
+
+    Two masks, because either alone leaks (#737): by name
+    (``SENSITIVE_PARAM_KEYS``) and by value — a provider can send its key under
+    a name nobody listed (DART's ``crtfc_key``), and then only the value,
+    matched in every percent-encoded form, still catches it.
+    """
     if params is None:
         return {}
 
+    forms = set(_secret_forms(secret_values))
     sanitized: dict[str, str] = {}
     for key, value in params.items():
-        if key.casefold() in SENSITIVE_PARAM_KEYS:
+        if key.casefold() in SENSITIVE_PARAM_KEYS or str(value) in forms:
             sanitized[key] = "[REDACTED]"
         else:
             sanitized[key] = str(value)
