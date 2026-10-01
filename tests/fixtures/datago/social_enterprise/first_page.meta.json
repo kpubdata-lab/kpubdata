@@ -8,8 +8,10 @@
   "perPage": "10",
   "serviceKey": "[REDACTED]"
  },
- "recorded_at": "2026-10-01T00:52:35+00:00",
- "recorded_by": "kpubdata-agent",
+ "record_commit": "9a234108c021e8daeadd4588d9ecfae2277eb841",
+ "recorded_at": "2026-10-01T03:12:05+00:00",
+ "recorded_by": "ci",
  "response_sha256": "076b680ced9d5ee4bffcb8a133256d945dd091a113ac9eaba1bb6b29975785f2",
- "spec_sha256": "4b528258b031d9a48cfd04b3f5bf21742f2233aeba185aac452776c4d20d8a21"
+ "run_ref": "36809319404",
+ "spec_sha256": "dcdb79a773227c6bbc845191340806a7ba026c01bae1f7ba83d0393c251ae3a6"
 }

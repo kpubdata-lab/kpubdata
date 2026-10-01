@@ -54,6 +54,7 @@ fields:
 - name: certiNumV
   type: string
   description: 인증 번호
+  semantic_kind: code
 - name: entNmV
   type: string
   description: 기업명
@@ -67,13 +68,12 @@ fields:
   type: string
   description: 전화번호
 license:
-  type: "공공누리_1유형"
-  redistribution: allowed
+  redistribution: unknown
   pii_columns:
   - ceoNmV
   - telNo
   - faxNo
-  note: "Terms not yet confirmed — fill from provider page (#524)"
+  note: "Terms not yet confirmed - fill from the provider page (odcloud socialEnterpriseList, #524)"
 examples:
 - name: first_page
   description: 인증 사회적기업 첫 페이지
