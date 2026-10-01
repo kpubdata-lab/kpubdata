@@ -27,7 +27,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from types import MappingProxyType
 from typing import cast
-from urllib.parse import parse_qsl, quote, quote_plus, urlencode, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from kpubdata._hosts import extra_hosts_env_var, host_is_allowed
 from kpubdata.config import KPubDataConfig
@@ -317,20 +317,6 @@ def _gateway_rejection(payload: dict[str, object]) -> tuple[str, str] | None:
     )
 
 
-def _secret_forms(secrets: tuple[str, ...]) -> tuple[str, ...]:
-    """Each secret as sent and as it can appear percent-encoded in a URL (#612).
-
-    data.go.kr keys carry ``+``, ``/`` and ``=``; the response URL holds them as
-    ``%2B``, ``%2F`` and ``%3D``, so matching only the plain text misses them.
-    """
-    forms: set[str] = set()
-    for secret in secrets:
-        if not secret:
-            continue
-        forms.update({secret, quote(secret, safe=""), quote_plus(secret, safe="")})
-    return tuple(sorted(forms, key=len, reverse=True))
-
-
 def _mask_provenance_url(url: str, secret_param_names: set[str], secrets: tuple[str, ...]) -> str:
     """Mask a URL by parameter name and by secret value; raise if a secret survives."""
     parts = urlsplit(url)
@@ -369,7 +355,7 @@ def _build_provenance(
     percent-encoded key and a key already removed from ``params`` for a path
     segment (#612).
     """
-    from kpubdata.transport._sensitive import SENSITIVE_PARAM_KEYS
+    from kpubdata.transport._sensitive import SENSITIVE_PARAM_KEYS, _secret_forms
 
     secret_param_names = set(SENSITIVE_PARAM_KEYS)
     if spec.auth.type != "none" and spec.auth.param_name:

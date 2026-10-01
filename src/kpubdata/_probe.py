@@ -257,7 +257,7 @@ def _redact(text: str, secrets: tuple[str, ...]) -> str:
     error body, or a message built somewhere the transport does not see, must
     still not carry the key into ``ProbeResult.detail`` (#694).
     """
-    from kpubdata.core.executor import _secret_forms
+    from kpubdata.transport._sensitive import _secret_forms
 
     for form in _secret_forms(secrets):
         text = text.replace(form, "[REDACTED]")

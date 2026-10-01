@@ -788,3 +788,61 @@ class TestOneSensitiveNameList:
 
         assert "MINE" not in mine, "원문이 캐시 키 재료로 들어가면 안 된다"
         assert mine != yours, "자격이 다르면 캐시 엔트리도 달라야 한다"
+
+
+class TestValueMasking:
+    """Either mask alone leaks (#737): names miss DART's crtfc_key, and a value
+    match is the only thing that catches it. CodeQL alert #4, the one TRUE
+    finding of the #737 triage."""
+
+    def test_an_unlisted_name_is_masked_by_its_value(self) -> None:
+        sanitized = http_module._sanitize_params(
+            {"crtfc_key": "SECRETKEY123", "page": "1"},
+            secret_values=("SECRETKEY123",),
+        )
+
+        assert sanitized == {"crtfc_key": "[REDACTED]", "page": "1"}
+
+    def test_percent_encoded_forms_are_masked_too(self) -> None:
+        """data.go.kr keys carry +, / and = - the encoded form of the key in a
+        param value leaks as much as the plain form (#612, #737)."""
+        from urllib.parse import quote
+
+        secret = "ab+/cd="
+
+        sanitized = http_module._sanitize_params(
+            {"k": quote(secret, safe="")}, secret_values=(secret,)
+        )
+
+        assert sanitized == {"k": "[REDACTED]"}
+
+    def test_ordinary_values_survive_a_secret_values_call(self) -> None:
+        sanitized = http_module._sanitize_params(
+            {"q": "seoul", "page": "3"}, secret_values=("SECRET",)
+        )
+
+        assert sanitized == {"q": "seoul", "page": "3"}
+
+    def test_the_debug_params_record_carries_no_unlisted_key(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """The leak #737 found end to end: with the kpubdata logger at DEBUG,
+        the HTTP request params record must not carry the key even under a
+        name nobody listed."""
+        transport = HttpTransport(TransportConfig(max_retries=0))
+        response = _response_with_content(b"ok", "text/plain")
+        caplog.set_level(logging.DEBUG, logger="kpubdata.transport")
+
+        with patch("kpubdata.transport.http.httpx.Client.send", return_value=response):
+            _ = transport.request(
+                "GET",
+                "https://opendart.fss.or.kr/api/list.json",
+                params={"crtfc_key": "SECRETKEY123", "page": "1"},
+                secret_values=("SECRETKEY123",),
+            )
+
+        records = [record for record in caplog.records if record.message == "HTTP request params"]
+        assert len(records) == 1
+        params = cast(dict[str, str], cast(Any, records[0]).params)
+        assert params["crtfc_key"] == "[REDACTED]"
+        assert "SECRETKEY123" not in str(params)
