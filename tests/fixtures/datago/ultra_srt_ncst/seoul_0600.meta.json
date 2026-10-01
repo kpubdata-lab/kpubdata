@@ -13,8 +13,10 @@
   "pageNo": "1",
   "serviceKey": "[REDACTED]"
  },
- "recorded_at": "2026-10-01T01:07:03+00:00",
- "recorded_by": "kpubdata-agent",
+ "record_commit": "bcaf5898c787483fce90260df64b87b6ed0d2a3a",
+ "recorded_at": "2026-10-01T03:27:14+00:00",
+ "recorded_by": "ci",
  "response_sha256": "d1bfa7c4a64c7b723f0d4de0a4e7102a2853722aff73710aa2676485c5f37b6b",
+ "run_ref": "36810413264",
  "spec_sha256": "a06f58394e1575e0fa28f1fae4b8c5d1c79341cd44bd12837f6e477031ae6a34"
 }
