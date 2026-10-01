@@ -12,6 +12,7 @@
 /scripts/record.py                @yeongseon
 /scripts/verify_spec.py           @yeongseon
 /scripts/check_fixture_authorship.py @yeongseon
+/scripts/legacy_evidence_baseline.txt @yeongseon
 /tests/fixtures/**/*.raw.json     @yeongseon
 /tests/fixtures/**/*.meta.json    @yeongseon
 /tests/fixtures/**/*.expected.json @yeongseon

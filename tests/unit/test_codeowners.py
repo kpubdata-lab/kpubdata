@@ -23,6 +23,7 @@ REQUIRED = [
     "/scripts/record.py",
     "/scripts/verify_spec.py",
     "/scripts/check_fixture_authorship.py",
+    "/scripts/legacy_evidence_baseline.txt",
     "/tests/fixtures/**/*.raw.json",
     "/tests/fixtures/**/*.meta.json",
     "/tests/fixtures/**/*.expected.json",

@@ -1,0 +1,35 @@
+# Legacy evidence baseline (#717): fixtures recorded before the spec digest
+# existed (#522), so their meta has no spec_sha256. Frozen at #717 from
+# `git ls-files 'tests/fixtures/*.meta.json'` (28 files, 0 with a digest).
+#
+# Ratchet: this list may only shrink. Re-recording a fixture binds it to the
+# spec, and verify then fails until its line is removed here. A fixture that
+# is not listed must carry a non-empty spec_sha256.
+datago/air_quality/seoul.meta.json
+datago/air_station/baengnyeong_daily.meta.json
+datago/air_station/gangnam_full_page.meta.json
+datago/airkorea_forecast/default.meta.json
+datago/apt_rent/seoul_gangnam.meta.json
+datago/apt_trade/seoul_gangnam_2024_01.meta.json
+datago/apt_trade/seoul_gangnam_2024_01_full_page.meta.json
+datago/hospital_info/default.meta.json
+datago/hospital_info/with_pagination.meta.json
+datago/metro_fare/default.meta.json
+datago/offi_rent/seoul_gangnam.meta.json
+datago/offi_trade/seoul_gangnam.meta.json
+datago/rh_rent/seoul_gangnam.meta.json
+datago/sh_rent/seoul_gangnam.meta.json
+datago/sh_trade/seoul_gangnam.meta.json
+datago/tour_kor_area/seoul_restaurants.meta.json
+datago/tour_kor_festival/year_2026.meta.json
+datago/tour_kor_keyword/gangnam_keyword.meta.json
+datago/tour_kor_location/gangnam_1km.meta.json
+datago/ultra_srt_fcst/seoul_1530.meta.json
+datago/ultra_srt_fcst/seoul_1530_full_page.meta.json
+datago/ultra_srt_ncst/seoul_1500.meta.json
+datago/village_fcst/seoul_default.meta.json
+datago/village_fcst/seoul_evening.meta.json
+datago/village_fcst/xml_response.meta.json
+localdata/bakery/default.meta.json
+localdata/general_restaurant/default.meta.json
+localdata/rest_cafe/default.meta.json

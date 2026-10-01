@@ -3,7 +3,9 @@
 Steps (any failure exits 1):
 1. Spec schema/id/duplicate checks (delegates to
    scripts/validate_spec.py)
-2. Fixture integrity — raw/meta/expected all present + hashes match
+2. Fixture integrity — raw/meta/expected all present + hashes match, and
+   bound to the current spec digest unless listed in the frozen legacy
+   baseline (scripts/legacy_evidence_baseline.txt, #717)
 3. Replay contract — raw → envelope validation → items/total extraction
    matches expected
 
@@ -33,6 +35,12 @@ from kpubdata.core.spec import (
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FIXTURES_ROOT = REPO_ROOT / "tests" / "fixtures"
 SPEC_ROOT = REPO_ROOT / "src" / "kpubdata" / "specs"
+#: Fixtures recorded before the spec digest existed (#522), one meta path per
+#: line relative to ``FIXTURES_ROOT``. Only these may lack ``spec_sha256`` (#717).
+LEGACY_BASELINE = REPO_ROOT / "scripts" / "legacy_evidence_baseline.txt"
+#: Size of the baseline when it was frozen (#717). The ratchet lets it shrink,
+#: never grow: a new fixture without a digest is not legacy, it is unbound.
+LEGACY_CEILING = 28
 
 
 @dataclass
@@ -62,9 +70,82 @@ def _canon_bytes(data: object) -> str:
     return json.dumps(data, ensure_ascii=False, sort_keys=True, indent=1) + "\n"
 
 
+def _load_legacy_baseline() -> list[str]:
+    """Entries of the legacy evidence baseline, comments and blank lines dropped.
+
+    A missing file is an empty baseline: every fixture then needs a digest.
+    """
+    if not LEGACY_BASELINE.is_file():
+        return []
+    entries: list[str] = []
+    for line in LEGACY_BASELINE.read_text(encoding="utf-8").splitlines():
+        entry = line.strip()
+        if entry and not entry.startswith("#"):
+            entries.append(entry)
+    return entries
+
+
+def _check_legacy_baseline() -> list[StepResult]:
+    """Hold the legacy baseline to its ratchet (#717).
+
+    The baseline may only shrink. It fails when it grows past its frozen size,
+    repeats an entry, or keeps an entry that no longer exists or that now
+    carries ``spec_sha256`` — a stale entry is a hole a new fixture could use.
+    """
+    entries = _load_legacy_baseline()
+    results: list[StepResult] = []
+    name = "legacy baseline"
+    if len(entries) > LEGACY_CEILING:
+        results.append(
+            StepResult(
+                name,
+                passed=False,
+                detail=(
+                    f"baseline {len(entries)}개 > 동결 크기 {LEGACY_CEILING}개 — "
+                    "legacy 목록은 줄기만 한다. 새 fixture 는 `make record` 로 기록"
+                ),
+            )
+        )
+    duplicates = sorted({entry for entry in entries if entries.count(entry) > 1})
+    if duplicates:
+        results.append(StepResult(name, passed=False, detail=f"중복 항목: {', '.join(duplicates)}"))
+    for entry in sorted(set(entries)):
+        meta_path = FIXTURES_ROOT / entry
+        if not meta_path.is_file():
+            results.append(
+                StepResult(
+                    f"{name}[{entry}]",
+                    passed=False,
+                    detail="fixture 가 더 이상 없음 — baseline 에서 이 줄을 삭제",
+                )
+            )
+            continue
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        if "spec_sha256" in meta:
+            results.append(
+                StepResult(
+                    f"{name}[{entry}]",
+                    passed=False,
+                    detail=(
+                        "spec_sha256 필드가 있음 — 더 이상 legacy 가 아니다. "
+                        "baseline 에서 이 줄을 삭제"
+                    ),
+                )
+            )
+    if not results:
+        results.append(StepResult(name, passed=True, detail=f"{len(entries)}개"))
+    return results
+
+
+def _fixture_key(meta_path: Path) -> str:
+    """A meta path as the baseline names it: relative to ``FIXTURES_ROOT``."""
+    return meta_path.relative_to(FIXTURES_ROOT).as_posix()
+
+
 def _verify_fixtures(spec: SpecDefinition) -> list[StepResult]:
     """Verify fixture integrity + replay contract."""
     results: list[StepResult] = []
+    legacy = frozenset(_load_legacy_baseline())
     out_dir = FIXTURES_ROOT / spec.provider / spec.dataset_key
     if not out_dir.is_dir() or not list(out_dir.glob("*.raw.json")):
         shown = out_dir.relative_to(REPO_ROOT) if out_dir.is_relative_to(REPO_ROOT) else out_dir
@@ -110,16 +191,18 @@ def _verify_fixtures(spec: SpecDefinition) -> list[StepResult]:
 
         # 2-c. Spec binding (#522): evidence recorded against a spec digest
         # that no longer matches the file is void — the spec changed after
-        # recording. Fixtures recorded before the digest existed are legacy
-        # (TRUST-04), reported rather than failed: retrofitting them is a
-        # non-goal of the issue.
+        # recording. Legacy is decided by the frozen baseline, not by the
+        # field being absent (#717): only a listed fixture whose meta has no
+        # `spec_sha256` key passes unbound. A deleted key, `null` or "" on any
+        # other fixture fails, so a one-line meta edit cannot unbind evidence.
+        binding = f"fixture[{example}] spec 결속"
         recorded_spec = meta.get("spec_sha256")
         if isinstance(recorded_spec, str) and recorded_spec:
             current_spec = spec_file_digest(SPEC_ROOT / spec.provider / f"{spec.dataset_key}.yaml")
             if current_spec != recorded_spec:
                 results.append(
                     StepResult(
-                        f"fixture[{example}] spec 결속",
+                        binding,
                         passed=False,
                         detail=(
                             "spec이 기록 후 변경됨 — 증거 무효. "
@@ -128,21 +211,28 @@ def _verify_fixtures(spec: SpecDefinition) -> list[StepResult]:
                     )
                 )
                 continue
+            results.append(StepResult(binding, passed=True, detail=recorded_spec[:12]))
+        elif "spec_sha256" not in meta and _fixture_key(meta_path) in legacy:
             results.append(
                 StepResult(
-                    f"fixture[{example}] spec 결속",
+                    binding,
                     passed=True,
-                    detail=recorded_spec[:12],
+                    detail="spec_sha256 없음 — legacy baseline 증거 (TRUST-04)",
                 )
             )
         else:
+            state = "없음" if "spec_sha256" not in meta else f"{recorded_spec!r}"
             results.append(
                 StepResult(
-                    f"fixture[{example}] spec 결속",
-                    passed=True,
-                    detail="spec_sha256 없음 — legacy 증거 (TRUST-04)",
+                    binding,
+                    passed=False,
+                    detail=(
+                        f"spec_sha256 {state} — legacy baseline 밖의 fixture 는 spec 결속이 "
+                        f"필수. `make record DATASET={spec.id}` 로 재기록"
+                    ),
                 )
             )
+            continue
 
         # 3. replay contract — changing spec fields should fail at this stage
         from kpubdata.core.executor import check_payload_error, extract_items, extract_total_count
@@ -243,7 +333,16 @@ def run_verify(dataset_id: str | None = None) -> int:
     # case where fixture creation is impossible (e.g., usage request not approved).
     skippable = frozenset({"unstable", "broken"})
 
-    failed_any = False
+    # 2-c'. The legacy baseline itself (#717) — checked once per run, because a
+    # stale entry is a hole whichever dataset is being verified.
+    baseline_steps = _check_legacy_baseline()
+    baseline_passed = all(step.passed for step in baseline_steps)
+    print(f"[{'통과' if baseline_passed else '실패'}] legacy evidence baseline")
+    for step in baseline_steps:
+        if not step.passed:
+            print(f"  오류({step.name}): {step.detail}")
+
+    failed_any = not baseline_passed
     for spec in specs:
         if not dataset_id and spec.status in skippable:
             print(f"[건너뜀] {spec.id} (status={spec.status})")

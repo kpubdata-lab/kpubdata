@@ -95,15 +95,21 @@ def record_dataset(
         )
         return []
 
-    out_dir = fixtures_root / spec.provider / spec.dataset_key
-    out_dir.mkdir(parents=True, exist_ok=True)
-
     # Evidence binding (#522): the spec content this record executed, and —
     # when the environment says so — the commit and the run that executed it.
     # `spec_file_digest` ignores the last_verified line this function syncs
     # below, so that sync does not void the record it just made.
     spec_path = spec_root / spec.provider / f"{spec.dataset_key}.yaml"
     spec_sha = spec_file_digest(spec_path)
+    if spec_sha is None:
+        # A record without a digest is unbound evidence, which verify rejects
+        # outside the frozen legacy baseline (#717). Stop before any call or
+        # write instead of leaving a `"spec_sha256": null` fixture behind.
+        print(f"오류: spec 파일을 읽을 수 없어 spec digest 를 계산하지 못했습니다: {spec_path}")
+        return []
+
+    out_dir = fixtures_root / spec.provider / spec.dataset_key
+    out_dir.mkdir(parents=True, exist_ok=True)
     run_binding: dict[str, str] = {}
     commit = os.environ.get("KPUBDATA_RECORD_COMMIT") or os.environ.get("GITHUB_SHA")
     if commit:
