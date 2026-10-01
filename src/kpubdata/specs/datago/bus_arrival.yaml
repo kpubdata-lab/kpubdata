@@ -83,25 +83,29 @@ fields:
   type: integer
   description: 두 번째 버스 잔여 좌석
 - name: routeDestId
-  type: integer
+  type: string
+  semantic_kind: code
   description: 노선 종점 정류장 ID
 - name: routeDestName
   type: string
   description: 노선 종점 정류장명
 - name: routeId
-  type: integer
+  type: string
+  semantic_kind: code
   description: 노선 ID
 - name: routeName
   type: string
   description: 노선명
 - name: routeTypeCd
   type: string
+  semantic_kind: code
   description: 노선 유형 코드
 - name: staOrder
   type: integer
   description: 정류장 순번
 - name: stationId
-  type: integer
+  type: string
+  semantic_kind: code
   description: 정류장 ID
 - name: stationNm1
   type: string
@@ -119,15 +123,16 @@ fields:
   type: integer
   description: 회차 순번
 - name: vehId1
-  type: integer
+  type: string
+  semantic_kind: code
   description: 첫 번째 버스 차량 ID
 - name: vehId2
-  type: integer
+  type: string
+  semantic_kind: code
   description: 두 번째 버스 차량 ID
 license:
-  type: "공공누리_1유형"
-  redistribution: allowed
-  note: "Terms not yet confirmed — fill from provider page (#524)"
+  redistribution: unknown
+  note: "Terms not yet confirmed - fill from provider page https://www.data.go.kr/data/15080346/openapi.do (#524)"
 examples:
 - name: station_200000078
   description: 정류장 ID 200000078 도착 예정 버스
