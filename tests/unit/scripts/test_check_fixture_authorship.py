@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import importlib.util
 import itertools
+import json
 import os
 import subprocess
 import sys
@@ -164,6 +165,76 @@ def test_files_the_recorder_writes_outside_the_evidence_do_not_block(
 def test_changes_outside_the_fixture_tree_do_not_block(repo: Path) -> None:
     _write("src/kpubdata/thing.py", repo)
     _commit(repo, "code change", author="A Human")
+
+    assert cfa.main() == 0
+
+
+_HEAD_SHA = "1" * 40
+
+
+def _record_evidence(repo: Path, *, run_ref: str | None, commit: str | None) -> None:
+    """Write raw+meta as the recorder would, carrying whatever binding it has."""
+    meta: dict[str, object] = {"dataset_id": "datago.x", "recorded_by": "kpubdata-agent"}
+    if commit is not None:
+        meta["record_commit"] = commit
+    if run_ref is not None:
+        meta["run_ref"] = run_ref
+    _write("tests/fixtures/datago/x/default.meta.json", repo, json.dumps(meta) + "\n")
+    _write(FIXTURE, repo)
+
+
+def test_a_recording_without_a_run_reference_fails(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The #728 case: the name is the recorder's, the proof is missing."""
+
+    def _no_lookup(run_ref: str) -> tuple[str, str] | None:
+        raise AssertionError("a meta without run_ref must not trigger a lookup")
+
+    monkeypatch.setattr(cfa, "_run_details", _no_lookup)
+    _record_evidence(repo, run_ref=None, commit=_HEAD_SHA)
+    _commit(repo, "record the fixture", author="kpubdata-agent")
+
+    assert cfa.main() == 1
+
+
+def test_a_run_from_a_foreign_workflow_fails(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(cfa, "_run_details", lambda run_ref: ("Release kpubdata", _HEAD_SHA))
+    _record_evidence(repo, run_ref="42", commit=_HEAD_SHA)
+    _commit(repo, "record the fixture", author="kpubdata-agent")
+
+    assert cfa.main() == 1
+    assert "not the recording workflow" in capsys.readouterr().err
+
+
+def test_a_run_from_another_repository_is_not_verifiable(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(cfa, "_run_details", lambda run_ref: None)
+    _record_evidence(repo, run_ref="999999", commit=_HEAD_SHA)
+    _commit(repo, "record the fixture", author="kpubdata-agent")
+
+    assert cfa.main() == 1
+
+
+def test_a_head_sha_mismatch_fails(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        cfa, "_run_details", lambda run_ref: (cfa.RECORDING_WORKFLOW_NAME, "2" * 40)
+    )
+    _record_evidence(repo, run_ref="7", commit=_HEAD_SHA)
+    _commit(repo, "record the fixture", author="kpubdata-agent")
+
+    assert cfa.main() == 1
+
+
+def test_a_recording_workflow_run_passes(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        cfa, "_run_details", lambda run_ref: (cfa.RECORDING_WORKFLOW_NAME, _HEAD_SHA)
+    )
+    _record_evidence(repo, run_ref="7", commit=_HEAD_SHA)
+    _commit(repo, "record the fixture", author="kpubdata-agent")
 
     assert cfa.main() == 0
 

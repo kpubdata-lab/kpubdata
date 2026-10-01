@@ -8,6 +8,9 @@ on:
 
 permissions:
   contents: read
+  # The evidence-authorship gate reads run records to verify a recorder's
+  # run_ref (#729); gh run view needs this on the default token.
+  actions: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -78,9 +81,12 @@ jobs:
         run: uv run python scripts/check_independence.py
 
       # fixture 는 "이 데이터셋은 검증됐다" 의 근거다. 판정 대상이 근거를 고칠 수
-      # 있으면 판정이 반증 불가능해진다 (#497, #523).
+      # 있으면 판정이 반증 불가능해진다 (#497, #523). 녹화자 이름만으로는 부족하다 —
+      # 메타의 run_ref 가 이 저장소의 녹화 워크플로 실행을 가리켜야 한다 (#729).
       - name: Recorded evidence authorship
         if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           uv run python scripts/check_fixture_authorship.py \
             --base "origin/${{ github.base_ref }}"
