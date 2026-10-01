@@ -179,6 +179,11 @@
               "integer",
               "number"
             ]
+          },
+          "max_age_days": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "이 파라미터의 값이 날짜일 때 제공기관이 응답하는 최근 창(일 단위). 예제 값이 창을 넘으면 make verify가 만료로 실패한다 (#734)."
           }
         }
       }
