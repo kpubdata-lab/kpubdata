@@ -88,12 +88,17 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--dataset", required=True, help="the dataset this run converts")
     parser.add_argument("--baseline", default="scripts/insecure_http_baseline.txt")
+    parser.add_argument(
+        "--base",
+        default="HEAD",
+        help="the diff base — the run's dispatch commit, never a movable HEAD",
+    )
     parser.add_argument("--root", default=str(REPO_ROOT))
     args = parser.parse_args(argv)
 
     root = Path(args.root).resolve()
     diff = subprocess.run(
-        ["git", "diff", "HEAD", "--", args.baseline],
+        ["git", "diff", args.base, "--", args.baseline],
         cwd=root,
         capture_output=True,
         text=True,

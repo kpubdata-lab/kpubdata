@@ -166,3 +166,35 @@ def test_main_refuses_an_addition_end_to_end(script, tmp_path: Path, capsys) -> 
 
     assert code == 1
     assert "::error::" in capsys.readouterr().err
+
+
+def test_a_committed_swap_still_fails_against_the_run_base(script, tmp_path: Path) -> None:
+    """The #765 review: an agent that commits its baseline swap empties the
+    working-tree diff — HEAD would pass it, the run's base must not."""
+    root = _git_repo_with_baseline(tmp_path, after="datago.village_fcst\n")
+    base = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    baseline = root / "scripts" / "insecure_http_baseline.txt"
+    baseline.write_text("datago.village_fcst\ndatago.rider\n", encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True)
+    subprocess.run(["git", "commit", "-qm", "agent swap"], cwd=root, check=True)
+
+    code = script.main(
+        [
+            "--dataset",
+            "datago.apt_trade",
+            "--baseline",
+            "scripts/insecure_http_baseline.txt",
+            "--base",
+            base,
+            "--root",
+            str(root),
+        ]
+    )
+
+    assert code == 1
