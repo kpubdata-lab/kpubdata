@@ -24,9 +24,6 @@ datago/tour_kor_area/seoul_restaurants.meta.json
 datago/tour_kor_festival/year_2026.meta.json
 datago/tour_kor_keyword/gangnam_keyword.meta.json
 datago/tour_kor_location/gangnam_1km.meta.json
-datago/ultra_srt_fcst/seoul_1530.meta.json
-datago/ultra_srt_fcst/seoul_1530_full_page.meta.json
-datago/ultra_srt_ncst/seoul_1500.meta.json
 datago/village_fcst/seoul_default.meta.json
 datago/village_fcst/seoul_evening.meta.json
 datago/village_fcst/xml_response.meta.json
