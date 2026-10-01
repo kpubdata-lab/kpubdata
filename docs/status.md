@@ -1,12 +1,12 @@
 # 데이터셋 검증 상태
 
-> 생성: `2026-09-29T14:16:17+00:00` — `scripts/gen_status_page.py` (직접 편집 금지)
+> 생성: `2026-10-01T00:34:35+00:00` — `scripts/gen_status_page.py` (직접 편집 금지)
 
 ## 요약
 
-- spec 데이터셋: **23종** (검증 22종, 최신 검증일 2026-09-12 기준 90일 이내 22종)
-- catalogue 데이터셋: 150종 (bok 4, datago 41, fds 1, kipris 1, korean 1, kosis 2, krx 3, law 3, localdata 59, lofin 6, neis 2, semas 17, seoul 7, sgis 3)
-- SUPPORTED_DATA 행 분포: {'지원': 22, '활용신청 대기': 94, '스키마만': 38, '폐기': 1, '진행 중': 1, '예정': 1} (합계 157)
+- spec 데이터셋: **25종** (검증 24종, 최신 검증일 2026-10-01 기준 90일 이내 24종)
+- catalogue 데이터셋: 148종 (bok 4, datago 39, fds 1, kipris 1, korean 1, kosis 2, krx 3, law 3, localdata 59, lofin 6, neis 2, semas 17, seoul 7, sgis 3)
+- SUPPORTED_DATA 행 분포: {'지원': 24, '활용신청 대기': 94, '스키마만': 36, '폐기': 1, '진행 중': 1, '예정': 1} (합계 157)
 
 ## spec 데이터셋별 최종 검증일
 
@@ -17,6 +17,7 @@
 | `datago.airkorea_forecast` | 2026-09-09 | active |
 | `datago.apt_rent` | 2026-09-09 | active |
 | `datago.apt_trade` | 2026-09-12 | active |
+| `datago.bus_arrival` | 2026-10-01 | active |
 | `datago.hospital_info` | 2026-09-09 | active |
 | `datago.metro_fare` | 2026-09-09 | active |
 | `datago.ocean_buoy` | - | unstable |
@@ -25,6 +26,7 @@
 | `datago.rh_rent` | 2026-09-09 | active |
 | `datago.sh_rent` | 2026-09-09 | active |
 | `datago.sh_trade` | 2026-09-09 | active |
+| `datago.social_enterprise` | 2026-10-01 | active |
 | `datago.tour_kor_area` | 2026-09-10 | active |
 | `datago.tour_kor_festival` | 2026-09-10 | active |
 | `datago.tour_kor_keyword` | 2026-09-10 | active |

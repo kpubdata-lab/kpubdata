@@ -1,0 +1,15 @@
+{
+ "dataset_id": "datago.social_enterprise",
+ "endpoint": "https://api.odcloud.kr/api/socialEnterpriseList/v1/authCompanyList",
+ "example": "first_page",
+ "format": "json",
+ "params": {
+  "page": "1",
+  "perPage": "10",
+  "serviceKey": "[REDACTED]"
+ },
+ "recorded_at": "2026-10-01T00:52:35+00:00",
+ "recorded_by": "kpubdata-agent",
+ "response_sha256": "076b680ced9d5ee4bffcb8a133256d945dd091a113ac9eaba1bb6b29975785f2",
+ "spec_sha256": "4b528258b031d9a48cfd04b3f5bf21742f2233aeba185aac452776c4d20d8a21"
+}

@@ -19,8 +19,8 @@ KPubData 는 그 차이를 어댑터가 흡수해, 하나의 Python 인터페이
 
 <!-- BEGIN: datasets -->
 
-- **spec 기반 데이터셋** 23종 — `make verify` 4단계 기계 검증 통과 (22종은 실API 검증 날짜까지 기록)
-- **catalogue 기반 데이터셋** 150종 (bok 4, datago 41, fds 1, kipris 1, korean 1, kosis 2, krx 3, law 3, localdata 59, lofin 6, neis 2, semas 17, seoul 7, sgis 3)
+- **spec 기반 데이터셋** 25종 — `make verify` 4단계 기계 검증 통과 (24종은 실API 검증 날짜까지 기록)
+- **catalogue 기반 데이터셋** 148종 (bok 4, datago 39, fds 1, kipris 1, korean 1, kosis 2, krx 3, law 3, localdata 59, lofin 6, neis 2, semas 17, seoul 7, sgis 3)
 
 > 이 수치는 `scripts/gen_readme_datasets.py`로 생성했다 — 직접 편집 금지. 데이터셋별 상태는 [SUPPORTED_DATA.md](./SUPPORTED_DATA.md).
 <!-- END: datasets -->
