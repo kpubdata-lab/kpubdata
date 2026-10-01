@@ -8,8 +8,10 @@
   "serviceKey": "[REDACTED]",
   "stationId": "200000078"
  },
- "recorded_at": "2026-10-01T00:52:34+00:00",
- "recorded_by": "kpubdata-agent",
- "response_sha256": "250af1e630434f0c2230c17ae115a287bd1cc0aefb043c822f1ee8b85665037a",
- "spec_sha256": "4d339f31c4ce483cec105014f4b0b0b30de886ee61124019ce3814bdc0f65b63"
+ "record_commit": "62357a886a8cdefb52f1b6ac83bd3b3335658e3e",
+ "recorded_at": "2026-10-01T02:41:44+00:00",
+ "recorded_by": "ci",
+ "response_sha256": "f5f1a01c2e5a6efa37b7779543405342e7a583d24bfe851213352f8c0d0b64a6",
+ "run_ref": "36806859518",
+ "spec_sha256": "fed7a94683a22156f36376de6f65a23ab6ad29e47f8b4b93c3723766f54b0431"
 }
