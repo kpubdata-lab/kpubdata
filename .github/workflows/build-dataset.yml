@@ -84,7 +84,9 @@ jobs:
           print(m.group(0) if m else "")
           EOF
           )
-          if [ -n "$DATASET" ] && [ -f "src/kpubdata/specs/$(echo "$DATASET" | cut -d. -f2 >/dev/null && echo "${DATASET#datago.}").yaml" ]; then
+          PROVIDER="${DATASET%%.*}"
+          KEY="${DATASET#*.}"
+          if [ -n "$DATASET" ] && [ -f "src/kpubdata/specs/${PROVIDER}/${KEY}.yaml" ]; then
             make verify DATASET="$DATASET"
           else
             make verify
@@ -93,8 +95,9 @@ jobs:
       - name: PR or needs-human
         run: |
           DATASET=$(grep -oE "datago\.[a-z0-9_]+" /tmp/issue.md | head -1 || true)
+          PROVIDER="${DATASET%%.*}"
+          KEY="${DATASET#*.}"
           BRANCH="agent/${DATASET:-issue-$ISSUE_NUMBER}"
-          if git diff --quiet && git status --porcelain | grep -q .; then :; fi
           if [ -z "$(git status --porcelain)" ]; then
             gh issue comment "$ISSUE_NUMBER" --body "에이전트가 변경을 만들지 못했습니다(자동) — needs-human" || true
             gh issue edit "$ISSUE_NUMBER" --add-label needs-human || true
@@ -107,9 +110,13 @@ jobs:
           # 무엇을 썼든 전부 담아서, 도구가 남긴 파일이나 관계없는 변경까지
           # PR 로 올린다 — kpubdata-builder 의 agent/pipeline.py 에서 실제로
           # .omx/ 세션 로그가 그렇게 올라갔다.
+          # 스펙은 src/kpubdata/specs/{provider}/{key}.yaml 다. provider 하위
+          # 디렉터리가 빠진 pathspec 하나가 git add 를 통째로 실패시킨다(원자적)
+          # — 첫 실전 실행(#740)이 정확히 여기서 죽었다. 두 경로는 따로 넣는다:
+          # spec-only 변경에 fixture 경로가 없어도 스테이징이 비지 않게.
           if [ -n "$DATASET" ]; then
-            git add -- "src/kpubdata/specs/${DATASET#datago.}.yaml" \
-                       "tests/fixtures/datago/${DATASET#datago.}" 2>/dev/null || true
+            git add -- "src/kpubdata/specs/${PROVIDER}/${KEY}.yaml"
+            git add -- "tests/fixtures/${PROVIDER}/${KEY}" 2>/dev/null || true
           fi
           if git diff --cached --quiet; then
             echo "::error::에이전트가 예상 경로(spec/fixture) 밖에만 변경을 만들었다"
