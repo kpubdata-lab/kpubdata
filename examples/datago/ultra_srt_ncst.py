@@ -3,7 +3,7 @@
 
 실행 모드:
 - ``KPUBDATA_MODE=replay`` — fixture 재생(키 불필요) / 미지정 — 실호출
-- 파라미터는 spec의 예제 ``seoul_1500``와 동일(replay 매칭 계약)
+- 파라미터는 spec의 예제 ``seoul_0600``와 동일(replay 매칭 계약)
 - 필드 심화 검증은 후속 보강 대상 (배치 기준선: 구조·총건수 계약)
 """
 
@@ -21,7 +21,7 @@ def main() -> None:
 
     dataset = client.dataset("datago.ultra_srt_ncst")
     batch = dataset.list(
-        base_date="20260909", base_time="1500", nx=55, ny=127, page=1, page_size=10
+        base_date="20261001", base_time="0600", nx=55, ny=127, page=1, page_size=10
     )
 
     # 구조 검증: envelope 계약(총건수 보고) + 레코드 형태

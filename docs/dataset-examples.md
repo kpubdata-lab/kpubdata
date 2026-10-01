@@ -268,7 +268,7 @@ if __name__ == "__main__":
 - ``KPUBDATA_MODE=replay`` — 기록된 fixture로 결정적 실행(API 키 불필요)
 - 미지정 — 실호출(``KPUBDATA_DATAGO_API_KEY`` 필요)
 
-파라미터는 spec의 예제 ``seoul_1530``과 동일하다. 발표 시각(base_time)은
+파라미터는 spec의 예제 ``seoul_0600``과 동일하다. 발표 시각(base_time)은
 30분 간격이며 오래된 값은 응답하지 않는다 — `make record`로 갱신.
 초단기 카테고리는 단기(TMP/PCP)와 달리 T1H/RN1을 쓴다(함정 주의).
 """
@@ -287,7 +287,7 @@ def main() -> None:
 
     dataset = client.dataset("datago.ultra_srt_fcst")
     batch = dataset.list(
-        base_date="20260909", base_time="1530", nx=55, ny=127, page=1, page_size=50
+        base_date="20261001", base_time="0600", nx=55, ny=127, page=1, page_size=50
     )
 
     # 의미 있는 검증: 초단기 카테고리 구조 + 예보 필드

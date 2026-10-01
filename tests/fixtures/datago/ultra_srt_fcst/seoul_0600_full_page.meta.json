@@ -1,0 +1,20 @@
+{
+ "dataset_id": "datago.ultra_srt_fcst",
+ "endpoint": "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst",
+ "example": "seoul_0600_full_page",
+ "format": "json",
+ "params": {
+  "base_date": "20261001",
+  "base_time": "0600",
+  "dataType": "JSON",
+  "numOfRows": "100",
+  "nx": "55",
+  "ny": "127",
+  "pageNo": "1",
+  "serviceKey": "[REDACTED]"
+ },
+ "recorded_at": "2026-10-01T01:07:03+00:00",
+ "recorded_by": "kpubdata-agent",
+ "response_sha256": "7bd0855fd25347513cefbb7a0454d2d22068c48c739e7d03ab52bfb317447550",
+ "spec_sha256": "18abde48f3764db830dc320873a42603550f666c5a8ed475326dbc8fad42429c"
+}

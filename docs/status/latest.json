@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-01T00:34:35+00:00",
+  "generated_at": "2026-10-01T01:08:14+00:00",
   "spec_datasets": {
     "total": 25,
     "verified": 24,
@@ -83,11 +83,11 @@
         "status": "active"
       },
       "datago.ultra_srt_fcst": {
-        "last_verified": "2026-09-09",
+        "last_verified": "2026-10-01",
         "status": "active"
       },
       "datago.ultra_srt_ncst": {
-        "last_verified": "2026-09-09",
+        "last_verified": "2026-10-01",
         "status": "active"
       },
       "datago.village_fcst": {

@@ -1,68 +1,68 @@
 {
  "items": [
   {
-   "baseDate": "20260909",
-   "baseTime": "1500",
+   "baseDate": "20261001",
+   "baseTime": "0600",
    "category": "PTY",
    "nx": 55,
    "ny": 127,
    "obsrValue": "0"
   },
   {
-   "baseDate": "20260909",
-   "baseTime": "1500",
+   "baseDate": "20261001",
+   "baseTime": "0600",
    "category": "REH",
    "nx": 55,
    "ny": 127,
-   "obsrValue": "43"
+   "obsrValue": "54"
   },
   {
-   "baseDate": "20260909",
-   "baseTime": "1500",
+   "baseDate": "20261001",
+   "baseTime": "0600",
    "category": "RN1",
    "nx": 55,
    "ny": 127,
    "obsrValue": "0"
   },
   {
-   "baseDate": "20260909",
-   "baseTime": "1500",
+   "baseDate": "20261001",
+   "baseTime": "0600",
    "category": "T1H",
    "nx": 55,
    "ny": 127,
-   "obsrValue": "26"
+   "obsrValue": "13.1"
   },
   {
-   "baseDate": "20260909",
-   "baseTime": "1500",
+   "baseDate": "20261001",
+   "baseTime": "0600",
    "category": "UUU",
    "nx": 55,
    "ny": 127,
-   "obsrValue": "-2.6"
+   "obsrValue": "0.7"
   },
   {
-   "baseDate": "20260909",
-   "baseTime": "1500",
+   "baseDate": "20261001",
+   "baseTime": "0600",
    "category": "VEC",
    "nx": 55,
    "ny": 127,
-   "obsrValue": "55"
+   "obsrValue": "306"
   },
   {
-   "baseDate": "20260909",
-   "baseTime": "1500",
+   "baseDate": "20261001",
+   "baseTime": "0600",
    "category": "VVV",
    "nx": 55,
    "ny": 127,
-   "obsrValue": "-1.8"
+   "obsrValue": "-0.4"
   },
   {
-   "baseDate": "20260909",
-   "baseTime": "1500",
+   "baseDate": "20261001",
+   "baseTime": "0600",
    "category": "WSD",
    "nx": 55,
    "ny": 127,
-   "obsrValue": "3.3"
+   "obsrValue": "0.8"
   }
  ],
  "total_count": 8

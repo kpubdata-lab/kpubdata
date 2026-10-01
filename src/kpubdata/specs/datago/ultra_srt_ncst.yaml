@@ -79,14 +79,14 @@ license:
   redistribution: allowed
   note: "Terms not yet confirmed — fill from provider page (#524)"
 examples:
-- name: seoul_1500
-  description: 서울(55,127) 15:00 초단기실황
+- name: seoul_0600
+  description: 서울(55,127) 06:00 초단기실황
   params:
-    base_date: '20260909'
-    base_time: '1500'
+    base_date: '20261001'
+    base_time: '0600'
     nx: 55
     ny: 127
   page: 1
   page_size: 10
 status: active
-last_verified: '2026-09-09'
+last_verified: "2026-10-01"
