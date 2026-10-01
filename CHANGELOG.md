@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **`Secret scan (gitleaks)` no longer fails on another branch's commits** (#774). Without `--log-opts`, gitleaks runs `git log --all`, which — combined with `fetch-depth: 0` pulling in every remote branch — walked unmerged PR branches too, so a synthetic test key on someone else's open branch turned this job, which `CI gate` needs, red for runs that never touched that branch. The job now scopes `--log-opts` to the run's own commits: a pull request scans `base..head`, a push to `main` scans `before..sha` (or just `sha` for a brand-new branch, where `before` is all zeros), and `schedule`/`workflow_dispatch` scan the default branch's full history only — never another branch. `.gitleaksignore` is unaffected. Ported from kpubdata-studio#685/#686.
 - Configured keys are masked out of `ProbeResult.detail` by value (every percent-encoded form) before the message is truncated, so a key cut at the boundary cannot survive as a prefix (#694).
 - httpx's own INFO line `HTTP Request: GET <url> ...` carried the query string, and with it a data.go.kr `serviceKey`, verbatim. A filter on the `httpx` logger now masks the credential parameters named in `SENSITIVE_PARAM_KEYS` (#694).
 
