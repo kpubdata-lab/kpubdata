@@ -23,6 +23,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass, field
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from kpubdata.core.spec import (
@@ -304,6 +305,87 @@ def _lost_leading_zeros(spec: SpecDefinition, items: list[dict[str, object]]) ->
     return sorted(lost.values())
 
 
+def _parse_date_value(value: object) -> date | None:
+    """Parse an example parameter value as a date (YYYYMMDD or YYYY-MM-DD)."""
+    text = str(value).strip()
+    for fmt in ("%Y%m%d", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(text, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def _kst_today() -> date:
+    """Today on the Seoul calendar — the provider serves Korean time."""
+    return datetime.now(timezone(timedelta(hours=9))).date()
+
+
+def _verify_example_recency(spec: SpecDefinition, today: date | None = None) -> list[StepResult]:
+    """Examples whose date parameter left the provider's window fail as expired (#734).
+
+    KMA-family APIs answer only recent issues — roughly a day for the nowcast,
+    three for the short-term forecast — so a fixed example date goes stale in
+    days and every live call after that reports a generic params_invalid
+    (#731). A spec declares the window per parameter (``max_age_days``); verify
+    then fails on an expired example *before* the live call does, naming the
+    cause and the refresh route. A date past today fails too — a future issue
+    does not answer yet, the #731 morning trap. Parameters without a declared
+    window emit nothing, so the step appears only where the contract exists.
+    """
+    results: list[StepResult] = []
+    resolved = today if today is not None else _kst_today()
+    for param in spec.params:
+        if param.max_age_days is None:
+            continue
+        for example in spec.examples:
+            if param.exposed_name not in example.params:
+                continue
+            raw = example.params[param.exposed_name]
+            step = f"예제 최신성[{example.name}]"
+            value_date = _parse_date_value(raw)
+            if value_date is None:
+                results.append(
+                    StepResult(
+                        step,
+                        False,
+                        f"{param.exposed_name}={raw!r}을(를) 날짜로 읽을 수 없습니다"
+                        " — max_age_days는 날짜 값 파라미터에만 둔다",
+                    )
+                )
+                continue
+            if value_date > resolved:
+                results.append(
+                    StepResult(
+                        step,
+                        False,
+                        f"{param.exposed_name}={value_date}는 미래 발표다 — 아직 응답하지 않는다",
+                    )
+                )
+                continue
+            age = (resolved - value_date).days
+            if age > param.max_age_days:
+                results.append(
+                    StepResult(
+                        step,
+                        False,
+                        f"{param.exposed_name}={value_date}이(가) 만료 창"
+                        f"({param.max_age_days}일)을 넘었다({age}일) — 실호출 불가(만료)."
+                        f" dataset-request 워크플로 또는 `make record DATASET={spec.id}`"
+                        "(으)로 갱신",
+                    )
+                )
+                continue
+            results.append(
+                StepResult(
+                    step,
+                    True,
+                    f"{param.exposed_name}={value_date} ({age}일/창 {param.max_age_days}일)",
+                )
+            )
+    return results
+
+
 def run_verify(dataset_id: str | None = None) -> int:
     """Run verification on all (or single) specs and return exit code."""
     specs: list[SpecDefinition]
@@ -349,6 +431,7 @@ def run_verify(dataset_id: str | None = None) -> int:
             continue
         result = DatasetVerifyResult(dataset_id=spec.id)
         result.steps.extend(_verify_fixtures(spec))
+        result.steps.extend(_verify_example_recency(spec))
         result.steps.append(_run_example_script(spec))
         result.steps.append(_run_live_schema_diff(spec))
 

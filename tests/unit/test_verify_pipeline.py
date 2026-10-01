@@ -10,6 +10,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
+from datetime import date
 from pathlib import Path
 
 import httpx
@@ -702,3 +703,72 @@ def test_a_live_transport_still_updates_last_verified(tmp_path: Path) -> None:
     )
 
     assert '"2020-01-01"' not in target.read_text(encoding="utf-8")
+
+
+# ----------------------------------------------------------------------
+# example recency: a declared window fails stale examples (#734)
+# ----------------------------------------------------------------------
+
+
+def _recency_spec(value: object, *, max_age_days: int = 3, alias: str | None = None):
+    """An apt_trade spec carrying one dated example under a declared window."""
+    import dataclasses
+
+    from kpubdata.core.spec import ExampleSpec, ParamSpec
+
+    base = _spec("datago.apt_trade")
+    param = ParamSpec(
+        name="base_date", type="date_yyyymmdd", alias=alias, max_age_days=max_age_days
+    )
+    example = ExampleSpec(name="dated", params={param.exposed_name: value})
+    return dataclasses.replace(base, params=(param,), examples=(example,))
+
+
+class TestExampleRecency:
+    def test_a_fresh_example_passes_with_its_age(self) -> None:
+        steps = verify_mod._verify_example_recency(
+            _recency_spec("20260930"), today=date(2026, 10, 1)
+        )
+
+        assert len(steps) == 1 and steps[0].passed
+        assert "(1일/창 3일)" in steps[0].detail
+
+    def test_a_stale_example_fails_naming_the_cause_and_the_refresh(self) -> None:
+        steps = verify_mod._verify_example_recency(
+            _recency_spec("20260920"), today=date(2026, 10, 1)
+        )
+
+        assert len(steps) == 1 and not steps[0].passed
+        assert "만료" in steps[0].detail
+        assert "make record" in steps[0].detail
+
+    def test_a_future_issue_date_never_answers(self) -> None:
+        """The #731 morning trap, date-shaped: an example dated tomorrow is
+        not fresh — it is unanswerable."""
+        steps = verify_mod._verify_example_recency(
+            _recency_spec("20261002"), today=date(2026, 10, 1)
+        )
+
+        assert len(steps) == 1 and not steps[0].passed
+        assert "미래" in steps[0].detail
+
+    def test_a_spec_without_a_window_emits_nothing(self) -> None:
+        """The step appears only where the contract exists — the other 24
+        datasets keep their verify output unchanged."""
+        assert (
+            verify_mod._verify_example_recency(_spec("datago.apt_trade"), today=date(2026, 10, 1))
+            == []
+        )
+
+    def test_a_window_on_a_non_date_value_is_a_spec_bug(self) -> None:
+        steps = verify_mod._verify_example_recency(_recency_spec("0600"), today=date(2026, 10, 1))
+
+        assert len(steps) == 1 and not steps[0].passed
+        assert "날짜로 읽을 수 없" in steps[0].detail
+
+    def test_the_example_is_looked_up_by_the_alias(self) -> None:
+        spec = _recency_spec("20260930", alias="bd")
+
+        steps = verify_mod._verify_example_recency(spec, today=date(2026, 10, 1))
+
+        assert len(steps) == 1 and steps[0].passed

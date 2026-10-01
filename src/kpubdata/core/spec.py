@@ -104,6 +104,7 @@ class ParamSpec:
     enum: tuple[str, ...] = ()
     description: str | None = None
     example: str | int | float | None = None
+    max_age_days: int | None = None
 
     @property
     def exposed_name(self) -> str:
@@ -419,6 +420,7 @@ def _parse_params(raw: object, problems: list[str]) -> tuple[ParamSpec, ...]:
         if not isinstance(enum_raw, list):
             problems.append(f"params[{index}].enum은(는) 리스트여야 합니다.")
             enum_raw = []
+        raw_max_age = item.get("max_age_days")
         parsed.append(
             ParamSpec(
                 name=name,
@@ -431,6 +433,9 @@ def _parse_params(raw: object, problems: list[str]) -> tuple[ParamSpec, ...]:
                 else None,
                 example=item.get("example")
                 if isinstance(item.get("example"), (str, int, float))
+                else None,
+                max_age_days=raw_max_age
+                if isinstance(raw_max_age, int) and not isinstance(raw_max_age, bool)
                 else None,
             )
         )
