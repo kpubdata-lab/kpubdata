@@ -56,7 +56,7 @@ def script():
             "type:bug",
         ),
         ("chore(deps): move to kpubdata 0.7", "chore", "deps", False, "type:chore"),
-        ("fix(release): 한국어 설명도 된다", "fix", "release", False, "type:bug"),
+        ("fix: keep C# interop working", "fix", None, False, "type:bug"),
     ],
 )
 def test_valid_titles(script, title, kind, scope, breaking, label) -> None:
@@ -86,6 +86,9 @@ def test_valid_titles(script, title, kind, scope, breaking, label) -> None:
         "docs: establish the release policy (#528)",  # #699: squash adds the PR number
         "feat(core): cast whole columns (#481)",
         "fix: keep leading zeros (#574) ",  # trailing space still counts after strip()
+        "fix: 한글 제목",  # #742: the title is English
+        "fix: refuse the key (studio#418)",  # #742: repo-prefixed reference
+        "fix: close the gap from #123 review",  # #742: bare mid-sentence reference
     ],
 )
 def test_invalid_titles(script, title: str) -> None:
@@ -104,10 +107,26 @@ def test_revert_of_a_numbered_title_still_parses(script) -> None:
     assert parsed.type == "revert"
 
 
-def test_mid_title_issue_reference_is_allowed(script) -> None:
-    """The rule is about the *trailing* tag; a mid-sentence reference is fine."""
-    parsed = script.parse("fix: adapters registered twice since #612 are deduped")
-    assert parsed.type == "fix"
+def test_revert_of_a_hangul_title_still_parses(script) -> None:
+    """The revert button copies the old title verbatim; refusing it would block undo."""
+    parsed = script.parse('Revert "fix(release): 한국어 설명도 된다"')
+    assert parsed.type == "revert"
+
+
+def test_mid_title_issue_reference_is_refused(script) -> None:
+    """#742: a bare mid-sentence reference is as wrong as the trailing tag."""
+    with pytest.raises(script.TitleError, match="Closes #123"):
+        script.parse("fix: adapters registered twice since #612 are deduped")
+
+
+def test_repo_prefixed_reference_error_names_the_remedy(script) -> None:
+    with pytest.raises(script.TitleError, match="studio#418"):
+        script.parse("fix: refuse the key (studio#418)")
+
+
+def test_hangul_error_names_the_remedy(script) -> None:
+    with pytest.raises(script.TitleError, match="body"):
+        script.parse("fix(release): 한국어 설명도 된다")
 
 
 def test_numbered_title_error_names_the_remedy(script) -> None:
