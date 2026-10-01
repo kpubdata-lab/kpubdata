@@ -126,7 +126,7 @@ def evaluate(
         False,
         f"#{number} is {label} and needs an approval from a person other than its author "
         f"({author}) who has write access. A later request for changes or a dismissal "
-        "cancels an approval; bots do not count (POLICY 14, 25).",
+        "cancels an approval; bots do not count (POLICY 14.1).",
     )
 
 
