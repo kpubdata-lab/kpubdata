@@ -22,6 +22,8 @@
 /scripts/next_version.py          @yeongseon
 /scripts/conventional_title.py    @yeongseon
 /scripts/release_window.py        @yeongseon
+# The R3 gate (#722): whoever changes it changes what an R3 approval means
+/scripts/r3_review.py             @yeongseon
 # Dependencies (#629)
 /pyproject.toml                   @yeongseon
 /uv.lock                          @yeongseon

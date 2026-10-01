@@ -1,0 +1,58 @@
+name: R3 review
+description: >
+  Fail a pull request labelled `review:R3` until a person other than its author, with
+  write access, currently approves it (#722, kpubdata-builder#905, POLICY 14). Passes
+  every other pull request, so the check can be required without leaving any pull
+  request waiting for it. Wraps scripts/r3_review.py so the four repositories run one
+  rule. Needs only `pull-requests: read`, so it works on fork pull requests too.
+
+inputs:
+  pr-number:
+    description: "The pull request to check; defaults to the event's"
+    required: false
+    default: ${{ github.event.pull_request.number }}
+  label:
+    description: "The label that requires a non-author approval"
+    required: false
+    default: "review:R3"
+
+outputs:
+  passed:
+    description: "true or false"
+    value: ${{ steps.run.outputs.passed }}
+  reason:
+    description: "Why"
+    value: ${{ steps.run.outputs.reason }}
+
+runs:
+  using: composite
+  steps:
+    # Labels and reviews are read live rather than from the event payload: a re-run
+    # replays the old payload, and a run triggered by a review must see the labels as
+    # they are now. A failed lookup fails the step — it must never read as "no label".
+    - id: run
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+        NUMBER: ${{ inputs.pr-number }}
+        LABEL: ${{ inputs.label }}
+      run: |
+        set -euo pipefail
+        if ! [[ "${NUMBER}" =~ ^[0-9]+$ ]]; then
+          echo "::error::no pull request number (got '${NUMBER}')"
+          exit 2
+        fi
+        dir="${RUNNER_TEMP}/r3-review"
+        mkdir -p "${dir}"
+        gh api "repos/${REPO}/pulls/${NUMBER}" > "${dir}/pull.json"
+        gh api --paginate "repos/${REPO}/pulls/${NUMBER}/reviews?per_page=100" --jq '.[]' \
+          > "${dir}/reviews.jsonl"
+        status=0
+        python3 "${{ github.action_path }}/../../../scripts/r3_review.py" \
+          --pull "${dir}/pull.json" --reviews "${dir}/reviews.jsonl" --label "${LABEL}" \
+          > "${dir}/out" || status=$?
+        cat "${dir}/out" >> "$GITHUB_OUTPUT"
+        sed -n 's/^reason=//p' "${dir}/out" >> "$GITHUB_STEP_SUMMARY"
+        sed -n 's/^reason=//p' "${dir}/out"
+        exit "${status}"
