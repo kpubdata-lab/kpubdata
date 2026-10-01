@@ -63,7 +63,9 @@ class TestLicenseFieldIntegration:
             spec = find_spec(ds_id)
             assert spec is not None, f"{ds_id} not found"
             assert spec.license is not None, f"{ds_id} has no license"
-            assert spec.license.type == "공공누리_1유형"
+            # air_quality's source is KOGL type 3 (attribution, no modification), #719.
+            expected = "공공누리_3유형" if ds_id == "datago.air_quality" else "공공누리_1유형"
+            assert spec.license.type == expected
 
 
 class TestOceanBuoyIntegration:
