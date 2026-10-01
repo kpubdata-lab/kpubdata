@@ -95,35 +95,6 @@
     }
   },
   {
-    "dataset_key": "bus_arrival",
-    "application": {
-      "required": true,
-      "url": "https://www.data.go.kr/data/15080346/openapi.do"
-    },
-    "name": "경기도 버스도착정보 조회서비스 (Bus Arrival)",
-    "base_url": "http://apis.data.go.kr/6410000/busarrivalservice/v2",
-    "default_operation": "getBusArrivalListv2",
-    "envelope_style": "gyeonggi_msg",
-    "representation": "api_json",
-    "service_key_param": "serviceKey",
-    "format_param": "_type",
-    "description": "Gyeonggi-do real-time bus arrival information",
-    "tags": [
-      "transportation",
-      "bus",
-      "realtime"
-    ],
-    "source_url": "https://www.data.go.kr",
-    "operations": [
-      "list",
-      "raw"
-    ],
-    "query_support": {
-      "pagination": "offset",
-      "max_page_size": 1000
-    }
-  },
-  {
     "dataset_key": "dur_usjnt_taboo",
     "application": {
       "required": true,
@@ -551,29 +522,6 @@
       "rent"
     ],
     "source_url": "https://www.data.go.kr",
-    "operations": [
-      "list",
-      "raw"
-    ],
-    "query_support": {
-      "pagination": "offset",
-      "max_page_size": 1000
-    }
-  },
-  {
-    "dataset_key": "social_enterprise",
-    "name": "사회적기업 인증현황 (Certified Social Enterprise List)",
-    "base_url": "https://api.odcloud.kr/api/socialEnterpriseList/v1",
-    "default_operation": "authCompanyList",
-    "representation": "api_json",
-    "provider_family": "odcloud",
-    "service_key_param": "serviceKey",
-    "format_param": null,
-    "pagination_params": {
-      "page": "page",
-      "page_size": "perPage"
-    },
-    "description": "Certified social enterprise list from Ministry of Employment and Labor",
     "operations": [
       "list",
       "raw"

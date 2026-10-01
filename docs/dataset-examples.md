@@ -113,6 +113,58 @@ if __name__ == "__main__":
 ```
 
 
+### `datago.bus_arrival`
+
+[소스](https://github.com/yeongseon/kpubdata/blob/main/examples/datago/bus_arrival.py)
+
+```python
+"""datago.bus_arrival 예제 — 경기도 버스도착정보.
+
+실행 모드:
+- ``KPUBDATA_MODE=replay`` — 기록된 fixture로 결정적 실행(API 키 불필요)
+- 미지정 — 실호출(``KPUBDATA_DATAGO_API_KEY`` 필요)
+
+파라미터는 spec의 예제 ``station_200000078``과 동일하다.
+계열 특이사항: 경기도 msgHeader/msgBody envelope(resultCode 0 = 정상),
+정류장 단위 조회라 총건수와 페이지네이션이 없다.
+"""
+
+from __future__ import annotations
+
+import os
+
+from kpubdata import Client
+
+
+def main() -> None:
+    """정류장 200000078의 도착 예정 버스 예제 조회를 실행한다."""
+    api_key = os.environ.get("KPUBDATA_DATAGO_API_KEY", "replay-mode")
+    client = Client(provider_keys={"datago": api_key}, cache=False)
+
+    dataset = client.dataset("datago.bus_arrival")
+    batch = dataset.list(station="200000078", page=1, page_size=10)
+
+    # 의미 있는 검증: 도착 예정 버스의 노선·차량 구조.
+    # 실측 함정: 해당 없음·운행 종료 시 flag="PASS"와 빈 문자열 필드로 온다 —
+    # 필수 단언은 항상 채워지는 식별자 3종으로만 한다.
+    assert batch.items, "도착 목록이 최소 1건은 있어야 한다"
+    first = batch.items[0]
+    missing = {"routeId", "routeName", "stationId"} - set(first)
+    assert not missing, f"필수 노선/정류장 필드 누락: {sorted(missing)}"
+
+    print(f"bus_arrival 정류장 200000078: {len(batch.items)}대 도착 예정")
+    for bus in batch.items[:3]:
+        minutes = bus.get("predictTime1") or "N/A"
+        dest = bus.get("routeDestName", "?")
+        plate = bus.get("plateNo1", "?")
+        print(f"  {bus['routeName']} → {dest} ({minutes}분 후, {plate})")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+
 ### `datago.hospital_info`
 
 [소스](https://github.com/yeongseon/kpubdata/blob/main/examples/datago/hospital_info.py)
@@ -151,6 +203,53 @@ def main() -> None:
     print(f"hospital_info: {len(batch.items)}건 / 전체 {batch.total_count:,}건")
     이름후보 = first.get("병원명") or first.get("yadmNm")
     print(f"첫 병원: {이름후보} ({first.get('시도명', first.get('sidoCdNm', '?'))})")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+
+### `datago.social_enterprise`
+
+[소스](https://github.com/yeongseon/kpubdata/blob/main/examples/datago/social_enterprise.py)
+
+```python
+"""datago.social_enterprise 예제 — 사회적기업 인증현황.
+
+실행 모드:
+- ``KPUBDATA_MODE=replay`` — 기록된 fixture로 결정적 실행(API 키 불필요)
+- 미지정 — 실호출(``KPUBDATA_DATAGO_API_KEY`` 필요)
+
+파라미터는 spec의 예제 ``first_page``와 동일하다.
+계열 특이사항: odcloud 계열(items_path = data, 총건수 = matchCount,
+페이지 파라미터 page/perPage). data.go.kr serviceKey를 그대로 쓴다.
+"""
+
+from __future__ import annotations
+
+import os
+
+from kpubdata import Client
+
+
+def main() -> None:
+    """인증 사회적기업 첫 페이지 예제 조회를 실행한다."""
+    api_key = os.environ.get("KPUBDATA_DATAGO_API_KEY", "replay-mode")
+    client = Client(provider_keys={"datago": api_key}, cache=False)
+
+    dataset = client.dataset("datago.social_enterprise")
+    batch = dataset.list(page=1, page_size=10)
+
+    # 의미 있는 검증: 인증 기업의 식별 구조 + 총건수 보고
+    assert batch.items, "인증 기업이 최소 1건은 있어야 한다"
+    first = batch.items[0]
+    missing = {"entNmV", "certiNumV", "certiIssuD"} - set(first)
+    assert not missing, f"필수 인증 필드 누락: {sorted(missing)}"
+    assert batch.total_count and batch.total_count > 0, "matchCount가 보고되어야 한다"
+
+    print(f"social_enterprise: {len(batch.items)}건 / 전체 {batch.total_count}건")
+    print(f"첫 기업: {first['entNmV']} ({first['certiNumV']}, 인증일 {first['certiIssuD']})")
 
 
 if __name__ == "__main__":

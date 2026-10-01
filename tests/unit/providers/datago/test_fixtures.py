@@ -92,49 +92,6 @@ def _build_real_estate_adapter(
     return adapter, dataset
 
 
-# test fixture bus arrival v2 call raw returns full envelope Describes the scenario verified by the test.
-def test_fixture_bus_arrival_v2_call_raw_returns_full_envelope() -> None:
-    """
-    Verify envelope complete.
-
-    Returns:
-        None: Result.
-
-    Raises:
-        Exceptions propagated."""
-    adapter, dataset = _build_real_estate_adapter("bus_arrival_v2.json", "bus_arrival")
-    expected = load_json_fixture("bus_arrival_v2.json")
-
-    payload = adapter.call_raw(dataset, "getBusArrivalListv2", {"stationId": "228000704"})
-
-    assert payload == expected
-    payload_dict = cast(dict[str, object], payload)
-    response = payload_dict["response"]
-    assert isinstance(response, dict)
-    assert "msgHeader" in response
-    assert "msgBody" in response
-
-
-# test fixture bus arrival v2 list normalizes msg body list Describes the scenario verified by the test.
-def test_fixture_bus_arrival_v2_list_normalizes_msg_body_list() -> None:
-    """
-    Verify list normalized.
-
-    Returns:
-        None: Result.
-
-    Raises:
-        Exceptions propagated."""
-    adapter, dataset = _build_real_estate_adapter("bus_arrival_v2.json", "bus_arrival")
-
-    batch = adapter.query_records(dataset, Query())
-
-    assert len(batch.items) == 1
-    assert batch.items[0]["routeId"] == 200000333
-    assert batch.items[0]["stationId"] == 228000704
-    assert batch.total_count is None
-
-
 # test fixture dur usjnt taboo parses Describes the scenario verified by the test.
 def test_fixture_dur_usjnt_taboo_parses() -> None:
     """
@@ -775,30 +732,6 @@ def test_fixture_metro_fare_parses() -> None:
     assert "endStation" in batch.items[0]
     assert "fareCard" in batch.items[0]
     assert batch.total_count == 2
-
-
-# test fixture metro path parses Describes the scenario verified by the test.
-
-
-def test_fixture_social_enterprise_parses() -> None:
-    """
-    test fixture social enterprise parses Validates the scenario described by the test name.
-
-    Returns:
-        None: Result.
-
-    Raises:
-        Exceptions propagated."""
-    adapter, dataset = _build_real_estate_adapter(
-        "success_social_enterprise.json", "social_enterprise"
-    )
-
-    batch = adapter.query_records(dataset, Query())
-
-    assert len(batch.items) == 2
-    assert "entNmV" in batch.items[0]
-    assert "certiNumV" in batch.items[0]
-    assert batch.total_count == 4783
 
 
 # test fixture road traffic call raw returns full envelope Describes the scenario verified by the test.
