@@ -5,6 +5,7 @@ A rename silently drops coverage: GitHub ignores a pattern that matches nothing.
 
 from __future__ import annotations
 
+from fnmatch import fnmatch
 from pathlib import Path
 
 import pytest
@@ -23,7 +24,7 @@ REQUIRED = [
     "/scripts/record.py",
     "/scripts/verify_spec.py",
     "/scripts/check_fixture_authorship.py",
-    "/scripts/legacy_evidence_baseline.txt",
+    "/scripts/*_baseline.txt",
     "/tests/fixtures/**/*.raw.json",
     "/tests/fixtures/**/*.meta.json",
     "/tests/fixtures/**/*.expected.json",
@@ -60,3 +61,20 @@ def test_every_pattern_names_something_that_exists(pattern: str) -> None:
         assert list(REPO_ROOT.glob(relative)), pattern
     else:
         assert (REPO_ROOT / relative).exists(), pattern
+
+
+def test_every_ratchet_baseline_is_owned() -> None:
+    """Every scripts/*_baseline.txt file must fall under an owned pattern (#764).
+
+    A count-only ratchet cannot stop one entry being swapped for another, which
+    is why each baseline file sits behind an owner. The direction matters: the
+    test above keeps CODEOWNERS honest about what it names, and this one keeps
+    it honest about what exists — a baseline added without a pattern would be
+    the silent hole the swap needs.
+    """
+    baselines = sorted((REPO_ROOT / "scripts").glob("*_baseline.txt"))
+    assert baselines, "scripts/*_baseline.txt matched nothing — the glob moved?"
+    patterns = [pattern.lstrip("/") for pattern in _patterns()]
+    for baseline in baselines:
+        relative = str(baseline.relative_to(REPO_ROOT))
+        assert any(fnmatch(relative, pattern) for pattern in patterns), relative
