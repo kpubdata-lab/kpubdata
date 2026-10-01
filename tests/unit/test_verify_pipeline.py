@@ -37,6 +37,23 @@ def _load_script(name: str):
 
 record_mod = _load_script("record")
 verify_mod = _load_script("verify_spec")
+#: The real base-branch reader, kept before the autouse fixture below swaps it.
+_REAL_BASE_BASELINE_TEXT = verify_mod._base_baseline_text
+
+
+@pytest.fixture(autouse=True)
+def _base_branch_is_the_working_copy(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Judge each baseline against itself unless a test says otherwise (#766).
+
+    The shrink-only ratchet reads the base branch through git, which the test
+    job's shallow checkout does not have and which would tie unrelated tests
+    to the repository's history. Tests of the ratchet itself override this.
+    """
+
+    def _same_file(path: Path) -> str | None:
+        return path.read_text(encoding="utf-8") if path.is_file() else None
+
+    monkeypatch.setattr(verify_mod, "_base_baseline_text", _same_file)
 
 
 # ----------------------------------------------------------------------
@@ -423,20 +440,6 @@ def test_the_baseline_fails_on_an_entry_that_no_longer_exists(
     assert "더 이상 없음" in steps[0].detail
 
 
-def test_the_baseline_may_not_grow_past_its_frozen_size(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    _record_apt(tmp_path)
-    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
-    keys = _set_spec_digest(tmp_path, _MISSING)
-    _use_baseline(tmp_path, monkeypatch, keys)
-    monkeypatch.setattr(verify_mod, "LEGACY_CEILING", len(keys) - 1)
-
-    steps = verify_mod._check_legacy_baseline()
-
-    assert any(not step.passed and "동결 크기" in step.detail for step in steps)
-
-
 def test_the_baseline_rejects_a_repeated_entry(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -464,7 +467,7 @@ def test_run_verify_fails_on_a_stale_baseline(
 
 def test_the_repository_baseline_is_exactly_the_unbound_fixtures() -> None:
     """Every tracked fixture without a digest is listed, every listed one is
-    tracked and unbound, and the list is within its frozen size. Sweeps with
+    tracked and unbound, and the list passes its own checks. Sweeps with
     `git ls-files`, not a hand-written path list (AGENTS.md)."""
     import subprocess
 
@@ -484,7 +487,6 @@ def test_the_repository_baseline_is_exactly_the_unbound_fixtures() -> None:
     baseline = verify_mod._load_legacy_baseline()
 
     assert sorted(baseline) == unbound
-    assert len(baseline) <= verify_mod.LEGACY_CEILING
     assert all(step.passed for step in verify_mod._check_legacy_baseline())
 
 
@@ -838,41 +840,6 @@ class TestLicenceTerms:
 
         assert any(not step.passed and "더 이상 위반이 아님" in step.detail for step in steps)
 
-    def test_the_baseline_ceiling_is_enforced(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        baseline = tmp_path / "terms.txt"
-        baseline.write_text(
-            "\n".join(
-                [
-                    "datago.air_station",
-                    "datago.airkorea_forecast",
-                    "datago.hospital_info",
-                    "datago.metro_fare",
-                    "datago.ocean_buoy",
-                    "datago.offi_rent",
-                    "datago.offi_trade",
-                    "datago.rh_rent",
-                    "datago.sh_rent",
-                    "datago.sh_trade",
-                    "datago.tour_kor_area",
-                    "datago.tour_kor_festival",
-                    "datago.tour_kor_keyword",
-                    "datago.tour_kor_location",
-                    "datago.ultra_srt_fcst",
-                    "datago.ultra_srt_ncst",
-                    "datago.apt_trade",
-                ]
-            )
-            + "\n",
-            encoding="utf-8",
-        )
-        monkeypatch.setattr(verify_mod, "UNCONFIRMED_TERMS_BASELINE", baseline)
-
-        steps = verify_mod._check_terms_baseline()
-
-        assert any(not step.passed and "동결 크기" in step.detail for step in steps)
-
 
 # ----------------------------------------------------------------------
 # transport security: plain http needs its reason (#738)
@@ -935,44 +902,243 @@ class TestInsecureHttp:
 
         assert any(not step.passed and "더 이상 위반이 아님" in step.detail for step in steps)
 
-    def test_the_baseline_ceiling_is_enforced(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+
+# ----------------------------------------------------------------------
+# baseline ratchets: shrink-only against the base branch (#766)
+# ----------------------------------------------------------------------
+
+# Each ratchet: the module attribute naming its file, and its check.
+_RATCHETS = [
+    pytest.param("LEGACY_BASELINE", "_check_legacy_baseline", id="legacy-evidence"),
+    pytest.param("UNCONFIRMED_TERMS_BASELINE", "_check_terms_baseline", id="unconfirmed-terms"),
+    pytest.param("INSECURE_HTTP_BASELINE", "_check_insecure_http_baseline", id="insecure-http"),
+]
+
+_BASE_ENTRIES = ["entry.a", "entry.b", "entry.c"]
+
+
+def _write_baseline(path: Path, entries: list[str]) -> None:
+    path.write_text("# test baseline\n" + "".join(f"{e}\n" for e in entries), encoding="utf-8")
+
+
+def _ratchet_failures(steps: list) -> list:
+    """Steps the shrink-only comparison failed — not the staleness checks,
+    which also fire here because the test entries name nothing real."""
+    return [step for step in steps if not step.passed and "기준 브랜치" in step.detail]
+
+
+def _run_ratchet(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    attr: str,
+    check: str,
+    head: list[str],
+    base: list[str] | None = _BASE_ENTRIES,
+) -> list:
+    baseline = tmp_path / "baseline.txt"
+    _write_baseline(baseline, head)
+    monkeypatch.setattr(verify_mod, attr, baseline)
+    base_text = None if base is None else "".join(f"{e}\n" for e in base)
+    monkeypatch.setattr(verify_mod, "_base_baseline_text", lambda path: base_text)
+    return _ratchet_failures(getattr(verify_mod, check)())
+
+
+@pytest.mark.parametrize(("attr", "check"), _RATCHETS)
+class TestShrinkOnlyAgainstBase:
+    def test_adding_after_a_shrink_fails(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, attr: str, check: str
     ) -> None:
-        baseline = tmp_path / "insecure-http.txt"
-        baseline.write_text(
-            "\n".join(
-                [
-                    "datago.air_quality",
-                    "datago.air_station",
-                    "datago.airkorea_forecast",
-                    "datago.apt_rent",
-                    "datago.apt_trade",
-                    "datago.bus_arrival",
-                    "datago.hospital_info",
-                    "datago.metro_fare",
-                    "datago.ocean_buoy",
-                    "datago.offi_rent",
-                    "datago.offi_trade",
-                    "datago.rh_rent",
-                    "datago.sh_rent",
-                    "datago.sh_trade",
-                    "datago.tour_kor_area",
-                    "datago.tour_kor_festival",
-                    "datago.tour_kor_keyword",
-                    "datago.tour_kor_location",
-                    "datago.ultra_srt_fcst",
-                    "datago.ultra_srt_ncst",
-                    "datago.village_fcst",
-                    "localdata.bakery",
-                    "localdata.general_restaurant",
-                    "localdata.rest_cafe",
-                ]
-            )
-            + "\n",
-            encoding="utf-8",
+        """The list shrank by two, then gained one: still under the old size,
+        which a fixed ceiling let through."""
+        failures = _run_ratchet(tmp_path, monkeypatch, attr, check, ["entry.a", "entry.new"])
+
+        assert [step.name.split("[")[1].rstrip("]") for step in failures] == ["entry.new"]
+        assert "줄기만" in failures[0].detail
+
+    def test_a_swap_fails(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, attr: str, check: str
+    ) -> None:
+        """Same size as the base, one entry exchanged for a new one."""
+        failures = _run_ratchet(
+            tmp_path, monkeypatch, attr, check, ["entry.a", "entry.b", "entry.new"]
         )
-        monkeypatch.setattr(verify_mod, "INSECURE_HTTP_BASELINE", baseline)
 
-        steps = verify_mod._check_insecure_http_baseline()
+        assert len(failures) == 1 and "entry.new" in failures[0].name
 
-        assert any(not step.passed and "동결 크기" in step.detail for step in steps)
+    def test_a_pure_removal_passes(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, attr: str, check: str
+    ) -> None:
+        assert _run_ratchet(tmp_path, monkeypatch, attr, check, ["entry.a", "entry.c"]) == []
+
+    def test_an_unchanged_baseline_passes(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, attr: str, check: str
+    ) -> None:
+        assert _run_ratchet(tmp_path, monkeypatch, attr, check, list(_BASE_ENTRIES)) == []
+
+    def test_a_baseline_the_base_branch_lacks_is_not_compared(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, attr: str, check: str
+    ) -> None:
+        """The pull request introducing a baseline sets its first contents."""
+        assert _run_ratchet(tmp_path, monkeypatch, attr, check, ["entry.new"], base=None) == []
+
+    def test_an_unreadable_base_fails_closed(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, attr: str, check: str
+    ) -> None:
+        """Without the base, a removal and a swap look the same — so nothing
+        passes, not even an unchanged list."""
+        baseline = tmp_path / "baseline.txt"
+        _write_baseline(baseline, list(_BASE_ENTRIES))
+        monkeypatch.setattr(verify_mod, attr, baseline)
+
+        def _unavailable(path: Path) -> str | None:
+            raise verify_mod.BaselineBaseUnavailable("기준 ref `origin/main` 를 찾을 수 없음")
+
+        monkeypatch.setattr(verify_mod, "_base_baseline_text", _unavailable)
+
+        failures = _ratchet_failures(getattr(verify_mod, check)())
+
+        assert len(failures) == 1
+        assert "비교할 수 없음" in failures[0].detail
+        assert "origin/main" in failures[0].detail
+
+
+def _git(repo: Path, *args: str) -> str:
+    import subprocess
+
+    return subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "-c",
+            "user.name=test",
+            "-c",
+            "user.email=test@example.invalid",
+            "-c",
+            "commit.gpgsign=false",
+            *args,
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+@pytest.fixture
+def base_repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """A repository whose ``origin/main`` lists the insecure-http baseline's
+    entries, with the module pointed at it and the real git reader restored."""
+    repo = tmp_path / "repo"
+    (repo / "scripts").mkdir(parents=True)
+    _git(repo, "init", "-q", "-b", "main")
+    _write_baseline(repo / "scripts" / "insecure_http_baseline.txt", _BASE_ENTRIES)
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-q", "-m", "base")
+    _git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+    monkeypatch.setattr(verify_mod, "REPO_ROOT", repo)
+    monkeypatch.setattr(
+        verify_mod, "INSECURE_HTTP_BASELINE", repo / "scripts" / "insecure_http_baseline.txt"
+    )
+    monkeypatch.setattr(verify_mod, "_base_baseline_text", _REAL_BASE_BASELINE_TEXT)
+    monkeypatch.delenv("KPUBDATA_BASELINE_BASE", raising=False)
+    monkeypatch.delenv("GITHUB_BASE_REF", raising=False)
+    return repo
+
+
+def _http_ratchet_failures() -> list:
+    return _ratchet_failures(verify_mod._check_insecure_http_baseline())
+
+
+class TestShrinkOnlyThroughGit:
+    """The same rule end to end through git, on the baseline #765 lets the
+    dataset agent commit: an agent listing its new http spec must fail."""
+
+    @pytest.mark.parametrize(
+        ("head", "added"),
+        [
+            pytest.param(["entry.a", "entry.new"], ["entry.new"], id="shrink-then-add"),
+            pytest.param(["entry.a", "entry.b", "entry.new"], ["entry.new"], id="swap"),
+            pytest.param(["entry.a", "entry.b"], [], id="pure-removal"),
+        ],
+    )
+    def test_the_working_copy_is_judged_against_origin_main(
+        self, base_repo: Path, head: list[str], added: list[str]
+    ) -> None:
+        _write_baseline(base_repo / "scripts" / "insecure_http_baseline.txt", head)
+
+        failures = _http_ratchet_failures()
+
+        assert [step.name for step in failures] == [
+            f"insecure http baseline[{entry}]" for entry in added
+        ]
+
+    def test_a_committed_addition_on_the_branch_still_fails(self, base_repo: Path) -> None:
+        _git(base_repo, "checkout", "-q", "-b", "agent/datago.new")
+        _write_baseline(
+            base_repo / "scripts" / "insecure_http_baseline.txt", [*_BASE_ENTRIES, "entry.new"]
+        )
+        _git(base_repo, "commit", "-q", "-am", "list the new http spec")
+
+        failures = _http_ratchet_failures()
+
+        assert len(failures) == 1 and "entry.new" in failures[0].name
+
+    def test_a_branch_behind_the_base_is_judged_at_its_fork_point(self, base_repo: Path) -> None:
+        """main removed entry.c after the branch forked; the branch still has
+        it, which is not an addition — the merge takes main's removal."""
+        _git(base_repo, "checkout", "-q", "-b", "feature")
+        _git(base_repo, "checkout", "-q", "main")
+        _write_baseline(
+            base_repo / "scripts" / "insecure_http_baseline.txt", ["entry.a", "entry.b"]
+        )
+        _git(base_repo, "commit", "-q", "-am", "shrink on main")
+        _git(base_repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+        _git(base_repo, "checkout", "-q", "feature")
+
+        assert _http_ratchet_failures() == []
+
+    def test_the_base_ref_can_be_overridden(
+        self, base_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _git(base_repo, "branch", "release")
+        _git(base_repo, "update-ref", "-d", "refs/remotes/origin/main")
+        monkeypatch.setenv("KPUBDATA_BASELINE_BASE", "release")
+        _write_baseline(
+            base_repo / "scripts" / "insecure_http_baseline.txt", [*_BASE_ENTRIES, "entry.new"]
+        )
+
+        failures = _http_ratchet_failures()
+
+        assert len(failures) == 1 and "`release`" in failures[0].detail
+
+    def test_a_pull_request_run_compares_against_its_base_branch(
+        self, base_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _git(base_repo, "update-ref", "refs/remotes/origin/develop", "HEAD")
+        _git(base_repo, "update-ref", "-d", "refs/remotes/origin/main")
+        monkeypatch.setenv("GITHUB_BASE_REF", "develop")
+
+        assert verify_mod._baseline_base_ref() == "origin/develop"
+        assert _http_ratchet_failures() == []
+
+    def test_a_missing_base_ref_fails_closed(self, base_repo: Path) -> None:
+        """A shallow checkout without the base ref cannot tell a removal from
+        a swap, so even a pure removal fails — with the fix in the message."""
+        _git(base_repo, "update-ref", "-d", "refs/remotes/origin/main")
+        _write_baseline(base_repo / "scripts" / "insecure_http_baseline.txt", ["entry.a"])
+
+        failures = _http_ratchet_failures()
+
+        assert len(failures) == 1
+        assert "비교할 수 없음" in failures[0].detail
+        assert "git fetch origin main" in failures[0].detail
+        assert "KPUBDATA_BASELINE_BASE" in failures[0].detail
+
+    def test_without_git_it_fails_closed(
+        self, base_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("PATH", "")
+
+        failures = _http_ratchet_failures()
+
+        assert len(failures) == 1 and "git" in failures[0].detail

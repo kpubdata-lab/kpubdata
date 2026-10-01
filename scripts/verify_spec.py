@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -39,17 +40,10 @@ SPEC_ROOT = REPO_ROOT / "src" / "kpubdata" / "specs"
 #: Fixtures recorded before the spec digest existed (#522), one meta path per
 #: line relative to ``FIXTURES_ROOT``. Only these may lack ``spec_sha256`` (#717).
 LEGACY_BASELINE = REPO_ROOT / "scripts" / "legacy_evidence_baseline.txt"
-#: Size of the baseline when it was frozen (#717). The ratchet lets it shrink,
-#: never grow: a new fixture without a digest is not legacy, it is unbound.
-LEGACY_CEILING = 28
 
 #: Specs whose licence says ``allowed`` without the attribution proof (#732).
 #: Entries are spec ids (``provider.dataset_key``), one per line.
 UNCONFIRMED_TERMS_BASELINE = REPO_ROOT / "scripts" / "unconfirmed_terms_baseline.txt"
-#: Size of the terms baseline when it was frozen (#732). Shrink-only, like the
-#: legacy evidence baseline: a new unconfirmed-allowed licence is not legacy,
-#: it publishes under conditions nobody checked.
-UNCONFIRMED_TERMS_CEILING = 16
 
 #: Specs still sending their service key over plain http:// (#738). Entries
 #: are spec ids, one per line. Every one sits on apis.data.go.kr, which the
@@ -57,10 +51,17 @@ UNCONFIRMED_TERMS_CEILING = 16
 #: entry leaves by switching schemes — which voids the spec digest and needs
 #: a re-record through the Build Dataset workflow.
 INSECURE_HTTP_BASELINE = REPO_ROOT / "scripts" / "insecure_http_baseline.txt"
-#: Size of the insecure-http baseline when it was frozen (#738). Shrink-only
-#: like the two baselines above: a new plain-http spec is not legacy, it is
-#: a key about to cross the network in the clear.
-INSECURE_HTTP_CEILING = 23
+
+#: The three baselines above are shrink-only ratchets (#766): every entry must
+#: already be in the same file on the base branch, so a pull request can
+#: remove entries but never add one — not even in a slot another entry just
+#: freed (a swap). A fixed size ceiling allowed both. The base is
+#: ``$KPUBDATA_BASELINE_BASE`` when set, else ``origin/$GITHUB_BASE_REF`` in a
+#: pull-request run, else ``origin/main``; the comparison reads the file at the
+#: merge base of that ref and ``HEAD``, so a branch that fell behind is judged
+#: against the point it forked from, not against later removals on the base.
+BASELINE_BASE_ENV = "KPUBDATA_BASELINE_BASE"
+DEFAULT_BASELINE_BASE = "origin/main"
 
 
 @dataclass
@@ -90,31 +91,131 @@ def _canon_bytes(data: object) -> str:
     return json.dumps(data, ensure_ascii=False, sort_keys=True, indent=1) + "\n"
 
 
+def _parse_baseline(text: str) -> list[str]:
+    """Entries of a baseline file's text, comments and blank lines dropped."""
+    entries: list[str] = []
+    for line in text.splitlines():
+        entry = line.strip()
+        if entry and not entry.startswith("#"):
+            entries.append(entry)
+    return entries
+
+
+def _load_baseline(path: Path) -> list[str]:
+    """Entries of a baseline file; a missing file is an empty baseline."""
+    if not path.is_file():
+        return []
+    return _parse_baseline(path.read_text(encoding="utf-8"))
+
+
 def _load_legacy_baseline() -> list[str]:
     """Entries of the legacy evidence baseline, comments and blank lines dropped.
 
     A missing file is an empty baseline: every fixture then needs a digest.
     """
-    if not LEGACY_BASELINE.is_file():
-        return []
-    entries: list[str] = []
-    for line in LEGACY_BASELINE.read_text(encoding="utf-8").splitlines():
-        entry = line.strip()
-        if entry and not entry.startswith("#"):
-            entries.append(entry)
-    return entries
+    return _load_baseline(LEGACY_BASELINE)
 
 
 def _load_terms_baseline() -> list[str]:
     """Spec ids of the unconfirmed-terms baseline, comments and blanks dropped."""
-    if not UNCONFIRMED_TERMS_BASELINE.is_file():
+    return _load_baseline(UNCONFIRMED_TERMS_BASELINE)
+
+
+class BaselineBaseUnavailable(Exception):
+    """The base branch's copy of a baseline could not be read (#766)."""
+
+
+def _baseline_base_ref() -> str:
+    """The ref the baselines may only shrink against (#766)."""
+    explicit = os.environ.get(BASELINE_BASE_ENV, "").strip()
+    if explicit:
+        return explicit
+    github_base = os.environ.get("GITHUB_BASE_REF", "").strip()
+    if github_base:
+        return f"origin/{github_base}"
+    return DEFAULT_BASELINE_BASE
+
+
+def _git(*args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["git", "-C", str(REPO_ROOT), *args],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _base_baseline_text(path: Path) -> str | None:
+    """A baseline file's text on the base branch, or None if it has no such file.
+
+    Reads the file at the merge base of the base ref and ``HEAD`` (the base
+    ref's tip when there is no merge base, e.g. in a shallow clone). None
+    means the base branch has no such file — the pull request introduces this
+    baseline, and its first contents are what review approves.
+
+    Raises:
+        BaselineBaseUnavailable: no git, the base ref cannot be resolved, or
+            the file cannot be read there. The caller fails closed: a ratchet
+            that cannot see its base cannot tell a removal from a swap.
+    """
+    ref = _baseline_base_ref()
+    try:
+        rel = path.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
+    except ValueError as exc:
+        raise BaselineBaseUnavailable(f"{path} 가 저장소 밖에 있음") from exc
+    try:
+        tip = _git("rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}")
+    except OSError as exc:
+        raise BaselineBaseUnavailable(f"git 을 실행할 수 없음 ({exc})") from exc
+    if tip.returncode != 0 or not tip.stdout.strip():
+        raise BaselineBaseUnavailable(
+            f"기준 ref `{ref}` 를 찾을 수 없음 — `git fetch origin main` 으로 가져오거나 "
+            f"{BASELINE_BASE_ENV} 에 비교할 ref 를 지정"
+        )
+    commit = tip.stdout.strip()
+    merge_base = _git("merge-base", commit, "HEAD")
+    if merge_base.returncode == 0 and merge_base.stdout.strip():
+        commit = merge_base.stdout.strip()
+    listed = _git("ls-tree", "--name-only", commit, "--", rel)
+    if listed.returncode != 0:
+        raise BaselineBaseUnavailable(f"`{ref}` 의 트리를 읽을 수 없음: {listed.stderr.strip()}")
+    if not listed.stdout.strip():
+        return None
+    shown = _git("show", f"{commit}:{rel}")
+    if shown.returncode != 0:
+        raise BaselineBaseUnavailable(f"`{ref}:{rel}` 을 읽을 수 없음: {shown.stderr.strip()}")
+    return shown.stdout
+
+
+def _shrink_only_steps(name: str, path: Path, entries: list[str], hint: str) -> list[StepResult]:
+    """Fail every entry the base branch's copy of this baseline lacks (#766).
+
+    A set comparison, not a size one: an addition fails even when another
+    entry was removed in the same change, so a freed slot cannot be reused.
+    Removals pass. When the base cannot be read the check fails closed.
+    """
+    try:
+        base_text = _base_baseline_text(path)
+    except BaselineBaseUnavailable as exc:
+        return [
+            StepResult(
+                name,
+                passed=False,
+                detail=f"기준 브랜치와 비교할 수 없음 — {exc}. 목록이 줄기만 했는지 확인할 수 없다",
+            )
+        ]
+    if base_text is None:
         return []
-    entries: list[str] = []
-    for line in UNCONFIRMED_TERMS_BASELINE.read_text(encoding="utf-8").splitlines():
-        entry = line.strip()
-        if entry and not entry.startswith("#"):
-            entries.append(entry)
-    return entries
+    base = set(_parse_baseline(base_text))
+    ref = _baseline_base_ref()
+    return [
+        StepResult(
+            f"{name}[{entry}]",
+            passed=False,
+            detail=f"기준 브랜치(`{ref}`) baseline 에 없는 항목 — 목록은 줄기만 한다. {hint}",
+        )
+        for entry in sorted(set(entries) - base)
+    ]
 
 
 def _terms_violation(spec: SpecDefinition) -> str | None:
@@ -166,17 +267,14 @@ def _check_terms_baseline() -> list[StepResult]:
     entries = _load_terms_baseline()
     results: list[StepResult] = []
     name = "unconfirmed terms baseline"
-    if len(entries) > UNCONFIRMED_TERMS_CEILING:
-        results.append(
-            StepResult(
-                name,
-                passed=False,
-                detail=(
-                    f"baseline {len(entries)}개 > 동결 크기 {UNCONFIRMED_TERMS_CEILING}개 — "
-                    "목록은 줄기만 한다. 새 미확인 allowed 는 목록에 넣지 않는다"
-                ),
-            )
+    results.extend(
+        _shrink_only_steps(
+            name,
+            UNCONFIRMED_TERMS_BASELINE,
+            entries,
+            "새 미확인 allowed 는 목록에 넣지 않는다",
         )
+    )
     duplicates = sorted({entry for entry in entries if entries.count(entry) > 1})
     if duplicates:
         results.append(StepResult(name, passed=False, detail=f"중복 항목: {', '.join(duplicates)}"))
@@ -205,14 +303,7 @@ def _check_terms_baseline() -> list[StepResult]:
 
 def _load_insecure_http_baseline() -> list[str]:
     """Spec ids of the insecure-http baseline, comments and blanks dropped."""
-    if not INSECURE_HTTP_BASELINE.is_file():
-        return []
-    entries: list[str] = []
-    for line in INSECURE_HTTP_BASELINE.read_text(encoding="utf-8").splitlines():
-        entry = line.strip()
-        if entry and not entry.startswith("#"):
-            entries.append(entry)
-    return entries
+    return _load_baseline(INSECURE_HTTP_BASELINE)
 
 
 def _insecure_http_violation(spec: SpecDefinition) -> str | None:
@@ -265,17 +356,14 @@ def _check_insecure_http_baseline() -> list[StepResult]:
     entries = _load_insecure_http_baseline()
     results: list[StepResult] = []
     name = "insecure http baseline"
-    if len(entries) > INSECURE_HTTP_CEILING:
-        results.append(
-            StepResult(
-                name,
-                passed=False,
-                detail=(
-                    f"baseline {len(entries)}개 > 동결 크기 {INSECURE_HTTP_CEILING}개 — "
-                    "목록은 줄기만 한다. 새 평문 http 는 목록에 넣지 않는다"
-                ),
-            )
+    results.extend(
+        _shrink_only_steps(
+            name,
+            INSECURE_HTTP_BASELINE,
+            entries,
+            "새 평문 http 는 목록에 넣지 않는다 — https 로 바꾸거나 insecure_http_reason 을 적는다",
         )
+    )
     duplicates = sorted({entry for entry in entries if entries.count(entry) > 1})
     if duplicates:
         results.append(StepResult(name, passed=False, detail=f"중복 항목: {', '.join(duplicates)}"))
@@ -305,24 +393,22 @@ def _check_insecure_http_baseline() -> list[StepResult]:
 def _check_legacy_baseline() -> list[StepResult]:
     """Hold the legacy baseline to its ratchet (#717).
 
-    The baseline may only shrink. It fails when it grows past its frozen size,
-    repeats an entry, or keeps an entry that no longer exists or that now
-    carries ``spec_sha256`` — a stale entry is a hole a new fixture could use.
+    The baseline may only shrink. It fails when it lists an entry the base
+    branch's copy lacks (#766), repeats an entry, or keeps an entry that no
+    longer exists or that now carries ``spec_sha256`` — a stale entry is a
+    hole a new fixture could use.
     """
     entries = _load_legacy_baseline()
     results: list[StepResult] = []
     name = "legacy baseline"
-    if len(entries) > LEGACY_CEILING:
-        results.append(
-            StepResult(
-                name,
-                passed=False,
-                detail=(
-                    f"baseline {len(entries)}개 > 동결 크기 {LEGACY_CEILING}개 — "
-                    "legacy 목록은 줄기만 한다. 새 fixture 는 `make record` 로 기록"
-                ),
-            )
+    results.extend(
+        _shrink_only_steps(
+            name,
+            LEGACY_BASELINE,
+            entries,
+            "새 fixture 는 `make record` 로 기록",
         )
+    )
     duplicates = sorted({entry for entry in entries if entries.count(entry) > 1})
     if duplicates:
         results.append(StepResult(name, passed=False, detail=f"중복 항목: {', '.join(duplicates)}"))
