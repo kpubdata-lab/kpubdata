@@ -74,6 +74,18 @@ _ISSUE_NUMBER = re.compile(r"\(#[0-9]+\)\s*$")
 
 _EXAMPLE = "fix(localdata): empty wrapper becomes a phantom row"
 
+# Pull request titles only (POLICY 2.1.3, #742). A pull request title becomes the commit
+# title on main, which is English and carries no issue reference; an issue title may be
+# Korean when English would block the report (AGENTS.md), so these do not apply to it.
+MAX_PR_TITLE_LENGTH = 100
+_HANGUL = re.compile(r"[\u1100-\u11ff\u3130-\u318f\ua960-\ua97f\uac00-\ud7af\ud7b0-\ud7ff]")
+# `#123`, `(#123)`, `repo#123`, `owner/repo#123`, and issue or pull request URLs. A `#`
+# not followed by a digit (`C#`, a `#` in a code span) is not a reference.
+_ISSUE_REFERENCE = re.compile(
+    r"(?:^|[^\w&])(?:[\w.-]+/)?(?:[\w.-]+)?#[0-9]+\b"
+    r"|github\.com/[^\s/]+/[^\s/]+/(?:issues|pull)/[0-9]+"
+)
+
 
 class TitleError(Exception):
     """The title does not follow `type(scope): description`."""
@@ -94,11 +106,17 @@ class Title:
         return LABELS.get(self.type, DEFAULT_LABEL)
 
 
-def parse(title: str) -> Title:
+def parse(title: str, *, pull_request: bool = False) -> Title:
     """Parse a title.
 
+    ``pull_request`` adds the rules for a title that becomes a commit on main: no
+    Hangul, no issue reference anywhere, at most MAX_PR_TITLE_LENGTH characters.
+    GitHub's own `Revert "..."` title quotes the reverted commit as it was and is
+    exempt.
+
     Raises:
-        TitleError: The shape is wrong, or the type is not one of TYPES.
+        TitleError: The shape is wrong, the type is not one of TYPES, or a pull
+            request title breaks a pull-request-only rule.
     """
     title = title.strip()
     if "\n" in title or "\r" in title:
@@ -116,6 +134,8 @@ def parse(title: str) -> Title:
     # it reverts, and refusing it would make undoing a merge fail a check.
     if _GITHUB_REVERT.match(title):
         return Title(type="revert", scope=None, breaking=False, description=title)
+    if pull_request:
+        _check_pull_request_title(title)
     match = _TITLE.fullmatch(title)
     if match is None:
         raise TitleError(
@@ -134,13 +154,37 @@ def parse(title: str) -> Title:
     )
 
 
+def _check_pull_request_title(title: str) -> None:
+    """Refuse what a commit title on main may not carry (POLICY 2.1.3, #742)."""
+    if _HANGUL.search(title):
+        raise TitleError(
+            "PR titles are English — the title becomes the commit title on main "
+            "(ADR 0003). Korean belongs in the PR body."
+        )
+    if _ISSUE_REFERENCE.search(title):
+        raise TitleError(
+            "PR titles carry no issue reference (`#123`, `repo#123`, an issue URL). "
+            "Link it from the body with `Closes #123` or `Refs owner/repo#123`."
+        )
+    if len(title) > MAX_PR_TITLE_LENGTH:
+        raise TitleError(
+            f"PR titles are at most {MAX_PR_TITLE_LENGTH} characters (this one is "
+            f"{len(title)}). Say the rest in the body."
+        )
+
+
 def main(argv: list[str] | None = None) -> int:
     """Check one title. Returns 0 when it parses, 1 otherwise."""
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("title")
+    parser.add_argument(
+        "--pull-request",
+        action="store_true",
+        help="also apply the rules for a title that becomes a commit on main",
+    )
     args = parser.parse_args(argv)
     try:
-        title = parse(args.title)
+        title = parse(args.title, pull_request=args.pull_request)
     except TitleError as exc:
         print(f"::error::{exc}", file=sys.stderr)
         return 1
