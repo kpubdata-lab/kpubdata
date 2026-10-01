@@ -1,0 +1,28 @@
+# Unconfirmed licence terms baseline (#732): specs whose licence says
+# `redistribution: allowed` without the `attribution` text that proves the
+# terms were confirmed (#525). Frozen at 16 entries from the 2026-10-01
+# audit (PR #732). The two specs the review found (#728: bus_arrival,
+# social_enterprise) were fixed to `redistribution: unknown` before this
+# gate landed and are not listed.
+#
+# Ratchet: this list may only shrink. A spec leaves the list when its terms
+# are confirmed from the provider page (attribution added) or when
+# redistribution is set to unknown — the entry must then be removed here, or
+# the baseline check fails for staleness. A spec that is not listed may not
+# say `allowed` without attribution: unconfirmed terms are not redistributable.
+datago.air_station
+datago.airkorea_forecast
+datago.hospital_info
+datago.metro_fare
+datago.ocean_buoy
+datago.offi_rent
+datago.offi_trade
+datago.rh_rent
+datago.sh_rent
+datago.sh_trade
+datago.tour_kor_area
+datago.tour_kor_festival
+datago.tour_kor_keyword
+datago.tour_kor_location
+datago.ultra_srt_fcst
+datago.ultra_srt_ncst

@@ -43,6 +43,14 @@ LEGACY_BASELINE = REPO_ROOT / "scripts" / "legacy_evidence_baseline.txt"
 #: never grow: a new fixture without a digest is not legacy, it is unbound.
 LEGACY_CEILING = 28
 
+#: Specs whose licence says ``allowed`` without the attribution proof (#732).
+#: Entries are spec ids (``provider.dataset_key``), one per line.
+UNCONFIRMED_TERMS_BASELINE = REPO_ROOT / "scripts" / "unconfirmed_terms_baseline.txt"
+#: Size of the terms baseline when it was frozen (#732). Shrink-only, like the
+#: legacy evidence baseline: a new unconfirmed-allowed licence is not legacy,
+#: it publishes under conditions nobody checked.
+UNCONFIRMED_TERMS_CEILING = 16
+
 
 @dataclass
 class StepResult:
@@ -84,6 +92,104 @@ def _load_legacy_baseline() -> list[str]:
         if entry and not entry.startswith("#"):
             entries.append(entry)
     return entries
+
+
+def _load_terms_baseline() -> list[str]:
+    """Spec ids of the unconfirmed-terms baseline, comments and blanks dropped."""
+    if not UNCONFIRMED_TERMS_BASELINE.is_file():
+        return []
+    entries: list[str] = []
+    for line in UNCONFIRMED_TERMS_BASELINE.read_text(encoding="utf-8").splitlines():
+        entry = line.strip()
+        if entry and not entry.startswith("#"):
+            entries.append(entry)
+    return entries
+
+
+def _terms_violation(spec: SpecDefinition) -> str | None:
+    """Why this spec claims a redistribution its terms do not support (#732).
+
+    ``redistribution: allowed`` is what Builder's publish gate reads
+    (kpubdata-builder#892); saying it while the terms are unconfirmed
+    publishes under conditions nobody checked. The proof of confirmation is
+    the ``attribution`` text (#525) — its absence is the violation. None when
+    the licence makes no such claim, or proves it.
+    """
+    lic = spec.license
+    if lic is None or lic.redistribution != "allowed":
+        return None
+    if (lic.attribution or "").strip():
+        return None
+    return (
+        "license.redistribution 이 allowed 인데 license.attribution 이 비어 있다 — "
+        "확인되지 않은 이용조건은 재배포 허용이 아니다. 제공기관 페이지에서 이용조건을 "
+        "확인해 attribution 을 채우거나 redistribution: unknown 으로 둔다 (#524, #732)"
+    )
+
+
+def _verify_licence_terms(spec: SpecDefinition) -> list[StepResult]:
+    """The licence-source step (#732): allowed needs the attribution proof.
+
+    Emitted only where the claim is made without proof — a baseline-listed
+    spec passes with a note naming the exemption, an unlisted one fails, and
+    a licence that claims nothing (or proves it) emits nothing, so the other
+    datasets' verify output stays unchanged.
+    """
+    violation = _terms_violation(spec)
+    if violation is None:
+        return []
+    if spec.id in _load_terms_baseline():
+        return [StepResult(f"라이선스 출처[{spec.id}]", True, "미확인 조건 — baseline 등록 (#732)")]
+    return [StepResult(f"라이선스 출처[{spec.id}]", False, violation)]
+
+
+def _check_terms_baseline() -> list[StepResult]:
+    """Hold the unconfirmed-terms baseline to its ratchet (#732).
+
+    Like the legacy evidence baseline (#717), it may only shrink: a listed
+    spec stops needing the exemption exactly when its terms are confirmed or
+    the claim is withdrawn, and a stale entry left behind is a hole a new
+    pull request could hide behind. An entry naming no discovered spec is
+    stale too.
+    """
+    entries = _load_terms_baseline()
+    results: list[StepResult] = []
+    name = "unconfirmed terms baseline"
+    if len(entries) > UNCONFIRMED_TERMS_CEILING:
+        results.append(
+            StepResult(
+                name,
+                passed=False,
+                detail=(
+                    f"baseline {len(entries)}개 > 동결 크기 {UNCONFIRMED_TERMS_CEILING}개 — "
+                    "목록은 줄기만 한다. 새 미확인 allowed 는 목록에 넣지 않는다"
+                ),
+            )
+        )
+    duplicates = sorted({entry for entry in entries if entries.count(entry) > 1})
+    if duplicates:
+        results.append(StepResult(name, passed=False, detail=f"중복 항목: {', '.join(duplicates)}"))
+    by_id = {spec.id: spec for spec in discover_specs()}
+    for entry in sorted(set(entries)):
+        spec = by_id.get(entry)
+        if spec is None:
+            results.append(
+                StepResult(
+                    f"{name}[{entry}]",
+                    passed=False,
+                    detail="spec 이 더 이상 없음 — baseline 에서 이 줄을 삭제",
+                )
+            )
+            continue
+        if _terms_violation(spec) is None:
+            results.append(
+                StepResult(
+                    f"{name}[{entry}]",
+                    passed=False,
+                    detail="더 이상 위반이 아님 — baseline 에서 이 줄을 삭제",
+                )
+            )
+    return results
 
 
 def _check_legacy_baseline() -> list[StepResult]:
@@ -424,7 +530,16 @@ def run_verify(dataset_id: str | None = None) -> int:
         if not step.passed:
             print(f"  오류({step.name}): {step.detail}")
 
-    failed_any = not baseline_passed
+    # 2-e'. The unconfirmed-terms baseline itself (#732) — same once-per-run
+    # ratchet reasoning as the legacy baseline above.
+    terms_steps = _check_terms_baseline()
+    terms_passed = all(step.passed for step in terms_steps)
+    print(f"[{'통과' if terms_passed else '실패'}] unconfirmed terms baseline")
+    for step in terms_steps:
+        if not step.passed:
+            print(f"  오류({step.name}): {step.detail}")
+
+    failed_any = not baseline_passed or not terms_passed
     for spec in specs:
         if not dataset_id and spec.status in skippable:
             print(f"[건너뜀] {spec.id} (status={spec.status})")
@@ -432,6 +547,7 @@ def run_verify(dataset_id: str | None = None) -> int:
         result = DatasetVerifyResult(dataset_id=spec.id)
         result.steps.extend(_verify_fixtures(spec))
         result.steps.extend(_verify_example_recency(spec))
+        result.steps.extend(_verify_licence_terms(spec))
         result.steps.append(_run_example_script(spec))
         result.steps.append(_run_live_schema_diff(spec))
 

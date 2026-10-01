@@ -772,3 +772,103 @@ class TestExampleRecency:
         steps = verify_mod._verify_example_recency(spec, today=date(2026, 10, 1))
 
         assert len(steps) == 1 and steps[0].passed
+
+
+# ----------------------------------------------------------------------
+# licence terms: allowed needs the attribution proof (#732)
+# ----------------------------------------------------------------------
+
+
+def _licence_spec(spec_id: str, **changes: object):
+    """A real spec whose licence block is replaced field-wise."""
+    import dataclasses
+
+    base = _spec(spec_id)
+    assert base.license is not None
+    licence = dataclasses.replace(base.license, **changes)
+    return dataclasses.replace(base, license=licence)
+
+
+class TestLicenceTerms:
+    def test_allowed_with_the_attribution_proof_emits_nothing(self) -> None:
+        assert verify_mod._verify_licence_terms(_spec("datago.apt_trade")) == []
+
+    def test_unknown_redistribution_emits_nothing(self) -> None:
+        spec = _licence_spec("datago.apt_trade", redistribution="unknown")
+
+        assert verify_mod._verify_licence_terms(spec) == []
+
+    def test_a_claim_without_a_baseline_entry_fails(self) -> None:
+        """The negative test #732 asks for: allowed with no attribution and no
+        exemption is refused — Builder's publish gate reads exactly this flag
+        (kpubdata-builder#892), and #728 shipped two such claims."""
+        spec = _licence_spec("datago.apt_trade", attribution=None)
+
+        steps = verify_mod._verify_licence_terms(spec)
+
+        assert len(steps) == 1 and not steps[0].passed
+        assert "attribution" in steps[0].detail
+        assert "unknown" in steps[0].detail
+
+    def test_a_baseline_listed_claim_passes_with_the_exemption_note(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        baseline = tmp_path / "terms.txt"
+        baseline.write_text("datago.apt_trade\n", encoding="utf-8")
+        monkeypatch.setattr(verify_mod, "UNCONFIRMED_TERMS_BASELINE", baseline)
+
+        spec = _licence_spec("datago.apt_trade", attribution=None)
+
+        steps = verify_mod._verify_licence_terms(spec)
+
+        assert len(steps) == 1 and steps[0].passed
+        assert "baseline" in steps[0].detail
+
+    def test_a_stale_baseline_entry_fails(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A listed spec whose terms were confirmed (attribution filled) or
+        whose claim was withdrawn must leave the list — a stale entry is a
+        hole a new pull request could hide behind."""
+        baseline = tmp_path / "terms.txt"
+        baseline.write_text("datago.apt_trade\n", encoding="utf-8")
+        monkeypatch.setattr(verify_mod, "UNCONFIRMED_TERMS_BASELINE", baseline)
+
+        steps = verify_mod._check_terms_baseline()
+
+        assert any(not step.passed and "더 이상 위반이 아님" in step.detail for step in steps)
+
+    def test_the_baseline_ceiling_is_enforced(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        baseline = tmp_path / "terms.txt"
+        baseline.write_text(
+            "\n".join(
+                [
+                    "datago.air_station",
+                    "datago.airkorea_forecast",
+                    "datago.hospital_info",
+                    "datago.metro_fare",
+                    "datago.ocean_buoy",
+                    "datago.offi_rent",
+                    "datago.offi_trade",
+                    "datago.rh_rent",
+                    "datago.sh_rent",
+                    "datago.sh_trade",
+                    "datago.tour_kor_area",
+                    "datago.tour_kor_festival",
+                    "datago.tour_kor_keyword",
+                    "datago.tour_kor_location",
+                    "datago.ultra_srt_fcst",
+                    "datago.ultra_srt_ncst",
+                    "datago.apt_trade",
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(verify_mod, "UNCONFIRMED_TERMS_BASELINE", baseline)
+
+        steps = verify_mod._check_terms_baseline()
+
+        assert any(not step.passed and "동결 크기" in step.detail for step in steps)
