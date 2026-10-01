@@ -275,26 +275,237 @@ def test_verify_tolerates_the_last_verified_sync(
     assert all(step.passed for step in steps)
 
 
-def test_verify_passes_legacy_evidence_without_a_spec_digest(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """Fixtures recorded before the digest existed stay valid — retrofitting
-    them is the issue's non-goal, so absence reports, not fails."""
-    _record_apt(tmp_path)
-    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
-    for meta_path in (tmp_path / "datago" / "apt_trade").glob("*.meta.json"):
+# ----------------------------------------------------------------------
+# legacy evidence is a frozen baseline, not a missing field (#717)
+# ----------------------------------------------------------------------
+
+_MISSING = object()
+
+
+def _set_spec_digest(tmp_path: Path, value: object) -> list[str]:
+    """Rewrite every recorded apt_trade meta's spec_sha256 (``_MISSING`` deletes it).
+
+    Returns the meta paths as the baseline names them.
+    """
+    keys: list[str] = []
+    for meta_path in sorted((tmp_path / "datago" / "apt_trade").glob("*.meta.json")):
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
-        del meta["spec_sha256"]
+        if value is _MISSING:
+            del meta["spec_sha256"]
+        else:
+            meta["spec_sha256"] = value
         meta_path.write_text(
             json.dumps(meta, ensure_ascii=False, sort_keys=True, indent=1) + "\n",
             encoding="utf-8",
         )
+        keys.append(meta_path.relative_to(tmp_path).as_posix())
+    return keys
+
+
+def _use_baseline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, entries: list[str]) -> None:
+    baseline = tmp_path / "legacy_evidence_baseline.txt"
+    baseline.write_text("# test baseline\n" + "".join(f"{e}\n" for e in entries), encoding="utf-8")
+    monkeypatch.setattr(verify_mod, "LEGACY_BASELINE", baseline)
+
+
+def _binding_steps(steps: list) -> list:
+    return [step for step in steps if "spec 결속" in step.name]
+
+
+def test_verify_passes_baselined_legacy_evidence_without_a_spec_digest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A fixture listed in the frozen baseline stays valid without a digest —
+    retrofitting it is #522's non-goal."""
+    _record_apt(tmp_path)
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
+    keys = _set_spec_digest(tmp_path, _MISSING)
+    _use_baseline(tmp_path, monkeypatch, keys)
 
     steps = verify_mod._verify_fixtures(_spec("datago.apt_trade"))
 
     assert all(step.passed for step in steps)
-    binding = [step for step in steps if "spec 결속" in step.name]
+    binding = _binding_steps(steps)
     assert binding and all("legacy" in step.detail for step in binding)
+    assert all(step.passed for step in verify_mod._check_legacy_baseline())
+
+
+@pytest.mark.parametrize(
+    "value",
+    [_MISSING, None, ""],
+    ids=["deleted-key", "null", "empty-string"],
+)
+def test_verify_fails_a_bound_fixture_whose_digest_was_removed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, value: object
+) -> None:
+    """The #717 bypass: deleting the key, or setting it to null or "", on a
+    fixture outside the baseline no longer passes as legacy — even after the
+    spec changed, which is exactly when it used to slip through."""
+    _record_apt(tmp_path)
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
+    _set_spec_digest(tmp_path, value)
+    _use_baseline(tmp_path, monkeypatch, [])
+
+    source = (Path(verify_mod.SPEC_ROOT) / "datago" / "apt_trade.yaml").read_text(encoding="utf-8")
+    spec_root = tmp_path / "specs"
+    (spec_root / "datago").mkdir(parents=True)
+    (spec_root / "datago" / "apt_trade.yaml").write_text(
+        source + "\n# a field changed after recording\n", encoding="utf-8"
+    )
+    monkeypatch.setattr(verify_mod, "SPEC_ROOT", spec_root)
+
+    steps = verify_mod._verify_fixtures(_spec("datago.apt_trade"))
+
+    binding = _binding_steps(steps)
+    assert binding and not any(step.passed for step in binding)
+    assert all("baseline" in step.detail and "재기록" in step.detail for step in binding)
+
+
+@pytest.mark.parametrize("value", [None, ""], ids=["null", "empty-string"])
+def test_a_baselined_fixture_with_a_null_or_empty_digest_still_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, value: object
+) -> None:
+    """The baseline excuses an absent key only — a recorder never writes null
+    or "" any more, so those values are an edit, not legacy."""
+    _record_apt(tmp_path)
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
+    keys = _set_spec_digest(tmp_path, value)
+    _use_baseline(tmp_path, monkeypatch, keys)
+
+    steps = verify_mod._verify_fixtures(_spec("datago.apt_trade"))
+
+    binding = _binding_steps(steps)
+    assert binding and not any(step.passed for step in binding)
+
+
+def test_verify_fails_an_unknown_fixture_without_a_digest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A fixture not in the baseline cannot join legacy by lacking the field,
+    even while other fixtures are baselined."""
+    _record_apt(tmp_path)
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
+    _set_spec_digest(tmp_path, _MISSING)
+    _use_baseline(tmp_path, monkeypatch, ["datago/air_quality/seoul.meta.json"])
+
+    steps = verify_mod._verify_fixtures(_spec("datago.apt_trade"))
+
+    binding = _binding_steps(steps)
+    assert binding and not any(step.passed for step in binding)
+
+
+def test_the_baseline_fails_on_an_entry_that_now_has_a_digest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Re-recording binds the fixture; its baseline line is then stale and
+    must go, or it stays a hole for the next unbound fixture at that path."""
+    _record_apt(tmp_path)
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
+    keys = [p.relative_to(tmp_path).as_posix() for p in tmp_path.rglob("*.meta.json")]
+    _use_baseline(tmp_path, monkeypatch, keys)
+
+    steps = verify_mod._check_legacy_baseline()
+
+    assert not any(step.passed for step in steps)
+    assert all("spec_sha256" in step.detail for step in steps)
+
+
+def test_the_baseline_fails_on_an_entry_that_no_longer_exists(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
+    _use_baseline(tmp_path, monkeypatch, ["datago/gone/default.meta.json"])
+
+    steps = verify_mod._check_legacy_baseline()
+
+    assert len(steps) == 1 and not steps[0].passed
+    assert "더 이상 없음" in steps[0].detail
+
+
+def test_the_baseline_may_not_grow_past_its_frozen_size(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _record_apt(tmp_path)
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
+    keys = _set_spec_digest(tmp_path, _MISSING)
+    _use_baseline(tmp_path, monkeypatch, keys)
+    monkeypatch.setattr(verify_mod, "LEGACY_CEILING", len(keys) - 1)
+
+    steps = verify_mod._check_legacy_baseline()
+
+    assert any(not step.passed and "동결 크기" in step.detail for step in steps)
+
+
+def test_the_baseline_rejects_a_repeated_entry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _record_apt(tmp_path)
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
+    keys = _set_spec_digest(tmp_path, _MISSING)
+    _use_baseline(tmp_path, monkeypatch, [keys[0], keys[0]])
+
+    steps = verify_mod._check_legacy_baseline()
+
+    assert any(not step.passed and "중복" in step.detail for step in steps)
+
+
+def test_run_verify_fails_on_a_stale_baseline(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The baseline check is wired into the verify run itself, so a stale
+    entry fails `make verify` and not only this unit."""
+    _use_baseline(tmp_path, monkeypatch, ["datago/gone/default.meta.json"])
+    monkeypatch.setattr(verify_mod, "discover_specs", lambda: [])
+
+    assert verify_mod.run_verify() == 1
+    assert "[실패] legacy evidence baseline" in capsys.readouterr().out
+
+
+def test_the_repository_baseline_is_exactly_the_unbound_fixtures() -> None:
+    """Every tracked fixture without a digest is listed, every listed one is
+    tracked and unbound, and the list is within its frozen size. Sweeps with
+    `git ls-files`, not a hand-written path list (AGENTS.md)."""
+    import subprocess
+
+    tracked = subprocess.run(
+        ["git", "ls-files", "tests/fixtures/*.meta.json"],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.split()
+    unbound = sorted(
+        path.removeprefix("tests/fixtures/")
+        for path in tracked
+        if "spec_sha256" not in json.loads((REPO_ROOT / path).read_text(encoding="utf-8"))
+    )
+
+    baseline = verify_mod._load_legacy_baseline()
+
+    assert sorted(baseline) == unbound
+    assert len(baseline) <= verify_mod.LEGACY_CEILING
+    assert all(step.passed for step in verify_mod._check_legacy_baseline())
+
+
+def test_record_aborts_when_the_spec_digest_cannot_be_computed(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """record.py stops instead of writing `"spec_sha256": null` — that fixture
+    would be unbound evidence the moment it was made."""
+    transport = FakeLiveTransport()
+    written = record_mod.record_dataset(
+        "datago.apt_trade",
+        fixtures_root=tmp_path / "fixtures",
+        spec_root=tmp_path / "no-specs",
+        config=FakeLiveConfig(),
+        transport=transport,  # type: ignore[arg-type]
+        recorded_by="test",
+    )
+
+    assert written == []
+    assert transport.calls == []
+    assert not (tmp_path / "fixtures").exists()
+    assert "spec digest" in capsys.readouterr().out
 
 
 def test_verify_fails_when_spec_field_changed(
