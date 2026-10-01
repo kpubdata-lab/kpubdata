@@ -25,9 +25,9 @@ KPubData는 공공데이터를 더 쉽고 표준화된 방식으로 다루기 �
 
 | | |
 |---|---|
-| 코드 주석·docstring, 커밋 메시지, **이슈·PR 제목**, CHANGELOG | 영어 |
+| 코드 주석·docstring, **커밋 제목(= PR 제목)**, **이슈·PR 제목**, CHANGELOG | 영어 |
 | README | 한국어 기본 + 뒤쪽에 영어 절 |
-| 이슈 본문, PR 본문, 리뷰 코멘트 | 한국어 또는 영어 |
+| 이슈 본문, PR 본문(= 커밋 본문), 리뷰 코멘트 | 한국어 또는 영어 |
 
 제목만 영어인 이유는 그것이 목록·검색·교차 참조에 나타나는 유일한 텍스트이기
 때문입니다. 이슈 목록을 훑는 사람은 제목만 읽습니다. PR 제목은 squash merge 에서
@@ -155,8 +155,10 @@ git push origin feat/issue-12-add-bus-adapter
 
 - `type: description` 또는 `type(scope): description`, 영어, 끝에 마침표 없음
   (예: `fix: handle empty XML response`, `feat(datasets): add air quality spec`)
-- PR 제목이 squash 병합의 커밋 제목이 되므로 **PR 제목만** 규칙을 지키면 됩니다. 브랜치 안의
-  개별 커밋 메시지는 자유지만 '무엇을 왜 바꿨는지' 쓰기를 권합니다.
+- PR 제목이 squash 병합의 커밋 제목이, **PR 본문이 커밋 본문**이 되므로 **PR 제목만** 규칙을
+  지키면 됩니다. PR 제목은 영어·100자 이하이고, 제목 어디에도 이슈 번호를 쓰지 않습니다 —
+  `PR title` 체크가 병합을 막습니다. 브랜치 안의 개별 커밋 메시지는 기본 브랜치에 남지 않으므로
+  자유지만 '무엇을 왜 바꿨는지' 쓰기를 권합니다. 공동 작성자는 PR 본문에 `Co-authored-by:` 로.
 - 이슈 번호는 제목이 아니라 PR 본문에 `Closes #123` 으로 적습니다.
 
 ### 3-6. 절대 금지 사항

@@ -180,3 +180,64 @@ def test_main_never_prints_more_than_the_four_output_lines(script, capsys) -> No
     assert script.main(['fix(api): accept `$(id)` and "quotes" as plain text']) == 0
     out = capsys.readouterr().out.splitlines()
     assert [line.split("=", 1)[0] for line in out] == ["type", "scope", "breaking", "label"]
+
+
+# --- Pull request titles (POLICY 2.1.3, #741) ---------------------------------------
+# A pull request title becomes the commit title on main, so it also has a length limit
+# and may not carry an issue URL. These are titles the 2026-10-01 audit found passing.
+
+
+@pytest.mark.parametrize(
+    ("title", "reason"),
+    [
+        ("fix: 한글 제목", "English"),
+        ("feat(api): accept the studio shape (studio#418)", "issue reference"),
+        ("fix: handle #123 in the middle of a title", "issue reference"),
+        ("fix: see https://github.com/yeongseon/kpubdata/issues/699", "URL"),
+        ("fix: see https://github.com/yeongseon/kpubdata/pull/704", "URL"),
+        ("fix: " + "x" * 150, "at most 100"),
+    ],
+)
+def test_a_pull_request_title_refuses_what_a_commit_title_may_not_carry(
+    script, title: str, reason: str
+) -> None:
+    with pytest.raises(script.TitleError, match=reason):
+        script.parse(title, pull_request=True)
+
+
+def test_the_length_and_url_rules_apply_only_to_pull_request_titles(script) -> None:
+    script.parse("fix: " + "x" * 150)
+    script.parse("fix: see https://github.com/yeongseon/kpubdata/issues/699")
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "fix(localdata): empty wrapper becomes a phantom row",
+        "chore(deps): bump pyjwt from 2.14.0 to 2.15.0",
+        "chore(deps): bump the npm_and_yarn group across 1 directory with 3 updates",
+        "fix(spec): support `#` in parameter names",
+        "chore: release v0.8.0",
+        # GitHub's Revert button quotes the reverted squash commit, numbers and all.
+        'Revert "fix(core): an old title with its numbers (#12) (#34)"',
+        'Revert "fix: 한국어로 된 옛 제목 (#12)"',
+        "fix: " + "x" * 95,
+    ],
+)
+def test_a_pull_request_title_that_follows_the_rules_passes(script, title: str) -> None:
+    script.parse(title, pull_request=True)
+
+
+def test_the_length_limit_is_inclusive(script) -> None:
+    title = "fix: " + "x" * (script.MAX_PR_TITLE_LENGTH - len("fix: "))
+    assert len(title) == script.MAX_PR_TITLE_LENGTH
+    script.parse(title, pull_request=True)
+    with pytest.raises(script.TitleError):
+        script.parse(title + "x", pull_request=True)
+
+
+def test_the_cli_applies_the_pull_request_rules_only_when_asked(script, capsys) -> None:
+    long_title = "fix: " + "x" * 150
+    assert script.main([long_title]) == 0
+    assert script.main(["--pull-request", long_title]) == 1
+    assert "at most 100" in capsys.readouterr().err
