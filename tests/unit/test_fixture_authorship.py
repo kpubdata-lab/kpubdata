@@ -1,20 +1,25 @@
-"""Recorded evidence may only be changed by the recorder (#523).
+"""Recorded evidence may only be changed by the recorder (#523, #729).
 
 A fixture is the basis for calling a dataset verified. If the subject of that
 judgement can edit the evidence, the judgement is unfalsifiable -- and the path
 existed: ``scripts/record.py`` once rewrote a repository spec's ``last_verified``
 regardless of ``fixtures_root`` (#497).
 
-The check is not a security boundary by itself. A commit author is self-asserted,
-so anyone who can push can claim the recorder's name; what stops forgery is the
-secret boundary in #521 plus branch protection in #520. This makes a casual or
-accidental edit visible instead of silent, which is the part that can exist
-before those land -- and these tests pin that it actually fires.
+The author check is not a security boundary by itself. A commit author is
+self-asserted, so anyone who can push can claim the recorder's name -- and a
+local tool did exactly that (#728). The run-reference layer closes it: a
+changed meta must name a run of this repository's recording workflow, and the
+run's head SHA must be the commit the meta claims. What stops forgery outright
+is the secret boundary in #521 plus branch protection in #520; these checks
+make the casual, accidental and self-asserted edit visible instead of silent,
+which is the part that can exist before those land -- and these tests pin that
+they actually fire.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from collections.abc import Iterator
@@ -75,11 +80,12 @@ class TestItRefuses:
         assert relative in result.stderr
         assert "Some Developer" in result.stderr
 
-    def test_it_names_the_re_record_command(self, repo: Path) -> None:
-        """A check that only says no teaches nothing."""
+    def test_it_names_the_re_record_route(self, repo: Path) -> None:
+        """A check that only says no teaches nothing. The route is the
+        recording workflow now - a local `make record` cannot bind a run."""
         _edit(repo, "tests/fixtures/datago/air_quality/seoul.meta.json", 2)
         _git(repo, *_HUMAN, "commit", "-qam", "tweak")
-        assert "make record" in _run(repo).stderr
+        assert "Build Dataset" in _run(repo).stderr
 
     def test_it_says_not_to_widen_the_allowlist(self, repo: Path) -> None:
         """Otherwise the obvious way to pass is to add yourself to it."""
@@ -98,15 +104,50 @@ class TestItRefuses:
 
 class TestItAllows:
     def test_the_recorder_identity(self, repo: Path) -> None:
-        _edit(repo, "tests/fixtures/datago/air_quality/seoul.meta.json", 2)
+        """The author layer: the recorder's name passes on non-meta evidence.
+        A meta change additionally needs the run reference - the test after
+        next covers that path."""
+        _edit(repo, "tests/fixtures/datago/air_quality/seoul.raw.json", 2)
         _git(repo, *_RECORDER, "commit", "-qam", "chore(record): re-record")
         result = _run(repo)
         assert result.returncode == 0, result.stderr
 
     def test_the_actions_bot(self, repo: Path) -> None:
-        _edit(repo, "tests/fixtures/datago/air_quality/seoul.meta.json", 2)
+        _edit(repo, "tests/fixtures/datago/air_quality/seoul.expected.json", 2)
         _git(repo, *_BOT, "commit", "-qam", "chore: re-record")
         assert _run(repo).returncode == 0
+
+    def test_a_recorder_meta_bound_to_a_recording_run(
+        self, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The full pass path (#729): recorder name, meta bound to a run of
+        the recording workflow whose head SHA is the recorded commit. ``gh``
+        is stubbed on PATH - a subprocess cannot be monkeypatched."""
+        sha = "1" * 40
+        fixture = repo / "tests" / "fixtures" / "datago" / "air_quality"
+        (fixture / "seoul.meta.json").write_text(
+            json.dumps(
+                {"dataset_id": "datago.air_quality", "record_commit": sha, "run_ref": "4242"}
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        _edit(repo, "tests/fixtures/datago/air_quality/seoul.raw.json", 2)
+        _git(repo, *_RECORDER, "commit", "-qam", "chore(record): re-record")
+
+        stub = repo / "bin"
+        stub.mkdir()
+        (stub / "gh").write_text(
+            "#!/bin/sh\n"
+            'echo \'{"workflowName": "Build Dataset (agent)", "headSha": "' + sha + "\"}'\n",
+            encoding="utf-8",
+        )
+        (stub / "gh").chmod(0o755)
+        monkeypatch.setenv("PATH", f"{stub}:{os.environ['PATH']}")
+
+        result = _run(repo)
+        assert result.returncode == 0, result.stderr
+        assert "bound to a recording-workflow run" in result.stdout
 
     def test_source_changes_by_a_human(self, repo: Path) -> None:
         """Writing code is the normal contribution. Only evidence is gated."""
