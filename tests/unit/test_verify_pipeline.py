@@ -307,6 +307,7 @@ def _use_baseline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, entries: list
     baseline = tmp_path / "legacy_evidence_baseline.txt"
     baseline.write_text("# test baseline\n" + "".join(f"{e}\n" for e in entries), encoding="utf-8")
     monkeypatch.setattr(verify_mod, "LEGACY_BASELINE", baseline)
+    monkeypatch.setattr(verify_mod, "_base_branch_entries", lambda _p: set(entries))
 
 
 def _binding_steps(steps: list) -> list:
@@ -423,18 +424,18 @@ def test_the_baseline_fails_on_an_entry_that_no_longer_exists(
     assert "더 이상 없음" in steps[0].detail
 
 
-def test_the_baseline_may_not_grow_past_its_frozen_size(
+def test_the_baseline_may_not_grow_past_the_base_branch(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _record_apt(tmp_path)
     monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
     keys = _set_spec_digest(tmp_path, _MISSING)
     _use_baseline(tmp_path, monkeypatch, keys)
-    monkeypatch.setattr(verify_mod, "LEGACY_CEILING", len(keys) - 1)
+    monkeypatch.setattr(verify_mod, "_base_branch_entries", lambda _p: set())
 
     steps = verify_mod._check_legacy_baseline()
 
-    assert any(not step.passed and "동결 크기" in step.detail for step in steps)
+    assert any(not step.passed and "기준 브랜치에 없던 항목" in step.detail for step in steps)
 
 
 def test_the_baseline_rejects_a_repeated_entry(
@@ -463,9 +464,10 @@ def test_run_verify_fails_on_a_stale_baseline(
 
 
 def test_the_repository_baseline_is_exactly_the_unbound_fixtures() -> None:
-    """Every tracked fixture without a digest is listed, every listed one is
-    tracked and unbound, and the list is within its frozen size. Sweeps with
-    `git ls-files`, not a hand-written path list (AGENTS.md)."""
+    """Every tracked fixture without a digest is listed and every listed one
+    is tracked and unbound. Sweeps with `git ls-files`, not a hand-written
+    path list (AGENTS.md). Growth past the base branch is the check's own
+    job now (#766), not this inventory's."""
     import subprocess
 
     tracked = subprocess.run(
@@ -484,7 +486,6 @@ def test_the_repository_baseline_is_exactly_the_unbound_fixtures() -> None:
     baseline = verify_mod._load_legacy_baseline()
 
     assert sorted(baseline) == unbound
-    assert len(baseline) <= verify_mod.LEGACY_CEILING
     assert all(step.passed for step in verify_mod._check_legacy_baseline())
 
 
@@ -838,40 +839,37 @@ class TestLicenceTerms:
 
         assert any(not step.passed and "더 이상 위반이 아님" in step.detail for step in steps)
 
-    def test_the_baseline_ceiling_is_enforced(
+    def test_a_one_for_one_swap_fails(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """#766: a swap never moved the count — the set comparison is what stops it."""
+        base = [
+            "datago.air_station",
+            "datago.airkorea_forecast",
+            "datago.hospital_info",
+            "datago.metro_fare",
+            "datago.ocean_buoy",
+            "datago.offi_rent",
+            "datago.offi_trade",
+            "datago.rh_rent",
+            "datago.sh_rent",
+            "datago.sh_trade",
+            "datago.tour_kor_area",
+            "datago.tour_kor_festival",
+            "datago.tour_kor_keyword",
+            "datago.tour_kor_location",
+            "datago.ultra_srt_fcst",
+            "datago.ultra_srt_ncst",
+        ]
         baseline = tmp_path / "terms.txt"
-        baseline.write_text(
-            "\n".join(
-                [
-                    "datago.air_station",
-                    "datago.airkorea_forecast",
-                    "datago.hospital_info",
-                    "datago.metro_fare",
-                    "datago.ocean_buoy",
-                    "datago.offi_rent",
-                    "datago.offi_trade",
-                    "datago.rh_rent",
-                    "datago.sh_rent",
-                    "datago.sh_trade",
-                    "datago.tour_kor_area",
-                    "datago.tour_kor_festival",
-                    "datago.tour_kor_keyword",
-                    "datago.tour_kor_location",
-                    "datago.ultra_srt_fcst",
-                    "datago.ultra_srt_ncst",
-                    "datago.apt_trade",
-                ]
-            )
-            + "\n",
-            encoding="utf-8",
-        )
+        baseline.write_text("\n".join(base[1:] + ["datago.apt_trade"]) + "\n", encoding="utf-8")
         monkeypatch.setattr(verify_mod, "UNCONFIRMED_TERMS_BASELINE", baseline)
+        monkeypatch.setattr(verify_mod, "_base_branch_entries", lambda _p: set(base))
 
         steps = verify_mod._check_terms_baseline()
 
-        assert any(not step.passed and "동결 크기" in step.detail for step in steps)
+        assert any(not step.passed and "기준 브랜치에 없던 항목" in step.detail for step in steps)
+        assert any("datago.apt_trade" in step.detail for step in steps if not step.passed)
 
 
 # ----------------------------------------------------------------------
@@ -935,44 +933,101 @@ class TestInsecureHttp:
 
         assert any(not step.passed and "더 이상 위반이 아님" in step.detail for step in steps)
 
-    def test_the_baseline_ceiling_is_enforced(
+    def test_an_added_entry_fails_after_a_shrink(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        """#766: a slot freed by a conversion is not refillable — count ceilings allowed that."""
+        base = [
+            "datago.air_quality",
+            "datago.air_station",
+            "datago.airkorea_forecast",
+            "datago.apt_rent",
+            "datago.apt_trade",
+            "datago.hospital_info",
+            "datago.metro_fare",
+            "datago.ocean_buoy",
+            "datago.offi_rent",
+            "datago.offi_trade",
+            "datago.rh_rent",
+            "datago.sh_rent",
+            "datago.sh_trade",
+            "datago.tour_kor_area",
+            "datago.tour_kor_festival",
+            "datago.tour_kor_keyword",
+            "datago.tour_kor_location",
+            "datago.ultra_srt_fcst",
+            "datago.ultra_srt_ncst",
+            "datago.village_fcst",
+            "localdata.bakery",
+            "localdata.general_restaurant",
+            "localdata.rest_cafe",
+        ]
         baseline = tmp_path / "insecure-http.txt"
-        baseline.write_text(
-            "\n".join(
-                [
-                    "datago.air_quality",
-                    "datago.air_station",
-                    "datago.airkorea_forecast",
-                    "datago.apt_rent",
-                    "datago.apt_trade",
-                    "datago.bus_arrival",
-                    "datago.hospital_info",
-                    "datago.metro_fare",
-                    "datago.ocean_buoy",
-                    "datago.offi_rent",
-                    "datago.offi_trade",
-                    "datago.rh_rent",
-                    "datago.sh_rent",
-                    "datago.sh_trade",
-                    "datago.tour_kor_area",
-                    "datago.tour_kor_festival",
-                    "datago.tour_kor_keyword",
-                    "datago.tour_kor_location",
-                    "datago.ultra_srt_fcst",
-                    "datago.ultra_srt_ncst",
-                    "datago.village_fcst",
-                    "localdata.bakery",
-                    "localdata.general_restaurant",
-                    "localdata.rest_cafe",
-                ]
-            )
-            + "\n",
-            encoding="utf-8",
-        )
+        baseline.write_text("\n".join(base[:-1] + ["datago.bus_arrival"]) + "\n", encoding="utf-8")
         monkeypatch.setattr(verify_mod, "INSECURE_HTTP_BASELINE", baseline)
+        monkeypatch.setattr(verify_mod, "_base_branch_entries", lambda _p: set(base))
 
         steps = verify_mod._check_insecure_http_baseline()
 
-        assert any(not step.passed and "동결 크기" in step.detail for step in steps)
+        assert any(not step.passed and "기준 브랜치에 없던 항목" in step.detail for step in steps)
+        assert any("datago.bus_arrival" in step.detail for step in steps if not step.passed)
+
+
+# ----------------------------------------------------------------------
+# baseline ratchets: shrink-only against the base branch (#766)
+# ----------------------------------------------------------------------
+
+_TERM_ENTRIES = ["datago.hospital_info", "datago.metro_fare"]
+_HTTP_ENTRIES = ["datago.apt_trade", "datago.village_fcst"]
+
+
+@pytest.mark.parametrize(
+    ("baseline_attr", "check_attr", "entries"),
+    [
+        pytest.param(
+            "UNCONFIRMED_TERMS_BASELINE", "_check_terms_baseline", _TERM_ENTRIES, id="terms"
+        ),
+        pytest.param(
+            "INSECURE_HTTP_BASELINE",
+            "_check_insecure_http_baseline",
+            _HTTP_ENTRIES,
+            id="insecure-http",
+        ),
+    ],
+)
+def test_a_pure_removal_passes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    baseline_attr: str,
+    check_attr: str,
+    entries: list[str],
+) -> None:
+    """Dropping an entry is the one change a baseline may carry (#766).
+
+    Only the spec-id ratchets run here — the legacy one reads fixture
+    metas, which tmp entries do not have; its shrink direction runs
+    through the same shared `_check_shrink_only` either way.
+    """
+    baseline = tmp_path / "baseline.txt"
+    baseline.write_text(entries[0] + "\n", encoding="utf-8")
+    monkeypatch.setattr(verify_mod, baseline_attr, baseline)
+    monkeypatch.setattr(verify_mod, "_base_branch_entries", lambda _p: set(entries))
+
+    steps = getattr(verify_mod, check_attr)()
+
+    assert all(step.passed for step in steps)
+
+
+@pytest.mark.parametrize(
+    "check_attr",
+    ["_check_legacy_baseline", "_check_terms_baseline", "_check_insecure_http_baseline"],
+)
+def test_the_ratchet_fails_closed_when_the_base_cannot_be_read(
+    monkeypatch: pytest.MonkeyPatch, check_attr: str
+) -> None:
+    """A ratchet that cannot see its anchor is not a ratchet (#766)."""
+    monkeypatch.setattr(verify_mod, "_base_branch_entries", lambda _p: None)
+
+    steps = getattr(verify_mod, check_attr)()
+
+    assert any(not step.passed and "읽을 수 없다" in step.detail for step in steps)

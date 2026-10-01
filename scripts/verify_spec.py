@@ -36,20 +36,18 @@ from kpubdata.core.spec import (
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FIXTURES_ROOT = REPO_ROOT / "tests" / "fixtures"
 SPEC_ROOT = REPO_ROOT / "src" / "kpubdata" / "specs"
+#: Ratchet baselines live at ``scripts/*_baseline.txt`` — one naming rule,
+#: so the CODEOWNERS pattern and its reverse test (#764) cover every file
+#: that lands here. Each baseline may only shrink against the base branch
+#: (#766): an entry the base branch does not carry fails verify, which
+#: stops both re-growth after a shrink and a one-for-one swap.
 #: Fixtures recorded before the spec digest existed (#522), one meta path per
 #: line relative to ``FIXTURES_ROOT``. Only these may lack ``spec_sha256`` (#717).
 LEGACY_BASELINE = REPO_ROOT / "scripts" / "legacy_evidence_baseline.txt"
-#: Size of the baseline when it was frozen (#717). The ratchet lets it shrink,
-#: never grow: a new fixture without a digest is not legacy, it is unbound.
-LEGACY_CEILING = 28
 
 #: Specs whose licence says ``allowed`` without the attribution proof (#732).
 #: Entries are spec ids (``provider.dataset_key``), one per line.
 UNCONFIRMED_TERMS_BASELINE = REPO_ROOT / "scripts" / "unconfirmed_terms_baseline.txt"
-#: Size of the terms baseline when it was frozen (#732). Shrink-only, like the
-#: legacy evidence baseline: a new unconfirmed-allowed licence is not legacy,
-#: it publishes under conditions nobody checked.
-UNCONFIRMED_TERMS_CEILING = 16
 
 #: Specs still sending their service key over plain http:// (#738). Entries
 #: are spec ids, one per line. Every one sits on apis.data.go.kr, which the
@@ -57,10 +55,6 @@ UNCONFIRMED_TERMS_CEILING = 16
 #: entry leaves by switching schemes — which voids the spec digest and needs
 #: a re-record through the Build Dataset workflow.
 INSECURE_HTTP_BASELINE = REPO_ROOT / "scripts" / "insecure_http_baseline.txt"
-#: Size of the insecure-http baseline when it was frozen (#738). Shrink-only
-#: like the two baselines above: a new plain-http spec is not legacy, it is
-#: a key about to cross the network in the clear.
-INSECURE_HTTP_CEILING = 23
 
 
 @dataclass
@@ -154,6 +148,73 @@ def _verify_licence_terms(spec: SpecDefinition) -> list[StepResult]:
     return [StepResult(f"라이선스 출처[{spec.id}]", False, violation)]
 
 
+def _base_branch_entries(baseline: Path) -> set[str] | None:
+    """Entry set of a baseline file on the base branch (#766).
+
+    ``origin/main`` is the base of a pull request; ``HEAD`` is the base in
+    the Build Dataset runner, which verifies uncommitted edits on main.
+    None when neither can be read — the caller fails closed, because a
+    ratchet that cannot see its anchor is not a ratchet. A baseline outside
+    the repository (tests point the constant at a tmp file) has no git base
+    either: None, for the same reason.
+    """
+    try:
+        relative = baseline.relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return None
+    for ref in (f"origin/main:{relative}", f"HEAD:{relative}"):
+        show = subprocess.run(
+            ["git", "show", ref],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if show.returncode == 0:
+            return {
+                line.strip()
+                for line in show.stdout.splitlines()
+                if line.strip() and not line.strip().startswith("#")
+            }
+    return None
+
+
+def _check_shrink_only(name: str, baseline: Path, entries: list[str]) -> list[StepResult]:
+    """A baseline may only lose entries the base branch still carries (#766).
+
+    The first ratchets compared counts against frozen ceilings, so a list
+    that had shrunk could grow back — filling the freed slots with exactly
+    the violations the ratchet exists to stop — and a one-for-one swap
+    never moved the count at all. The anchor is the base branch's entry
+    set: anything it does not carry is new, and new fails.
+    """
+    base = _base_branch_entries(baseline)
+    if base is None:
+        return [
+            StepResult(
+                name,
+                passed=False,
+                detail=(
+                    "기준 브랜치(origin/main)의 baseline 항목을 읽을 수 없다 — "
+                    "래칫의 기준점을 확인할 수 없으면 통과할 수 없다"
+                ),
+            )
+        ]
+    added = sorted(set(entries) - base)
+    if added:
+        return [
+            StepResult(
+                name,
+                passed=False,
+                detail=(
+                    f"기준 브랜치에 없던 항목이 더해졌다: {', '.join(added)} — "
+                    "목록은 줄기만 한다 (교체도 추가다)"
+                ),
+            )
+        ]
+    return []
+
+
 def _check_terms_baseline() -> list[StepResult]:
     """Hold the unconfirmed-terms baseline to its ratchet (#732).
 
@@ -164,19 +225,8 @@ def _check_terms_baseline() -> list[StepResult]:
     stale too.
     """
     entries = _load_terms_baseline()
-    results: list[StepResult] = []
     name = "unconfirmed terms baseline"
-    if len(entries) > UNCONFIRMED_TERMS_CEILING:
-        results.append(
-            StepResult(
-                name,
-                passed=False,
-                detail=(
-                    f"baseline {len(entries)}개 > 동결 크기 {UNCONFIRMED_TERMS_CEILING}개 — "
-                    "목록은 줄기만 한다. 새 미확인 allowed 는 목록에 넣지 않는다"
-                ),
-            )
-        )
+    results: list[StepResult] = _check_shrink_only(name, UNCONFIRMED_TERMS_BASELINE, entries)
     duplicates = sorted({entry for entry in entries if entries.count(entry) > 1})
     if duplicates:
         results.append(StepResult(name, passed=False, detail=f"중복 항목: {', '.join(duplicates)}"))
@@ -263,19 +313,8 @@ def _check_insecure_http_baseline() -> list[StepResult]:
     could hide behind. An entry naming no discovered spec is stale too.
     """
     entries = _load_insecure_http_baseline()
-    results: list[StepResult] = []
     name = "insecure http baseline"
-    if len(entries) > INSECURE_HTTP_CEILING:
-        results.append(
-            StepResult(
-                name,
-                passed=False,
-                detail=(
-                    f"baseline {len(entries)}개 > 동결 크기 {INSECURE_HTTP_CEILING}개 — "
-                    "목록은 줄기만 한다. 새 평문 http 는 목록에 넣지 않는다"
-                ),
-            )
-        )
+    results: list[StepResult] = _check_shrink_only(name, INSECURE_HTTP_BASELINE, entries)
     duplicates = sorted({entry for entry in entries if entries.count(entry) > 1})
     if duplicates:
         results.append(StepResult(name, passed=False, detail=f"중복 항목: {', '.join(duplicates)}"))
@@ -305,24 +344,14 @@ def _check_insecure_http_baseline() -> list[StepResult]:
 def _check_legacy_baseline() -> list[StepResult]:
     """Hold the legacy baseline to its ratchet (#717).
 
-    The baseline may only shrink. It fails when it grows past its frozen size,
-    repeats an entry, or keeps an entry that no longer exists or that now
-    carries ``spec_sha256`` — a stale entry is a hole a new fixture could use.
+    The baseline may only shrink. It fails when it adds an entry the base
+    branch does not carry (#766), repeats an entry, or keeps an entry that
+    no longer exists or that now carries ``spec_sha256`` — a stale entry is
+    a hole a new fixture could use.
     """
     entries = _load_legacy_baseline()
-    results: list[StepResult] = []
     name = "legacy baseline"
-    if len(entries) > LEGACY_CEILING:
-        results.append(
-            StepResult(
-                name,
-                passed=False,
-                detail=(
-                    f"baseline {len(entries)}개 > 동결 크기 {LEGACY_CEILING}개 — "
-                    "legacy 목록은 줄기만 한다. 새 fixture 는 `make record` 로 기록"
-                ),
-            )
-        )
+    results: list[StepResult] = _check_shrink_only(name, LEGACY_BASELINE, entries)
     duplicates = sorted({entry for entry in entries if entries.count(entry) > 1})
     if duplicates:
         results.append(StepResult(name, passed=False, detail=f"중복 항목: {', '.join(duplicates)}"))
