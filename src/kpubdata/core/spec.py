@@ -82,6 +82,7 @@ class EndpointSpec:
     method: str = "GET"
     format_param: FormatParamSpec | None = None
     path_template: str | None = None
+    insecure_http_reason: str | None = None
 
 
 @dataclass(slots=True, frozen=True)
@@ -482,6 +483,7 @@ def from_mapping(data: dict[str, object]) -> SpecDefinition:
 
     endpoint_raw = _section(data, "endpoint")
     path_template = _get_str(endpoint_raw, "path_template")
+    insecure_http_reason = _get_str(endpoint_raw, "insecure_http_reason")
     base_url = _get_str(endpoint_raw, "base_url")
     if base_url is None:
         problems.append("endpoint.base_url은(는) 비어 있지 않은 문자열이어야 합니다.")
@@ -509,6 +511,7 @@ def from_mapping(data: dict[str, object]) -> SpecDefinition:
             method=method,
             format_param=format_param,
             path_template=path_template,
+            insecure_http_reason=insecure_http_reason,
         )
         if base_url and operation
         else None

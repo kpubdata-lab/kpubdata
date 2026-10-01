@@ -872,3 +872,107 @@ class TestLicenceTerms:
         steps = verify_mod._check_terms_baseline()
 
         assert any(not step.passed and "동결 크기" in step.detail for step in steps)
+
+
+# ----------------------------------------------------------------------
+# transport security: plain http needs its reason (#738)
+# ----------------------------------------------------------------------
+
+
+def _http_spec(spec_id: str, **changes: object):
+    """A real spec whose endpoint block is replaced field-wise."""
+    import dataclasses
+
+    base = _spec(spec_id)
+    assert base.endpoint is not None
+    endpoint = dataclasses.replace(base.endpoint, **changes)
+    return dataclasses.replace(base, endpoint=endpoint)
+
+
+class TestInsecureHttp:
+    def test_an_https_base_url_emits_nothing(self) -> None:
+        assert verify_mod._verify_insecure_http(_spec("datago.bus_arrival")) == []
+
+    def test_a_written_reason_emits_nothing(self) -> None:
+        spec = _http_spec(
+            "datago.apt_trade", insecure_http_reason="제공기관이 https 를 서비스하지 않는다"
+        )
+
+        assert verify_mod._verify_insecure_http(spec) == []
+
+    def test_plain_http_without_a_baseline_entry_fails(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        baseline = tmp_path / "insecure-http.txt"
+        baseline.write_text("", encoding="utf-8")
+        monkeypatch.setattr(verify_mod, "INSECURE_HTTP_BASELINE", baseline)
+
+        steps = verify_mod._verify_insecure_http(_spec("datago.apt_trade"))
+
+        assert len(steps) == 1 and not steps[0].passed
+        assert "insecure_http_reason" in steps[0].detail
+
+    def test_a_baseline_listed_spec_passes_with_the_exemption_note(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        baseline = tmp_path / "insecure-http.txt"
+        baseline.write_text("datago.apt_trade\n", encoding="utf-8")
+        monkeypatch.setattr(verify_mod, "INSECURE_HTTP_BASELINE", baseline)
+
+        steps = verify_mod._verify_insecure_http(_spec("datago.apt_trade"))
+
+        assert len(steps) == 1 and steps[0].passed
+        assert "baseline 등록" in steps[0].detail
+
+    def test_a_stale_baseline_entry_fails(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        baseline = tmp_path / "insecure-http.txt"
+        baseline.write_text("datago.bus_arrival\n", encoding="utf-8")
+        monkeypatch.setattr(verify_mod, "INSECURE_HTTP_BASELINE", baseline)
+
+        steps = verify_mod._check_insecure_http_baseline()
+
+        assert any(not step.passed and "더 이상 위반이 아님" in step.detail for step in steps)
+
+    def test_the_baseline_ceiling_is_enforced(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        baseline = tmp_path / "insecure-http.txt"
+        baseline.write_text(
+            "\n".join(
+                [
+                    "datago.air_quality",
+                    "datago.air_station",
+                    "datago.airkorea_forecast",
+                    "datago.apt_rent",
+                    "datago.apt_trade",
+                    "datago.bus_arrival",
+                    "datago.hospital_info",
+                    "datago.metro_fare",
+                    "datago.ocean_buoy",
+                    "datago.offi_rent",
+                    "datago.offi_trade",
+                    "datago.rh_rent",
+                    "datago.sh_rent",
+                    "datago.sh_trade",
+                    "datago.tour_kor_area",
+                    "datago.tour_kor_festival",
+                    "datago.tour_kor_keyword",
+                    "datago.tour_kor_location",
+                    "datago.ultra_srt_fcst",
+                    "datago.ultra_srt_ncst",
+                    "datago.village_fcst",
+                    "localdata.bakery",
+                    "localdata.general_restaurant",
+                    "localdata.rest_cafe",
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(verify_mod, "INSECURE_HTTP_BASELINE", baseline)
+
+        steps = verify_mod._check_insecure_http_baseline()
+
+        assert any(not step.passed and "동결 크기" in step.detail for step in steps)
