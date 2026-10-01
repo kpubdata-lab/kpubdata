@@ -113,7 +113,8 @@ def test_the_code_columns_found_in_613_are_declared_codes() -> None:
     assert ("datago.apt_trade", "bonbun") in codes
     assert ("datago.bus_arrival", "stationId") in codes
     assert ("datago.bus_arrival", "routeTypeCd") in codes
-    assert len(codes) == 22
+    assert ("datago.social_enterprise", "certiNumV") in codes
+    assert len(codes) == 23
     for spec in discover_specs():
         for field in spec.fields:
             assert not field_conflicts(
