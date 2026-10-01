@@ -51,6 +51,17 @@ UNCONFIRMED_TERMS_BASELINE = REPO_ROOT / "scripts" / "unconfirmed_terms_baseline
 #: it publishes under conditions nobody checked.
 UNCONFIRMED_TERMS_CEILING = 16
 
+#: Specs still sending their service key over plain http:// (#738). Entries
+#: are spec ids, one per line. Every one sits on apis.data.go.kr, which the
+#: probe in the issue shows answering https with identical envelopes, so an
+#: entry leaves by switching schemes — which voids the spec digest and needs
+#: a re-record through the Build Dataset workflow.
+INSECURE_HTTP_BASELINE = REPO_ROOT / "scripts" / "insecure_http_baseline.txt"
+#: Size of the insecure-http baseline when it was frozen (#738). Shrink-only
+#: like the two baselines above: a new plain-http spec is not legacy, it is
+#: a key about to cross the network in the clear.
+INSECURE_HTTP_CEILING = 23
+
 
 @dataclass
 class StepResult:
@@ -182,6 +193,105 @@ def _check_terms_baseline() -> list[StepResult]:
             )
             continue
         if _terms_violation(spec) is None:
+            results.append(
+                StepResult(
+                    f"{name}[{entry}]",
+                    passed=False,
+                    detail="더 이상 위반이 아님 — baseline 에서 이 줄을 삭제",
+                )
+            )
+    return results
+
+
+def _load_insecure_http_baseline() -> list[str]:
+    """Spec ids of the insecure-http baseline, comments and blanks dropped."""
+    if not INSECURE_HTTP_BASELINE.is_file():
+        return []
+    entries: list[str] = []
+    for line in INSECURE_HTTP_BASELINE.read_text(encoding="utf-8").splitlines():
+        entry = line.strip()
+        if entry and not entry.startswith("#"):
+            entries.append(entry)
+    return entries
+
+
+def _insecure_http_violation(spec: SpecDefinition) -> str | None:
+    """Why this spec sends its credentials over plain http:// (#738).
+
+    The service key rides the query string, so over http:// anyone on the
+    network path reads it. https is the fix — the one host every http spec
+    uses (apis.data.go.kr) answers it with the same envelopes (probe in the
+    issue). A provider that genuinely cannot serve https says why in
+    ``endpoint.insecure_http_reason``. None when the scheme is already
+    https, or the reason is written down.
+    """
+    endpoint = spec.endpoint
+    if endpoint is None or not endpoint.base_url.startswith("http://"):
+        return None
+    if (endpoint.insecure_http_reason or "").strip():
+        return None
+    return (
+        "endpoint.base_url 이 http:// 인데 endpoint.insecure_http_reason 이 비어 있다 — "
+        "서비스 키가 쿼리로 실리는 요청을 평문으로 보내면 경로의 누구나 키를 볼 수 "
+        "있다. https 로 바꾸고 재기록하거나, 제공기관이 https 를 지원하지 않는다면 "
+        "그 사유를 insecure_http_reason 에 적는다 (#738)"
+    )
+
+
+def _verify_insecure_http(spec: SpecDefinition) -> list[StepResult]:
+    """The transport-security step (#738): plain http needs its reason.
+
+    Emitted only where the key would cross in the clear — a baseline-listed
+    spec passes with a note naming the exemption, an unlisted one fails, and
+    an https base_url (or one with the reason written down) emits nothing,
+    so the other datasets' verify output stays unchanged.
+    """
+    violation = _insecure_http_violation(spec)
+    if violation is None:
+        return []
+    if spec.id in _load_insecure_http_baseline():
+        return [StepResult(f"전송 보안[{spec.id}]", True, "평문 HTTP — baseline 등록 (#738)")]
+    return [StepResult(f"전송 보안[{spec.id}]", False, violation)]
+
+
+def _check_insecure_http_baseline() -> list[StepResult]:
+    """Hold the insecure-http baseline to its ratchet (#738).
+
+    Like the two baselines above, it may only shrink: a listed spec stops
+    needing the exemption exactly when it switches to https or writes the
+    reason down, and a stale entry left behind is a hole a new pull request
+    could hide behind. An entry naming no discovered spec is stale too.
+    """
+    entries = _load_insecure_http_baseline()
+    results: list[StepResult] = []
+    name = "insecure http baseline"
+    if len(entries) > INSECURE_HTTP_CEILING:
+        results.append(
+            StepResult(
+                name,
+                passed=False,
+                detail=(
+                    f"baseline {len(entries)}개 > 동결 크기 {INSECURE_HTTP_CEILING}개 — "
+                    "목록은 줄기만 한다. 새 평문 http 는 목록에 넣지 않는다"
+                ),
+            )
+        )
+    duplicates = sorted({entry for entry in entries if entries.count(entry) > 1})
+    if duplicates:
+        results.append(StepResult(name, passed=False, detail=f"중복 항목: {', '.join(duplicates)}"))
+    by_id = {spec.id: spec for spec in discover_specs()}
+    for entry in sorted(set(entries)):
+        spec = by_id.get(entry)
+        if spec is None:
+            results.append(
+                StepResult(
+                    f"{name}[{entry}]",
+                    passed=False,
+                    detail="spec 이 더 이상 없음 — baseline 에서 이 줄을 삭제",
+                )
+            )
+            continue
+        if _insecure_http_violation(spec) is None:
             results.append(
                 StepResult(
                     f"{name}[{entry}]",
@@ -539,7 +649,16 @@ def run_verify(dataset_id: str | None = None) -> int:
         if not step.passed:
             print(f"  오류({step.name}): {step.detail}")
 
-    failed_any = not baseline_passed or not terms_passed
+    # 2-f'. The insecure-http baseline itself (#738) — same once-per-run
+    # ratchet reasoning as the two baselines above.
+    http_steps = _check_insecure_http_baseline()
+    http_passed = all(step.passed for step in http_steps)
+    print(f"[{'통과' if http_passed else '실패'}] insecure http baseline")
+    for step in http_steps:
+        if not step.passed:
+            print(f"  오류({step.name}): {step.detail}")
+
+    failed_any = not baseline_passed or not terms_passed or not http_passed
     for spec in specs:
         if not dataset_id and spec.status in skippable:
             print(f"[건너뜀] {spec.id} (status={spec.status})")
@@ -548,6 +667,7 @@ def run_verify(dataset_id: str | None = None) -> int:
         result.steps.extend(_verify_fixtures(spec))
         result.steps.extend(_verify_example_recency(spec))
         result.steps.extend(_verify_licence_terms(spec))
+        result.steps.extend(_verify_insecure_http(spec))
         result.steps.append(_run_example_script(spec))
         result.steps.append(_run_live_schema_diff(spec))
 

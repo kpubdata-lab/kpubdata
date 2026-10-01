@@ -104,6 +104,11 @@
         "path_template": {
           "type": "string",
           "description": "전체 URL 템플릿(선택). {base_url}/{key}/{operation}/{start}/{end} 플레이스홀더 사용. 경로 세그먼트 인증·범위(bok/seoul 계열)에 필요하다."
+        },
+        "insecure_http_reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "base_url이 http://일 때만 의미가 있다. 제공기관이 https를 지원하지 않는 등 평문을 쓸 수밖에 없는 사유. 사유가 없다면 base_url을 https로 바꾸고 재기록한다."
         }
       }
     },

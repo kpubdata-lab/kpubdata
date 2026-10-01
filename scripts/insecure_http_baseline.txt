@@ -1,0 +1,38 @@
+# Insecure-http baseline (#738): specs whose endpoint.base_url still says
+# http://, sending the service key across the network in the clear. Frozen
+# at 23 entries from the 2026-10-01 audit. Every one sits on
+# apis.data.go.kr, which the keyless probe in the issue shows answering
+# https with identical envelopes — the two specs already on https
+# (bus_arrival, social_enterprise, #728) prove the gateway serves TLS.
+# The three localdata entries are data.go.kr services too (1741000/*),
+# published through the same gateway under the shared datago key.
+#
+# Ratchet: this list may only shrink. A spec leaves the list when its
+# base_url switches to https — a switch moves the spec digest, so the
+# fixtures are re-recorded through the Build Dataset workflow, and the
+# entry must then be removed here or the baseline check fails for
+# staleness. A spec that is not listed may not use http:// without
+# endpoint.insecure_http_reason: unjustified plain http is refused.
+datago.air_quality
+datago.air_station
+datago.airkorea_forecast
+datago.apt_rent
+datago.apt_trade
+datago.hospital_info
+datago.metro_fare
+datago.ocean_buoy
+datago.offi_rent
+datago.offi_trade
+datago.rh_rent
+datago.sh_rent
+datago.sh_trade
+datago.tour_kor_area
+datago.tour_kor_festival
+datago.tour_kor_keyword
+datago.tour_kor_location
+datago.ultra_srt_fcst
+datago.ultra_srt_ncst
+datago.village_fcst
+localdata.bakery
+localdata.general_restaurant
+localdata.rest_cafe
