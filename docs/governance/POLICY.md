@@ -811,6 +811,27 @@ Agent는 다음을 단독으로 결정하지 않는다.
   head 의 앞선 실패 실행을 `required-check-refresh.yml` 이 다시 돌린다(#759). 다시 도는
   실행도 라벨·리뷰를 실시간으로 읽는다.
 
+## 14.2 PR 제목 검사가 머지를 막는다 — 2026-10-01
+
+`PR title` 이 네 저장소 branch protection 의 required check 다(kpubdata#741).
+그 전까지 titles.yml 은 빨간 X 만 보여줬다 — 병합 버튼은 열려 있었고, 규칙이
+지켜지던 건 사람 기억 덕분이었다.
+
+- 판정 로직은 하나다: `scripts/conventional_title.py` (kpubdata). 네 저장소가
+  `@main` 액션으로 같은 검사를 부른다(§14.1 과 같은 구조).
+- check 는 모든 PR 에서 돈다 — 열기·제목 수정(`edited`)·재오픈·push 마다. 제목
+  수정은 ci.yml 을 다시 돌리지 않으므로, 검사를 CI gate 의 needs 에 넣는 대신
+  required check 로 등록했다. 제목을 고치면 titles.yml 만 재실행되고 그 결과가
+  머지를 통제한다.
+- 거부하는 제목: 형식 위반(`type(scope): description`), 허용 밖 type, 줄바꿈,
+  끝의 `(#N)`(#699), 제목 어디에든 있는 한글·`#N`(#742). `Revert "..."` 는
+  예외다 — 되돌리기가 검사에 막혀선 안 된다.
+- 이슈는 실패하지 않는다: invalid 이슈 제목은 `type:*` 라벨링을 건너뛸 뿐이다.
+- required 목록은 `scripts/check_required_checks.py` 로 검증한다(studio#416 —
+  존재하지 않는 체크를 required 로 두면 모든 PR 이 영원히 BLOCKED 다).
+- release PR 제목(`chore(release): ...`)과 revert 제목은 형식에 맞으므로
+  막히지 않는다.
+
 ---
 
 # 15. Issue Lifecycle
