@@ -95,9 +95,14 @@ def test_schema_violation_fails(module, specs_dir: Path) -> None:
 @pytest.mark.parametrize(
     ("licence", "field"),
     [
-        ("  type: 공공누리_1유형\n  attribution_required: false\n", "attribution_required"),
-        ("  type: 공공누리_3유형\n  modification_allowed: true\n", "modification_allowed"),
+        *[
+            (f"  type: 공공누리_{n}유형\n  attribution_required: false\n", "attribution_required")
+            for n in (1, 2, 3, 4)
+        ],
         ("  type: 공공누리_2유형\n  commercial_use: true\n", "commercial_use"),
+        ("  type: 공공누리_4유형\n  commercial_use: true\n", "commercial_use"),
+        ("  type: 공공누리_3유형\n  modification_allowed: true\n", "modification_allowed"),
+        ("  type: 공공누리_4유형\n  modification_allowed: true\n", "modification_allowed"),
     ],
 )
 def test_kogl_licence_contradiction_fails(module, tmp_path: Path, licence: str, field: str) -> None:
