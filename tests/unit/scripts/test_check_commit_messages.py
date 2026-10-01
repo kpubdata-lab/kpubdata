@@ -133,7 +133,18 @@ def test_a_merge_commit_in_range_is_ignored(repo: Path) -> None:
     _git(repo, "checkout", "-b", "side-branch")
     _commit(repo, "fix(core): side change")
     _git(repo, "checkout", "the-change")
-    _git(repo, "merge", "--no-ff", "-m", "Merge side-branch into the-change", "side-branch")
+    _git(
+        repo,
+        "-c",
+        "user.name=A Human",
+        "-c",
+        "user.email=author@example.invalid",
+        "merge",
+        "--no-ff",
+        "-m",
+        "Merge side-branch into the-change",
+        "side-branch",
+    )
 
     subjects = [subject for _sha, subject, _body in ccm.commits_in_range("main")]
 
