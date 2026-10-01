@@ -123,6 +123,37 @@ def test_consistent_kogl_licence_passes(module, tmp_path: Path) -> None:
     assert report.ok, report.results[0].errors
 
 
+def test_plain_http_without_a_reason_fails(module, tmp_path: Path) -> None:
+    """#767: the transport rule runs in validate_spec, not only make verify."""
+    content = VALID_SPEC.replace("https://example.test/api", "http://example.test/api")
+    _write_spec(tmp_path, "test", "sample.yaml", content)
+    report = module.validate_specs(tmp_path, SCHEMA_PATH)
+    assert report.failed_count == 1
+    assert any("insecure_http_reason" in err for err in report.results[0].errors)
+
+
+def test_plain_http_with_a_written_reason_passes(module, tmp_path: Path) -> None:
+    content = VALID_SPEC.replace(
+        "  method: GET\n", "  method: GET\n  insecure_http_reason: gateway serves no TLS\n"
+    ).replace("https://example.test/api", "http://example.test/api")
+    _write_spec(tmp_path, "test", "sample.yaml", content)
+    report = module.validate_specs(tmp_path, SCHEMA_PATH)
+    assert report.ok, report.results[0].errors
+
+
+def test_a_baseline_listed_plain_http_spec_passes(
+    module, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The exemption is the same shrink-only list make verify holds (#738)."""
+    baseline = tmp_path / "baseline.txt"
+    baseline.write_text("test.sample\n", encoding="utf-8")
+    monkeypatch.setattr(module, "INSECURE_HTTP_BASELINE", baseline)
+    content = VALID_SPEC.replace("https://example.test/api", "http://example.test/api")
+    _write_spec(tmp_path, "test", "sample.yaml", content)
+    report = module.validate_specs(tmp_path, SCHEMA_PATH)
+    assert report.ok, report.results[0].errors
+
+
 def test_id_filename_mismatch_fails(module, specs_dir: Path) -> None:
     """A mismatch between id and the provider.filename rule is reported."""
     _write_spec(

@@ -32,6 +32,22 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SPECS_DIR = REPO_ROOT / "src" / "kpubdata" / "specs"
 DEFAULT_SCHEMA_PATH = DEFAULT_SPECS_DIR / "schema.json"
 PROVIDERS_DIR = REPO_ROOT / "src" / "kpubdata" / "providers"
+#: Spec ids the insecure-http baseline still exempts (#738) — the same
+#: shrink-only list make verify holds. A listed spec is legacy http awaiting
+#: its conversion; an unlisted violation fails here exactly as it would
+#: there. A missing file exempts nothing.
+INSECURE_HTTP_BASELINE = REPO_ROOT / "scripts" / "insecure_http_baseline.txt"
+
+
+def _insecure_http_baseline_ids() -> frozenset[str]:
+    """Entries of the insecure-http baseline, comments and blanks dropped."""
+    if not INSECURE_HTTP_BASELINE.is_file():
+        return frozenset()
+    return frozenset(
+        line.strip()
+        for line in INSECURE_HTTP_BASELINE.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    )
 
 
 @dataclass
@@ -131,7 +147,7 @@ def validate_spec_file(
 
     # Meaning vs storage contradictions (ADR 0006, #651) and KOGL type vs licence flags
     # (#719, #725) — same rules as the loader.
-    from kpubdata.core.spec import field_conflicts, licence_conflicts
+    from kpubdata.core.spec import field_conflicts, insecure_http_problem, licence_conflicts
 
     fields = data.get("fields")
     if isinstance(fields, list):
@@ -141,6 +157,21 @@ def validate_spec_file(
     licence = data.get("license")
     if isinstance(licence, dict):
         result.errors.extend(licence_conflicts(licence))
+
+    # Transport security (#738): plain http needs its documented reason — the
+    # rule the loader-side verifier enforces, shared through
+    # insecure_http_problem (#725's sharing, #767), with the same shrink-only
+    # baseline exemption make verify holds.
+    endpoint = data.get("endpoint")
+    if isinstance(endpoint, dict):
+        base_url = endpoint.get("base_url")
+        reason = endpoint.get("insecure_http_reason")
+        problem = insecure_http_problem(
+            base_url if isinstance(base_url, str) else None,
+            reason if isinstance(reason, str) else None,
+        )
+        if problem and declared_id not in _insecure_http_baseline_ids():
+            result.errors.append(problem)
 
     # id ↔ filename/directory rules
     if declared_id and declared_id != f"{provider}.{path.stem}":
