@@ -463,11 +463,14 @@ def test_run_verify_fails_on_a_stale_baseline(
     assert "[실패] legacy evidence baseline" in capsys.readouterr().out
 
 
-def test_the_repository_baseline_is_exactly_the_unbound_fixtures() -> None:
+def test_the_repository_baseline_is_exactly_the_unbound_fixtures(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Every tracked fixture without a digest is listed and every listed one
     is tracked and unbound. Sweeps with `git ls-files`, not a hand-written
     path list (AGENTS.md). Growth past the base branch is the check's own
     job now (#766), not this inventory's."""
+    monkeypatch.setenv("KPUBDATA_BASELINE_BASE", "origin/main")
     import subprocess
 
     tracked = subprocess.run(
@@ -1031,3 +1034,73 @@ def test_the_ratchet_fails_closed_when_the_base_cannot_be_read(
     steps = getattr(verify_mod, check_attr)()
 
     assert any(not step.passed and "읽을 수 없다" in step.detail for step in steps)
+
+
+# ----------------------------------------------------------------------
+# the base-ref reader: explicit, never a HEAD fallback (#766 review)
+# ----------------------------------------------------------------------
+
+
+def _base_ref_repo(tmp_path: Path) -> Path:
+    """A tiny repository whose HEAD carries one baseline file."""
+    import subprocess
+
+    baseline = tmp_path / "scripts" / "insecure_http_baseline.txt"
+    baseline.parent.mkdir(parents=True)
+    baseline.write_text("# header\ndatago.apt_trade\n", encoding="utf-8")
+    for command in (
+        ["git", "init", "-q"],
+        ["git", "config", "user.email", "test@kpubdata.local"],
+        ["git", "config", "user.name", "test"],
+        ["git", "add", "-A"],
+        ["git", "commit", "-qm", "init"],
+    ):
+        subprocess.run(command, cwd=tmp_path, check=True)
+    return tmp_path
+
+
+def test_without_a_configured_ref_it_is_none_even_though_head_carries_the_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """No KPUBDATA_BASELINE_BASE → None. HEAD must not substitute (#766
+    review): in a pull request's CI it holds the PR's own baseline, and
+    the ratchet would compare the file against itself."""
+    root = _base_ref_repo(tmp_path)
+    monkeypatch.setattr(verify_mod, "REPO_ROOT", root)
+    monkeypatch.delenv("KPUBDATA_BASELINE_BASE", raising=False)
+
+    assert verify_mod._base_branch_entries(root / "scripts" / "insecure_http_baseline.txt") is None
+
+
+def test_an_unresolvable_ref_is_none(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = _base_ref_repo(tmp_path)
+    monkeypatch.setattr(verify_mod, "REPO_ROOT", root)
+    monkeypatch.setenv("KPUBDATA_BASELINE_BASE", "origin/main")
+
+    assert verify_mod._base_branch_entries(root / "scripts" / "insecure_http_baseline.txt") is None
+
+
+def test_a_resolved_ref_without_the_file_is_the_empty_set(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The bootstrap rule: a baseline the ref does not carry starts from
+    the empty set, so its creating change counts every entry as an
+    addition (#766)."""
+    root = _base_ref_repo(tmp_path)
+    monkeypatch.setattr(verify_mod, "REPO_ROOT", root)
+    monkeypatch.setenv("KPUBDATA_BASELINE_BASE", "HEAD")
+
+    assert (
+        verify_mod._base_branch_entries(root / "scripts" / "unconfirmed_terms_baseline.txt")
+        == set()
+    )
+
+
+def test_a_resolved_ref_reads_its_entries(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = _base_ref_repo(tmp_path)
+    monkeypatch.setattr(verify_mod, "REPO_ROOT", root)
+    monkeypatch.setenv("KPUBDATA_BASELINE_BASE", "HEAD")
+
+    entries = verify_mod._base_branch_entries(root / "scripts" / "insecure_http_baseline.txt")
+
+    assert entries == {"datago.apt_trade"}

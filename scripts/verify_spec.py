@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -148,35 +149,63 @@ def _verify_licence_terms(spec: SpecDefinition) -> list[StepResult]:
     return [StepResult(f"라이선스 출처[{spec.id}]", False, violation)]
 
 
-def _base_branch_entries(baseline: Path) -> set[str] | None:
-    """Entry set of a baseline file on the base branch (#766).
+def _baseline_base_ref() -> str | None:
+    """The ref the ratchets compare against (#766), or None to fail closed."""
+    ref = os.environ.get("KPUBDATA_BASELINE_BASE", "").strip()
+    return ref or None
 
-    ``origin/main`` is the base of a pull request; ``HEAD`` is the base in
-    the Build Dataset runner, which verifies uncommitted edits on main.
-    None when neither can be read — the caller fails closed, because a
-    ratchet that cannot see its anchor is not a ratchet. A baseline outside
-    the repository (tests point the constant at a tmp file) has no git base
-    either: None, for the same reason.
+
+def _base_branch_entries(baseline: Path) -> set[str] | None:
+    """Entry set of a baseline file at the ratchet's base ref (#766).
+
+    The ref is explicit — ``KPUBDATA_BASELINE_BASE`` — and there is no
+    implicit ``HEAD`` fallback: in a pull request's CI, HEAD is the merge
+    commit carrying the PR's own baseline, so a HEAD fallback compares the
+    file against itself and the ratchet fails open exactly when its anchor
+    is missing. ci.yml passes the pull request's base branch, the Build
+    Dataset runner passes HEAD (it verifies uncommitted edits on main), and
+    a push to main comparing against origin/main is a self-comparison that
+    already went through the pull-request gate. A missing or unreadable
+    ref is None — the checks fail closed.
+
+    A baseline the ref resolves but does not carry reads as the empty set,
+    so every entry in its creating change counts as an addition: a new
+    baseline may only land empty, and freezing existing violations is the
+    failure itself, naming its human-reviewed moment (CODEOWNERS #764).
+
+    A baseline outside the repository (tests point the constant at a tmp
+    file) has no git base either: None, for the same reason.
     """
+    ref = _baseline_base_ref()
+    if ref is None:
+        return None
     try:
         relative = baseline.relative_to(REPO_ROOT).as_posix()
     except ValueError:
         return None
-    for ref in (f"origin/main:{relative}", f"HEAD:{relative}"):
-        show = subprocess.run(
-            ["git", "show", ref],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if show.returncode == 0:
-            return {
-                line.strip()
-                for line in show.stdout.splitlines()
-                if line.strip() and not line.strip().startswith("#")
-            }
-    return None
+    resolves = subprocess.run(
+        ["git", "rev-parse", "--verify", ref],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if resolves.returncode != 0:
+        return None
+    show = subprocess.run(
+        ["git", "show", f"{ref}:{relative}"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if show.returncode != 0:
+        return set()
+    return {
+        line.strip()
+        for line in show.stdout.splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    }
 
 
 def _check_shrink_only(name: str, baseline: Path, entries: list[str]) -> list[StepResult]:

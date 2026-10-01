@@ -60,6 +60,10 @@ jobs:
 
       - name: Contract replay verify
         run: make verify
+        env:
+          # 래칫의 기준 ref 는 명시적으로 (#766) — PR 에서는 base 브랜치,
+          # main push 에서는 origin/main (PR 게이트를 통과한 자기 자신과의 비교).
+          KPUBDATA_BASELINE_BASE: origin/${{ github.base_ref || 'main' }}
 
       - name: Generated docs drift check
         run: |

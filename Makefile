@@ -62,15 +62,17 @@ record:
 #
 # mktemp 템플릿은 명시한다 — ``mktemp -t <prefix>`` 는 BSD(macOS)에서만 동작하고
 # GNU coreutils 는 XXXXXX 로 끝나기를 요구해 Linux 러너에서 죽었다.
+# 래칫 기준 ref 의 로컬 기본값은 origin/main 이다 (#766). 명시적으로 주지
+# 않으면 verify 는 fail-closed 이므로, 셸 전개 기본값으로 여기서 채운다.
 verify:
 	@set +e; \
 	snapshot=$$(mktemp "$${TMPDIR:-/tmp}/kpubdata-verify.XXXXXX"); \
 	trap 'rm -f "$$snapshot"' EXIT; \
 	uv run python scripts/verify_guard.py snapshot > "$$snapshot" || exit 2; \
 	if [ -n "$(DATASET)" ]; then \
-		uv run python scripts/verify_spec.py --dataset $(DATASET); \
+		KPUBDATA_BASELINE_BASE=$${KPUBDATA_BASELINE_BASE:-origin/main} uv run python scripts/verify_spec.py --dataset $(DATASET); \
 	else \
-		uv run python scripts/verify_spec.py; \
+		KPUBDATA_BASELINE_BASE=$${KPUBDATA_BASELINE_BASE:-origin/main} uv run python scripts/verify_spec.py; \
 	fi; \
 	verify_status=$$?; \
 	uv run python scripts/verify_guard.py compare "$$snapshot"; \
