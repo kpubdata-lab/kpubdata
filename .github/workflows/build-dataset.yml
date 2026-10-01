@@ -117,9 +117,13 @@ jobs:
           if [ -n "$DATASET" ]; then
             git add -- "src/kpubdata/specs/${PROVIDER}/${KEY}.yaml"
             git add -- "tests/fixtures/${PROVIDER}/${KEY}" 2>/dev/null || true
+            # https 전환(#738)은 baseline 축소가 같은 PR 에 실려야 make verify 를
+            # 통과한다 — 전환된 스펙의 줄이 baseline 에 남으면 stale 실패다.
+            # 스펙을 그대로 두는 실행에서는 이 파일도 그대로라 add 는 no-op 이다.
+            git add -- "scripts/insecure_http_baseline.txt"
           fi
           if git diff --cached --quiet; then
-            echo "::error::에이전트가 예상 경로(spec/fixture) 밖에만 변경을 만들었다"
+            echo "::error::에이전트가 예상 경로(spec/fixture/baseline) 밖에만 변경을 만들었다"
             git status --porcelain
             gh issue edit "$ISSUE_NUMBER" --add-label needs-human || true
             exit 1
