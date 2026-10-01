@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -280,7 +281,8 @@ def _parse_date(value: object, problems: list[str], label: str) -> date | None:
 
 
 #: What each KOGL (Korea Open Government License) type forbids: commercial use for types 2 and 4,
-#: modification for types 3 and 4. Type 1 forbids neither (#719).
+#: modification for types 3 and 4. Type 1 forbids neither (#719). Every type requires
+#: attribution (docs/policy/terms-matrix.md), so none may waive it (#725).
 _KOGL_FORBIDS: dict[str, tuple[bool, bool]] = {
     "공공누리_1유형": (False, False),
     "공공누리_2유형": (True, False),
@@ -289,30 +291,37 @@ _KOGL_FORBIDS: dict[str, tuple[bool, bool]] = {
 }
 
 
-def _check_kogl_terms(
-    license_type: str | None,
-    commercial_use: bool | None,
-    modification_allowed: bool | None,
-    problems: list[str],
-) -> None:
-    """Refuse a licence whose KOGL type contradicts its own flags (#719).
+def licence_conflicts(licence: Mapping[str, object]) -> list[str]:
+    """Contradictions between a licence's KOGL type and its own flags (#719, #725).
 
     A consumer may read either the type or the flags, so a spec that says
     "type 3, modification allowed" tells two readers two different things.
-    Only an explicit ``True`` that the type forbids is refused; a flag left
-    undeclared says nothing.
+    Refused: an explicit ``commercial_use: true`` under types 2 and 4, an
+    explicit ``modification_allowed: true`` under types 3 and 4, and an
+    explicit ``attribution_required: false`` under any KOGL type. A flag left
+    undeclared, or a value of the wrong type (reported separately by its
+    parser), says nothing here. A type that is not a KOGL type is not checked.
+
+    Shared by the loader and ``scripts/validate_spec.py``.
     """
-    if license_type is None or license_type not in _KOGL_FORBIDS:
-        return
-    no_commercial, no_modification = _KOGL_FORBIDS[license_type]
-    if no_commercial and commercial_use is True:
+    licence_type = licence.get("type")
+    if not isinstance(licence_type, str) or licence_type not in _KOGL_FORBIDS:
+        return []
+    no_commercial, no_modification = _KOGL_FORBIDS[licence_type]
+    problems: list[str] = []
+    if no_commercial and licence.get("commercial_use") is True:
         problems.append(
-            f"license.commercial_use is true, but {license_type} forbids commercial use"
+            f"license.commercial_use is true, but {licence_type} forbids commercial use"
         )
-    if no_modification and modification_allowed is True:
+    if no_modification and licence.get("modification_allowed") is True:
         problems.append(
-            f"license.modification_allowed is true, but {license_type} forbids modification"
+            f"license.modification_allowed is true, but {licence_type} forbids modification"
         )
+    if licence.get("attribution_required") is False:
+        problems.append(
+            f"license.attribution_required is false, but {licence_type} requires attribution"
+        )
+    return problems
 
 
 def _parse_license(raw: object, problems: list[str]) -> LicenseSpec | None:
@@ -364,13 +373,23 @@ def _parse_license(raw: object, problems: list[str]) -> LicenseSpec | None:
 
     license_type = _str_field("type")
     commercial_use = _bool_field("commercial_use")
+    attribution_required = _bool_field("attribution_required")
     modification_allowed = _bool_field("modification_allowed")
-    _check_kogl_terms(license_type, commercial_use, modification_allowed, problems)
+    problems.extend(
+        licence_conflicts(
+            {
+                "type": license_type,
+                "commercial_use": commercial_use,
+                "attribution_required": attribution_required,
+                "modification_allowed": modification_allowed,
+            }
+        )
+    )
 
     return LicenseSpec(
         type=license_type,
         commercial_use=commercial_use,
-        attribution_required=_bool_field("attribution_required"),
+        attribution_required=attribution_required,
         modification_allowed=modification_allowed,
         note=_str_field("note"),
         redistribution=redistribution,
