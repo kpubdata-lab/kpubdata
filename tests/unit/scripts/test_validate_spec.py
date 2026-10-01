@@ -92,6 +92,37 @@ def test_schema_violation_fails(module, specs_dir: Path) -> None:
     assert any("스키마 위반" in err and "envelope" in err for err in errors)
 
 
+@pytest.mark.parametrize(
+    ("licence", "field"),
+    [
+        *[
+            (f"  type: 공공누리_{n}유형\n  attribution_required: false\n", "attribution_required")
+            for n in (1, 2, 3, 4)
+        ],
+        ("  type: 공공누리_2유형\n  commercial_use: true\n", "commercial_use"),
+        ("  type: 공공누리_4유형\n  commercial_use: true\n", "commercial_use"),
+        ("  type: 공공누리_3유형\n  modification_allowed: true\n", "modification_allowed"),
+        ("  type: 공공누리_4유형\n  modification_allowed: true\n", "modification_allowed"),
+    ],
+)
+def test_kogl_licence_contradiction_fails(module, tmp_path: Path, licence: str, field: str) -> None:
+    """validate_spec reports the same KOGL contradictions the loader refuses (#725)."""
+    _write_spec(tmp_path, "test", "sample.yaml", VALID_SPEC + "license:\n" + licence)
+    report = module.validate_specs(tmp_path, SCHEMA_PATH)
+    assert report.failed_count == 1
+    assert any(f"license.{field}" in err for err in report.results[0].errors)
+
+
+def test_consistent_kogl_licence_passes(module, tmp_path: Path) -> None:
+    licence = (
+        "  type: 공공누리_3유형\n  commercial_use: true\n"
+        "  attribution_required: true\n  modification_allowed: false\n"
+    )
+    _write_spec(tmp_path, "test", "sample.yaml", VALID_SPEC + "license:\n" + licence)
+    report = module.validate_specs(tmp_path, SCHEMA_PATH)
+    assert report.ok, report.results[0].errors
+
+
 def test_id_filename_mismatch_fails(module, specs_dir: Path) -> None:
     """A mismatch between id and the provider.filename rule is reported."""
     _write_spec(

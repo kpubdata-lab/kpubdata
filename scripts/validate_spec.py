@@ -129,14 +129,18 @@ def validate_spec_file(
         location = ".".join(str(part) for part in error.absolute_path) or "(루트)"
         result.errors.append(f"스키마 위반 [{location}]: {error.message}")
 
-    # Meaning vs storage contradictions (ADR 0006, #651) — same rules as the loader.
-    from kpubdata.core.spec import field_conflicts
+    # Meaning vs storage contradictions (ADR 0006, #651) and KOGL type vs licence flags
+    # (#719, #725) — same rules as the loader.
+    from kpubdata.core.spec import field_conflicts, licence_conflicts
 
     fields = data.get("fields")
     if isinstance(fields, list):
         for item in fields:
             if isinstance(item, dict):
                 result.errors.extend(field_conflicts(dict(item)))
+    licence = data.get("license")
+    if isinstance(licence, dict):
+        result.errors.extend(licence_conflicts(licence))
 
     # id ↔ filename/directory rules
     if declared_id and declared_id != f"{provider}.{path.stem}":

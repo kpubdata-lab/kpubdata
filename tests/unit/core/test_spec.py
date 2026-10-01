@@ -174,12 +174,31 @@ def test_kogl_type_contradicting_its_flags_is_rejected(
 
 
 @pytest.mark.parametrize(
+    "kogl_type", ["공공누리_1유형", "공공누리_2유형", "공공누리_3유형", "공공누리_4유형"]
+)
+def test_kogl_type_waiving_attribution_is_rejected(kogl_type: str) -> None:
+    """Every KOGL type requires attribution, so none may declare it waived (#725)."""
+    with pytest.raises(InvalidRequestError) as exc:
+        from_mapping(_licensed_spec({"type": kogl_type, "attribution_required": False}))
+
+    assert "license.attribution_required" in str(exc.value)
+
+
+def test_non_kogl_licence_may_waive_attribution() -> None:
+    spec = from_mapping(_licensed_spec({"type": "자유이용", "attribution_required": False}))
+
+    assert spec.license is not None
+    assert spec.license.attribution_required is False
+
+
+@pytest.mark.parametrize(
     "license_block",
     [
         {"type": "공공누리_1유형", "commercial_use": True, "modification_allowed": True},
         {"type": "공공누리_3유형", "commercial_use": True, "modification_allowed": False},
         {"type": "공공누리_4유형", "commercial_use": False, "modification_allowed": False},
         {"type": "공공누리_3유형"},
+        {"type": "공공누리_1유형", "attribution_required": True},
         {"type": "KRX_별도계약", "commercial_use": True, "modification_allowed": True},
     ],
 )
