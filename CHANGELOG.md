@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- The per-commit message check from #735 (`scripts/check_commit_messages.py`, the "Commit messages" step in `ci.yml`). POLICY 2.1.3 does not check individual development commits, and since the squash commit body became the PR body (2026-10-01) branch commit messages no longer reach main, so it guarded nothing; replayed over the last seven days it would have refused 70 of 170 merged pull requests. The PR title — which becomes the commit title — is what is checked (#741, #742).
+
 ### Added
 
 - **Evidence bound to the spec, the commit and the run** (#522, #713): a recorded fixture's `meta.json` now carries `spec_sha256`, a digest of the spec file's pipeline-relevant content (`kpubdata.core.spec.spec_file_digest`, which normalises away the `last_verified` line the recorder itself rewrites), and `record_commit`/`run_ref` from the CI environment (`GITHUB_SHA`/`GITHUB_RUN_ID`) when present. `make verify` gains a spec-binding step: a fixture whose recorded digest no longer matches its spec is void — the spec changed after recording — and fails with re-record guidance. Fixtures recorded before the digest existed are reported as legacy evidence rather than failed — since #717, only those on a frozen baseline.
