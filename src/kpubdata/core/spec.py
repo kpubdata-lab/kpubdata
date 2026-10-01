@@ -330,13 +330,13 @@ def insecure_http_problem(base_url: str | None, insecure_http_reason: str | None
     """Why this endpoint sends its credentials over plain http:// (#738).
 
     The service key rides the query string, so over http:// anyone on the
-    network path reads it. https is the fix — the one host every http
+    network path reads it.     https is the fix — the one host every http
     spec uses (apis.data.go.kr) answers it with identical envelopes, and
     the reproducible record (commands and raw envelopes for all 16
-    service paths behind the baseline) sits on the issue (#767). A
-    provider that genuinely cannot serve https says why in
-    ``insecure_http_reason``. None when the scheme is already https, the
-    reason is written down, or there is nothing to judge.
+    service paths behind the baseline) sits as a comment on #738
+    (2026-10-01). A provider that genuinely cannot serve https says why
+    in ``insecure_http_reason``. None when the scheme is already https,
+    the reason is written down, or there is nothing to judge.
 
     Shared by ``scripts/verify_spec.py`` and ``scripts/validate_spec.py``.
     """

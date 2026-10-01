@@ -3,7 +3,7 @@
 # at 23 entries from the 2026-10-01 audit. Every one sits on
 # apis.data.go.kr, which answers https with identical envelopes — the
 # reproducible record (commands and raw envelopes, all 16 service paths)
-# sits on the issue (#767). The two specs already on https
+# sits as a comment on #738 (2026-10-01). The two specs already on https
 # (bus_arrival, social_enterprise, #728) prove the gateway serves TLS.
 # The three localdata entries are data.go.kr services too (1741000/*),
 # published through the same gateway under the shared datago key.
