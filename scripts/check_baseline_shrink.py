@@ -16,7 +16,7 @@ The spec is read with a regex on purpose, the same choice
 nothing installed beyond Python itself.
 
 Usage:
-    python scripts/check_baseline_shrink.py --dataset datago.apt_trade
+    python scripts/check_baseline_shrink.py --dataset datago.apt_trade --base "$GITHUB_SHA"
 
 Exits 0 when the baseline is untouched, or shrinks by exactly that
 dataset with its spec on https; exits 1 with ``::error::`` lines
@@ -90,7 +90,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--baseline", default="scripts/insecure_http_baseline.txt")
     parser.add_argument(
         "--base",
-        default="HEAD",
+        required=True,
         help="the diff base — the run's dispatch commit, never a movable HEAD",
     )
     parser.add_argument("--root", default=str(REPO_ROOT))

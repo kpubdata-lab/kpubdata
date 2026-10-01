@@ -119,6 +119,8 @@ def test_main_passes_the_earned_shrink_end_to_end(script, tmp_path: Path) -> Non
                 "datago.apt_trade",
                 "--baseline",
                 "scripts/insecure_http_baseline.txt",
+                "--base",
+                "HEAD",
                 "--root",
                 str(root),
             ]
@@ -140,6 +142,8 @@ def test_a_quoted_base_url_still_counts_as_https(script, tmp_path: Path) -> None
                 "datago.apt_trade",
                 "--baseline",
                 "scripts/insecure_http_baseline.txt",
+                "--base",
+                "HEAD",
                 "--root",
                 str(root),
             ]
@@ -159,6 +163,8 @@ def test_main_refuses_an_addition_end_to_end(script, tmp_path: Path, capsys) -> 
             "datago.apt_trade",
             "--baseline",
             "scripts/insecure_http_baseline.txt",
+            "--base",
+            "HEAD",
             "--root",
             str(root),
         ]
