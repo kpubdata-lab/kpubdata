@@ -1,0 +1,15 @@
+{
+ "dataset_id": "datago.bus_arrival",
+ "endpoint": "https://apis.data.go.kr/6410000/busarrivalservice/v2/getBusArrivalListv2",
+ "example": "station_200000078",
+ "format": "json",
+ "params": {
+  "_type": "json",
+  "serviceKey": "[REDACTED]",
+  "stationId": "200000078"
+ },
+ "recorded_at": "2026-10-01T00:52:34+00:00",
+ "recorded_by": "kpubdata-agent",
+ "response_sha256": "250af1e630434f0c2230c17ae115a287bd1cc0aefb043c822f1ee8b85665037a",
+ "spec_sha256": "4d339f31c4ce483cec105014f4b0b0b30de886ee61124019ce3814bdc0f65b63"
+}
