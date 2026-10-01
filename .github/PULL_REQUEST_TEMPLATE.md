@@ -5,26 +5,14 @@ type: feat fix docs test perf refactor ci build chore style revert — 규칙 �
 예) feat: add KOSIS provider adapter
 -->
 
-## 요약
-<!-- 이 PR이 무엇을, 왜 바꾸는지 1~3문장으로 설명하세요. -->
+Closes #<이슈 번호>
+<!-- 이슈 없는 PR(의존성 갱신 등)은 이 줄을 지우고, 참조만 남길 땐 Refs #N. -->
+
+## 문제
+<!-- 무엇이 잘못됐거나 무엇이 필요한지 — 대부분의 PR은 한두 문장이면 충분하다. -->
 
 ## 변경 내용
-<!-- 주요 변경 사항을 항목으로 나열하세요. -->
--
-
-## 관련 이슈
-<!-- 예) Closes #123, Refs #456 -->
+<!-- 무엇을 어떻게 바꿨는지 -->
 
 ## 검증
-<!-- 어떻게 검증했는지 구체적으로 적으세요. -->
-- [ ] Ruff lint / format 통과
-- [ ] mypy 타입 체크 통과
-- [ ] 테스트 통과 (`pytest`)
-- [ ] 문서 변경 시 docs strict 빌드 통과 (해당 시)
-- [ ] 신규 provider adapter는 계약/통합 테스트를 포함 (해당 시)
-
-## 체크리스트
-- [ ] 기능 브랜치에서 작업했으며 `main`에 직접 push하지 않았다
-- [ ] PR 제목이 POLICY 2.1.3 을 따른다 (영어, 100자 이하, 제목에 이슈 번호 없음 — 본문에 `Closes #N`)
-- [ ] 공개 API 변경 시 문서/CHANGELOG를 갱신했다
-- [ ] 사용자 노출 기능 변경 시 문서를 분류해 갱신했다: 제품 계약→PRD, 향후 의도→ROADMAP, 릴리스 변경→CHANGELOG (해당 시)
+<!-- 돌린 게이트·테스트와 결과. ruff·mypy·pytest·docs strict 는 CI가 같은 걸 다시 돌리므로, 여기에는 로컬에서만 볼 수 있는 것(실측·재현·스크린샷)을 적는다. -->
