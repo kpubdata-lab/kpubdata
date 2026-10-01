@@ -1,0 +1,9 @@
+[
+  {
+    "from": "live_verified",
+    "to": "application_required",
+    "reason": "APPLICATION_REQUIRED",
+    "streak": 1,
+    "at": "2026-10-01"
+  }
+]
