@@ -56,7 +56,7 @@ def script():
             "type:bug",
         ),
         ("chore(deps): move to kpubdata 0.7", "chore", "deps", False, "type:chore"),
-        ("fix(release): 한국어 설명도 된다", "fix", "release", False, "type:bug"),
+        ("fix: keep C# interop working", "fix", None, False, "type:bug"),
     ],
 )
 def test_valid_titles(script, title, kind, scope, breaking, label) -> None:
@@ -86,6 +86,9 @@ def test_valid_titles(script, title, kind, scope, breaking, label) -> None:
         "docs: establish the release policy (#528)",  # #699: squash adds the PR number
         "feat(core): cast whole columns (#481)",
         "fix: keep leading zeros (#574) ",  # trailing space still counts after strip()
+        "fix: 한글 제목",  # #742: the title is English
+        "fix: refuse the key (studio#418)",  # #742: repo-prefixed reference
+        "fix: close the gap from #123 review",  # #742: bare mid-sentence reference
     ],
 )
 def test_invalid_titles(script, title: str) -> None:
@@ -104,10 +107,26 @@ def test_revert_of_a_numbered_title_still_parses(script) -> None:
     assert parsed.type == "revert"
 
 
-def test_mid_title_issue_reference_is_allowed(script) -> None:
-    """The rule is about the *trailing* tag; a mid-sentence reference is fine."""
-    parsed = script.parse("fix: adapters registered twice since #612 are deduped")
-    assert parsed.type == "fix"
+def test_revert_of_a_hangul_title_still_parses(script) -> None:
+    """The revert button copies the old title verbatim; refusing it would block undo."""
+    parsed = script.parse('Revert "fix(release): 한국어 설명도 된다"')
+    assert parsed.type == "revert"
+
+
+def test_mid_title_issue_reference_is_refused(script) -> None:
+    """#742: a bare mid-sentence reference is as wrong as the trailing tag."""
+    with pytest.raises(script.TitleError, match="Closes #123"):
+        script.parse("fix: adapters registered twice since #612 are deduped")
+
+
+def test_repo_prefixed_reference_error_names_the_remedy(script) -> None:
+    with pytest.raises(script.TitleError, match="studio#418"):
+        script.parse("fix: refuse the key (studio#418)")
+
+
+def test_hangul_error_names_the_remedy(script) -> None:
+    with pytest.raises(script.TitleError, match="body"):
+        script.parse("fix(release): 한국어 설명도 된다")
 
 
 def test_numbered_title_error_names_the_remedy(script) -> None:
@@ -163,22 +182,19 @@ def test_main_never_prints_more_than_the_four_output_lines(script, capsys) -> No
     assert [line.split("=", 1)[0] for line in out] == ["type", "scope", "breaking", "label"]
 
 
-# --- Pull request titles (POLICY 2.1.3, #742) ---------------------------------------
-# A pull request title becomes the commit title on main. These are the titles the
-# 2026-10-01 audit found passing the old check.
+# --- Pull request titles (POLICY 2.1.3, #741) ---------------------------------------
+# A pull request title becomes the commit title on main, so it also has a length limit
+# and may not carry an issue URL. These are titles the 2026-10-01 audit found passing.
 
 
 @pytest.mark.parametrize(
     ("title", "reason"),
     [
         ("fix: 한글 제목", "English"),
-        ("fix(release): 한국어 설명도 된다", "English"),
         ("feat(api): accept the studio shape (studio#418)", "issue reference"),
-        ("feat(api): mirror studio#418 in the contract", "issue reference"),
         ("fix: handle #123 in the middle of a title", "issue reference"),
-        ("fix: follow yeongseon/kpubdata#699 in the parser", "issue reference"),
-        ("fix: see https://github.com/yeongseon/kpubdata/issues/699", "issue reference"),
-        ("fix: see https://github.com/yeongseon/kpubdata/pull/704", "issue reference"),
+        ("fix: see https://github.com/yeongseon/kpubdata/issues/699", "URL"),
+        ("fix: see https://github.com/yeongseon/kpubdata/pull/704", "URL"),
         ("fix: " + "x" * 150, "at most 100"),
     ],
 )
@@ -189,10 +205,9 @@ def test_a_pull_request_title_refuses_what_a_commit_title_may_not_carry(
         script.parse(title, pull_request=True)
 
 
-def test_the_pull_request_rules_do_not_apply_to_issue_titles(script) -> None:
-    # An issue title may be Korean when English would block the report (AGENTS.md).
-    assert script.parse("fix(release): 한국어 설명도 된다").type == "fix"
-    assert script.parse("fix: mirror studio#418").type == "fix"
+def test_the_length_and_url_rules_apply_only_to_pull_request_titles(script) -> None:
+    script.parse("fix: " + "x" * 150)
+    script.parse("fix: see https://github.com/yeongseon/kpubdata/issues/699")
 
 
 @pytest.mark.parametrize(
@@ -201,10 +216,11 @@ def test_the_pull_request_rules_do_not_apply_to_issue_titles(script) -> None:
         "fix(localdata): empty wrapper becomes a phantom row",
         "chore(deps): bump pyjwt from 2.14.0 to 2.15.0",
         "chore(deps): bump the npm_and_yarn group across 1 directory with 3 updates",
-        "fix(spec): support C# style and `#` in parameter names",
+        "fix(spec): support `#` in parameter names",
         "chore: release v0.8.0",
-        # GitHub's Revert button quotes the reverted commit as it was, numbers and all.
+        # GitHub's Revert button quotes the reverted squash commit, numbers and all.
         'Revert "fix(core): an old title with its numbers (#12) (#34)"',
+        'Revert "fix: 한국어로 된 옛 제목 (#12)"',
         "fix: " + "x" * 95,
     ],
 )
@@ -221,6 +237,7 @@ def test_the_length_limit_is_inclusive(script) -> None:
 
 
 def test_the_cli_applies_the_pull_request_rules_only_when_asked(script, capsys) -> None:
-    assert script.main(["fix: 한글 제목"]) == 0
-    assert script.main(["--pull-request", "fix: 한글 제목"]) == 1
-    assert "English" in capsys.readouterr().err
+    long_title = "fix: " + "x" * 150
+    assert script.main([long_title]) == 0
+    assert script.main(["--pull-request", long_title]) == 1
+    assert "at most 100" in capsys.readouterr().err

@@ -72,19 +72,21 @@ _GITHUB_REVERT = re.compile(r'^Revert ".+"$')
 # the PR number, so "(#123)" in a title becomes "... (#123) (#456)" in the commit.
 _ISSUE_NUMBER = re.compile(r"\(#[0-9]+\)\s*$")
 
+# POLICY 2.1.3: the title is English (#742). The squash commit inherits the title,
+# so Korean in a title would reach main's log. Bodies stay free-form.
+_HANGUL = re.compile(r"[가-힣]")
+
+# Any other issue reference mid-title (#742): `from #123`, `(studio#418)`. The
+# trailing rule above keeps its clearer squash-specific message for its own case.
+_INLINE_ISSUE = re.compile(r"#[0-9]+")
+
 _EXAMPLE = "fix(localdata): empty wrapper becomes a phantom row"
 
-# Pull request titles only (POLICY 2.1.3, #742). A pull request title becomes the commit
-# title on main, which is English and carries no issue reference; an issue title may be
-# Korean when English would block the report (AGENTS.md), so these do not apply to it.
+# Pull request titles only (POLICY 2.1.3, #741). A pull request title becomes the commit
+# title on main, so it also fits in MAX_PR_TITLE_LENGTH characters and carries no issue
+# or pull request URL. Hangul and `#123` are refused for every title above.
 MAX_PR_TITLE_LENGTH = 100
-_HANGUL = re.compile(r"[\u1100-\u11ff\u3130-\u318f\ua960-\ua97f\uac00-\ud7af\ud7b0-\ud7ff]")
-# `#123`, `(#123)`, `repo#123`, `owner/repo#123`, and issue or pull request URLs. A `#`
-# not followed by a digit (`C#`, a `#` in a code span) is not a reference.
-_ISSUE_REFERENCE = re.compile(
-    r"(?:^|[^\w&])(?:[\w.-]+/)?(?:[\w.-]+)?#[0-9]+\b"
-    r"|github\.com/[^\s/]+/[^\s/]+/(?:issues|pull)/[0-9]+"
-)
+_ISSUE_URL = re.compile(r"github\.com/[^\s/]+/[^\s/]+/(?:issues|pull)/[0-9]+")
 
 
 class TitleError(Exception):
@@ -110,17 +112,23 @@ def parse(title: str, *, pull_request: bool = False) -> Title:
     """Parse a title.
 
     ``pull_request`` adds the rules for a title that becomes a commit on main: no
-    Hangul, no issue reference anywhere, at most MAX_PR_TITLE_LENGTH characters.
+    issue or pull request URL, at most MAX_PR_TITLE_LENGTH characters.
     GitHub's own `Revert "..."` title quotes the reverted commit as it was and is
     exempt.
 
     Raises:
-        TitleError: The shape is wrong, the type is not one of TYPES, or a pull
-            request title breaks a pull-request-only rule.
+        TitleError: The shape is wrong, the type is not one of TYPES, the title
+            carries Hangul or an issue reference, or a pull request title breaks a
+            pull-request-only rule.
     """
     title = title.strip()
     if "\n" in title or "\r" in title:
         raise TitleError("title must be a single line")
+    # GitHub's own "Revert" button writes `Revert "fix: ... (#12)"`. It quotes the
+    # reverted commit as it was — squash commits end in their PR number — so it is
+    # checked before any rule about the title's own text.
+    if _GITHUB_REVERT.match(title):
+        return Title(type="revert", scope=None, breaking=False, description=title)
     # POLICY 2.1.3: no issue numbers in PR titles (#699). Squash merge appends the PR
     # number, so a trailing "(#123)" becomes "... (#123) (#456)" in the commit title.
     # Link issues from the body with `Closes #123` instead.
@@ -130,10 +138,20 @@ def parse(title: str, *, pull_request: bool = False) -> Title:
             "and the final commit would read `... (#123) (#456)`. Link the issue from "
             "the body with `Closes #123`."
         )
-    # GitHub's own "Revert" button writes `Revert "fix: ..."`. It is a revert whatever
-    # it reverts, and refusing it would make undoing a merge fail a check.
-    if _GITHUB_REVERT.match(title):
-        return Title(type="revert", scope=None, breaking=False, description=title)
+    # POLICY 2.1.3: titles are English (#742). An issue title may stay Korean — the
+    # labeller then simply skips it — but a PR title becomes the merge commit title.
+    if _HANGUL.search(title):
+        raise TitleError(
+            "titles are written in English (POLICY 2.1.3) — the merge commit inherits "
+            "the PR title. Put Korean in the body."
+        )
+    # Any reference other than the trailing tag (#742): bare `#123` mid-sentence or a
+    # repo-prefixed `(studio#418)`. The body's `Closes #N` line is the linking place.
+    if _INLINE_ISSUE.search(title):
+        raise TitleError(
+            "an issue reference belongs in the body (`Closes #123`), not the title — "
+            "bare `#123` and repo-prefixed `studio#418` alike."
+        )
     if pull_request:
         _check_pull_request_title(title)
     match = _TITLE.fullmatch(title)
@@ -155,16 +173,11 @@ def parse(title: str, *, pull_request: bool = False) -> Title:
 
 
 def _check_pull_request_title(title: str) -> None:
-    """Refuse what a commit title on main may not carry (POLICY 2.1.3, #742)."""
-    if _HANGUL.search(title):
+    """Refuse what a commit title on main may not carry (POLICY 2.1.3, #741)."""
+    if _ISSUE_URL.search(title):
         raise TitleError(
-            "PR titles are English — the title becomes the commit title on main "
-            "(ADR 0003). Korean belongs in the PR body."
-        )
-    if _ISSUE_REFERENCE.search(title):
-        raise TitleError(
-            "PR titles carry no issue reference (`#123`, `repo#123`, an issue URL). "
-            "Link it from the body with `Closes #123` or `Refs owner/repo#123`."
+            "an issue or pull request URL belongs in the body (`Refs owner/repo#123`), "
+            "not the title."
         )
     if len(title) > MAX_PR_TITLE_LENGTH:
         raise TitleError(
