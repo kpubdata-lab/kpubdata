@@ -31,6 +31,7 @@ from kpubdata.core.spec import (
     SpecDefinition,
     discover_specs,
     find_spec,
+    insecure_http_problem,
     spec_file_digest,
 )
 
@@ -297,24 +298,15 @@ def _load_insecure_http_baseline() -> list[str]:
 def _insecure_http_violation(spec: SpecDefinition) -> str | None:
     """Why this spec sends its credentials over plain http:// (#738).
 
-    The service key rides the query string, so over http:// anyone on the
-    network path reads it. https is the fix — the one host every http spec
-    uses (apis.data.go.kr) answers it with the same envelopes (probe in the
-    issue). A provider that genuinely cannot serve https says why in
-    ``endpoint.insecure_http_reason``. None when the scheme is already
-    https, or the reason is written down.
+    Thin wrapper: the rule and its message live in
+    ``kpubdata.core.spec.insecure_http_problem`` so ``validate_spec.py``
+    enforces the same thing outside ``make verify`` (#767). The baseline
+    exemption is verify's ratchet and stays with the callers below.
     """
     endpoint = spec.endpoint
-    if endpoint is None or not endpoint.base_url.startswith("http://"):
+    if endpoint is None:
         return None
-    if (endpoint.insecure_http_reason or "").strip():
-        return None
-    return (
-        "endpoint.base_url 이 http:// 인데 endpoint.insecure_http_reason 이 비어 있다 — "
-        "서비스 키가 쿼리로 실리는 요청을 평문으로 보내면 경로의 누구나 키를 볼 수 "
-        "있다. https 로 바꾸고 재기록하거나, 제공기관이 https 를 지원하지 않는다면 "
-        "그 사유를 insecure_http_reason 에 적는다 (#738)"
-    )
+    return insecure_http_problem(endpoint.base_url, endpoint.insecure_http_reason)
 
 
 def _verify_insecure_http(spec: SpecDefinition) -> list[StepResult]:

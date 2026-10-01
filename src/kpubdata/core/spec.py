@@ -326,6 +326,32 @@ def licence_conflicts(licence: Mapping[str, object]) -> list[str]:
     return problems
 
 
+def insecure_http_problem(base_url: str | None, insecure_http_reason: str | None) -> str | None:
+    """Why this endpoint sends its credentials over plain http:// (#738).
+
+    The service key rides the query string, so over http:// anyone on the
+    network path reads it. https is the fix — the one host every http
+    spec uses (apis.data.go.kr) answers it with identical envelopes, and
+    the reproducible record (commands and raw envelopes for all 16
+    service paths behind the baseline) sits on the issue (#767). A
+    provider that genuinely cannot serve https says why in
+    ``insecure_http_reason``. None when the scheme is already https, the
+    reason is written down, or there is nothing to judge.
+
+    Shared by ``scripts/verify_spec.py`` and ``scripts/validate_spec.py``.
+    """
+    if base_url is None or not base_url.startswith("http://"):
+        return None
+    if (insecure_http_reason or "").strip():
+        return None
+    return (
+        "endpoint.base_url 이 http:// 인데 endpoint.insecure_http_reason 이 비어 있다 — "
+        "서비스 키가 쿼리로 실리는 요청을 평문으로 보내면 경로의 누구나 키를 볼 수 "
+        "있다. https 로 바꾸고 재기록하거나, 제공기관이 https 를 지원하지 않는다면 "
+        "그 사유를 insecure_http_reason 에 적는다 (#738)"
+    )
+
+
 def _parse_license(raw: object, problems: list[str]) -> LicenseSpec | None:
     """Convert license section to LicenseSpec."""
     if raw is None:
