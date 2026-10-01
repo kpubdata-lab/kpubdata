@@ -106,6 +106,14 @@ jobs:
           git config user.name "kpubdata-agent"
           git config user.email "agent@kpubdata.local"
           git checkout -b "$BRANCH"
+          # baseline 축소 가드(#765 리뷰): 에이전트가 baseline 에 둘 수 있는
+          # 변경은 "이번 데이터셋의 줄 한 줄 삭제"뿐이다. 추가·교체·스펙이
+          # https 로 바뀌지 않은 삭제는 needs-human 으로 멈춘다 — 개수만 보는
+          # 래칫을 에이전트 PR 로 다시 넓히는 구멍(일반화는 #766)을 여기서 막는다.
+          if [ -n "$DATASET" ] && ! python3 scripts/check_baseline_shrink.py --dataset "$DATASET"; then
+            gh issue edit "$ISSUE_NUMBER" --add-label needs-human || true
+            exit 1
+          fi
           # 이 절차가 만드는 것만 커밋한다. `git add -A` 는 에이전트가 어디에
           # 무엇을 썼든 전부 담아서, 도구가 남긴 파일이나 관계없는 변경까지
           # PR 로 올린다 — kpubdata-builder 의 agent/pipeline.py 에서 실제로
