@@ -32,6 +32,7 @@ REQUIRED = [
     "/scripts/next_version.py",
     "/scripts/release_window.py",
     "/scripts/conventional_title.py",
+    "/scripts/r3_review.py",
     "/pyproject.toml",
     "/uv.lock",
 ]

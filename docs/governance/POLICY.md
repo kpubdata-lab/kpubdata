@@ -771,6 +771,27 @@ Agent는 다음을 단독으로 결정하지 않는다.
   기계적으로 확인하고, 에이전트는 자기 작업의 완료를 선언하지 않는다.
 - Review Level 하향
 
+## 14.1 R3 는 작성자가 아닌 사람의 승인이 있어야 머지된다 — 2026-10-01 개정
+
+`review:R3` 라벨이 붙은 PR 은 **작성자가 아닌 사람의 승인(APPROVED)이 하나 이상**
+있어야 머지된다. 오너 결정(kpubdata-builder#905, 2026-10-01)이고, 강제 장치는
+`R3 review` required check 다(kpubdata#722). Branch protection 의 승인 수는 0 으로
+두므로 R3 가 아닌 PR 은 영향이 없다.
+
+- 판정 로직은 하나다: `scripts/r3_review.py` 와 `.github/actions/r3-review` (kpubdata).
+  네 저장소가 `@main` 으로 같은 액션을 부른다.
+- check 는 **모든 PR 에서 돌고, R3 가 아니면 통과한다.** 일부 PR 에서만 생기는
+  required check 는 그 PR 을 영원히 BLOCKED 로 둔다(18.2절).
+- 라벨 변경(`labeled`/`unlabeled`), push(`synchronize`), 리뷰 제출·dismiss 때마다
+  다시 판정한다.
+- 승인으로 세는 것: 리뷰어마다 마지막 APPROVED·CHANGES_REQUESTED·DISMISSED 리뷰가
+  APPROVED 인 경우. COMMENTED 는 상태를 바꾸지 않는다. 이전 head 에 준 승인도 센다 —
+  branch protection 의 "dismiss stale approvals" 가 꺼져 있는 것과 맞춘다.
+- 세지 않는 것: 작성자 본인, 봇 계정(사람 리뷰가 아니다), 저장소 쓰기 권한이 없는
+  계정(`OWNER`·`MEMBER`·`COLLABORATOR` 가 아닌 association — 공개 저장소에서는 누구나
+  APPROVED 를 남길 수 있다).
+- 라벨을 떼면 check 는 통과한다. 그래서 R3 를 낮추는 것은 여전히 사람만 한다(위 목록).
+
 ---
 
 # 15. Issue Lifecycle
@@ -966,6 +987,7 @@ Required Verification: V4
 
 - **R0~R3**: 18.1절의 변경 유형 표가 사실상의 기준이다. R3는 사람 리뷰가
   반드시 필요한 등급이고, 이 문서를 바꾸는 변경이 여기 해당한다(0절).
+  작성자가 아닌 사람의 승인이 없으면 `R3 review` check 가 머지를 막는다(14.1절).
 - **Target Release**: GitHub Project 필드로만 관리하고 사람이 설정한다(2.1절).
   값은 버전이 아니라 릴리스의 달(`YYYY-MM`)이다 — builder·studio 는 그 달의 월간
   창, kpubdata 는 그 달 안의 수시 릴리스(7일 간격)다. 규칙과 게이트는
