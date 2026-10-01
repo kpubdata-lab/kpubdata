@@ -470,7 +470,7 @@ def test_the_repository_baseline_is_exactly_the_unbound_fixtures(
     is tracked and unbound. Sweeps with `git ls-files`, not a hand-written
     path list (AGENTS.md). Growth past the base branch is the check's own
     job now (#766), not this inventory's."""
-    monkeypatch.setenv("KPUBDATA_BASELINE_BASE", "origin/main")
+    monkeypatch.setenv("KPUBDATA_BASELINE_BASE", "HEAD")
     import subprocess
 
     tracked = subprocess.run(

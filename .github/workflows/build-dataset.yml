@@ -36,8 +36,9 @@ jobs:
       KPUBDATA_DATAGO_API_KEY: ${{ secrets.KPUBDATA_DATAGO_API_KEY }}
       OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
       ISSUE_NUMBER: ${{ github.event.inputs.issue_number || github.event.issue.number }}
-      # 이 러너는 main 의 커밋되지 않은 편집을 검증하므로 래칫의 기준은 HEAD (#766).
-      KPUBDATA_BASELINE_BASE: HEAD
+      # 래칫의 기준은 이 실행이 체크아웃한 커밋이다 (#766). HEAD 를 쓰면 에이전트가
+      # 커밋을 만든 순간 기준이 움직여 자기 변경과 자기를 비교하게 된다.
+      KPUBDATA_BASELINE_BASE: ${{ github.sha }}
     steps:
       - name: Context
         run: |
