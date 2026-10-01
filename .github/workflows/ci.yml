@@ -85,6 +85,15 @@ jobs:
           uv run python scripts/check_fixture_authorship.py \
             --base "origin/${{ github.base_ref }}"
 
+      # AGENTS.md: 커밋 메시지는 영어만, 머리글은 PR 제목과 같은 규약을 따른다.
+      # squash 병합은 중간 커밋의 머리글을 main 히스토리(재작성 금지)에 그대로
+      # 싣는다 — #728 리뷰에서 발견.
+      - name: Commit messages
+        if: github.event_name == 'pull_request'
+        run: |
+          uv run python scripts/check_commit_messages.py \
+            --base "origin/${{ github.base_ref }}"
+
   spec-changes:
     name: Spec Change Summary
     if: >-
