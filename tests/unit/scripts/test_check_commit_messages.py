@@ -125,6 +125,23 @@ def test_no_commits_in_range_passes(repo: Path) -> None:
     assert ccm.main() == 0
 
 
+def test_a_merge_commit_in_range_is_ignored(repo: Path) -> None:
+    """GitHub builds an ephemeral "Merge <sha> into <sha>" commit to test a
+    pull request; a squash merge embeds only the non-merge commits, so the
+    convention applies only to those."""
+    _commit(repo, "feat(spec): the real change")
+    _git(repo, "checkout", "-b", "side-branch")
+    _commit(repo, "fix(core): side change")
+    _git(repo, "checkout", "the-change")
+    _git(repo, "merge", "--no-ff", "-m", "Merge side-branch into the-change", "side-branch")
+
+    subjects = [subject for _sha, subject, _body in ccm.commits_in_range("main")]
+
+    assert "Merge side-branch into the-change" not in subjects
+    assert sorted(subjects) == ["feat(spec): the real change", "fix(core): side change"]
+    assert ccm.main() == 0
+
+
 def test_a_base_that_cannot_be_resolved_is_an_error(
     repo: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -49,9 +49,15 @@ def _load_title_module() -> ModuleType:
 
 
 def commits_in_range(base: str) -> list[tuple[str, str, str]]:
-    """Every commit in ``base..HEAD`` as ``(sha, subject, body)``."""
+    """Every commit in ``base..HEAD`` as ``(sha, subject, body)``.
+
+    ``--no-merges``: the ephemeral merge commit GitHub builds to test a pull
+    request ("Merge <sha> into <sha>") is not a commit anyone authored, and a
+    squash merge embeds only the non-merge commits' messages - so those are
+    the ones the convention applies to.
+    """
     out = subprocess.run(
-        ["git", "log", "--format=%H%x1f%s%x1f%b%x1e", f"{base}..HEAD"],
+        ["git", "log", "--no-merges", "--format=%H%x1f%s%x1f%b%x1e", f"{base}..HEAD"],
         check=True,
         capture_output=True,
         text=True,
