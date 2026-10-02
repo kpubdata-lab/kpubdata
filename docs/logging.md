@@ -153,6 +153,6 @@ URL 쿼리를 마스킹합니다 (#694). 이전에는 이 줄에 `serviceKey` �
 
 ## 관련 문서
 
-- [ARCHITECTURE.md](https://github.com/yeongseon/kpubdata/blob/main/ARCHITECTURE.md) — 전체 아키텍처와 계층 구분
-- [PROVIDER_ADAPTER_CONTRACT.md](https://github.com/yeongseon/kpubdata/blob/main/PROVIDER_ADAPTER_CONTRACT.md) — 어댑터 구현 시 로거 사용 규약
-- [API_SPEC.md](https://github.com/yeongseon/kpubdata/blob/main/API_SPEC.md) — 공개 API 명세
+- [ARCHITECTURE.md](https://github.com/kpubdata-lab/kpubdata/blob/main/ARCHITECTURE.md) — 전체 아키텍처와 계층 구분
+- [PROVIDER_ADAPTER_CONTRACT.md](https://github.com/kpubdata-lab/kpubdata/blob/main/PROVIDER_ADAPTER_CONTRACT.md) — 어댑터 구현 시 로거 사용 규약
+- [API_SPEC.md](https://github.com/kpubdata-lab/kpubdata/blob/main/API_SPEC.md) — 공개 API 명세

@@ -612,7 +612,7 @@ def test_datago_tour_kor_festival(require_datago_key: None, live_client: Client)
 
 
 @pytest.mark.skip(
-    reason="External infra issue: see https://github.com/yeongseon/kpubdata/issues/139"
+    reason="External infra issue: see https://github.com/kpubdata-lab/kpubdata/issues/139"
 )
 def test_datago_metro_fare(require_datago_key: None, live_client: Client) -> None:
     """

@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: 질문 / 토론
-    url: https://github.com/yeongseon/kpubdata/discussions
+    url: https://github.com/kpubdata-lab/kpubdata/discussions
     about: 버그·기능 제안이 아닌 사용법 질문이나 아이디어 토론은 여기서 나눠주세요.

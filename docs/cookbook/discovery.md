@@ -5,7 +5,7 @@
 ## 왜 검색이 필요한가요?
 
 KPubData는 다수의 공공데이터 기관을 지원합니다.
-최신 지원 목록은 [SUPPORTED_DATA.md](https://github.com/yeongseon/kpubdata/blob/main/SUPPORTED_DATA.md)를 참고하세요.
+최신 지원 목록은 [SUPPORTED_DATA.md](https://github.com/kpubdata-lab/kpubdata/blob/main/SUPPORTED_DATA.md)를 참고하세요.
 정확한 데이터셋 ID를 외울 필요 없이, 키워드로 검색하면 됩니다.
 
 ## 키워드 검색

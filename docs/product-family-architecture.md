@@ -6,10 +6,10 @@ KPubData 는 한국 공공데이터 접근을 위한 **독립 Python SDK** 입�
 
 | 제품 | 저장소 · 패키지 | 한 줄 역할 | 기술 |
 | :--- | :--- | :--- | :--- |
-| **KPubData** | [kpubdata](https://github.com/yeongseon/kpubdata) | 한국 공공데이터 접근을 위한 독립 Python SDK | Python 3.10+ |
-| **KPubData Builder** | [kpubdata-builder](https://github.com/yeongseon/kpubdata-builder) | KPubData를 활용해 재현 가능한 데이터셋·테이블을 생성하고 관리 | Python 3.10+ |
-| **KPubData Studio** | [kpubdata-studio](https://github.com/yeongseon/kpubdata-studio) | 한국 공공데이터를 수집하고, 출처와 이용 조건을 유지한 스냅샷으로 관리하며, 표와 SQL 로 분석하는 작업공간 | Vite + React Router + TypeScript (SPA) |
-| **KPubData Watch** | [kpubdata-watch](https://github.com/yeongseon/kpubdata-watch) | 한국 공공데이터 API 를 지속 관측해 "이 공공데이터를 지금 믿고 사용할 수 있는가?" 를 근거와 함께 공개하는 Public Data Reliability 서비스 | Python 3.12+ · 최소 Server-rendered UI |
+| **KPubData** | [kpubdata](https://github.com/kpubdata-lab/kpubdata) | 한국 공공데이터 접근을 위한 독립 Python SDK | Python 3.10+ |
+| **KPubData Builder** | [kpubdata-builder](https://github.com/kpubdata-lab/kpubdata-builder) | KPubData를 활용해 재현 가능한 데이터셋·테이블을 생성하고 관리 | Python 3.10+ |
+| **KPubData Studio** | [kpubdata-studio](https://github.com/kpubdata-lab/kpubdata-studio) | 한국 공공데이터를 수집하고, 출처와 이용 조건을 유지한 스냅샷으로 관리하며, 표와 SQL 로 분석하는 작업공간 | Vite + React Router + TypeScript (SPA) |
+| **KPubData Watch** | [kpubdata-watch](https://github.com/kpubdata-lab/kpubdata-watch) | 한국 공공데이터 API 를 지속 관측해 "이 공공데이터를 지금 믿고 사용할 수 있는가?" 를 근거와 함께 공개하는 Public Data Reliability 서비스 | Python 3.12+ · 최소 Server-rendered UI |
 
 ---
 
@@ -219,7 +219,7 @@ graph LR
 
 | 제품 (저장소) | README | ARCHITECTURE |
 | :--- | :--- | :--- |
-| KPubData (`kpubdata`) | [README.md](https://github.com/yeongseon/kpubdata/blob/main/README.md) | [ARCHITECTURE.md](https://github.com/yeongseon/kpubdata/blob/main/ARCHITECTURE.md) |
-| KPubData Builder (`kpubdata-builder`) | [README.md](https://github.com/yeongseon/kpubdata-builder/blob/main/README.md) | [ARCHITECTURE.md](https://github.com/yeongseon/kpubdata-builder/blob/main/ARCHITECTURE.md) |
-| KPubData Studio (`kpubdata-studio`) | [README.md](https://github.com/yeongseon/kpubdata-studio/blob/main/README.md) | [ARCHITECTURE.md](https://github.com/yeongseon/kpubdata-studio/blob/main/ARCHITECTURE.md) |
-| KPubData Watch (`kpubdata-watch`) | [README.md](https://github.com/yeongseon/kpubdata-watch/blob/main/README.md) | [docs/architecture](https://github.com/yeongseon/kpubdata-watch/blob/main/docs/architecture/README.md) |
+| KPubData (`kpubdata`) | [README.md](https://github.com/kpubdata-lab/kpubdata/blob/main/README.md) | [ARCHITECTURE.md](https://github.com/kpubdata-lab/kpubdata/blob/main/ARCHITECTURE.md) |
+| KPubData Builder (`kpubdata-builder`) | [README.md](https://github.com/kpubdata-lab/kpubdata-builder/blob/main/README.md) | [ARCHITECTURE.md](https://github.com/kpubdata-lab/kpubdata-builder/blob/main/ARCHITECTURE.md) |
+| KPubData Studio (`kpubdata-studio`) | [README.md](https://github.com/kpubdata-lab/kpubdata-studio/blob/main/README.md) | [ARCHITECTURE.md](https://github.com/kpubdata-lab/kpubdata-studio/blob/main/ARCHITECTURE.md) |
+| KPubData Watch (`kpubdata-watch`) | [README.md](https://github.com/kpubdata-lab/kpubdata-watch/blob/main/README.md) | [docs/architecture](https://github.com/kpubdata-lab/kpubdata-watch/blob/main/docs/architecture/README.md) |

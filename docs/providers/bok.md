@@ -266,4 +266,4 @@ kpubdata.exceptions.RateLimitError: 일일 호출한도를 초과하였습니다
 ## 관련 문서
 
 - [한국은행 ECOS Open API](https://ecos.bok.or.kr/api/)
-- [SUPPORTED_DATA.md](https://github.com/yeongseon/kpubdata/blob/main/SUPPORTED_DATA.md)
+- [SUPPORTED_DATA.md](https://github.com/kpubdata-lab/kpubdata/blob/main/SUPPORTED_DATA.md)

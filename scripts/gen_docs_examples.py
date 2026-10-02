@@ -52,7 +52,7 @@ def generate(examples_dir: Path = EXAMPLES_DIR) -> str:
         dataset_id = f"{provider}.{script.stem}"
         blocks.append(f"\n### `{dataset_id}`\n")
         blocks.append(
-            f"[소스](https://github.com/yeongseon/kpubdata/blob/main/examples/{provider}/{script.name})\n"
+            f"[소스](https://github.com/kpubdata-lab/kpubdata/blob/main/examples/{provider}/{script.name})\n"
         )
         blocks.append("```python")
         blocks.append(script.read_text(encoding="utf-8").rstrip())

@@ -80,7 +80,7 @@ curl "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?ser
 
 ## KPubData에서 신청해야 할 API 목록
 
-현재 KPubData가 지원하는 datago 데이터셋을 모두 사용하려면, 아래 API를 각각 활용신청해야 합니다. (최신 목록은 [SUPPORTED_DATA.md](https://github.com/yeongseon/kpubdata/blob/main/SUPPORTED_DATA.md) 기준)
+현재 KPubData가 지원하는 datago 데이터셋을 모두 사용하려면, 아래 API를 각각 활용신청해야 합니다. (최신 목록은 [SUPPORTED_DATA.md](https://github.com/kpubdata-lab/kpubdata/blob/main/SUPPORTED_DATA.md) 기준)
 
 | # | data.go.kr 검색어 | 제공기관 | 승인 방식 |
 |---|---|---|---|
@@ -888,10 +888,10 @@ uv run pytest tests/integration/test_datago_live.py -m integration -ra -v
 
 ## 검증 현황
 
-데이터셋별 검증 수준(텍스트 검증 / 실API 검증)은 [SUPPORTED_DATA.md](https://github.com/yeongseon/kpubdata/blob/main/SUPPORTED_DATA.md)를 참고하세요.
+데이터셋별 검증 수준(텍스트 검증 / 실API 검증)은 [SUPPORTED_DATA.md](https://github.com/kpubdata-lab/kpubdata/blob/main/SUPPORTED_DATA.md)를 참고하세요.
 ## 관련 문서
 
 - [공공데이터포털 공식 사이트](https://www.data.go.kr)
 - [공공데이터 활용지원센터](https://www.data.go.kr/bbs/qna/list.do) (문의: 1566-0025)
 - [datago API 기술 참고자료](../datago-api-reference.md)
-- [SUPPORTED_DATA.md](https://github.com/yeongseon/kpubdata/blob/main/SUPPORTED_DATA.md)
+- [SUPPORTED_DATA.md](https://github.com/kpubdata-lab/kpubdata/blob/main/SUPPORTED_DATA.md)

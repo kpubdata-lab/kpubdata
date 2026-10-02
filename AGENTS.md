@@ -146,7 +146,7 @@ What an agent does not do:
 ## Dataset publishing
 
 Publishing (HuggingFace and Kaggle uploads) lives in
-[kpubdata-builder](https://github.com/yeongseon/kpubdata-builder). This repository
+[kpubdata-builder](https://github.com/kpubdata-lab/kpubdata-builder). This repository
 only collects and normalises. See the builder's AGENTS.md for publishing rules.
 
 ## Branch rules
@@ -528,6 +528,6 @@ flowchart TD
 
 | Repository | Document | What it covers |
 | :--- | :--- | :--- |
-| [kpubdata-builder](https://github.com/yeongseon/kpubdata-builder) | [AGENTS.md](https://github.com/yeongseon/kpubdata-builder/blob/main/AGENTS.md) | Builder agent guide |
-| [kpubdata-studio](https://github.com/yeongseon/kpubdata-studio) | [AGENTS.md](https://github.com/yeongseon/kpubdata-studio/blob/main/AGENTS.md) | Studio agent guide |
-| [kpubdata-watch](https://github.com/yeongseon/kpubdata-watch) | [AGENTS.md](https://github.com/yeongseon/kpubdata-watch/blob/main/AGENTS.md) | Watch agent guide — public-data reliability |
+| [kpubdata-builder](https://github.com/kpubdata-lab/kpubdata-builder) | [AGENTS.md](https://github.com/kpubdata-lab/kpubdata-builder/blob/main/AGENTS.md) | Builder agent guide |
+| [kpubdata-studio](https://github.com/kpubdata-lab/kpubdata-studio) | [AGENTS.md](https://github.com/kpubdata-lab/kpubdata-studio/blob/main/AGENTS.md) | Studio agent guide |
+| [kpubdata-watch](https://github.com/kpubdata-lab/kpubdata-watch) | [AGENTS.md](https://github.com/kpubdata-lab/kpubdata-watch/blob/main/AGENTS.md) | Watch agent guide — public-data reliability |

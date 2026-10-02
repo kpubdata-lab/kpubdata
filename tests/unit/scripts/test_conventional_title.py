@@ -193,8 +193,8 @@ def test_main_never_prints_more_than_the_four_output_lines(script, capsys) -> No
         ("fix: 한글 제목", "English"),
         ("feat(api): accept the studio shape (studio#418)", "issue reference"),
         ("fix: handle #123 in the middle of a title", "issue reference"),
-        ("fix: see https://github.com/yeongseon/kpubdata/issues/699", "URL"),
-        ("fix: see https://github.com/yeongseon/kpubdata/pull/704", "URL"),
+        ("fix: see https://github.com/kpubdata-lab/kpubdata/issues/699", "URL"),
+        ("fix: see https://github.com/kpubdata-lab/kpubdata/pull/704", "URL"),
         ("fix: " + "x" * 150, "at most 100"),
     ],
 )
@@ -207,7 +207,7 @@ def test_a_pull_request_title_refuses_what_a_commit_title_may_not_carry(
 
 def test_the_length_and_url_rules_apply_only_to_pull_request_titles(script) -> None:
     script.parse("fix: " + "x" * 150)
-    script.parse("fix: see https://github.com/yeongseon/kpubdata/issues/699")
+    script.parse("fix: see https://github.com/kpubdata-lab/kpubdata/issues/699")
 
 
 @pytest.mark.parametrize(

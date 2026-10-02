@@ -113,7 +113,7 @@ def test_the_interval_is_configurable() -> None:
 
 
 @pytest.mark.parametrize(
-    "issue", ["#123", "yeongseon/kpubdata#123", "https://github.com/yeongseon/kpubdata/issues/9"]
+    "issue", ["#123", "kpubdata-lab/kpubdata#123", "https://github.com/kpubdata-lab/kpubdata/issues/9"]
 )
 def test_a_critical_patch_with_an_issue_passes_either_policy(issue: str) -> None:
     for policy in ("monthly", "on-demand"):

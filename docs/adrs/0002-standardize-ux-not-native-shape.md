@@ -79,6 +79,6 @@
 
 ## 관련 문서
 
-- [CANONICAL_MODEL.md](https://github.com/yeongseon/kpubdata/blob/main/CANONICAL_MODEL.md)
-- [API_SPEC.md](https://github.com/yeongseon/kpubdata/blob/main/API_SPEC.md)
+- [CANONICAL_MODEL.md](https://github.com/kpubdata-lab/kpubdata/blob/main/CANONICAL_MODEL.md)
+- [API_SPEC.md](https://github.com/kpubdata-lab/kpubdata/blob/main/API_SPEC.md)
 - [ADR 0001: 방언 기반 아키텍처 채택](./0001-dialect-inspired-architecture.md)

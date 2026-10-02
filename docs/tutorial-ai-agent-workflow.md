@@ -2,7 +2,7 @@
 
 이 문서는 대학교 2학년 정도의 기초 프로그래밍 지식을 가진 학생들을 위한 실전 가이드예요. GitHub에서 실제 이슈를 골라, AI 코딩 에이전트(GitHub Copilot, Cursor, Windsurf 등)의 도움을 받아 코드를 작성하고, PR(풀 리퀘스트)을 보내서 병합되기까지의 **전체 과정**을 한 단계씩 따라가 볼게요.
 
-> 이 튜토리얼은 실제 이슈 **[#64](https://github.com/yeongseon/kpubdata/issues/64)**를 예시로 사용해요. 따라 하면서 실제 기여까지 할 수 있어요!
+> 이 튜토리얼은 실제 이슈 **[#64](https://github.com/kpubdata-lab/kpubdata/issues/64)**를 예시로 사용해요. 따라 하면서 실제 기여까지 할 수 있어요!
 
 ```mermaid
 flowchart TD
@@ -50,7 +50,7 @@ uv run mypy src        # 타입 체크
 
 ### 어디서 찾나요?
 
-프로젝트의 [이슈 탭](https://github.com/yeongseon/kpubdata/issues)으로 가세요. 이슈 목록이 보일 거예요. 이때 **라벨**이 중요해요:
+프로젝트의 [이슈 탭](https://github.com/kpubdata-lab/kpubdata/issues)으로 가세요. 이슈 목록이 보일 거예요. 이때 **라벨**이 중요해요:
 
 | 라벨 | 의미 | 초보자 추천 |
 |:---|:---|:---|
@@ -62,7 +62,7 @@ uv run mypy src        # 타입 체크
 
 ### 이번 튜토리얼에서 사용할 이슈
 
-우리는 **[#64 — transport/decode.py 예외 경계 정리](https://github.com/yeongseon/kpubdata/issues/64)**를 함께 해결할 거예요.
+우리는 **[#64 — transport/decode.py 예외 경계 정리](https://github.com/kpubdata-lab/kpubdata/issues/64)**를 함께 해결할 거예요.
 
 - **한 줄 요약**: `decode.py`에서 발생하는 `ValueError`를 프로젝트 전용 에러인 `ParseError`로 바꾸는 작업이에요.
 - **난이도**: `difficulty:beginner` — 3개 파일만 수정하면 돼요.
@@ -96,7 +96,7 @@ AI에게 바로 던지기 전에, **우리가 먼저 이해해야** 해요. 이�
   2. `src/kpubdata/providers/datago/adapter.py` — 예외 처리 로직 정리
   3. `tests/unit/transport/test_decode*.py` — 테스트 기대값 수정
 - [x] **완료 조건이 뭔가?** → 이슈 하단의 체크리스트를 확인하세요.
-- [x] **관련 규칙이 있나?** → [AGENTS.md](https://github.com/yeongseon/kpubdata/blob/main/AGENTS.md)에서 `Any` 타입 금지, `type: ignore` 금지 등을 확인하세요.
+- [x] **관련 규칙이 있나?** → [AGENTS.md](https://github.com/kpubdata-lab/kpubdata/blob/main/AGENTS.md)에서 `Any` 타입 금지, `type: ignore` 금지 등을 확인하세요.
 
 ### 관련 파일 미리 읽기
 
@@ -482,6 +482,6 @@ sequenceDiagram
 | 문서 | 설명 |
 |:---|:---|
 | [CONTRIBUTING.md](contributing.md) | 개발 환경 구축 및 기여 규칙 |
-| [AGENTS.md](https://github.com/yeongseon/kpubdata/blob/main/AGENTS.md) | AI 에이전트 코딩 규칙 및 금지 사항 |
-| [ARCHITECTURE.md](https://github.com/yeongseon/kpubdata/blob/main/ARCHITECTURE.md) | 시스템 전체 구조 이해하기 |
-| [API_SPEC.md](https://github.com/yeongseon/kpubdata/blob/main/API_SPEC.md) | 파이썬 API 명세 |
+| [AGENTS.md](https://github.com/kpubdata-lab/kpubdata/blob/main/AGENTS.md) | AI 에이전트 코딩 규칙 및 금지 사항 |
+| [ARCHITECTURE.md](https://github.com/kpubdata-lab/kpubdata/blob/main/ARCHITECTURE.md) | 시스템 전체 구조 이해하기 |
+| [API_SPEC.md](https://github.com/kpubdata-lab/kpubdata/blob/main/API_SPEC.md) | 파이썬 API 명세 |

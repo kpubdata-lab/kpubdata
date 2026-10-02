@@ -168,7 +168,7 @@ is registered, the caller's IP is not, and applying again would not help.
 # In builder's cross-repo-contract.yml
 - name: Read probe results
   run: |
-    curl -s https://raw.githubusercontent.com/yeongseon/kpubdata/main/docs/status/probe-result.json
+    curl -s https://raw.githubusercontent.com/kpubdata-lab/kpubdata/main/docs/status/probe-result.json
     # Filter status == "available" datasets for live E2E
 ```
 

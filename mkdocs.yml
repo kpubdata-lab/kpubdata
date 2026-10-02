@@ -1,8 +1,8 @@
 site_name: KPubData
-site_url: https://yeongseon.github.io/kpubdata
+site_url: https://kpubdata-lab.github.io/kpubdata
 site_description: 한국 공공데이터 접근 프레임워크
-repo_url: https://github.com/yeongseon/kpubdata
-repo_name: yeongseon/kpubdata
+repo_url: https://github.com/kpubdata-lab/kpubdata
+repo_name: kpubdata-lab/kpubdata
 
 theme:
   name: material

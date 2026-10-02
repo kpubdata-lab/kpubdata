@@ -18,5 +18,5 @@ Keep this flag **off by default** unless the current key has already been approv
 - KMA (Korea Meteorological Administration) date-bound live tests use runtime KST dates so they do not expire.
 - Ministry of Land real-estate (RTMS-series APIs) may return 403/404 until approval is granted per service, so base runs skip them.
 - Seoul Metro Authority (SMA) metro live tests are unconditionally skipped until upstream issues are resolved:
-  - `metro_fare`: issue [#139](https://github.com/yeongseon/kpubdata/issues/139)
-  - `metro_path`: issue [#140](https://github.com/yeongseon/kpubdata/issues/140)
+  - `metro_fare`: issue [#139](https://github.com/kpubdata-lab/kpubdata/issues/139)
+  - `metro_path`: issue [#140](https://github.com/kpubdata-lab/kpubdata/issues/140)

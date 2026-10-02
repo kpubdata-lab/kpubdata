@@ -522,7 +522,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--create-issues", default="false", help="file GitHub issues (true or false)"
     )
-    parser.add_argument("--repo", default="yeongseon/kpubdata")
+    parser.add_argument("--repo", default="kpubdata-lab/kpubdata")
     args = parser.parse_args(argv)
 
     def _load(path: str) -> object:

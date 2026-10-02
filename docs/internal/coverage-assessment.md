@@ -1,6 +1,6 @@
 # Spec 전환 커버리지 판정 (Phase 0.2)
 
-> 생성일: 2026-09-07 · 이슈: [#377](https://github.com/yeongseon/kpubdata/issues/377)
+> 생성일: 2026-09-07 · 이슈: [#377](https://github.com/kpubdata-lab/kpubdata/issues/377)
 >
 > 판정 기준(원 계획): "가장 흔한 조합 상위 N개"로 설명되는 데이터셋 비율이 **80% 이상이면 Phase 1 진행**.
 
