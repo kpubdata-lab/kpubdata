@@ -104,7 +104,7 @@ jobs:
         run: uv sync --frozen --extra dev
 
       # This run's verdict, uploaded by the probe job a moment ago.
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: probe-result
           path: current
