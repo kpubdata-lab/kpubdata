@@ -22,7 +22,10 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 def _gh(args: list[str]) -> str:
     proc = subprocess.run(
-        ["gh", *args, "--repo", "kpubdata-lab/kpubdata"], check=False, capture_output=True, text=True
+        ["gh", *args, "--repo", "kpubdata-lab/kpubdata"],
+        check=False,
+        capture_output=True,
+        text=True,
     )
     return proc.stdout if proc.returncode == 0 else ""
 
