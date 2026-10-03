@@ -234,4 +234,4 @@ result = ds.list(start_date="202401", end_date="202401")
 
 - [KOSIS Open API 공식 홈페이지](https://kosis.kr/openapi/index/index.jsp)
 - [KOSIS 개발자 가이드](https://kosis.kr/openapi/devGuide/devGuide_0203List.do)
-- [SUPPORTED_DATA.md](https://github.com/yeongseon/kpubdata/blob/main/SUPPORTED_DATA.md)
+- [SUPPORTED_DATA.md](https://github.com/kpubdata-lab/kpubdata/blob/main/SUPPORTED_DATA.md)

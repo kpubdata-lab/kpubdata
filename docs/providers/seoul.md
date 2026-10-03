@@ -13,7 +13,7 @@
 2. 로그인 후 우측 상단 **인증키 신청** 메뉴를 클릭합니다.
 3. 이용약관 동의 후 신청 폼을 작성합니다:
    - 서비스(사용) 환경: **연구(논문 등)** 또는 **웹 사이트 개발**
-   - 사용URL: 프로젝트 URL (예: `https://github.com/yeongseon/kpubdata`)
+   - 사용URL: 프로젝트 URL (예: `https://github.com/kpubdata-lab/kpubdata`)
    - 관리용 대표 이메일: 본인 이메일
    - 활용용도/내용: 간단한 설명
 4. **인증키 신청** 버튼 클릭 → 즉시 발급됩니다 (별도 심사 없음).
@@ -250,4 +250,4 @@ for item in result.items:
 - 테스트 검증 완료: `park_info`, `park_usage`
 
 
-> 데이터셋 게시(Publishing) 및 HuggingFace/Kaggle 업로드는 [kpubdata-builder](https://github.com/yeongseon/kpubdata-builder)에서 관리합니다.
+> 데이터셋 게시(Publishing) 및 HuggingFace/Kaggle 업로드는 [kpubdata-builder](https://github.com/kpubdata-lab/kpubdata-builder)에서 관리합니다.

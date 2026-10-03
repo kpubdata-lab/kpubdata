@@ -57,7 +57,7 @@ No tag exists before the gates pass (#586). A re-run after the tag was pushed bu
 GitHub Release was not created finishes the release (#687). A re-run after a
 `release-window` refusal does nothing — it replays the same event; release with
 `mode=release` inside the window, or with `critical_patch` and `critical_issue`.
-[PACKAGING.md](https://github.com/yeongseon/kpubdata/blob/main/PACKAGING.md#release) has the step-by-step procedure.
+[PACKAGING.md](https://github.com/kpubdata-lab/kpubdata/blob/main/PACKAGING.md#release) has the step-by-step procedure.
 
 ## Version Alignment
 

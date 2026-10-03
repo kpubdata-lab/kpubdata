@@ -1,4 +1,4 @@
-# Dataset Demand List and Priority ([#530](https://github.com/yeongseon/kpubdata/issues/530))
+# Dataset Demand List and Priority ([#530](https://github.com/kpubdata-lab/kpubdata/issues/530))
 
 Ranked list of datasets to convert from catalogue to spec next.
 Every entry has a reason. Nothing without a reason is on this list.
@@ -13,7 +13,7 @@ converted next; the YAML decides where a dataset lands once the queue is empty.
 
 These datasets are in builder's pipeline configs. Rows 1–10 are already spec; the
 DUR family (rows 11–19) is still catalogue-only in kpubdata. Converting it unlocks
-builder's [#636](https://github.com/yeongseon/kpubdata-builder/issues/636) (rebuild HF datasets through the engine).
+builder's [#636](https://github.com/kpubdata-lab/kpubdata-builder/issues/636) (rebuild HF datasets through the engine).
 
 | # | Dataset | Reason | Builder Config |
 |---|---|---|---|
@@ -33,18 +33,18 @@ builder's [#636](https://github.com/yeongseon/kpubdata-builder/issues/636) (rebu
 
 | # | Dataset | Reason | Issue |
 |---|---|---|---|
-| 20 | `datago.offi_trade_view` | Officetel sale — Dev variant requested | [#402](https://github.com/yeongseon/kpubdata/issues/402) |
-| 21 | `datago.apt_rent_view` | Apt rent Dev variant requested | [#401](https://github.com/yeongseon/kpubdata/issues/401) |
-| 22 | `datago.school_info` | NEIS school basic info via data.go.kr | [#400](https://github.com/yeongseon/kpubdata/issues/400) |
-| 23 | `datago.airkorea_forecast` | Already spec ✅ as `airkorea_forecast` (requested as `air_forecast`) | [#399](https://github.com/yeongseon/kpubdata/issues/399) |
-| 24 | `datago.ultra_srt_fcst` | Already spec ✅ (was #398) | [#398](https://github.com/yeongseon/kpubdata/issues/398) |
-| 25 | `datago.air_station` | Already spec ✅ (was #396) | [#396](https://github.com/yeongseon/kpubdata/issues/396) |
+| 20 | `datago.offi_trade_view` | Officetel sale — Dev variant requested | [#402](https://github.com/kpubdata-lab/kpubdata/issues/402) |
+| 21 | `datago.apt_rent_view` | Apt rent Dev variant requested | [#401](https://github.com/kpubdata-lab/kpubdata/issues/401) |
+| 22 | `datago.school_info` | NEIS school basic info via data.go.kr | [#400](https://github.com/kpubdata-lab/kpubdata/issues/400) |
+| 23 | `datago.airkorea_forecast` | Already spec ✅ as `airkorea_forecast` (requested as `air_forecast`) | [#399](https://github.com/kpubdata-lab/kpubdata/issues/399) |
+| 24 | `datago.ultra_srt_fcst` | Already spec ✅ (was #398) | [#398](https://github.com/kpubdata-lab/kpubdata/issues/398) |
+| 25 | `datago.air_station` | Already spec ✅ (was #396) | [#396](https://github.com/kpubdata-lab/kpubdata/issues/396) |
 
 ## Tier 3 — High-value catalogue datasets (high volume, public interest)
 
 | # | Dataset | Reason |
 |---|---|---|
-| 26 | `localdata.*` (59) | Marked retired by [#603](https://github.com/yeongseon/kpubdata/issues/603); the evidence disagrees (3 answered, 56 need activation — [#618](https://github.com/yeongseon/kpubdata/issues/618)). Do not convert until #618 is decided. |
+| 26 | `localdata.*` (59) | Marked retired by [#603](https://github.com/kpubdata-lab/kpubdata/issues/603); the evidence disagrees (3 answered, 56 need activation — [#618](https://github.com/kpubdata-lab/kpubdata/issues/618)). Do not convert until #618 is decided. |
 | 27 | `sgis.boundary.*` (3) | Spatial analysis foundation. Token auth is unique. |
 | 28 | `krx.kospi_index` | Financial analysis. No auth needed. |
 | 29 | `kosis.population_migration` | Demographic analysis. Already requested for paper. |

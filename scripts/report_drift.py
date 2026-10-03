@@ -24,7 +24,7 @@ import subprocess
 import sys
 from dataclasses import dataclass, field
 
-REPO = "yeongseon/kpubdata"
+REPO = "kpubdata-lab/kpubdata"
 WORKFLOW = "smoke.yml"
 # Integration test function name pattern: test_datago_village_fcst → datago.village_fcst
 _TEST_RE = re.compile(r"FAILED\s+\S*test_(?P<provider>[a-z]+)_(?P<key>[a-z0-9_]+)\b")

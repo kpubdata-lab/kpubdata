@@ -17,7 +17,7 @@ export KPUBDATA_SEMAS_API_KEY="발급받은키"
 
 ## 지원 데이터셋
 
-[SUPPORTED_DATA.md](https://github.com/yeongseon/kpubdata/blob/main/SUPPORTED_DATA.md) 의 `semas` 행을 본다 — 상태·검증
+[SUPPORTED_DATA.md](https://github.com/kpubdata-lab/kpubdata/blob/main/SUPPORTED_DATA.md) 의 `semas` 행을 본다 — 상태·검증
 수준·활용신청 필요 여부가 거기 있다.
 
 ## 관련

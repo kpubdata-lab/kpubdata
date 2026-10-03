@@ -18,7 +18,7 @@ inputs:
   studio_repo:
     description: "The repository whose shipping ends the freeze"
     required: false
-    default: "yeongseon/kpubdata-studio"
+    default: "kpubdata-lab/kpubdata-studio"
   report_only:
     description: "true to warn instead of failing — for dry runs"
     required: false

@@ -1,6 +1,6 @@
 # 커스텀 어댑터 유지 목록 (Phase 0.2)
 
-> 생성일: 2026-09-07 · 이슈: [#377](https://github.com/yeongseon/kpubdata/issues/377)
+> 생성일: 2026-09-07 · 이슈: [#377](https://github.com/kpubdata-lab/kpubdata/issues/377)
 >
 > 선언적 spec으로 설명하지 않기로 결정된 데이터셋(="사람 몫" 목록). Generic Executor와 공존하며
 > 기존 `ProviderAdapter` 구현체로 유지한다. 사유가 해소되면 이 목록에서 제외하고 spec으로 이전한다.

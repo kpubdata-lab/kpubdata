@@ -67,7 +67,7 @@ git clone https://github.com/YOUR_USERNAME/kpubdata.git
 cd kpubdata
 
 # 3. 원본 저장소를 upstream으로 등록 (나중에 최신 코드를 받기 위해)
-git remote add upstream https://github.com/yeongseon/kpubdata.git
+git remote add upstream https://github.com/kpubdata-lab/kpubdata.git
 ```
 
 **Step 3: 개발 환경 구축**
@@ -553,5 +553,5 @@ PR이 올라가면 **다른 에이전트 또는 다른 사람**이 리뷰합니�
 ### KPubData Product Family
 | 저장소 | 문서 | 설명 |
 | :--- | :--- | :--- |
-| [kpubdata-builder](https://github.com/yeongseon/kpubdata-builder) | [CONTRIBUTING.md](https://github.com/yeongseon/kpubdata-builder/blob/main/CONTRIBUTING.md) | Builder 기여 가이드 |
-| [kpubdata-studio](https://github.com/yeongseon/kpubdata-studio) | [CONTRIBUTING.md](https://github.com/yeongseon/kpubdata-studio/blob/main/CONTRIBUTING.md) | Studio 기여 가이드 |
+| [kpubdata-builder](https://github.com/kpubdata-lab/kpubdata-builder) | [CONTRIBUTING.md](https://github.com/kpubdata-lab/kpubdata-builder/blob/main/CONTRIBUTING.md) | Builder 기여 가이드 |
+| [kpubdata-studio](https://github.com/kpubdata-lab/kpubdata-studio) | [CONTRIBUTING.md](https://github.com/kpubdata-lab/kpubdata-studio/blob/main/CONTRIBUTING.md) | Studio 기여 가이드 |

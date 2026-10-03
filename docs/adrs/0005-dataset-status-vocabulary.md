@@ -147,4 +147,4 @@ LIVE_PROBE 의 healthy/degraded/unhealthy/unknown 은 **폐지**한다. probe �
 
 - #619 (이 ADR), #625 (전이 구현), #514 (probe 분류 확장)
 - [`docs/DATASET_STATUS.md`](../DATASET_STATUS.md), [`docs/LIVE_PROBE.md`](../LIVE_PROBE.md),
-  [`docs/PRODUCTION_GRADE.md`](../PRODUCTION_GRADE.md), [`SUPPORTED_DATA.md`](https://github.com/yeongseon/kpubdata/blob/main/SUPPORTED_DATA.md)
+  [`docs/PRODUCTION_GRADE.md`](../PRODUCTION_GRADE.md), [`SUPPORTED_DATA.md`](https://github.com/kpubdata-lab/kpubdata/blob/main/SUPPORTED_DATA.md)

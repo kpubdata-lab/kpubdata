@@ -12,7 +12,7 @@
 
 ### `datago.air_station`
 
-[소스](https://github.com/yeongseon/kpubdata/blob/main/examples/datago/air_station.py)
+[소스](https://github.com/kpubdata-lab/kpubdata/blob/main/examples/datago/air_station.py)
 
 ```python
 """datago.air_station 예제 — 측정소별 실시간 대기측정정보.
@@ -63,7 +63,7 @@ if __name__ == "__main__":
 
 ### `datago.apt_trade`
 
-[소스](https://github.com/yeongseon/kpubdata/blob/main/examples/datago/apt_trade.py)
+[소스](https://github.com/kpubdata-lab/kpubdata/blob/main/examples/datago/apt_trade.py)
 
 ```python
 """datago.apt_trade 예제 — 아파트매매 실거래가 조회 (골든 예제: 페이지네이션).
@@ -115,7 +115,7 @@ if __name__ == "__main__":
 
 ### `datago.bus_arrival`
 
-[소스](https://github.com/yeongseon/kpubdata/blob/main/examples/datago/bus_arrival.py)
+[소스](https://github.com/kpubdata-lab/kpubdata/blob/main/examples/datago/bus_arrival.py)
 
 ```python
 """datago.bus_arrival 예제 — 경기도 버스도착정보.
@@ -167,7 +167,7 @@ if __name__ == "__main__":
 
 ### `datago.hospital_info`
 
-[소스](https://github.com/yeongseon/kpubdata/blob/main/examples/datago/hospital_info.py)
+[소스](https://github.com/kpubdata-lab/kpubdata/blob/main/examples/datago/hospital_info.py)
 
 ```python
 """datago.hospital_info 예제 — 병원정보서비스 조회 (골든 예제: 단순).
@@ -212,7 +212,7 @@ if __name__ == "__main__":
 
 ### `datago.social_enterprise`
 
-[소스](https://github.com/yeongseon/kpubdata/blob/main/examples/datago/social_enterprise.py)
+[소스](https://github.com/kpubdata-lab/kpubdata/blob/main/examples/datago/social_enterprise.py)
 
 ```python
 """datago.social_enterprise 예제 — 사회적기업 인증현황.
@@ -259,7 +259,7 @@ if __name__ == "__main__":
 
 ### `datago.ultra_srt_fcst`
 
-[소스](https://github.com/yeongseon/kpubdata/blob/main/examples/datago/ultra_srt_fcst.py)
+[소스](https://github.com/kpubdata-lab/kpubdata/blob/main/examples/datago/ultra_srt_fcst.py)
 
 ```python
 """datago.ultra_srt_fcst 예제 — 초단기예보 조회.
@@ -315,7 +315,7 @@ if __name__ == "__main__":
 
 ### `datago.village_fcst`
 
-[소스](https://github.com/yeongseon/kpubdata/blob/main/examples/datago/village_fcst.py)
+[소스](https://github.com/kpubdata-lab/kpubdata/blob/main/examples/datago/village_fcst.py)
 
 ```python
 """datago.village_fcst 예제 — 동네예보 조회 (골든 예제: XML 응답).

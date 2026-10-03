@@ -68,6 +68,6 @@
 
 ## 관련 문서
 
-- [ARCHITECTURE.md](https://github.com/yeongseon/kpubdata/blob/main/ARCHITECTURE.md)
-- [PROVIDER_ADAPTER_CONTRACT.md](https://github.com/yeongseon/kpubdata/blob/main/PROVIDER_ADAPTER_CONTRACT.md)
+- [ARCHITECTURE.md](https://github.com/kpubdata-lab/kpubdata/blob/main/ARCHITECTURE.md)
+- [PROVIDER_ADAPTER_CONTRACT.md](https://github.com/kpubdata-lab/kpubdata/blob/main/PROVIDER_ADAPTER_CONTRACT.md)
 - [ADR 0002: UX 표준화, 네이티브 형태 표준화 아님](./0002-standardize-ux-not-native-shape.md)

@@ -1,6 +1,6 @@
 # 어댑터 인벤토리 (Phase 0.1)
 
-> 생성일: 2026-09-07 · 이슈: [#377](https://github.com/yeongseon/kpubdata/issues/377) · 상위: [#385](https://github.com/yeongseon/kpubdata/issues/385)
+> 생성일: 2026-09-07 · 이슈: [#377](https://github.com/kpubdata-lab/kpubdata/issues/377) · 상위: [#385](https://github.com/kpubdata-lab/kpubdata/issues/385)
 >
 > 작성 방법: 코드 전수 조사(병렬 explore agent 5건 + 직접 정독). 모든 값은 `src/kpubdata/` 코드와
 > `catalogue.json`을 근거로 하며, 추측값을 포함하지 않는다. 문서 목적: 선언적 spec 스키마

@@ -8,9 +8,9 @@
 >
 > 관련 프로젝트:
 >
-> - [KPubData Builder](https://github.com/yeongseon/kpubdata-builder) — KPubData를 활용해 재현 가능한 데이터셋·테이블을 생성하고 관리
-> - [KPubData Studio](https://github.com/yeongseon/kpubdata-studio) — KPubData Builder를 위한 시각적 작업공간
-> - [KPubData Watch](https://github.com/yeongseon/kpubdata-watch) — 공공데이터 API 를 지속 관측해 지금 믿고 쓸 수 있는지 근거와 함께 공개
+> - [KPubData Builder](https://github.com/kpubdata-lab/kpubdata-builder) — KPubData를 활용해 재현 가능한 데이터셋·테이블을 생성하고 관리
+> - [KPubData Studio](https://github.com/kpubdata-lab/kpubdata-studio) — KPubData Builder를 위한 시각적 작업공간
+> - [KPubData Watch](https://github.com/kpubdata-lab/kpubdata-watch) — 공공데이터 API 를 지속 관측해 지금 믿고 쓸 수 있는지 근거와 함께 공개
 
 공공데이터 API 는 기관마다 인증 방식·응답 형식·페이지 처리가 제각각입니다.
 KPubData 는 그 차이를 어댑터가 흡수해, 하나의 Python 인터페이스로 탐색하고 수집하게
@@ -39,7 +39,7 @@ KPubData 는 그 차이를 어댑터가 흡수해, 하나의 Python 인터페이
 
 - 데이터를 보관하거나 재배포하지 않습니다 — 키는 사용자 것이고 호출도 사용자 것입니다
 - 기관 API 에 없는 기능을 만들어내지 않습니다
-- 게시·배포는 [kpubdata-builder](https://github.com/yeongseon/kpubdata-builder) 가 합니다
+- 게시·배포는 [kpubdata-builder](https://github.com/kpubdata-lab/kpubdata-builder) 가 합니다
 
 ## 설치
 
@@ -90,9 +90,9 @@ API 키 발급과 환경 변수 설정은 [빠른 시작](docs/quickstart.md), �
 | 저장소 | 역할 |
 |---|---|
 | **kpubdata** | 수집과 정규화 — 이 저장소 |
-| [kpubdata-builder](https://github.com/yeongseon/kpubdata-builder) | 파이프라인과 게시 |
-| [kpubdata-studio](https://github.com/yeongseon/kpubdata-studio) | 화면과 워크플로 |
-| [kpubdata-watch](https://github.com/yeongseon/kpubdata-watch) | 공공데이터 신뢰성 관측 — KPubData 에만 의존 |
+| [kpubdata-builder](https://github.com/kpubdata-lab/kpubdata-builder) | 파이프라인과 게시 |
+| [kpubdata-studio](https://github.com/kpubdata-lab/kpubdata-studio) | 화면과 워크플로 |
+| [kpubdata-watch](https://github.com/kpubdata-lab/kpubdata-watch) | 공공데이터 신뢰성 관측 — KPubData 에만 의존 |
 
 ## 라이선스
 

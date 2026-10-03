@@ -105,6 +105,6 @@ Provider expansion.
 ### KPubData Product Family
 | 저장소 | 역할 | 문서 |
 | :--- | :--- | :--- |
-| [kpubdata](https://github.com/yeongseon/kpubdata) | **KPubData** — 한국 공공데이터 접근을 위한 독립 Python SDK | 이 문서 |
-| [kpubdata-builder](https://github.com/yeongseon/kpubdata-builder) | **KPubData Builder** — KPubData 로 재현 가능한 데이터셋·테이블을 만들고 관리 (관련 프로젝트) | [ROADMAP.md](https://github.com/yeongseon/kpubdata-builder/blob/main/ROADMAP.md) |
-| [kpubdata-studio](https://github.com/yeongseon/kpubdata-studio) | **KPubData Studio** — KPubData Builder 의 시각적 작업공간 (관련 프로젝트) | [ROADMAP.md](https://github.com/yeongseon/kpubdata-studio/blob/main/ROADMAP.md) |
+| [kpubdata](https://github.com/kpubdata-lab/kpubdata) | **KPubData** — 한국 공공데이터 접근을 위한 독립 Python SDK | 이 문서 |
+| [kpubdata-builder](https://github.com/kpubdata-lab/kpubdata-builder) | **KPubData Builder** — KPubData 로 재현 가능한 데이터셋·테이블을 만들고 관리 (관련 프로젝트) | [ROADMAP.md](https://github.com/kpubdata-lab/kpubdata-builder/blob/main/ROADMAP.md) |
+| [kpubdata-studio](https://github.com/kpubdata-lab/kpubdata-studio) | **KPubData Studio** — KPubData Builder 의 시각적 작업공간 (관련 프로젝트) | [ROADMAP.md](https://github.com/kpubdata-lab/kpubdata-studio/blob/main/ROADMAP.md) |

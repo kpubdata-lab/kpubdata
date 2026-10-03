@@ -74,7 +74,7 @@ Builder → Studio)은 금지다. Studio 는 KPubData 에 직접 의존하지 �
 ### 3. 공개 API 의 경계
 
 규칙 5·6 이 뜻을 가지려면 "공개" 가 무엇인지 정해져 있어야 한다.
-[`docs/compatibility.md` §3](../compatibility.md) 과 [`API_SPEC.md`](https://github.com/yeongseon/kpubdata/blob/main/API_SPEC.md) 를
+[`docs/compatibility.md` §3](../compatibility.md) 과 [`API_SPEC.md`](https://github.com/kpubdata-lab/kpubdata/blob/main/API_SPEC.md) 를
 기준으로 다음과 같이 적는다.
 
 **공개 (Builder 가 의존할 수 있음)**
@@ -85,7 +85,7 @@ Builder → Studio)은 금지다. Studio 는 KPubData 에 직접 의존하지 �
   (`src/kpubdata/__init__.py`)와 `API_SPEC.md` 다.
 - 그 객체들의 문서화된 메서드 (`Client.from_env()`, `Dataset.list/list_all/schema/call_raw`
   등, `API_SPEC.md` §7).
-- 정규 데이터 모델 ([`CANONICAL_MODEL.md`](https://github.com/yeongseon/kpubdata/blob/main/CANONICAL_MODEL.md)).
+- 정규 데이터 모델 ([`CANONICAL_MODEL.md`](https://github.com/kpubdata-lab/kpubdata/blob/main/CANONICAL_MODEL.md)).
 - 외부에 노출된 dataset id (`datago.apt_trade` 등) — 약속 범위는 compatibility.md §3 을 따른다.
 
 **비공개 (의존 금지)**
@@ -111,14 +111,14 @@ Builder 와 같은 버전 번호를 계속 쓸지는 소유자가 정할 열린 
 
 ### 5. KPubData Watch — 2026-10-01 추가
 
-2026-09-30 새 제품 저장소 [`kpubdata-watch`](https://github.com/yeongseon/kpubdata-watch) 가
+2026-09-30 새 제품 저장소 [`kpubdata-watch`](https://github.com/kpubdata-lab/kpubdata-watch) 가
 생겼다. **KPubData Watch** 는 한국 공공데이터 API 를 지속 관측해 "이 공공데이터를 지금 믿고
 사용할 수 있는가?" 를 근거와 함께 공개하는 Public Data Reliability 서비스다 (#703).
 
 Watch 는 Builder 가 만든 산출물이 아니라 공공 API 자체를 관측한다. Builder 에 의존하면 관측
 대상과 무관한 파이프라인의 변경·릴리스에 묶인다. 그래서 Watch 는 Builder 의 하위 단계가 아니라
 **형제 제품**이다 (Watch PRD D-016,
-[Watch ADR 0004](https://github.com/yeongseon/kpubdata-watch/blob/main/docs/decisions/0004-depend-on-kpubdata-only.md)).
+[Watch ADR 0004](https://github.com/kpubdata-lab/kpubdata-watch/blob/main/docs/decisions/0004-depend-on-kpubdata-only.md)).
 
 ```text
 kpubdata-watch  →  kpubdata            (허용)
@@ -170,6 +170,6 @@ Watch 의 릴리스 주기, POLICY 대상 저장소 목록, compatibility 표에
 ## 참조
 
 - #666 (명칭 정리), #667 (이 ADR), #668 (규칙 1·2 의 CI 게이트), #703 (§5 KPubData Watch 추가)
-- [KPubData Watch ADR 0004](https://github.com/yeongseon/kpubdata-watch/blob/main/docs/decisions/0004-depend-on-kpubdata-only.md) — Watch 쪽의 같은 결정
+- [KPubData Watch ADR 0004](https://github.com/kpubdata-lab/kpubdata-watch/blob/main/docs/decisions/0004-depend-on-kpubdata-only.md) — Watch 쪽의 같은 결정
 - [ADR 0004](0004-versioning-and-release.md), [`docs/compatibility.md`](../compatibility.md)
 - [`docs/product-family-architecture.md`](../product-family-architecture.md)

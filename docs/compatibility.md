@@ -5,9 +5,9 @@ KPubData Product Family는 세 저장소가 독립적으로 릴리스되지만, 
 
 | 저장소 (제품명) | 역할 | Python | 의존 관계 |
 | :--- | :--- | :--- | :--- |
-| [kpubdata](https://github.com/yeongseon/kpubdata) (KPubData) | 한국 공공데이터 접근을 위한 독립 Python SDK | 3.10+ | (없음) |
-| [kpubdata-builder](https://github.com/yeongseon/kpubdata-builder) (KPubData Builder) | KPubData 로 재현 가능한 데이터셋·테이블을 만들고 관리 | 3.10+ | `kpubdata` 공개 API, **릴리스된 버전만** |
-| [kpubdata-studio](https://github.com/yeongseon/kpubdata-studio) (KPubData Studio) | KPubData Builder 의 시각적 작업공간 | Node **22+** | Builder HTTP/OpenAPI 계약만 (kpubdata 를 직접 쓰지 않는다) |
+| [kpubdata](https://github.com/kpubdata-lab/kpubdata) (KPubData) | 한국 공공데이터 접근을 위한 독립 Python SDK | 3.10+ | (없음) |
+| [kpubdata-builder](https://github.com/kpubdata-lab/kpubdata-builder) (KPubData Builder) | KPubData 로 재현 가능한 데이터셋·테이블을 만들고 관리 | 3.10+ | `kpubdata` 공개 API, **릴리스된 버전만** |
+| [kpubdata-studio](https://github.com/kpubdata-lab/kpubdata-studio) (KPubData Studio) | KPubData Builder 의 시각적 작업공간 | Node **22+** | Builder HTTP/OpenAPI 계약만 (kpubdata 를 직접 쓰지 않는다) |
 
 전체 아키텍처 관계는 [Product Family 아키텍처](product-family-architecture.md) 문서를 참고한다.
 
@@ -61,9 +61,9 @@ builder 와 studio 는 **한 애플리케이션, 한 버전**이다(ADR 0004 1�
 
 ### kpubdata
 
-- `kpubdata` 최상위에서 import 가능한 심볼(`Client`, `DatasetRef`, `Operation`, `PaginationMode`, `Query`, `RecordBatch`, `QuerySupport`, 정규 예외 등) — [`API_SPEC.md`](https://github.com/yeongseon/kpubdata/blob/main/API_SPEC.md)에 명시된 것.
+- `kpubdata` 최상위에서 import 가능한 심볼(`Client`, `DatasetRef`, `Operation`, `PaginationMode`, `Query`, `RecordBatch`, `QuerySupport`, 정규 예외 등) — [`API_SPEC.md`](https://github.com/kpubdata-lab/kpubdata/blob/main/API_SPEC.md)에 명시된 것.
 - Provider adapter가 외부에 노출하는 dataset id 표면(`datago.apt_trade` 등) — `SUPPORTED_DATA.md` 에 표시된 상태 중 호환성 약속 대상이 무엇인지는 상태 모델 재설계(#498)에서 정한다. **"지원" 이라는 손으로 쓴 표기는 근거가 무엇인지 말해주지 않아서 약속의 기준이 될 수 없다** — POLICY 3절이 생성 파일만 기준으로 쓰라고 하는 이유다.
-- 정규(canonical) 데이터 모델 — [`CANONICAL_MODEL.md`](https://github.com/yeongseon/kpubdata/blob/main/CANONICAL_MODEL.md).
+- 정규(canonical) 데이터 모델 — [`CANONICAL_MODEL.md`](https://github.com/kpubdata-lab/kpubdata/blob/main/CANONICAL_MODEL.md).
 
 내부 구현 디테일(transport 헬퍼, provider 내부 모듈 등)은 호환성 약속 대상이 아니다.
 

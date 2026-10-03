@@ -189,4 +189,4 @@ print(df)
 ## 다음 단계
 - 각 Provider별 상세 사용법: [공공데이터포털](providers/datago.md) · [서울](providers/seoul.md) · [KOSIS](providers/kosis.md) · [BOK](providers/bok.md)
 - 프로젝트에 기여하기: [CONTRIBUTING.md](contributing.md)
-- 전체 API 명세: [API_SPEC.md](https://github.com/yeongseon/kpubdata/blob/main/API_SPEC.md)
+- 전체 API 명세: [API_SPEC.md](https://github.com/kpubdata-lab/kpubdata/blob/main/API_SPEC.md)

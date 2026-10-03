@@ -176,6 +176,6 @@ CLI도 `Client.from_env()`와 동일한 환경 변수 규칙을 따릅니다.
 
 ## 관련 문서
 
-- [README.md](https://github.com/yeongseon/kpubdata/blob/main/README.md) — 설치와 빠른 시작
+- [README.md](https://github.com/kpubdata-lab/kpubdata/blob/main/README.md) — 설치와 빠른 시작
 - [docs/caching.md](./caching.md) — 캐시 세부 동작
 - [docs/logging.md](./logging.md) — 로거 이름과 디버깅 방법

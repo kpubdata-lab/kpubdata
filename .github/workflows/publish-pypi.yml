@@ -9,7 +9,7 @@
 # certificate say `release.yml` and PyPI refused v0.7.0:
 #
 #   Certificate's Build Config URI (.../workflows/release.yml@refs/heads/main)
-#   does not match expected Trusted Publisher (publish-pypi.yml @ yeongseon/kpubdata)
+#   does not match expected Trusted Publisher (publish-pypi.yml @ kpubdata-lab/kpubdata)
 #
 # So release.yml tags and creates the GitHub Release, and this is dispatched against
 # that tag. One more click, no secret and no change to the PyPI account. Adding
