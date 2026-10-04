@@ -20,8 +20,10 @@ from __future__ import annotations
 
 import contextlib
 import hashlib
+import json
 import logging
 import re
+import tempfile
 from collections.abc import Iterator
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
@@ -111,6 +113,174 @@ class _FetchedPage:
     payload: dict[str, object]
     provenance: dict[str, object]
     next_page: int | None
+
+
+@dataclass(slots=True)
+class _FieldEvidence:
+    """What the rows seen so far say about one declared field."""
+
+    found: bool = False
+    castable: bool = True
+    failed_count: int = 0
+    non_null_count: int = 0
+    null_count: int = 0
+    sample_failures: list[str] | None = None
+
+
+class _CastingDecision:
+    """Column-level all-or-nothing casting, decided over rows seen a batch at a time.
+
+    The rule (#481, #572): a declared column is cast only when every value of it, in
+    the whole result, casts. ``observe`` takes the evidence of a batch and keeps no
+    row; ``apply`` casts a batch in place by what has been observed; ``report`` is the
+    validation report of everything observed. Observing all rows and then applying is
+    what a single page does; a multi-page result observes each page as it arrives and
+    applies once the last one is in, without holding the pages in memory (#789).
+    """
+
+    def __init__(self, spec: SpecDefinition) -> None:
+        self._spec = spec
+        self._rows = 0
+        self._seen_keys: set[str] = set()
+        self._evidence = {field.name: _FieldEvidence() for field in spec.fields}
+
+    def observe(self, records: list[dict[str, object]]) -> None:
+        """Take the evidence of ``records`` without changing them."""
+        if not self._spec.fields:
+            return
+        self._rows += len(records)
+        # Undeclared keys (spec drift) across every record: a column that first
+        # appears on row 2 is just as much drift as one on row 1.
+        for record in records:
+            self._seen_keys.update(record.keys())
+        for field in self._spec.fields:
+            evidence = self._evidence[field.name]
+            for record in records:
+                if field.name not in record:
+                    continue
+                evidence.found = True
+                raw_value = record[field.name]
+                # Count on the value the cast actually sees: numeric null markers
+                # ("", "-") become None, so they are nulls, not non-null values.
+                effective = (
+                    _normalize_numeric_lexeme(raw_value)
+                    if field.type in ("integer", "number")
+                    else raw_value
+                )
+                # Counted so the report can show a ratio. "10 failed of 12 non-null"
+                # and "10 failed of 500" ask for different fixes — a wrong declaration
+                # versus a few dirty rows — and the failure count alone cannot tell
+                # them apart.
+                if effective is None:
+                    evidence.null_count += 1
+                else:
+                    evidence.non_null_count += 1
+                succeeded, _coerced = _try_cast_field(raw_value, field.type)
+                if not succeeded:
+                    evidence.castable = False
+                    evidence.failed_count += 1
+                    if evidence.sample_failures is None:
+                        evidence.sample_failures = []
+                    if len(evidence.sample_failures) < 3:
+                        evidence.sample_failures.append(repr(raw_value)[:60])
+
+    def apply(self, records: list[dict[str, object]]) -> None:
+        """Cast, in place, every column the evidence so far says is castable."""
+        for field in self._spec.fields:
+            evidence = self._evidence[field.name]
+            if not evidence.found or not evidence.castable:
+                continue
+            for record in records:
+                if field.name not in record:
+                    continue
+                succeeded, coerced = _try_cast_field(record[field.name], field.type)
+                if succeeded:
+                    record[field.name] = coerced
+
+    def report(self) -> ValidationReport:
+        """The validation report of every row observed."""
+        # An empty result carries no evidence about columns at all. Reporting every
+        # declared field as missing would make a legitimate 0-row page look invalid.
+        if not self._spec.fields or self._rows == 0:
+            return ValidationReport()
+        declared_names = {field.name for field in self._spec.fields}
+        issues: list[FieldIssue] = [
+            FieldIssue(field=key, kind="undeclared")
+            for key in sorted(self._seen_keys - declared_names)
+        ]
+        for field in self._spec.fields:
+            evidence = self._evidence[field.name]
+            if not evidence.found:
+                issues.append(
+                    FieldIssue(field=field.name, kind="missing", declared_type=field.type)
+                )
+            elif not evidence.castable:
+                issues.append(
+                    FieldIssue(
+                        field=field.name,
+                        kind="uncastable",
+                        declared_type=field.type,
+                        failed_count=evidence.failed_count,
+                        sample_values=tuple(evidence.sample_failures or ()),
+                        non_null_count=evidence.non_null_count,
+                        null_count=evidence.null_count,
+                    )
+                )
+        return ValidationReport(issues=tuple(issues))
+
+
+class _PageSpool:
+    """Fetched pages kept on disk until the casting decision is made (#789).
+
+    One JSON line per page in an anonymous temporary file, removed when the spool is
+    closed. A page's rows and payload came out of a JSON or XML decoder, so the round
+    trip gives the same values back; a page that will not serialise is kept in memory
+    instead of being altered.
+    """
+
+    def __init__(self) -> None:
+        # Closed by ``close()``: the spool outlives any one ``with`` block.
+        self._file = tempfile.TemporaryFile("w+", encoding="utf-8")  # noqa: SIM115
+        self._held: dict[int, _FetchedPage] = {}
+        self._count = 0
+
+    def __len__(self) -> int:
+        return self._count
+
+    def append(self, page: _FetchedPage) -> None:
+        try:
+            line = json.dumps(
+                {
+                    "staged": page.staged,
+                    "payload": page.payload,
+                    "provenance": page.provenance,
+                    "next_page": page.next_page,
+                },
+                ensure_ascii=False,
+            )
+        except (TypeError, ValueError):
+            self._held[self._count] = page
+            line = "null"
+        self._file.write(line)
+        self._file.write("\n")
+        self._count += 1
+
+    def __iter__(self) -> Iterator[_FetchedPage]:
+        self._file.flush()
+        self._file.seek(0)
+        for index, line in enumerate(self._file):
+            held = self._held.get(index)
+            if held is not None:
+                yield held
+                continue
+            data = json.loads(line)
+            yield _FetchedPage(
+                data["staged"], data["payload"], data["provenance"], data["next_page"]
+            )
+
+    def close(self) -> None:
+        self._held.clear()
+        self._file.close()
 
 
 def _next_page(
@@ -739,92 +909,23 @@ class SpecExecutor:
     ) -> tuple[list[dict[str, object]], ValidationReport]:
         """Stage 2 only: column-level all-or-nothing casting (#481, #572).
 
-        Returns (items_with_casting_applied, validation_report).
+        Returns (items_with_casting_applied, validation_report). The decision and its
+        application are :class:`_CastingDecision`'s, so a result that is cast a page at
+        a time (``query_records_all``) follows exactly these rules.
         """
-        if not spec.fields:
-            return staged, ValidationReport()
-
-        issues: list[FieldIssue] = []
-        declared_names = {f.name for f in spec.fields}
-
-        # An empty page carries no evidence about columns at all. Reporting every
-        # declared field as missing would make a legitimate 0-row page look invalid.
-        if not staged:
-            return staged, ValidationReport()
-
-        # Detect undeclared keys (spec drift) across every record: a column that first
-        # appears on row 2 is just as much drift as one on row 1.
-        seen_keys: set[str] = set()
-        for record in staged:
-            seen_keys.update(record.keys())
-        for key in sorted(seen_keys - declared_names):
-            issues.append(FieldIssue(field=key, kind="undeclared"))
-
-        for field in spec.fields:
-            casts: list[tuple[dict[str, object], object]] = []
-            failed_count = 0
-            # Counted so the report can show a ratio. "10 failed of 12 non-null" and
-            # "10 failed of 500" ask for different fixes — a wrong declaration versus a
-            # few dirty rows — and the failure count alone cannot tell them apart.
-            non_null_count = 0
-            null_count = 0
-            sample_failures: list[str] = []
-            castable = True
-            found_in_any = False
-            for record in staged:
-                if field.name not in record:
-                    continue
-                found_in_any = True
-                raw_value = record[field.name]
-                # Count on the value the cast actually sees: numeric null markers
-                # ("", "-") become None, so they are nulls, not non-null values.
-                effective = (
-                    _normalize_numeric_lexeme(raw_value)
-                    if field.type in ("integer", "number")
-                    else raw_value
-                )
-                if effective is None:
-                    null_count += 1
-                else:
-                    non_null_count += 1
-                succeeded, coerced = _try_cast_field(raw_value, field.type)
-                if not succeeded:
-                    castable = False
-                    failed_count += 1
-                    if len(sample_failures) < 3:
-                        sample_failures.append(repr(raw_value)[:60])
-                    continue
-                casts.append((record, coerced))
-            if not found_in_any:
-                issues.append(
-                    FieldIssue(field=field.name, kind="missing", declared_type=field.type)
-                )
-                continue
-            if not castable:
-                issues.append(
-                    FieldIssue(
-                        field=field.name,
-                        kind="uncastable",
-                        declared_type=field.type,
-                        failed_count=failed_count,
-                        sample_values=tuple(sample_failures),
-                        non_null_count=non_null_count,
-                        null_count=null_count,
-                    )
-                )
-                logger.debug(
-                    "leaving column uncast: a value does not match the declared type",
-                    extra={"dataset_id": spec.id, "field": field.name, "type": field.type},
-                )
-                continue
-            for record, coerced in casts:
-                record[field.name] = coerced
-
-        report = ValidationReport(issues=tuple(issues))
+        decision = _CastingDecision(spec)
+        decision.observe(staged)
+        decision.apply(staged)
+        report = decision.report()
+        for issue in report.issues_of("uncastable"):
+            logger.debug(
+                "leaving column uncast: a value does not match the declared type",
+                extra={"dataset_id": spec.id, "field": issue.field, "type": issue.declared_type},
+            )
         if not report.ok:
             logger.info(
                 "normalization validation issues",
-                extra={"dataset_id": spec.id, "issue_count": len(issues)},
+                extra={"dataset_id": spec.id, "issue_count": len(report.issues)},
             )
         return staged, report
 
@@ -1237,13 +1338,24 @@ class SpecDatasetAdapter:
     def query_records_all(
         self, dataset: DatasetRef, query: Query, *, max_pages: int | None = None
     ) -> Iterator[RecordBatch]:
-        """Multi-page query with global column casting (#481, #614).
+        """Multi-page query with global column casting (#481, #614, #789).
 
-        **This path buffers.** Casting is decided once across the whole
-        result (all-or-nothing per column, #481), so no page can be cast —
-        and therefore none can be yielded — until the last page has been
-        fetched. Every page is requested first, then one batch per page is
-        yielded. Memory is O(total rows), bounded by ``max_pages`` pages.
+        Casting is decided once across the whole result (all-or-nothing per column,
+        #481), so no page can be cast — and therefore none can be yielded — until the
+        last page has been fetched. Every page is requested first, then one batch per
+        page is yielded.
+
+        **Memory is one page, not the result** (#789). A fetched page is written to a
+        temporary file and only its evidence for the casting decision is kept; once
+        the last page is in, the pages are read back one at a time, cast and yielded.
+        The file holds the whole result — bounded by ``max_pages`` pages — and is
+        removed when the generator finishes, fails or is closed.
+
+        **A page that fails takes the earlier ones with it.** If a request fails, or a
+        provider error comes back, on page *n*, the exception propagates and no batch
+        is yielded: pages 1 to *n*-1 are discarded with the temporary file. They could
+        not be yielded earlier without knowing how their columns would be cast, and a
+        caller that needs partial progress pages with ``list()`` instead.
 
         Pagination follows :meth:`SpecExecutor.query` exactly: ``page_size``
         is capped to the spec's ``pagination.max_size`` and ``next_page`` is
@@ -1268,54 +1380,62 @@ class SpecDatasetAdapter:
             raise DatasetNotFoundError(msg, provider=self._provider, dataset_id=dataset.id)
 
         effective_max = max_pages if max_pages is not None else 1000
-        pages: list[_FetchedPage] = []
-        all_staged: list[dict[str, object]] = []
-        total_count: int | None = None
-        page_query = query
-        next_page: int | None = None
+        decision = _CastingDecision(spec)
+        spool = _PageSpool()
+        try:
+            total_count: int | None = None
+            page_query = query
+            next_page: int | None = None
 
-        while True:
-            self._executor._require_supported_envelope(spec)
-            params = self._executor.build_params(spec, page_query, format_hint=None)
-            payload, provenance = self._executor._request(spec, params)
-            self._executor._check_error(spec, payload)
+            while True:
+                self._executor._require_supported_envelope(spec)
+                params = self._executor.build_params(spec, page_query, format_hint=None)
+                payload, provenance = self._executor._request(spec, params)
+                self._executor._check_error(spec, payload)
 
-            staged = self._executor._stage_fields(
-                spec, self._executor._extract_items(spec, payload)
-            )
-            page_count = self._executor._extract_total_count(spec, payload)
-            if total_count is None:
-                total_count = page_count
-            next_page = _next_page(spec, page_query, page_count, len(staged))
-            pages.append(_FetchedPage(staged, payload, provenance, next_page))
-            all_staged.extend(staged)
+                staged = self._executor._stage_fields(
+                    spec, self._executor._extract_items(spec, payload)
+                )
+                page_count = self._executor._extract_total_count(spec, payload)
+                if total_count is None:
+                    total_count = page_count
+                next_page = _next_page(spec, page_query, page_count, len(staged))
+                # The evidence stays; the rows go to disk (#789).
+                decision.observe(staged)
+                spool.append(_FetchedPage(staged, payload, provenance, next_page))
 
-            if next_page is None or len(pages) >= effective_max:
-                break
-            page_query = replace(page_query, page=next_page)
+                if next_page is None or len(spool) >= effective_max:
+                    break
+                page_query = replace(page_query, page=next_page)
 
-        # Global casting decision across all pages (#481). The per-page reports
-        # below run on copies of the staged rows, so they cannot disturb it.
-        per_page_staged = [[dict(record) for record in fetched.staged] for fetched in pages]
-        finalized, validation_total = self._executor._finalize_casting(spec, all_staged)
+            # Global casting decision across all pages (#481), made from the evidence.
+            validation_total = decision.report()
+            if not validation_total.ok:
+                logger.info(
+                    "normalization validation issues",
+                    extra={"dataset_id": spec.id, "issue_count": len(validation_total.issues)},
+                )
 
-        start = 0
-        for fetched, page_copy in zip(pages, per_page_staged, strict=True):
-            _, page_validation = self._executor._finalize_casting(spec, page_copy)
-            page_items = finalized[start : start + len(fetched.staged)]
-            start += len(fetched.staged)
-            yield RecordBatch(
-                items=page_items,
-                dataset=dataset,
-                total_count=total_count,
-                next_page=fetched.next_page,
-                meta={
-                    "provenance": fetched.provenance,
-                    "validation_total": validation_total,
-                },
-                validation=page_validation,
-                raw=fetched.payload,
-            )
+            for fetched in spool:
+                # The page's own report runs on a copy, so it cannot disturb the
+                # global decision applied to the rows that are yielded.
+                page_copy = [dict(record) for record in fetched.staged]
+                _, page_validation = self._executor._finalize_casting(spec, page_copy)
+                decision.apply(fetched.staged)
+                yield RecordBatch(
+                    items=fetched.staged,
+                    dataset=dataset,
+                    total_count=total_count,
+                    next_page=fetched.next_page,
+                    meta={
+                        "provenance": fetched.provenance,
+                        "validation_total": validation_total,
+                    },
+                    validation=page_validation,
+                    raw=fetched.payload,
+                )
+        finally:
+            spool.close()
 
         if next_page is not None:
             raise InvalidRequestError(

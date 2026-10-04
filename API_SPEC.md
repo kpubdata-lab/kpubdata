@@ -136,6 +136,11 @@ batch still carries its own page's `raw`, `meta["provenance"]`, `next_page` and
 `validation`; `meta["validation_total"]` holds the report for the whole result,
 which is the one that decided casting.
 
+On that path a fetched page waits in a temporary file, not in memory, so memory use
+follows the page size and not the size of the result (#789). If a page fails, the
+exception propagates and no batch is yielded — the pages fetched before it are
+discarded. Use `list()` page by page when partial progress matters.
+
 Dataset metadata may expose provider-specific pagination styles through
 `DatasetRef.query_support.pagination`, including `offset`, `cursor`, and
 index-window based `index` pagination.
