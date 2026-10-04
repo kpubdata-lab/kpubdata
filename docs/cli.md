@@ -46,7 +46,7 @@ kpubdata datasets list --provider bok
 kpubdata datasets list --search 금리 --format json
 ```
 
-기본 출력은 `id`, `name`, `provider`, `operations` 열을 가진 간단한 표입니다.
+기본 출력은 `id`, `name`, `provider`, `operations` 열을 가진 간단한 표입니다. `--format json` 은 데이터셋마다 `DatasetRef.to_dict()` 를 그대로 냅니다 (#784) — 키 목록은 [compatibility.md](./compatibility.md) 3절.
 
 ## datasets show
 

@@ -22,7 +22,7 @@ from typing import cast
 
 from kpubdata import __version__
 from kpubdata.client import Client
-from kpubdata.core.capability import Operation, QuerySupport
+from kpubdata.core.capability import Operation
 from kpubdata.core.models import DatasetRef, RecordBatch
 from kpubdata.exceptions import (
     AuthError,
@@ -477,38 +477,21 @@ def _handle_scaffold_command(args: argparse.Namespace) -> int:
 
 
 def _dataset_summary(dataset: DatasetRef) -> dict[str, object]:
-    """Build a JSON-serializable dataset summary."""
-    return {
-        "id": dataset.id,
-        "name": dataset.name,
-        "provider": dataset.provider,
-        "operations": _operation_names(dataset.operations),
-    }
+    """Build a JSON-serializable dataset summary: ``DatasetRef.to_dict()`` (#784)."""
+    return dataset.to_dict()
 
 
 def _dataset_details(dataset: DatasetRef) -> dict[str, object]:
-    """Build a JSON-serializable dataset detail mapping."""
-    return {
-        "id": dataset.id,
-        "name": dataset.name,
-        "provider": dataset.provider,
-        "operations": _operation_names(dataset.operations),
-        "capabilities": _query_support_payload(dataset.query_support),
-        "raw_metadata_keys": sorted(dataset.raw_metadata.keys()),
-    }
+    """Build a JSON-serializable dataset detail mapping.
 
-
-def _query_support_payload(query_support: QuerySupport | None) -> dict[str, object] | None:
-    """Build a JSON payload describing query support."""
-    if query_support is None:
-        return None
-    return {
-        "pagination": query_support.pagination.value,
-        "filterable_fields": sorted(query_support.filterable_fields),
-        "sortable_fields": sorted(query_support.sortable_fields),
-        "time_range": query_support.time_range,
-        "max_page_size": query_support.max_page_size,
-    }
+    ``DatasetRef.to_dict()``, plus the two keys this output had before it (#784):
+    ``capabilities`` repeats ``query_support`` under its old name, and
+    ``raw_metadata_keys`` lists the provider metadata the dict leaves out.
+    """
+    details = dataset.to_dict()
+    details["capabilities"] = details["query_support"]
+    details["raw_metadata_keys"] = sorted(dataset.raw_metadata.keys())
+    return details
 
 
 def _render_records(items: list[dict[str, object]], *, output_format: str) -> str:

@@ -419,14 +419,16 @@ def test_datasets_list_json_outputs_valid_json(
 
     assert exit_code == 0
     assert captured.err == ""
-    assert payload == [
-        {
-            "id": "bok.base_rate",
-            "name": "기준금리",
-            "provider": "bok",
-            "operations": ["list", "raw"],
-        }
-    ]
+    # Each entry is DatasetRef.to_dict() (#784); the four keys it had before are in it.
+    assert isinstance(payload, list)
+    (entry,) = payload
+    assert {key: entry[key] for key in ("id", "name", "provider", "operations")} == {
+        "id": "bok.base_rate",
+        "name": "기준금리",
+        "provider": "bok",
+        "operations": ["list", "raw"],
+    }
+    assert entry == fake_client.datasets.list()[0].to_dict()
     assert fake_client.closed is True
 
 
@@ -888,10 +890,6 @@ def test_cli_helper_functions_cover_formats_and_serialization(tmp_path: Path) ->
     parse_assignments = cast(
         Callable[..., dict[str, str]], cli_module.__dict__["_parse_assignments"]
     )
-    query_support_payload = cast(
-        Callable[..., dict[str, object] | None],
-        cli_module.__dict__["_query_support_payload"],
-    )
     render_csv = cast(Callable[..., str], cli_module.__dict__["_render_csv"])
     render_records = cast(Callable[..., str], cli_module.__dict__["_render_records"])
     render_table = cast(Callable[..., str], cli_module.__dict__["_render_table"])
@@ -914,7 +912,6 @@ def test_cli_helper_functions_cover_formats_and_serialization(tmp_path: Path) ->
         raw={"ok": True},
     )
 
-    assert query_support_payload(None) is None
     assert split_assignment("key=value", flag_name="-p") == ("key", "value")
     assert parse_assignments(["a=1", "b=2"], flag_name="-p") == {"a": "1", "b": "2"}
     with pytest.raises(InvalidRequestError):

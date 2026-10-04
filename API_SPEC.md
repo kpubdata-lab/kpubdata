@@ -94,6 +94,13 @@ Each `DatasetRef` returned by discovery exposes:
   call. ``None`` means the table does not list the dataset (`datago.generic`, a
   provider registered at run time): unknown, never "verified"
 
+`DatasetRef.to_dict()` returns the reference as a JSON-serialisable dict (#784): the
+fields above plus `query_support`, `request_parameters`, `application` and
+`verified_at`, with `status` as its string value. Every key is always present and
+``None`` means "nothing declared". The key list is in
+[`docs/compatibility.md`](./docs/compatibility.md) §3; `kpubdata datasets list
+--format json` and `datasets show --format json` print the same dict.
+
 ## 4. Bound dataset operations
 
 ### List/query
