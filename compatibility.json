@@ -1,7 +1,7 @@
 {
   "version": 1,
   "owner": "kpubdata",
-  "description": "Cross-repo compatibility matrix — single source of truth (#466). Builder and Studio CI read this file to check their kpubdata dependency range.",
+  "description": "Cross-repo compatibility matrix (#466). A record kept for people and release notes: no CI in kpubdata, kpubdata-builder or kpubdata-studio reads it to gate a dependency range (#788). tests/unit/test_compatibility_json.py checks its shape and that the released-range row matches Builder's pin as docs/compatibility.md states it.",
   "update_policy": "Update on every kpubdata release. Builder/Studio link here, never copy.",
   "matrix": [
     {
