@@ -22,7 +22,14 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import httpx
 
-from kpubdata.exceptions import RateLimitError, TransportError, TransportTimeoutError
+from kpubdata.exceptions import (
+    AuthError,
+    PublicDataError,
+    RateLimitError,
+    ServiceUnavailableError,
+    TransportError,
+    TransportTimeoutError,
+)
 from kpubdata.transport._envelope import is_upstream_error_envelope
 from kpubdata.transport._sensitive import SENSITIVE_PARAM_KEYS, _secret_forms
 from kpubdata.transport.cache import (
@@ -259,7 +266,8 @@ class HttpTransport:
                 secret_values=secret_values,
                 no_store=no_store,
             )
-        except TransportError as exc:
+        except PublicDataError as exc:
+            # Not only TransportError: a 401 leaves as AuthError, which is not one (#786).
             if getattr(exc, "_credential_in_request", False):
                 exc.__context__ = None
                 exc.__suppress_context__ = True
@@ -543,9 +551,8 @@ class HttpTransport:
                 if not _is_retryable_status(status_code) or attempt >= total_attempts:
                     # Include status_code in the error. Masking breaks the
                     # exception chain (from None), losing the original response,
-                    # so the caller cannot distinguish 401 from 503 except by
-                    # parsing the message string.
-                    error_type = RateLimitError if status_code == 429 else TransportError
+                    # so the status and the type are all the caller has.
+                    error_type = _STATUS_ERROR_TYPES.get(status_code, TransportError)
                     status_error = error_type(
                         f"HTTP status error {status_code} for {method} {log_url}",
                         provider=provider,
@@ -783,6 +790,16 @@ def _contains_sensitive_headers(headers: dict[str, str] | None) -> bool:
     if headers is None:
         return False
     return any(key.casefold() in SENSITIVE_PARAM_KEYS for key in headers)
+
+
+#: The typed error a terminal HTTP status raises; any other status is a plain
+#: TransportError (#786). 403 is not here: what it means depends on the provider, and
+#: the callers that know turn it into AuthError with their own hint.
+_STATUS_ERROR_TYPES: Mapping[int, type[PublicDataError]] = {
+    401: AuthError,
+    429: RateLimitError,
+    503: ServiceUnavailableError,
+}
 
 
 def _mark_credential_bearing(error: Exception, credential_in_request: bool) -> None:

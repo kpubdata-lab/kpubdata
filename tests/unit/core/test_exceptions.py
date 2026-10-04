@@ -246,3 +246,42 @@ class TestHierarchy:
         """
         with pytest.raises(PublicDataError):
             raise DatasetNotFoundError("not found", dataset_id="x.y")
+
+
+class TestStableCodes:
+    """``code`` and ``to_dict()`` let a consumer map an error without its message (#786)."""
+
+    def test_every_public_error_has_its_own_code(self) -> None:
+        import kpubdata.exceptions as module
+
+        classes = [getattr(module, name) for name in module.__all__]
+        codes = {cls.__name__: cls.code for cls in classes}
+
+        assert len(set(codes.values())) == len(classes), codes
+        assert codes["AuthError"] == "auth_error"
+        assert codes["ServiceUnavailableError"] == "service_unavailable"
+        assert codes["RateLimitError"] == "rate_limited"
+        assert codes["TransportError"] == "transport_error"
+
+    def test_to_dict_is_json_serialisable_and_leaves_detail_out(self) -> None:
+        import json
+
+        error = ServiceUnavailableError(
+            "HTTP status error 503",
+            provider="datago",
+            dataset_id="datago.apt_trade",
+            status_code=503,
+            detail=object(),
+        )
+
+        assert json.loads(json.dumps(error.to_dict())) == {
+            "code": "service_unavailable",
+            "type": "ServiceUnavailableError",
+            "message": "HTTP status error 503",
+            "provider": "datago",
+            "dataset_id": "datago.apt_trade",
+            "operation": None,
+            "status_code": 503,
+            "provider_code": None,
+            "retryable": True,
+        }

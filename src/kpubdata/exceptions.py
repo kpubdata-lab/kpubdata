@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 
 class PublicDataError(Exception):
-    """Base class for all KPubData errors carrying structured context attributes."""
+    """Base class for all KPubData errors carrying structured context attributes.
+
+    ``code`` names the kind of failure and does not change with the message, so a
+    consumer maps it without comparing strings (#786). A subclass that adds none
+    inherits its parent's.
+    """
+
+    code: ClassVar[str] = "public_data_error"
 
     def __init__(
         self,
@@ -31,6 +38,24 @@ class PublicDataError(Exception):
         self.retryable = retryable
         self.detail = detail
 
+    def to_dict(self) -> dict[str, object]:
+        """Return the error as a JSON-serialisable dict with a stable ``code``.
+
+        ``detail`` is left out: it holds whatever the raising site attached and is
+        not guaranteed to serialise.
+        """
+        return {
+            "code": self.code,
+            "type": type(self).__name__,
+            "message": str(self.args[0]) if self.args else "",
+            "provider": self.provider,
+            "dataset_id": self.dataset_id,
+            "operation": self.operation,
+            "status_code": self.status_code,
+            "provider_code": self.provider_code,
+            "retryable": self.retryable,
+        }
+
     def __repr__(self) -> str:
         """Return a structured repr that includes provider and transport metadata."""
         parts = [f"{type(self).__name__}({self.args[0]!r}"]
@@ -47,6 +72,8 @@ class PublicDataError(Exception):
 
 class ConfigError(PublicDataError):
     """Raised when the KPubData configuration is invalid or incomplete."""
+
+    code: ClassVar[str] = "config_error"
 
 
 #: 4xx statuses worth sending again. The rest of the 4xx range answers the same.
@@ -73,9 +100,13 @@ def _status_is_retryable(status_code: object) -> bool:
 class AuthError(PublicDataError):
     """Raised on authentication or authorization failure."""
 
+    code: ClassVar[str] = "auth_error"
+
 
 class TransportError(PublicDataError):
     """Raised on network and transport-layer failure."""
+
+    code: ClassVar[str] = "transport_error"
 
     def __init__(self, message: str, **kwargs: Any) -> None:
         """Initialize the transport error. The ``retryable`` default comes from the status code.
@@ -98,37 +129,55 @@ class TransportError(PublicDataError):
 class TransportTimeoutError(TransportError):
     """Raised when a provider request exceeds the timeout limit."""
 
+    code: ClassVar[str] = "transport_timeout"
+
 
 class RateLimitError(TransportError):
     """Raised when a provider refuses a request (throttling and the like)."""
+
+    code: ClassVar[str] = "rate_limited"
 
 
 class ServiceUnavailableError(TransportError):
     """Raised when the upstream provider service is temporarily unavailable."""
 
+    code: ClassVar[str] = "service_unavailable"
+
 
 class ParseError(PublicDataError):
     """Raised when a provider payload cannot be parsed safely."""
+
+    code: ClassVar[str] = "parse_error"
 
 
 class InvalidRequestError(PublicDataError):
     """Raised when a query or operation input is semantically invalid."""
 
+    code: ClassVar[str] = "invalid_request"
+
 
 class ProviderResponseError(PublicDataError):
     """Raised when a provider response violates contract expectations."""
+
+    code: ClassVar[str] = "provider_response_error"
 
 
 class UnsupportedCapabilityError(PublicDataError):
     """Raised when the requested operation is not supported by the dataset."""
 
+    code: ClassVar[str] = "unsupported_capability"
+
 
 class DatasetNotFoundError(PublicDataError):
     """Raised when the requested dataset identifier cannot be resolved."""
 
+    code: ClassVar[str] = "dataset_not_found"
+
 
 class ProviderNotRegisteredError(PublicDataError):
     """Raised when a provider key is absent from the registry."""
+
+    code: ClassVar[str] = "provider_not_registered"
 
 
 class CapabilityContractError(PublicDataError):
@@ -138,6 +187,8 @@ class CapabilityContractError(PublicDataError):
     call fails, or a dataset declared with an empty ``operations`` set is
     exposed.
     """
+
+    code: ClassVar[str] = "capability_contract_error"
 
 
 __all__ = [

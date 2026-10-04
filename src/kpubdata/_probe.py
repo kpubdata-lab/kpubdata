@@ -216,6 +216,10 @@ def classify(
     if isinstance(error, TransportTimeoutError):
         return "network_error", detail
     if isinstance(error, AuthError):
+        if getattr(error, "status_code", None) == 401:
+            # A credential problem, not a missing application: the key itself was
+            # refused (#786 made HTTP 401 an AuthError).
+            return "auth_unknown", detail
         return "application_required", detail
     if isinstance(error, InvalidRequestError):
         return "params_invalid", detail
