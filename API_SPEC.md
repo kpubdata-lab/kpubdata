@@ -82,6 +82,14 @@ Each `DatasetRef` returned by discovery exposes:
 - `source_url`: link to original API documentation (may be ``None``)
 - `license`: the spec's `license` section as parsed (`LicenseSpec`), or ``None`` when the
   dataset declares none. ``None`` means unknown, never "no restrictions" (#609)
+- `status`: a `DatasetStatus` — how far the dataset has been verified (#783):
+  `application_required` (the call is refused until an application is approved),
+  `fixture_verified` (tests pass on fixtures; no recorded live response),
+  `live_verified` (a recorded live response exists), and `in_progress`, `planned`,
+  `production`, `unstable`, `broken`, `retired`. It is what `SUPPORTED_DATA.md`
+  records, shipped with the package, not a live check — `Client.probe()` makes the
+  call. ``None`` means the table does not list the dataset (`datago.generic`, a
+  provider registered at run time): unknown, never "verified"
 
 ## 4. Bound dataset operations
 

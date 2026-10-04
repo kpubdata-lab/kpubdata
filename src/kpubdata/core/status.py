@@ -18,8 +18,11 @@ Three kinds of name live here, and they are deliberately different types:
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from enum import Enum
+from functools import lru_cache
+from importlib import resources
 from types import MappingProxyType
 
 
@@ -211,6 +214,26 @@ def transition(
     return status
 
 
+@lru_cache(maxsize=1)
+def _packaged_statuses() -> Mapping[str, DatasetStatus]:
+    """The dataset id → status map shipped with the package.
+
+    ``scripts/gen_dataset_status.py`` writes it from SUPPORTED_DATA.md, and a test
+    fails when the two differ (#783).
+    """
+    text = resources.files("kpubdata").joinpath("dataset_status.json").read_text(encoding="utf-8")
+    return MappingProxyType({key: DatasetStatus(value) for key, value in json.loads(text).items()})
+
+
+def dataset_status(dataset_id: str) -> DatasetStatus | None:
+    """The status SUPPORTED_DATA.md gives ``dataset_id``, or None when it lists none.
+
+    None means unknown — a dataset registered at run time, or an escape hatch such as
+    ``datago.generic`` — never "verified".
+    """
+    return _packaged_statuses().get(dataset_id)
+
+
 __all__ = [
     "PROBE_TO_DRIFT",
     "PRODUCTION_GRADE_TIERS",
@@ -222,5 +245,6 @@ __all__ = [
     "DriftClassification",
     "ProbeStatus",
     "SpecStatus",
+    "dataset_status",
     "transition",
 ]

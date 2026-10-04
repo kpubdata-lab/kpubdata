@@ -11,6 +11,7 @@ from typing import Literal, get_args
 from kpubdata.core.capability import Operation, QuerySupport, _dataclass
 from kpubdata.core.representation import Representation
 from kpubdata.core.spec import LicenseSpec
+from kpubdata.core.status import DatasetStatus, dataset_status
 from kpubdata.exceptions import InvalidRequestError
 
 
@@ -37,6 +38,11 @@ class DatasetRef:
         license: The spec's ``license`` section as parsed, or None when the dataset
             declares none (#609). None means unknown, never "no restrictions";
             ``quota`` is the provider's own wording and is not parsed.
+        status: How far the dataset has been verified — awaiting an application,
+            checked against fixtures only, verified against the live API (#783).
+            Read from the same table as SUPPORTED_DATA.md; None when that table
+            does not list the dataset. It is what was last recorded, not a live
+            check: ``Client.probe`` makes the call.
     """
 
     id: str
@@ -51,6 +57,11 @@ class DatasetRef:
     tags: tuple[str, ...] = ()
     source_url: str | None = None
     license: LicenseSpec | None = None
+
+    @property
+    def status(self) -> DatasetStatus | None:
+        """Return the dataset's recorded verification status, or None when unknown."""
+        return dataset_status(self.id)
 
     def supports(self, op: Operation) -> bool:
         """Return whether this dataset supports the requested operation."""

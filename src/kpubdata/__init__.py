@@ -16,6 +16,7 @@ from kpubdata.core.models import (
 )
 from kpubdata.core.representation import Representation
 from kpubdata.core.spec import LicenseSpec, discover_specs, find_spec
+from kpubdata.core.status import DatasetStatus
 from kpubdata.exceptions import (
     AuthError,
     ConfigError,
@@ -41,6 +42,7 @@ __all__ = [
     "PROBE_STATUSES",
     "find_spec",
     "DatasetRef",
+    "DatasetStatus",
     "LicenseSpec",
     "Query",
     "RecordBatch",
