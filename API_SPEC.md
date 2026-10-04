@@ -274,6 +274,7 @@ KPubData promises stability for:
 - `Dataset.list/list_all/schema/call_raw`
 - canonical model classes
 - canonical error types, each error's `code` and the keys of `to_dict()`
+- `SENSITIVE_PARAM_KEYS`: the parameter and header names kpubdata masks as credentials (casefolded, matched exactly). Names are only added
 
 ### Errors
 

@@ -62,6 +62,7 @@ builder 와 studio 는 **한 애플리케이션, 한 버전**이다(ADR 0004 1�
 ### kpubdata
 
 - `kpubdata` 최상위에서 import 가능한 심볼(`Client`, `DatasetRef`, `Operation`, `PaginationMode`, `Query`, `RecordBatch`, `QuerySupport`, 정규 예외 등) — [`API_SPEC.md`](https://github.com/kpubdata-lab/kpubdata/blob/main/API_SPEC.md)에 명시된 것.
+- `kpubdata.SENSITIVE_PARAM_KEYS` (#782) — kpubdata 가 자격 증명으로 보고 가리는 파라미터·헤더 이름의 `frozenset`. casefold 한 이름이며 **정확히 일치**로 비교한다(부분 문자열 아님). 이름은 릴리스에서 추가만 되고, 삭제는 BREAKING 이다. 이 목록에 없는 이름으로 키를 보내는 제공기관이 있을 수 있으므로(값 기반 마스킹은 공개 API 가 아니다) "여기 없으면 비밀이 아니다"라는 뜻은 아니다.
 - Provider adapter가 외부에 노출하는 dataset id 표면(`datago.apt_trade` 등) — `SUPPORTED_DATA.md` 에 표시된 상태 중 호환성 약속 대상이 무엇인지는 상태 모델 재설계(#498)에서 정한다. **"지원" 이라는 손으로 쓴 표기는 근거가 무엇인지 말해주지 않아서 약속의 기준이 될 수 없다** — POLICY 3절이 생성 파일만 기준으로 쓰라고 하는 이유다.
 - `DatasetRef.to_dict()` 의 키 (#784). 항상 모두 있으며, `None` 은 "선언된 것이 없다"(알 수 없음)이다:
   `id`, `provider`, `dataset_key`, `name`, `description`, `tags`, `source_url`, `representation`, `operations`,

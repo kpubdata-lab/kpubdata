@@ -20,6 +20,11 @@ from __future__ import annotations
 from urllib.parse import quote, quote_plus
 
 #: Holds casefolded names only; the comparison side casefolds as well.
+#:
+#: Public as ``kpubdata.SENSITIVE_PARAM_KEYS`` (#782) so a consumer that redacts its
+#: own records of a request does not keep a second list that drifts from this one. A
+#: name is only ever added in a release; removing one is a breaking change. It is the
+#: names kpubdata masks, not a guarantee that every credential is among them.
 SENSITIVE_PARAM_KEYS: frozenset[str] = frozenset(
     {
         "servicekey",

@@ -32,6 +32,7 @@ from kpubdata.exceptions import (
     TransportTimeoutError,
     UnsupportedCapabilityError,
 )
+from kpubdata.transport._sensitive import SENSITIVE_PARAM_KEYS
 
 __all__ = [
     "__version__",
@@ -40,6 +41,7 @@ __all__ = [
     "discover_specs",
     "ProbeResult",
     "PROBE_STATUSES",
+    "SENSITIVE_PARAM_KEYS",
     "find_spec",
     "DatasetRef",
     "DatasetStatus",
