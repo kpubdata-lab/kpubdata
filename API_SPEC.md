@@ -266,7 +266,33 @@ KPubData promises stability for:
 - dataset discovery methods
 - `Dataset.list/list_all/schema/call_raw`
 - canonical model classes
-- canonical error types
+- canonical error types, each error's `code` and the keys of `to_dict()`
+
+### Errors
+
+Every error is a `PublicDataError` and carries `provider`, `dataset_id`, `operation`,
+`status_code`, `provider_code` and `retryable`. `to_dict()` returns those with `code`,
+`type` and `message` as a JSON-serialisable dict; `code` names the kind of failure and
+does not change with the message, so map on it rather than on the text.
+
+| Type | `code` | Raised for |
+| --- | --- | --- |
+| `AuthError` | `auth_error` | HTTP 401, a provider's 403, a provider auth result code |
+| `RateLimitError` | `rate_limited` | HTTP 429, a provider quota code |
+| `ServiceUnavailableError` | `service_unavailable` | HTTP 503 after retries, a provider outage code |
+| `TransportTimeoutError` | `transport_timeout` | the request timed out |
+| `TransportError` | `transport_error` | any other HTTP status or network failure |
+| `InvalidRequestError` | `invalid_request` | a query the library or the provider refuses |
+| `DatasetNotFoundError` | `dataset_not_found` | an unknown dataset id, or a service that is gone |
+| `ProviderResponseError` | `provider_response_error` | a response that breaks the provider's contract |
+| `ParseError` | `parse_error` | a body that cannot be decoded |
+| `ConfigError` | `config_error` | a missing key or invalid configuration |
+| `UnsupportedCapabilityError` | `unsupported_capability` | an operation the dataset does not have |
+| `ProviderNotRegisteredError` | `provider_not_registered` | a provider absent from the registry |
+| `CapabilityContractError` | `capability_contract_error` | an adapter whose declared and actual capabilities disagree |
+
+`RateLimitError`, `ServiceUnavailableError` and `TransportTimeoutError` are
+`TransportError`s; `AuthError` is not, so `except TransportError` does not catch a 401.
 
 KPubData does **not** promise stability for:
 

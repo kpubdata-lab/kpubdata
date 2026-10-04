@@ -446,6 +446,12 @@ class TestTheCodexFindings:
         when what is needed is a different key."""
         assert classify(TransportError("unauthorized", status_code=401))[0] == "auth_unknown"
 
+    def test_401_as_the_transport_now_raises_it_is_still_auth_unknown(self) -> None:
+        """HTTP 401 leaves the transport as AuthError (#786); the verdict must not
+        become application_required, which is what an AuthError otherwise means."""
+        assert classify(AuthError("unauthorized", status_code=401))[0] == "auth_unknown"
+        assert classify(AuthError("not registered"))[0] == "application_required"
+
     def test_a_legacy_status_row_is_dropped(self, tmp_path: Path) -> None:
         """A report from the previous implementation holds statuses like "ok".
         Keeping them produces a report whose values are not in the vocabulary,

@@ -13,7 +13,12 @@ from unittest.mock import patch
 import httpx
 import pytest
 
-from kpubdata.exceptions import RateLimitError, TransportError
+from kpubdata.exceptions import (
+    AuthError,
+    RateLimitError,
+    ServiceUnavailableError,
+    TransportError,
+)
 from kpubdata.transport.http import HttpTransport, TransportConfig
 
 
@@ -320,20 +325,71 @@ def test_the_cap_is_configurable() -> None:
 
 
 def test_a_terminal_status_error_carries_its_status_code() -> None:
-    """Masking breaks Raises chain, original response disappears too.
+    """Masking breaks the exception chain, so the original response is gone.
 
-    status_code not carried then caller 401 and 503 way to distinguish message
-    string only nothing.
+    Without status_code the caller could tell a 400 from a 500 only by the message.
     """
+    transport = HttpTransport(TransportConfig(max_retries=1))
+
+    with patch("kpubdata.transport.http.httpx.Client.send") as request_mock:
+        request_mock.side_effect = [_response(404)]
+
+        with pytest.raises(TransportError) as exc:
+            transport.request("GET", "https://example.test/resource")
+
+    assert type(exc.value) is TransportError
+    assert exc.value.status_code == 404
+
+
+def test_a_401_is_an_auth_error() -> None:
+    """A refused credential is AuthError, as a provider's own auth code is (#786)."""
     transport = HttpTransport(TransportConfig(max_retries=1))
 
     with patch("kpubdata.transport.http.httpx.Client.send") as request_mock:
         request_mock.side_effect = [_response(401)]
 
-        with pytest.raises(TransportError) as exc:
+        with pytest.raises(AuthError) as exc:
             transport.request("GET", "https://example.test/resource")
 
     assert exc.value.status_code == 401
+    assert exc.value.retryable is False
+    assert exc.value.to_dict()["code"] == "auth_error"
+    assert request_mock.call_count == 1
+
+
+def test_an_exhausted_503_is_a_service_unavailable_error() -> None:
+    """503 is retried, and what is left when the retries run out is typed (#786)."""
+    transport = HttpTransport(TransportConfig(max_retries=1))
+
+    with (
+        patch("kpubdata.transport.http.httpx.Client.send") as request_mock,
+        patch("kpubdata.transport.http.time.sleep"),
+    ):
+        request_mock.side_effect = [_response(503), _response(503)]
+
+        with pytest.raises(ServiceUnavailableError) as exc:
+            transport.request("GET", "https://example.test/resource")
+
+    assert exc.value.status_code == 503
+    assert exc.value.retryable is True
+    assert exc.value.to_dict()["code"] == "service_unavailable"
+
+
+def test_a_401_on_a_request_with_a_key_keeps_no_httpx_context() -> None:
+    """AuthError is not a TransportError; the boundary must strip its context too."""
+    transport = HttpTransport(TransportConfig(max_retries=1))
+
+    with patch("kpubdata.transport.http.httpx.Client.send") as request_mock:
+        request_mock.side_effect = [_response(401)]
+
+        with pytest.raises(AuthError) as exc:
+            transport.request(
+                "GET", "https://example.test/resource", params={"serviceKey": "SECRET-KEY"}
+            )
+
+    assert exc.value.__context__ is None
+    assert exc.value.__cause__ is None
+    assert "SECRET-KEY" not in str(exc.value)
 
 
 def test_an_exhausted_429_is_a_rate_limit_error() -> None:

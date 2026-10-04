@@ -169,7 +169,7 @@ CLI도 `Client.from_env()`와 동일한 환경 변수 규칙을 따릅니다.
 | `0` | 성공 |
 | `1` | 일반 오류 |
 | `2` | `InvalidRequestError`, `DatasetNotFoundError` |
-| `3` | `AuthError` |
+| `3` | `AuthError` (HTTP 401 포함, #786) |
 | `4` | `TransportError`, `ProviderResponseError` |
 
 오류 메시지는 표준 에러로 `error: <type>: <message>` 형식으로 출력됩니다. `--log-level debug`가 아닐 때는 스택 트레이스를 보여주지 않습니다.
