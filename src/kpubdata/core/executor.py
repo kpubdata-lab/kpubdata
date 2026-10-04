@@ -60,6 +60,8 @@ logger = logging.getLogger("kpubdata.core.executor")
 
 _AUTH_ERROR_CODES = frozenset({"30", "31", "20", "32"})
 _SERVICE_UNAVAILABLE_CODES = frozenset({"01", "02"})
+#: NODATA_ERROR: no record matched the request. An empty result, not a failure (#787).
+_NO_DATA_CODE = "03"
 _DEFAULT_PAGE_SIZE = 100
 # To avoid importing providers from core, generalize the datago 403 hint.
 _FORBIDDEN_HINT = (
@@ -988,7 +990,7 @@ def check_payload_error(spec: SpecDefinition, payload: dict[str, object]) -> Non
     ok_strings = {str(value) for value in error.ok_values}
     code_as_int = _to_int(code)
     is_success = code in ok_strings or (code_as_int == 0)
-    if is_success:
+    if is_success or code == _NO_DATA_CODE:
         return
 
     raw_message = _dot_get(payload, _resolve_path(_message_path(error.code_path), spec))
