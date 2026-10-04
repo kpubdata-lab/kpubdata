@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from dataclasses import field
+from datetime import date, datetime
+from enum import Enum
 from importlib import import_module
 from types import MappingProxyType
 from typing import Literal, get_args
@@ -23,6 +25,22 @@ def _empty_proxy() -> MappingProxyType[str, object]:
 def _empty_object_proxy() -> MappingProxyType[str, object]:
     """Return empty immutable object-value mapping proxy."""
     return MappingProxyType({})
+
+
+def _plain(value: object) -> object:
+    """A declared metadata value as plain JSON types: mappings, sequences, dates."""
+    if value is None or isinstance(value, (str, bool, int, float)):
+        return value
+    if isinstance(value, Mapping):
+        return {str(key): _plain(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set, frozenset)):
+        items = [_plain(item) for item in value]
+        return sorted(items, key=str) if isinstance(value, (set, frozenset)) else items
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    if isinstance(value, Enum):
+        return _plain(value.value)
+    return str(value)
 
 
 @_dataclass(slots=True, frozen=True)
@@ -62,6 +80,60 @@ class DatasetRef:
     def status(self) -> DatasetStatus | None:
         """Return the dataset's recorded verification status, or None when unknown."""
         return dataset_status(self.id)
+
+    def to_dict(self) -> dict[str, object]:
+        """Return the reference as a JSON-serialisable dict with a stable set of keys.
+
+        This is the form to store or send (#784): ``dataclasses.asdict`` fails on
+        ``raw_metadata``, and reading ``raw_metadata`` directly leans on a layout that
+        carries no stability promise. Every key is always present; None means the
+        dataset declares nothing there — unknown, never "none needed" or "no
+        restrictions".
+
+        ``request_parameters``, ``application`` and ``verified_at`` are what the
+        dataset's spec or catalogue entry declares. The rest of ``raw_metadata`` is
+        left out.
+        """
+        query_support = self.query_support
+        license_spec = self.license
+        status = self.status
+        return {
+            "id": self.id,
+            "provider": self.provider,
+            "dataset_key": self.dataset_key,
+            "name": self.name,
+            "description": self.description,
+            "tags": list(self.tags),
+            "source_url": self.source_url,
+            "representation": str(getattr(self.representation, "value", self.representation)),
+            "operations": sorted(operation.value for operation in self.operations),
+            "status": None if status is None else status.value,
+            "query_support": None
+            if query_support is None
+            else {
+                "pagination": query_support.pagination.value,
+                "filterable_fields": sorted(query_support.filterable_fields),
+                "sortable_fields": sorted(query_support.sortable_fields),
+                "time_range": query_support.time_range,
+                "max_page_size": query_support.max_page_size,
+            },
+            "license": None
+            if license_spec is None
+            else {
+                "type": license_spec.type,
+                "commercial_use": license_spec.commercial_use,
+                "attribution_required": license_spec.attribution_required,
+                "modification_allowed": license_spec.modification_allowed,
+                "redistribution": license_spec.redistribution,
+                "attribution": license_spec.attribution,
+                "quota": license_spec.quota,
+                "pii_columns": list(license_spec.pii_columns),
+                "note": license_spec.note,
+            },
+            "request_parameters": _plain(self.raw_metadata.get("request_parameters")),
+            "application": _plain(self.raw_metadata.get("application")),
+            "verified_at": _plain(self.raw_metadata.get("verified_at")),
+        }
 
     def supports(self, op: Operation) -> bool:
         """Return whether this dataset supports the requested operation."""

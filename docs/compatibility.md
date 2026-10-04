@@ -63,6 +63,15 @@ builder 와 studio 는 **한 애플리케이션, 한 버전**이다(ADR 0004 1�
 
 - `kpubdata` 최상위에서 import 가능한 심볼(`Client`, `DatasetRef`, `Operation`, `PaginationMode`, `Query`, `RecordBatch`, `QuerySupport`, 정규 예외 등) — [`API_SPEC.md`](https://github.com/kpubdata-lab/kpubdata/blob/main/API_SPEC.md)에 명시된 것.
 - Provider adapter가 외부에 노출하는 dataset id 표면(`datago.apt_trade` 등) — `SUPPORTED_DATA.md` 에 표시된 상태 중 호환성 약속 대상이 무엇인지는 상태 모델 재설계(#498)에서 정한다. **"지원" 이라는 손으로 쓴 표기는 근거가 무엇인지 말해주지 않아서 약속의 기준이 될 수 없다** — POLICY 3절이 생성 파일만 기준으로 쓰라고 하는 이유다.
+- `DatasetRef.to_dict()` 의 키 (#784). 항상 모두 있으며, `None` 은 "선언된 것이 없다"(알 수 없음)이다:
+  `id`, `provider`, `dataset_key`, `name`, `description`, `tags`, `source_url`, `representation`, `operations`,
+  `status`(`DatasetStatus` 값, #783),
+  `query_support`(`pagination`, `filterable_fields`, `sortable_fields`, `time_range`, `max_page_size`),
+  `license`(`type`, `commercial_use`, `attribution_required`, `modification_allowed`, `redistribution`, `attribution`, `quota`, `pii_columns`, `note`),
+  `request_parameters`(선언된 요청 파라미터 목록 — 항목마다 `name`, `required`, `type` 과 있으면 `description`·`example`·`enum`·`api_name`),
+  `application`(활용신청 — `required`, `url`),
+  `verified_at`(spec 에 적힌 검증일, `YYYY-MM-DD`).
+  키 추가는 호환 변경이고, 키 삭제·의미 변경은 BREAKING 이다. `raw_metadata` 의 나머지는 여기에 들어가지 않으며 약속 대상이 아니다.
 - 정규(canonical) 데이터 모델 — [`CANONICAL_MODEL.md`](https://github.com/kpubdata-lab/kpubdata/blob/main/CANONICAL_MODEL.md).
 
 내부 구현 디테일(transport 헬퍼, provider 내부 모듈 등)은 호환성 약속 대상이 아니다.
