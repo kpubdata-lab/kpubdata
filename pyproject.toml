@@ -37,6 +37,13 @@ dependencies = [
   "typing-extensions>=4.10; python_version < '3.12'",
 ]
 
+[project.urls]
+Homepage = "https://github.com/kpubdata-lab/kpubdata"
+Documentation = "https://kpubdata-lab.github.io/kpubdata"
+Repository = "https://github.com/kpubdata-lab/kpubdata"
+Issues = "https://github.com/kpubdata-lab/kpubdata/issues"
+Changelog = "https://github.com/kpubdata-lab/kpubdata/blob/main/CHANGELOG.md"
+
 [project.scripts]
 kpubdata = "kpubdata.cli:main"
 
