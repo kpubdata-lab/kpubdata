@@ -4,6 +4,27 @@
 > The spec's `license` fields (#617) are filled FROM this matrix, not the other way round.
 > Re-check quarterly. Last checked: 2026-09-30.
 
+## Which datasets can be published (#785)
+
+**Decision (2026-10-04): only a dataset that declares its terms can be published
+publicly.** Terms are declared in a dataset's spec (`license`), so today that is the
+spec-backed datasets and no catalogue-only one. The others are not filled in from the
+provider-level table below: a KOGL type is set per service on its data.go.kr page, and
+a term nobody confirmed there must not read as permission (#525, #732).
+
+What follows from it, and where it is enforced:
+
+- `DatasetRef.license` is `None` for a dataset that declares nothing, and `None` means
+  unknown — never "no restrictions". `tests/unit/test_declared_terms_decision.py` holds
+  that every dataset with terms is spec-backed and every catalogue-only dataset has none.
+- Builder reads `license.redistribution` at publish. A source whose dataset declares
+  nothing is `unknown`, and a public publish of it is refused with
+  `redistribution_unknown` ("the dataset declares no redistribution terms"); a private
+  one is still possible (kpubdata-builder#688, `tests/unit/test_redistribution.py`).
+- A catalogue-only dataset becomes publishable when it is migrated to a spec with terms
+  confirmed from its provider page — the same step that records its live evidence
+  (#409). There is no separate "fill in the licence" path.
+
 ## Legend
 
 - **Redistribution**: `allowed` / `non_commercial` / `forbidden` / `unknown`
