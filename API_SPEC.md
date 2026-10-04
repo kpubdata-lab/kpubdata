@@ -100,7 +100,7 @@ Each `DatasetRef` returned by discovery exposes:
 
 ```python
 dataset = client.dataset("datago.apt_trade")
-result = dataset.list(lawd_code="11680", deal_ym="202503")
+result = dataset.list(LAWD_CD="11680", DEAL_YMD="202503")
 ```
 
 `list()` returns exactly one page of results. When another page is available,
@@ -110,7 +110,7 @@ the returned `RecordBatch.next_page` is set.
 
 ```python
 dataset = client.dataset("datago.apt_trade")
-for batch in dataset.list_all(lawd_code="11680", deal_ym="202503"):
+for batch in dataset.list_all(LAWD_CD="11680", DEAL_YMD="202503"):
     for item in batch.items:
         print(item)
 ```
@@ -161,7 +161,7 @@ schema = dataset.schema()
 ### Raw
 
 ```python
-raw = dataset.call_raw(operation="list", lawd_code="11680", deal_ym="202503")
+raw = dataset.call_raw(operation="list", LAWD_CD="11680", DEAL_YMD="202503")
 ```
 
 ## 4a. Reachability probe
@@ -206,7 +206,7 @@ Optional convenience aliases may be added for common datasets, but only if they 
 Example:
 
 ```python
-client.apartment_trades.list(lawd_code="11680", deal_ym="202503")
+client.apartment_trades.list(LAWD_CD="11680", DEAL_YMD="202503")
 ```
 
 Rules:
