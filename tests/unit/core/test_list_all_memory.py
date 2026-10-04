@@ -18,6 +18,7 @@ from kpubdata.core.spec import SpecDefinition
 from kpubdata.exceptions import TransportError
 from tests.unit.core.test_executor import (
     FakeResponse,
+    FakeTransport,
     _golden_spec,
     _make_executor,
     _ref,
@@ -27,10 +28,11 @@ from tests.unit.core.test_executor import (
 _PAGE_SIZE = 500
 
 
-class _LazyTransport:
+class _LazyTransport(FakeTransport):
     """Builds each page when it is asked for, so the test holds no result itself."""
 
     def __init__(self, pages: int, *, fail_on: int | None = None) -> None:
+        super().__init__()
         self._pages = pages
         self._fail_on = fail_on
         self.requests = 0
@@ -55,7 +57,7 @@ def apt_spec() -> SpecDefinition:
 def _peak_bytes(spec: SpecDefinition, pages: int) -> tuple[int, int]:
     """Peak traced memory while every batch is consumed and dropped, and the row count."""
     transport = _LazyTransport(pages)
-    adapter = SpecDatasetAdapter("datago", [spec], _make_executor(transport))  # type: ignore[arg-type]
+    adapter = SpecDatasetAdapter("datago", [spec], _make_executor(transport))
     gc.collect()
     tracemalloc.start()
     try:
@@ -81,7 +83,7 @@ def test_memory_follows_the_page_size_not_the_row_count(apt_spec: SpecDefinition
 def test_a_failing_page_yields_nothing_and_raises(apt_spec: SpecDefinition) -> None:
     """Pages 1 and 2 were fetched; page 3 fails; no batch comes out (#789)."""
     transport = _LazyTransport(5, fail_on=3)
-    adapter = SpecDatasetAdapter("datago", [apt_spec], _make_executor(transport))  # type: ignore[arg-type]
+    adapter = SpecDatasetAdapter("datago", [apt_spec], _make_executor(transport))
     seen: list[int] = []
 
     with pytest.raises(TransportError, match="boom"):

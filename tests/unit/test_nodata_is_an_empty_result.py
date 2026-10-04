@@ -20,6 +20,7 @@ from kpubdata.core.executor import (
     extract_items,
 )
 from kpubdata.core.models import DatasetRef, Query
+from kpubdata.core.representation import Representation
 from kpubdata.core.spec import SpecDefinition, load_spec_file
 from kpubdata.exceptions import ProviderResponseError
 from kpubdata.providers.datago.envelope import DataGoEnvelopeParser
@@ -41,7 +42,7 @@ def _datago_ref(envelope_style: str | None) -> DatasetRef:
         provider="datago",
         dataset_key="sample",
         name="sample",
-        representation="api_json",  # type: ignore[arg-type]
+        representation=Representation.API_JSON,
         operations=frozenset(),
         raw_metadata=metadata,
     )
