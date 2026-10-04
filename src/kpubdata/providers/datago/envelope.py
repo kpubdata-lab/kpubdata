@@ -32,6 +32,18 @@ def _is_success_code(code: str) -> bool:
         return False
 
 
+def _is_no_data_code(code: str) -> bool:
+    """Return True for data.go.kr's NODATA_ERROR ("03", or 3 where the code is a number).
+
+    It says no record matched the request, not that the call failed, so it is an
+    empty result on every path (#470, #787).
+    """
+    try:
+        return int(code) == 3
+    except ValueError:
+        return False
+
+
 class DataGoEnvelopeParser:
     """Extract the body and item list from a data.go.kr response envelope."""
 
@@ -98,6 +110,8 @@ class DataGoEnvelopeParser:
             "data.go.kr result",
             extra={"result_code": result_code, "result_msg": result_msg, "dataset_id": dataset_id},
         )
+        if _is_no_data_code(result_code):
+            return payload, []
         if not _is_success_code(result_code):
             self._raise_for_result_code(result_code, result_msg, dataset_id)
 
@@ -132,13 +146,15 @@ class DataGoEnvelopeParser:
             "data.go.kr result",
             extra={"result_code": result_code, "result_msg": result_msg, "dataset_id": dataset_id},
         )
-        if not _is_success_code(result_code):
-            self._raise_for_result_code(result_code, result_msg, dataset_id)
-
         body_obj = response_dict.get("body")
         body_dict: dict[str, object] = (
             cast(dict[str, object], body_obj) if isinstance(body_obj, dict) else {}
         )
+        if _is_no_data_code(result_code):
+            return body_dict, []
+        if not _is_success_code(result_code):
+            self._raise_for_result_code(result_code, result_msg, dataset_id)
+
         items = self.normalize_items(body_dict.get("items"))
         return body_dict, items
 
@@ -163,13 +179,15 @@ class DataGoEnvelopeParser:
             "data.go.kr result",
             extra={"result_code": result_code, "result_msg": result_msg, "dataset_id": dataset_id},
         )
-        if not _is_success_code(result_code):
-            self._raise_for_result_code(result_code, result_msg, dataset_id)
-
         body_obj = response_dict.get("msgBody")
         body_dict: dict[str, object] = (
             cast(dict[str, object], body_obj) if isinstance(body_obj, dict) else {}
         )
+        if _is_no_data_code(result_code):
+            return body_dict, []
+        if not _is_success_code(result_code):
+            self._raise_for_result_code(result_code, result_msg, dataset_id)
+
         items_wrapper = self._extract_gyeonggi_msg_items_wrapper(body_dict)
         items = self.normalize_items(items_wrapper)
         return body_dict, items
