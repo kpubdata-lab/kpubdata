@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, cast
+from typing import cast
 
 from kpubdata import _probe
 from kpubdata._probe import ProbeResult
@@ -35,7 +35,6 @@ class Client:
         cache: bool | ResponseCache = False,
         cache_ttl_seconds: int = 86400,
         env_keys: bool = True,
-        **extra: object,
     ) -> None:
         """Initialize the client with explicit provider/transport settings.
 
@@ -49,13 +48,16 @@ class Client:
         ``<PROVIDER>_API_KEY``). ``env_keys=False`` turns that off: the client
         then uses only the keys passed here, for every call including
         ``probe`` (#694).
+
+        An unknown keyword argument is a ``TypeError`` (#781). It used to be
+        accepted and dropped, so a typo, or an option this version does not
+        have, passed for a setting that was applied.
         """
 
         self._config: KPubDataConfig = KPubDataConfig(
             provider_keys=provider_keys or {},
             timeout=timeout,
             max_retries=max_retries,
-            extra=dict(extra),
             env_fallback=env_keys,
         )
         self._registry: ProviderRegistry = ProviderRegistry()
@@ -94,7 +96,6 @@ class Client:
         *,
         timeout: float | None = None,
         max_retries: int | None = None,
-        extra: dict[str, object] | None = None,
         cache: bool | ResponseCache | None = None,
         cache_ttl_seconds: int | None = None,
     ) -> Client:
@@ -111,7 +112,6 @@ class Client:
             provider_keys=provider_keys,
             timeout=timeout,
             max_retries=max_retries,
-            extra=extra,
         )
         cache_ttl_seconds = _resolve_cache_ttl(ttl_override)
         return cls(
@@ -120,9 +120,6 @@ class Client:
             max_retries=config.max_retries,
             cache=_resolve_cache_from_env(cache_override),
             cache_ttl_seconds=cache_ttl_seconds,
-            # ``extra`` is free-form; the cast keeps mypy from matching it
-            # against the typed keyword parameters such as ``env_keys``.
-            **cast(dict[str, Any], config.extra),
         )
 
     def __enter__(self) -> Client:

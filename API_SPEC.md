@@ -40,6 +40,9 @@ client = Client(
     someone else's key, so a missing entry is never filled with the operator's
     key (#694)
 
+Any other keyword argument is a `TypeError` (#781): an option is applied or
+refused, never silently dropped.
+
 ### Environment construction
 
 ```python
