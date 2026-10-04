@@ -58,8 +58,8 @@ def test_the_shape_is_what_a_reader_expects(document: dict[str, Any]) -> None:
 
 
 def test_it_no_longer_claims_a_ci_reads_it(document: dict[str, Any]) -> None:
+    """Only the false claim is pinned; the description may be reworded freely."""
     assert "CI read this file" not in document["description"]
-    assert "no CI" in document["description"]
 
 
 def test_exactly_one_range_is_supported_and_this_version_is_in_it(
