@@ -455,6 +455,11 @@ class DataGoAdapter:
 
         return params
 
+    def _secret_values(self) -> tuple[str, ...]:
+        """The configured service key, for value-based masking; empty when none is set."""
+        key = self._config.get_provider_key("datago")
+        return (key,) if key else ()
+
     def _request_and_decode(
         self, url: str, params: Mapping[str, object], dataset_id: str = ""
     ) -> dict[str, object]:
@@ -467,6 +472,10 @@ class DataGoAdapter:
                 params=string_params,
                 dataset_id=dataset_id,
                 provider="datago",
+                # ``datago.generic`` lets the caller name the key parameter
+                # (``_service_key_param``); under a name the sensitive-name list
+                # lacks, only the value tells the transport what to mask (#805).
+                secret_values=self._secret_values(),
             )
         except TransportError as exc:
             if self._is_http_403(exc):
