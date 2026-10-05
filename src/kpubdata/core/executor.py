@@ -805,6 +805,10 @@ class SpecExecutor:
                 params=params,
                 dataset_id=spec.id,
                 provider=spec.provider,
+                # The key's value, not only its parameter name: a spec may send the
+                # key under a name the sensitive-name list does not have, and the
+                # transport then has nothing else to recognise it by (#805).
+                secret_values=tuple(value for value in secret_values if value),
             )
         except TransportError as exc:
             # Check exc.status_code. When we relied on __cause__, if transport broke

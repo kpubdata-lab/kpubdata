@@ -264,12 +264,18 @@ class DataGoFamilyAdapter:
     ) -> dict[str, object]:
         """Request and decode return value."""
         string_params = {key: str(value) for key, value in params.items()}
+        key = self._config.get_provider_key(self.provider_name) or self._config.get_provider_key(
+            "datago"
+        )
         response = self._transport.request(
             "GET",
             url,
             params=string_params,
             dataset_id=dataset_id,
             provider=self.provider_name,
+            # The key parameter's name comes from catalogue metadata
+            # (``service_key_param``); the value masks it whatever the name is (#805).
+            secret_values=(key,) if key else (),
         )
 
         try:
