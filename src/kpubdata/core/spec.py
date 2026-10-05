@@ -16,7 +16,7 @@ from __future__ import annotations
 import hashlib
 import re
 from collections.abc import Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date
 from pathlib import Path
 
@@ -237,6 +237,25 @@ class LicenseSpec:
     attribution: str | None = None
     quota: str | None = None
     pii_columns: tuple[str, ...] = ()
+
+
+def reported_license(licence: LicenseSpec | None) -> LicenseSpec | None:
+    """A spec's licence as a dataset reference reports it (#812).
+
+    ``redistribution: allowed`` counts only with the ``attribution`` text that shows the
+    terms were read from the provider's page (#525). A spec that says ``allowed`` without
+    it — the ones frozen in ``scripts/unconfirmed_terms_baseline.txt`` (#732) — reports
+    ``unknown``: a term nobody confirmed must not read as permission (#785), to someone
+    using kpubdata directly as much as to Builder.
+
+    The spec file keeps what it declares, so the baseline ratchet still counts it; only
+    what is reported changes. The other terms already restrict and pass through.
+    """
+    if licence is None or licence.redistribution != "allowed":
+        return licence
+    if (licence.attribution or "").strip():
+        return licence
+    return replace(licence, redistribution="unknown")
 
 
 @dataclass(slots=True, frozen=True)
