@@ -72,6 +72,8 @@ class SgisAuthClient:
             _AUTH_ENDPOINT,
             params={"consumer_key": consumer_key, "consumer_secret": consumer_secret},
             no_store=True,
+            # By value as well as by parameter name (#805).
+            secret_values=(consumer_key, consumer_secret),
         )
 
         decoded = decode_json(response.content)

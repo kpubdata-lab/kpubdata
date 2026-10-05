@@ -202,7 +202,15 @@ class LawAdapter:
 
     def _request_and_decode(self, url: str, dataset_id: str) -> dict[str, object]:
         """Request and decode return value."""
-        response = self._transport.request("GET", url, dataset_id=dataset_id, provider="law")
+        response = self._transport.request(
+            "GET",
+            url,
+            dataset_id=dataset_id,
+            provider="law",
+            # By value as well as by parameter name (#805): the name is fixed here
+            # and on the sensitive list today, and the value holds if that changes.
+            secret_values=(self._require_api_key(),),
+        )
 
         try:
             decoded_obj: object = decode_json(response.content)

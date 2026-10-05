@@ -31,6 +31,12 @@ _SGIS_PROVIDER = "sgis"
 _BASE_URL = "https://sgisapi.kostat.go.kr/OpenAPI3"
 
 
+def _token_of(params: Mapping[str, str]) -> tuple[str, ...]:
+    """The access token a request carries, for value-based masking (#805)."""
+    token = params.get("accessToken")
+    return (token,) if token else ()
+
+
 class _AuthClient(Protocol):
     """Protocol for AuthClient to compute or retrieve values."""
 
@@ -192,6 +198,7 @@ class SgisAdapter:
             "GET",
             url,
             params=dict(params),
+            secret_values=_token_of(params),
         )
 
         try:
@@ -219,6 +226,7 @@ class SgisAdapter:
                 "GET",
                 url,
                 params=refreshed,
+                secret_values=_token_of(refreshed),
             )
             decoded_retry = decode_json(response_retry.content)
             if not isinstance(decoded_retry, dict):

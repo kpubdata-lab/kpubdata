@@ -181,6 +181,9 @@ class KoreanAdapter:
             url,
             dataset_id=dataset_id,
             provider="korean",
+            # By value as well as by parameter name (#805): the name is fixed here
+            # and on the sensitive list today, and the value holds if that changes.
+            secret_values=(self._require_api_key(),),
         )
         decoded: object = decode_json(response.content)
         if not isinstance(decoded, dict):

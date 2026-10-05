@@ -165,7 +165,15 @@ class NeisAdapter:
         return ()
 
     def _request_and_decode(self, url: str, dataset_id: str) -> dict[str, object]:
-        response = self._transport.request("GET", url, dataset_id=dataset_id, provider="neis")
+        response = self._transport.request(
+            "GET",
+            url,
+            dataset_id=dataset_id,
+            provider="neis",
+            # By value as well as by parameter name (#805): the name is fixed here
+            # and on the sensitive list today, and the value holds if that changes.
+            secret_values=(self._require_api_key(),),
+        )
         decoded: object = decode_json(response.content)
         if not isinstance(decoded, dict):
             raise ProviderResponseError(
