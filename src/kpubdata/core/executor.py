@@ -236,11 +236,18 @@ class _PageSpool:
     closed. A page's rows and payload came out of a JSON or XML decoder, so the round
     trip gives the same values back; a page that will not serialise is kept in memory
     instead of being altered.
+
+    The file is written and read with ``surrogatepass``: a broken character in a
+    provider's text decodes to a lone surrogate, which serialises but which strict UTF-8
+    refuses to write — one such row failed the whole read (#804). ``surrogatepass``
+    writes it and reads the same code point back.
     """
 
     def __init__(self) -> None:
         # Closed by ``close()``: the spool outlives any one ``with`` block.
-        self._file = tempfile.TemporaryFile("w+", encoding="utf-8")  # noqa: SIM115
+        self._file = tempfile.TemporaryFile(  # noqa: SIM115
+            "w+", encoding="utf-8", errors="surrogatepass"
+        )
         self._held: dict[int, _FetchedPage] = {}
         self._count = 0
 

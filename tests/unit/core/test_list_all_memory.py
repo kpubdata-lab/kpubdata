@@ -142,3 +142,64 @@ def test_a_spooled_page_comes_back_as_it_went_in() -> None:
     assert first == page
     # A page JSON cannot hold is kept as it is rather than altered.
     assert second is unserialisable
+
+
+# --- A lone surrogate in a page (#804) ---
+
+#: What a broken character in a provider's text decodes to: half of a surrogate pair.
+#: ``json.dumps(..., ensure_ascii=False)`` passes it through, and strict UTF-8 refuses it.
+_LONE = "\ud800"
+
+
+def test_a_spooled_page_with_a_lone_surrogate_comes_back_as_it_went_in() -> None:
+    from kpubdata.core.executor import _FetchedPage
+
+    page = _FetchedPage(
+        staged=[{"name": f"broken{_LONE}name", _LONE: "as a key too"}],
+        payload={"raw": f"<v>{_LONE}</v>"},
+        provenance={"url": "https://example.test"},
+        next_page=None,
+    )
+    after = _FetchedPage([{"name": "한글"}], {}, {}, None)
+    spool = _PageSpool()
+    try:
+        spool.append(page)
+        spool.append(after)
+        first, second = list(spool)
+    finally:
+        spool.close()
+
+    assert first == page
+    # The page after it is read from where it was written.
+    assert second == after
+
+
+class _SurrogateTransport(FakeTransport):
+    """Two pages; the first row of the first page holds a lone surrogate."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.requests = 0
+
+    def request(self, method: str, url: str, **_kwargs: object) -> FakeResponse:
+        self.requests += 1
+        rows: list[dict[str, object]] = [
+            {
+                "aptNm": f"apt{_LONE}{self.requests}-{index}",
+                "dealAmount": str(index),
+                "excluUseAr": "84.9",
+            }
+            for index in range(2)
+        ]
+        return _standard_envelope(rows, total_count=4)
+
+
+def test_list_all_returns_rows_holding_a_lone_surrogate_unchanged(apt_spec: SpecDefinition) -> None:
+    transport = _SurrogateTransport()
+    adapter = SpecDatasetAdapter("datago", [apt_spec], _make_executor(transport))
+
+    batches = list(adapter.query_records_all(_ref(apt_spec), Query(page_size=2)))
+
+    assert transport.requests == 2
+    names = [str(row["aptNm"]) for batch in batches for row in batch.items]
+    assert names == [f"apt{_LONE}1-0", f"apt{_LONE}1-1", f"apt{_LONE}2-0", f"apt{_LONE}2-1"]
