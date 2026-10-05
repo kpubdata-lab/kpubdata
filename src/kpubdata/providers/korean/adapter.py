@@ -122,7 +122,7 @@ class KoreanAdapter:
         return RecordBatch(
             items=items,
             dataset=dataset,
-            total_count=total_count if total_count else None,
+            total_count=total_count,
             next_page=next_page,
             raw=payload,
         )
@@ -193,7 +193,7 @@ class KoreanAdapter:
 
     def _parse_stdict_envelope(
         self, payload: Mapping[str, object], dataset_id: str
-    ) -> tuple[list[dict[str, object]], int]:
+    ) -> tuple[list[dict[str, object]], int | None]:
         """Extract ``(items, total_count)`` from the stdict channel envelope.
 
         A polysemous headword carries several `sense` entries. They are
@@ -224,7 +224,8 @@ class KoreanAdapter:
                 dataset_id=dataset_id,
             )
 
-        total_count = 0
+        # None until the provider names a count; zero is a count (#806).
+        total_count: int | None = None
         total_raw = channel.get("total")
         if isinstance(total_raw, str) and total_raw.isdigit():
             total_count = int(total_raw)

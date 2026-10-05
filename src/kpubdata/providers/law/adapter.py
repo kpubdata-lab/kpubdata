@@ -15,7 +15,12 @@ from urllib.parse import urlencode
 from kpubdata.config import KPubDataConfig
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
 from kpubdata.exceptions import AuthError, DatasetNotFoundError, ParseError, ProviderResponseError
-from kpubdata.providers._common import build_schema_from_metadata, coerce_int, load_catalogue
+from kpubdata.providers._common import (
+    build_schema_from_metadata,
+    coerce_int,
+    load_catalogue,
+    reported_total,
+)
 from kpubdata.transport.decode import decode_json
 from kpubdata.transport.http import HttpTransport, TransportConfig
 
@@ -99,7 +104,9 @@ class LawAdapter:
         url = self._build_request_url(dataset, params=query.filters, page=page, page_size=page_size)
         payload = self._request_and_decode(url, dataset.id)
         items = self._extract_items(payload, dataset)
-        total_count = coerce_int(payload.get("totalCnt"), 0)
+        reported_count = reported_total(payload.get("totalCnt"))
+        # Paging treats "no count" and zero alike: only a positive count bounds it.
+        total_count = reported_count or 0
 
         if (total_count and page * page_size < total_count) or (
             not total_count and len(items) == page_size and page_size > 0
@@ -122,7 +129,7 @@ class LawAdapter:
         return RecordBatch(
             items=items,
             dataset=dataset,
-            total_count=total_count if total_count else None,
+            total_count=reported_count,
             next_page=next_page,
             raw=payload,
         )

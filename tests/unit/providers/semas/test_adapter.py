@@ -255,7 +255,8 @@ def test_query_records_handles_empty_response() -> None:
     batch = adapter.query_records(dataset, Query())
 
     assert batch.items == []
-    assert batch.total_count is None
+    # The fixture carries ``totalCount: 0`` (#806).
+    assert batch.total_count == 0
     assert batch.next_page is None
 
 

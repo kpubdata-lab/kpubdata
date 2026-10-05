@@ -600,7 +600,8 @@ class TestDataGoAdapterQueryRecords:
         batch = adapter.query_records(dataset, Query())
 
         assert batch.items == []
-        assert batch.total_count is None
+        # The provider said zero; that is a count, not a missing one (#806).
+        assert batch.total_count == 0
 
     # test query records empty items logs debug Describes the scenario verified by the test.
     def test_query_records_empty_items_logs_debug(self, caplog: pytest.LogCaptureFixture) -> None:

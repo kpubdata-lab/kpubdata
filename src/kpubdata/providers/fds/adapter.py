@@ -106,7 +106,7 @@ class FdsAdapter:
         return RecordBatch(
             items=items,
             dataset=dataset,
-            total_count=total_count if total_count else None,
+            total_count=total_count,
             next_page=next_page,
             raw=payload,
         )
@@ -182,7 +182,7 @@ class FdsAdapter:
 
     def _parse_fds_envelope(
         self, payload: Mapping[str, object], dataset_id: str, service: str | None = None
-    ) -> tuple[list[dict[str, object]], int]:
+    ) -> tuple[list[dict[str, object]], int | None]:
         """Extract ``(items, total_count)`` from an FDS response.
 
         Shape observed against the live API on 2026-08-26, called with an invalid
@@ -224,7 +224,8 @@ class FdsAdapter:
                     dataset_id=dataset_id,
                 )
 
-        total_count = 0
+        # None until the provider names a count; zero is a count (#806).
+        total_count: int | None = None
         total_raw = section.get("total_count")
         if isinstance(total_raw, str) and total_raw.isdigit():
             total_count = int(total_raw)

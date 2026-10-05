@@ -255,6 +255,25 @@ def coerce_int(value: object, default: int) -> int:
     return default
 
 
+def reported_total(value: object) -> int | None:
+    """A total count as the provider sent it, or ``None`` when it sent none (#806).
+
+    Zero is an answer — the provider said there are no rows — and is kept as ``0``.
+    ``None`` is for a count that is absent or is not a number, so a caller can tell
+    "no rows" from "the provider did not say".
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return None
+    return None
+
+
 def require_string_field(entry: Mapping[str, object], field_name: str, provider: str) -> str:
     """Extract required non-empty string field from catalogue entry."""
     value = entry.get(field_name)
@@ -271,5 +290,6 @@ __all__ = [
     "build_schema_from_metadata",
     "coerce_int",
     "load_catalogue",
+    "reported_total",
     "require_string_field",
 ]
