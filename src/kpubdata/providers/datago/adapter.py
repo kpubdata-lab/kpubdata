@@ -23,7 +23,11 @@ from kpubdata.exceptions import (
     ProviderResponseError,
     TransportError,
 )
-from kpubdata.providers._common import build_schema_from_metadata, coerce_int, load_catalogue
+from kpubdata.providers._common import (
+    build_schema_from_metadata,
+    load_catalogue,
+    reported_total,
+)
 from kpubdata.providers.datago.envelope import DataGoEnvelopeParser
 from kpubdata.transport.decode import decode_json, decode_xml, detect_content_type
 from kpubdata.transport.http import HttpTransport, TransportConfig
@@ -180,7 +184,9 @@ class DataGoAdapter:
         else:
             body, items = self._envelope_parser.parse(payload, dataset)
 
-        total_count = coerce_int(body.get("totalCount"), 0)
+        reported_count = reported_total(body.get("totalCount"))
+        # Paging treats "no count" and zero alike: only a positive count bounds it.
+        total_count = reported_count or 0
         if (total_count and page * page_size < total_count) or (
             not total_count and len(items) == page_size
         ):
@@ -204,7 +210,7 @@ class DataGoAdapter:
         return RecordBatch(
             items=items,
             dataset=dataset,
-            total_count=total_count if total_count else None,
+            total_count=reported_count,
             next_page=computed_next,
             raw=payload,
         )
