@@ -1,8 +1,8 @@
 {
   "version": 1,
   "owner": "kpubdata",
-  "description": "Cross-repo compatibility matrix (#466). A record kept for people and release notes: no CI in kpubdata, kpubdata-builder or kpubdata-studio reads it to gate a dependency range (#788). tests/unit/test_compatibility_json.py checks its shape and that the released-range row matches Builder's pin as docs/compatibility.md states it.",
-  "update_policy": "Update on every kpubdata release. Builder/Studio link here, never copy.",
+  "description": "Cross-repo compatibility matrix (#466). A record kept for people and release notes: no CI in kpubdata, kpubdata-builder or kpubdata-studio reads it to gate a dependency range (#788). tests/unit/test_compatibility_json.py checks its shape, that the supported row is the pin docs/compatibility.md states, and that this package's version is not behind it. The supported row is Builder's pin and moves with the application release (docs/compatibility.md 5.1), so right after a kpubdata release the package is ahead of it.",
+  "update_policy": "Updated with the Builder and Studio release, after Builder's pin has moved to the new kpubdata (docs/compatibility.md 5.1). Builder/Studio link here, never copy.",
   "matrix": [
     {
       "kpubdata": ">=0.8.0,<0.9",
