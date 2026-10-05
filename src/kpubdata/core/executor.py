@@ -45,7 +45,7 @@ from kpubdata.core.models import (
     ValidationReport,
 )
 from kpubdata.core.representation import Representation
-from kpubdata.core.spec import SpecDefinition
+from kpubdata.core.spec import SpecDefinition, reported_license
 from kpubdata.exceptions import (
     AuthError,
     DatasetNotFoundError,
@@ -1263,14 +1263,16 @@ def build_spec_dataset_ref(spec: SpecDefinition) -> DatasetRef:
     if spec.source is not None and spec.source.verified_at:
         # Spec basis date — lets consumers judge metadata freshness.
         raw_metadata["verified_at"] = spec.source.verified_at
-    if spec.license is not None:
+    # ``allowed`` without its attribution text is reported as ``unknown`` (#812).
+    licence = reported_license(spec.license)
+    if licence is not None:
         raw_metadata["license"] = {
-            "type": spec.license.type,
-            "redistribution": spec.license.redistribution,
-            "attribution": spec.license.attribution,
-            "quota": spec.license.quota,
-            "pii_columns": list(spec.license.pii_columns),
-            "commercial_use": spec.license.commercial_use,
+            "type": licence.type,
+            "redistribution": licence.redistribution,
+            "attribution": licence.attribution,
+            "quota": licence.quota,
+            "pii_columns": list(licence.pii_columns),
+            "commercial_use": licence.commercial_use,
         }
     return DatasetRef(
         id=spec.id,
@@ -1287,7 +1289,7 @@ def build_spec_dataset_ref(spec: SpecDefinition) -> DatasetRef:
         tags=(spec.provider, "spec"),
         source_url=spec.source.url if spec.source else None,
         raw_metadata=MappingProxyType(raw_metadata),
-        license=spec.license,
+        license=licence,
     )
 
 

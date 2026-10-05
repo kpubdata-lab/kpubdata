@@ -17,6 +17,12 @@ What follows from it, and where it is enforced:
 - `DatasetRef.license` is `None` for a dataset that declares nothing, and `None` means
   unknown — never "no restrictions". `tests/unit/test_declared_terms_decision.py` holds
   that every dataset with terms is spec-backed and every catalogue-only dataset has none.
+- `redistribution: allowed` is reported only with the `attribution` text that shows the
+  terms were read from the provider's page. A spec that says `allowed` without it — the
+  ones frozen in `scripts/unconfirmed_terms_baseline.txt` (#732) — reports `unknown` on
+  its `DatasetRef` (#813, decided in #812). The spec file keeps its declaration, so the
+  ratchet still counts it; Builder's own reading of the attribution
+  (kpubdata-builder#1036) stays as a second check.
 - Builder reads `license.redistribution` at publish. A source whose dataset declares
   nothing is `unknown`, and a public publish of it is refused with
   `redistribution_unknown` ("the dataset declares no redistribution terms"); a private
