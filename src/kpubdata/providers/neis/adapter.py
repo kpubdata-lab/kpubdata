@@ -123,7 +123,7 @@ class NeisAdapter:
         return RecordBatch(
             items=items,
             dataset=dataset,
-            total_count=total_count if total_count else None,
+            total_count=total_count,
             next_page=next_page,
             raw=payload,
         )
@@ -177,7 +177,7 @@ class NeisAdapter:
 
     def _parse_neis_envelope(
         self, payload: Mapping[str, object], operation: str, dataset_id: str
-    ) -> tuple[list[dict[str, object]], int]:
+    ) -> tuple[list[dict[str, object]], int | None]:
         """Extract (items, total_count) from NEIS unique dual-list envelope.
 
         No results (INFO-200) is normal empty batch operation. Error codes are
@@ -196,9 +196,11 @@ class NeisAdapter:
                     provider="neis",
                     dataset_id=dataset_id,
                 )
-            return [], 0
+            # No rows, and no count either: the response carries only RESULT (#806).
+            return [], None
 
-        total_count = 0
+        # None until the provider names a count; zero is a count (#806).
+        total_count: int | None = None
         items: list[dict[str, object]] = []
         for section in sections:
             if not isinstance(section, list):

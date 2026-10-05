@@ -318,7 +318,8 @@ def test_fixture_empty_response(configured_adapter: AdapterFactory) -> None:
     batch = adapter.query_records(dataset, Query())
 
     assert batch.items == []
-    assert batch.total_count is None
+    # The fixture carries ``totalCount: 0`` (#806).
+    assert batch.total_count == 0
 
 
 # test fixture string numerics Describes the scenario verified by the test.
