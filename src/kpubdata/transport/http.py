@@ -97,6 +97,12 @@ class TransportConfig:
     #: bound, the library would block the thread for hours when a server
     #: returned 3600.
     max_retry_delay: float = 60.0
+    #: Follow a redirect on a request that carries a credential. Off by default
+    #: (#812): the client re-sends the request to wherever the answer points, and with
+    #: the key in the query string that hands the key to that host — an ``http://``
+    #: answer can be forged by anyone on the path. A request without a credential is
+    #: redirected as before. Turn this on only for a provider known to redirect.
+    follow_credentialed_redirects: bool = False
 
 
 @dataclass(frozen=True)
@@ -424,7 +430,26 @@ class HttpTransport:
                     content=content,
                     json=json_body,
                 )
-                response = self.client.send(request, stream=True)
+                follow_redirects = (
+                    not credential_in_request or self._config.follow_credentialed_redirects
+                )
+                response = self.client.send(request, stream=True, follow_redirects=follow_redirects)
+                if response.is_redirect and not follow_redirects:
+                    # Not followed: the key would go to wherever the answer points (#812).
+                    # Only the host is named; the location may itself carry the key.
+                    target = urlsplit(response.headers.get("location", "")).hostname
+                    status_code = response.status_code
+                    response.close()
+                    redirect_error = TransportError(
+                        f"{method} {log_url} was answered with a redirect ({status_code}) to "
+                        f"{target or 'another location'}, and a request that carries a "
+                        "credential is not redirected",
+                        provider=provider,
+                        dataset_id=dataset_id,
+                        status_code=status_code,
+                    )
+                    _mark_credential_bearing(redirect_error, credential_in_request)
+                    raise redirect_error
                 try:
                     _ = response.raise_for_status()
                     response = _read_limited_response(
