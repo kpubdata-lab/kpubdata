@@ -62,13 +62,32 @@ def test_it_no_longer_claims_a_ci_reads_it(document: dict[str, Any]) -> None:
     assert "CI read this file" not in document["description"]
 
 
-def test_exactly_one_range_is_supported_and_this_version_is_in_it(
+def lower_bound(spec: str) -> tuple[int, ...]:
+    """The ``>=`` bound of a ``>=a.b.c,<d.e`` range as the matrix writes it."""
+    match = re.search(r">=\s*([\d.]+)", spec)
+    assert match, f"no lower bound in {spec!r}"
+    return tuple(int(part) for part in match.group(1).split("."))
+
+
+def test_exactly_one_range_is_supported_and_this_version_is_not_behind_it(
     document: dict[str, Any],
 ) -> None:
+    """The package may be ahead of the supported range, never behind it.
+
+    The supported row is Builder's pin, and Builder pins only a released kpubdata
+    (``docs/compatibility.md`` §5.1, Independence Rule 12): kpubdata goes out first, the
+    pin moves after it, and this row is updated with the application release. So a
+    kpubdata release pull request raises the version past the row's upper bound, and
+    that is the normal order, not a mismatch. This used to require the version to be
+    inside the range, which made a release pull request fail its own gate (#780): the
+    row would have had to claim a pin Builder did not have yet.
+
+    What cannot happen is the version sitting below the range Builder asks for.
+    """
     supported = [row for row in document["matrix"] if row["status"] == "supported"]
 
     assert len(supported) == 1
-    assert in_range(_version(), supported[0]["kpubdata"])
+    assert _version() >= lower_bound(supported[0]["kpubdata"])
 
 
 def test_the_supported_range_is_the_pin_the_compatibility_document_states(
@@ -91,3 +110,20 @@ def test_the_supported_range_is_the_pin_the_compatibility_document_states(
 )
 def test_the_range_reader(version: tuple[int, ...], spec: str, expected: bool) -> None:
     assert in_range(version, spec) is expected
+
+
+@pytest.mark.parametrize(
+    ("version", "expected"),
+    [
+        # The release that follows the supported range: ahead of it, allowed.
+        ((0, 9, 0), True),
+        ((0, 8, 0), True),
+        ((0, 8, 7), True),
+        # Behind what Builder asks for: never.
+        ((0, 7, 9), False),
+    ],
+)
+def test_a_version_ahead_of_the_supported_range_passes_and_one_behind_does_not(
+    version: tuple[int, ...], expected: bool
+) -> None:
+    assert (version >= lower_bound(">=0.8.0,<0.9")) is expected
