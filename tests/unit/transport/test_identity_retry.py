@@ -33,7 +33,9 @@ class FakeGzipBrokenClient:
         self.sent_accept_encodings.append(accept)
         return httpx.Request(method, url, params=params, headers=headers)
 
-    def send(self, request: httpx.Request, stream: bool = True) -> httpx.Response:
+    def send(
+        self, request: httpx.Request, stream: bool = True, follow_redirects: bool = True
+    ) -> httpx.Response:
         accept = request.headers.get("accept-encoding")
         if accept == "identity" and not self.always_broken:
             return httpx.Response(200, content=b'{"ok": true}', request=request)
