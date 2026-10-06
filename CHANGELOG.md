@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-10-06
+
 ### Added
 
 - **`DatasetRef.to_dict()`** (#784): a dataset reference serialises to a JSON-safe dict with a stable set of keys — identity, `status` (#783), `query_support`, `license`, `request_parameters`, `application` and `verified_at`. `dataclasses.asdict(ref)` raised `TypeError` on `raw_metadata`, so a consumer had to read `raw_metadata`, which carries no stability promise. Every key is always present; `None` means nothing is declared. The key list is in `docs/compatibility.md` §3. `kpubdata datasets list --format json` and `datasets show --format json` print this dict: `list` entries gain the new keys next to `id`, `name`, `provider` and `operations`, and `show` keeps `capabilities` and `raw_metadata_keys` beside them.
