@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The line httpx logs for each request no longer holds a key in a URL path or under an unlisted parameter name (#821). The filter on the `httpx` logger masked by parameter name only, so the keys of seoul, fds and bok — sent as a path segment — and a key under a name the list lacks went to any application that logs `httpx` at INFO. The transport now makes the values it is sending known for the length of the call, and the line is masked by them as well. A key in a path is matched whole even when it contains `/`, and in its percent-encoded forms; this also applies to the URLs in kpubdata's own logs and errors, where a key containing `/` was not masked in a path before.
+
 ### Changed
 
 - **Breaking for callers that read `total_count` from seoul or kipris:** a result with no rows now reports `total_count == 0`, as every other adapter has since 0.9.0 (#806, #824). seoul reported `None` for it. kipris reported `None` when empty and otherwise the number of rows **on the page**, which is not a total — its envelope carries none — so a non-empty kipris result now reports `None` (not known). A caller that tested `total_count is None` for "no rows" on these two providers must test `== 0`; one that used kipris's value as the full count was using a page length.

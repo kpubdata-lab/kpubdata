@@ -11,9 +11,12 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import ssl
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -53,19 +56,45 @@ class _HttpxUrlRedactingFilter(logging.Filter):
     data.go.kr ``serviceKey`` -- verbatim to any application that logs at INFO.
     For a multi-user service holding its users' keys, that is a leak.
 
-    Masking is by parameter name (``SENSITIVE_PARAM_KEYS``). A key embedded in a
-    path segment is not visible to a name-based filter; those providers already
-    avoid putting the URL anywhere kpubdata logs.
+    Masking is by parameter name (``SENSITIVE_PARAM_KEYS``) and by value (#821). A
+    name-based filter sees neither a key in a path segment (seoul, fds, bok) nor one
+    under a name nobody listed (DART's ``crtfc_key``), so the transport makes the
+    values it is sending known for the length of the call (``_sending``), and the
+    line httpx logs during that call is masked by them too.
     """
 
     @override
     def filter(self, record: logging.LogRecord) -> bool:
         args = record.args
         if isinstance(args, tuple) and args:
+            secret_values = _in_flight_secrets.get()
             record.args = tuple(
-                _mask_url(str(arg)) if isinstance(arg, httpx.URL) else arg for arg in args
+                _mask_url(str(arg), secret_values=secret_values) if _is_url(arg) else arg
+                for arg in args
             )
         return True
+
+
+def _is_url(arg: object) -> bool:
+    """A URL as httpx passes it, or one an earlier filter on the logger already rendered."""
+    return isinstance(arg, httpx.URL) or (isinstance(arg, str) and "://" in arg)
+
+
+#: The secret values of the request this thread is sending, for the httpx log filter.
+#: A context variable, so two transports sending at once do not see each other's.
+_in_flight_secrets: ContextVar[tuple[str, ...]] = ContextVar(
+    "kpubdata_in_flight_secrets", default=()
+)
+
+
+@contextmanager
+def _sending(secret_values: tuple[str, ...]) -> Iterator[None]:
+    """Make ``secret_values`` known to the httpx log filter until the block ends."""
+    token = _in_flight_secrets.set(secret_values)
+    try:
+        yield
+    finally:
+        _in_flight_secrets.reset(token)
 
 
 def _install_httpx_redaction() -> None:
@@ -433,7 +462,12 @@ class HttpTransport:
                 follow_redirects = (
                     not credential_in_request or self._config.follow_credentialed_redirects
                 )
-                response = self.client.send(request, stream=True, follow_redirects=follow_redirects)
+                # httpx logs the request line inside this call; the filter on its logger
+                # masks by these values as well as by name (#821).
+                with _sending(secret_values):
+                    response = self.client.send(
+                        request, stream=True, follow_redirects=follow_redirects
+                    )
                 if response.is_redirect and not follow_redirects:
                     # Not followed: the key would go to wherever the answer points (#812).
                     # Only the host is named; the location may itself carry the key.
@@ -771,25 +805,34 @@ def _mask_url(url: str, *, secret_values: tuple[str, ...] = ()) -> str:
     ``secret_values`` holds the plaintext key for providers embedding keys in
     path segments (seoul, etc.) (#354) — only exact matches in path segments
     are replaced with ``[REDACTED]`` (value-based, so no false positives on
-    service names or page indices). Unlike query masking, the caller must know
-    the secret value.
+    service names or page indices). A query value that equals one is masked
+    whatever its parameter is called (#821). The caller must know the value.
     """
     try:
         parts = urlsplit(url)
     except ValueError:
         return "[invalid url]"
     if secret_values and parts.path:
-        segments = parts.path.split("/")
-        masked_segments = [
-            "[REDACTED]" if segment in secret_values else segment for segment in segments
-        ]
-        parts = parts._replace(path="/".join(masked_segments))
+        # A segment holds the key as sent or percent-encoded (httpx encodes ``+``, ``/``
+        # and ``=`` in a path), so every form is matched.
+        # A key may itself contain ``/`` and so span segments; it is matched whole, from
+        # one segment boundary to another, never as part of a longer segment.
+        path = parts.path
+        for form in _secret_forms(secret_values):
+            path = re.sub(rf"(?<=/){re.escape(form)}(?=/|$)", "[REDACTED]", path)
+        parts = parts._replace(path=path)
     if not parts.query:
         return urlunsplit(parts) if secret_values else url
 
     query_items = parse_qsl(parts.query, keep_blank_values=True)
+    # By name, and by value: a key under a name nobody listed is still a key (#821).
     masked_items = [
-        (key, "[REDACTED]" if key.casefold() in SENSITIVE_PARAM_KEYS else value)
+        (
+            key,
+            "[REDACTED]"
+            if key.casefold() in SENSITIVE_PARAM_KEYS or (value and value in secret_values)
+            else value,
+        )
         for key, value in query_items
     ]
     if masked_items == query_items:
