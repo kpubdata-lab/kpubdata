@@ -157,6 +157,8 @@ def test_a_page_the_provider_did_not_answer_holds_no_rows() -> None:
     batch = adapter.query_records(ref, Query(filters={"applicationNumber": "1"}, page=2))
 
     assert (batch.items, batch.next_page) == ([], None)
+    # "There is no page 2" is not "there are no rows": page 1 held a hundred.
+    assert batch.total_count is None
 
 
 def test_the_same_rows_twice_stop_list_all_when_the_envelope_names_no_page() -> None:
@@ -168,3 +170,26 @@ def test_the_same_rows_twice_stop_list_all_when_the_envelope_names_no_page() -> 
 
     # Two requests, not the 1,000 the page limit allows.
     assert transport.asked == [(1, 100), (2, 100)]
+
+
+def test_an_empty_page_after_a_full_one_does_not_report_zero_rows() -> None:
+    """Now that the page is sent, an empty answer can be a later page (#827, #837)."""
+    _dataset_, _transport, adapter = _dataset(_paging(100))
+    ref = adapter.get_dataset("patent_family")
+
+    first = adapter.query_records(ref, Query(filters={"applicationNumber": "1"}, page=1))
+    second = adapter.query_records(ref, Query(filters={"applicationNumber": "1"}, page=2))
+
+    assert (len(first.items), first.total_count, first.next_page) == (100, None, 2)
+    assert (second.items, second.total_count, second.next_page) == ([], None, None)
+
+
+def test_only_an_empty_first_page_reports_zero_rows() -> None:
+    _dataset_, _transport, adapter = _dataset(_paging(0))
+    ref = adapter.get_dataset("patent_family")
+
+    first = adapter.query_records(ref, Query(filters={"applicationNumber": "1"}))
+    later = adapter.query_records(ref, Query(filters={"applicationNumber": "1"}, page=3))
+
+    assert (first.items, first.total_count) == ([], 0)
+    assert (later.items, later.total_count) == ([], None)

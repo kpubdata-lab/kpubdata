@@ -128,9 +128,11 @@ class KiprisAdapter:
         return RecordBatch(
             items=items,
             dataset=dataset,
-            # The envelope carries no total. An empty answer is zero rows (#806); for
-            # anything else the total is not known — the page's length is not it (#824).
-            total_count=None if items else 0,
+            # The envelope carries no total. An empty **first** page is zero rows (#806).
+            # For anything else the total is not known: the page's length is not it
+            # (#824), and an empty later page says only that the rows ended before it —
+            # a 100-row family's empty page 2 is not "no rows" (#837).
+            total_count=0 if page == 1 and not items else None,
             next_page=next_page,
             raw=payload,
         )
