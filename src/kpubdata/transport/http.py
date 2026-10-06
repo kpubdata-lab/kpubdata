@@ -13,6 +13,7 @@ import logging
 import os
 import re
 import ssl
+import threading
 import time
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
@@ -165,6 +166,9 @@ class HttpTransport:
         # tests and async embedding inject explicitly.
         self._sleep: Callable[[float], None] = sleep or (lambda delay: time.sleep(delay))
         self._client: httpx.Client | None = None
+        # Guards the lazily built client: two threads that both found none each built
+        # one, and the one that lost the assignment was never closed (#823).
+        self._client_lock = threading.Lock()
 
     @classmethod
     def with_requirements(
@@ -188,7 +192,7 @@ class HttpTransport:
 
     def __enter__(self) -> HttpTransport:
         """Enter context manager and initialize client immediately."""
-        self._client = self._build_client()
+        _ = self.client
         return self
 
     def __exit__(self, *exc: object) -> None:
@@ -240,16 +244,21 @@ class HttpTransport:
 
     def close(self) -> None:
         """Close the client if initialized."""
-        if self._client is not None:
-            self._client.close()
-            self._client = None
+        with self._client_lock:
+            client, self._client = self._client, None
+        if client is not None:
+            client.close()
 
     @property
     def client(self) -> httpx.Client:
         """Return the lazily-initialized shared ``httpx.Client`` instance."""
-        if self._client is None:
-            self._client = self._build_client()
-        return self._client
+        client = self._client
+        if client is None:
+            with self._client_lock:
+                client = self._client
+                if client is None:
+                    client = self._client = self._build_client()
+        return client
 
     @property
     def cache(self) -> ResponseCache | None:
