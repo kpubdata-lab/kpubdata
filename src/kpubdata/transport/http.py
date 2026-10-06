@@ -366,7 +366,10 @@ class HttpTransport:
             if replayed is not None:
                 return replayed
 
-        total_attempts = self._config.max_retries + 1
+        # A method that is not idempotent is sent once (#844). Retrying a POST after a
+        # timeout or a 5xx repeats whatever the first attempt may already have done at
+        # the provider, and the transport cannot know that it did nothing.
+        total_attempts = self._config.max_retries + 1 if method.upper() in _RETRIED_METHODS else 1
         # Build cache key only for safe method/URL/header combinations; reuse
         # GET responses. ``no_store`` is for requests where the response body
         # itself is a credential (sgis token). Caching it stores the token in
@@ -703,6 +706,11 @@ class HttpTransport:
         if _contains_sensitive_headers(headers):
             return None
         return make_cache_key(method, url, params, _cache_headers_subset(headers))
+
+
+#: The methods a failed attempt is repeated for: the idempotent ones (RFC 9110 §9.2.2).
+#: ``POST`` and ``PATCH`` are not.
+_RETRIED_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "PUT", "DELETE"})
 
 
 def _is_retryable_status(status_code: int) -> bool:
