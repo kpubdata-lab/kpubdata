@@ -13,8 +13,10 @@ Design principles:
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import re
+import threading
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from datetime import date
@@ -811,16 +813,47 @@ def _iter_yaml_files(root: Path) -> list[Path]:
     return sorted(files)
 
 
+#: The specs shipped in the package, parsed once per process and directory (#822). The
+#: files do not change while the process runs, and a client read all of them again for
+#: every provider it resolved.
+_bundled_specs: dict[Path, tuple[SpecDefinition, ...]] = {}
+_bundled_specs_lock = threading.Lock()
+
+
+def _load_specs(target: Path) -> list[SpecDefinition]:
+    return [load_spec_file(path) for path in _iter_yaml_files(target)]
+
+
 def discover_specs(root: Path | None = None) -> list[SpecDefinition]:
     """Load all specs from specs directory.
 
     If root is omitted, discovers from the in-package ``kpubdata/specs/``.
     schema.json is not YAML so it's naturally excluded.
+
+    The in-package specs are read and validated once per process; every call gets its
+    own copy, so a caller that changes what it was given changes nothing for the next
+    (a spec is frozen, but holds dictionaries). A directory passed as ``root`` is read
+    on every call: its files are the caller's and may change between calls.
     """
-    target = _default_specs_dir() if root is None else root
-    if not target.is_dir():
-        return []
-    return [load_spec_file(path) for path in _iter_yaml_files(target)]
+    if root is not None:
+        return _load_specs(root) if root.is_dir() else []
+    target = _default_specs_dir()
+    cached = _bundled_specs.get(target)
+    if cached is None:
+        with _bundled_specs_lock:
+            cached = _bundled_specs.get(target)
+            if cached is None:
+                if not target.is_dir():
+                    return []
+                cached = tuple(_load_specs(target))
+                _bundled_specs[target] = cached
+    return copy.deepcopy(list(cached))
+
+
+def _forget_bundled_specs() -> None:
+    """Drop the parsed in-package specs, so the next call reads the files again."""
+    with _bundled_specs_lock:
+        _bundled_specs.clear()
 
 
 def spec_index(root: Path | None = None) -> dict[str, SpecDefinition]:
