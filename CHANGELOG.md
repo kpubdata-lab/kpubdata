@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **release-please opens the release pull request** (#819). `release-please.yml` works out the next version from the commit titles on `main` since the last tag — a breaking change or a `feat` raises the minor, fixes alone the patch — and keeps one pull request open that raises it. It does only that: the CHANGELOG stays hand-written under `[Unreleased]`, the same workflow adds the `uv.lock` version and the dated CHANGELOG section to the release branch, and nothing is tagged until the pull request is merged and `release.yml` has checked the release window and run the gates. `scripts/set_version.py` also writes `.release-please-manifest.json`, so a release prepared by hand does not leave release-please bumping from an old version. `mode=prepare` remains for a pre-release and a critical patch. No change to the package.
+
 ## [0.9.0] — 2026-10-06
 
 ### Added

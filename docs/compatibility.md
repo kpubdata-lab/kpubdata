@@ -192,6 +192,19 @@ builder 의 릴리스를 받는다. builder 가 끝났고 studio 가 준비됐�
 다시 돌리는 것은 소용없다 — 같은 이벤트를 다시 읽으므로 병합 뒤 본문에 추가한
 `Critical-Patch` 줄은 보이지 않는다.
 
+**kpubdata 의 release PR 은 release-please 가 연다**(#819). `release-please.yml` 이
+`main` 에 push 될 때마다 마지막 태그 뒤의 커밋 제목에서 다음 버전을 계산해 release PR 을
+열고 갱신한다 — BREAKING 이나 `feat` 이 있으면 minor, 수정만 있으면 patch, 그 밖의
+커밋뿐이면 PR 을 열지 않는다. release-please 가 하는 것은 거기까지다. CHANGELOG 는
+사람이 `[Unreleased]` 에 쓴 것을 그대로 쓰고(`skip-changelog`), `uv.lock` 과 CHANGELOG
+날짜는 같은 워크플로가 `set_version.py`·`release_notes.py` 로 release 브랜치에 더하며,
+태그는 만들지 않는다(`skip-github-release`). PR 을 병합하면 위의 release 경로가 그대로
+돈다 — 창 검사, 게이트, 그다음 태그. 그래서 **7일 안에 병합한 release PR 은 태그 없이
+`main` 에 남는다**; 병합 자체를 막는 검사는 아직 없다. pre-release 와 critical patch 는
+release-please 가 하지 않으므로 `mode=prepare` 로 낸다. `GITHUB_TOKEN` 으로 연 PR 은
+필수 체크가 돌지 않는다 — `RELEASE_PLEASE_TOKEN` secret 이 없으면 사람이 PR 을 닫았다
+다시 열어야 체크가 시작된다. builder·studio 는 아직 `mode=prepare` 를 쓴다.
+
 **동결도 게이트가 막는다.** `scripts/release_freeze.py` 가 동결 규칙의 유일한 구현이고,
 `.github/actions/release-freeze` 가 그것을 감싸 builder·studio 의 PR 워크플로가 부른다.
 판정은: 오늘(세울 달력)이 창 안이고, 그 창 안에서 studio 가 아직 나가지 않았으면

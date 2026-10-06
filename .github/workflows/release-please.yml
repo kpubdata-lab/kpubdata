@@ -1,0 +1,125 @@
+# The release pull request, kept open by release-please (#819).
+#
+# release-please does two things here and no more: it works out the next version from
+# the commit titles on `main` since the last tag, and it opens — then keeps up to date —
+# the pull request that raises it. In 0.x a breaking change or a `feat` raises the minor
+# and fixes alone raise the patch (`bump-minor-pre-major`), which is the rule in
+# docs/compatibility.md §5.1. Commits that are none of these open nothing.
+#
+# Everything else stays where it was:
+#
+#   - The CHANGELOG is written by people under `[Unreleased]` (`skip-changelog`). The
+#     second half of this job dates that section on the release branch, with the same
+#     script the prepare job uses.
+#   - `uv.lock` repeats the project's own version and release-please does not know it;
+#     scripts/set_version.py writes it (kpubdata-builder#744).
+#   - Nothing is tagged here (`skip-github-release`). Merging the pull request starts
+#     release.yml, which checks the release window, runs the gates and only then tags.
+#   - No labels (`skip-labeling`): POLICY 2.1 lists every label, and the tag is what
+#     says a version is released.
+#
+# The token. A pull request opened with GITHUB_TOKEN starts no `pull_request`
+# workflows, so its required checks never report and it cannot be merged as it is.
+# With a `RELEASE_PLEASE_TOKEN` secret (a fine-grained PAT or an App token with
+# contents and pull-requests write) the checks run by themselves. Without it, close and
+# reopen the pull request by hand — that event is a person's, and the checks start.
+#
+# release.yml's `mode=prepare` is still there for what this cannot do: a pre-release,
+# and a critical patch inside the seven-day interval.
+name: Release please
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  release-pr:
+    name: Open or update the release pull request
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: release-please
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - id: please
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          skip-github-release: true
+          skip-labeling: true
+
+      # Only when release-please wrote the branch in this run. It rebuilds the branch
+      # from `main` each time it does, so the two commits below are made again rather
+      # than carried over.
+      - name: Read the release branch
+        id: branch
+        if: steps.please.outputs.pr
+        env:
+          PR: ${{ steps.please.outputs.pr }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          import os
+
+          pr = json.loads(os.environ["PR"])
+          print(f"name={pr['headBranchName']}")
+          print(f"number={pr['number']}")
+          PY
+
+      - uses: actions/checkout@v7
+        if: steps.please.outputs.pr
+        with:
+          ref: ${{ steps.branch.outputs.name }}
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
+
+      - name: Read the version release-please chose
+        id: version
+        if: steps.please.outputs.pr
+        run: |
+          version=$(python3 -c "
+          import pathlib, re
+          text = pathlib.Path('pyproject.toml').read_text(encoding='utf-8')
+          print(re.search(r'^version = \"([^\"]+)\"', text, re.MULTILINE).group(1))
+          ")
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "release-please chose ${version}"
+
+      - name: Write the version into the lock file
+        if: steps.please.outputs.pr
+        uses: ./.github/actions/set-version
+        with:
+          version: ${{ steps.version.outputs.version }}
+
+      # An empty `[Unreleased]` fails here: something releasable merged without saying
+      # what it changes. The release job would refuse the same thing later, at the tag.
+      - name: Date the CHANGELOG section
+        if: steps.please.outputs.pr
+        uses: ./.github/actions/release-notes
+        with:
+          command: promote
+          version: ${{ steps.version.outputs.version }}
+
+      - name: Push what release-please does not write
+        if: steps.please.outputs.pr
+        env:
+          BRANCH: ${{ steps.branch.outputs.name }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if git diff --quiet; then
+            echo "nothing to add: the lock file and the CHANGELOG already say ${VERSION}"
+            exit 0
+          fi
+          git --no-pager diff --stat
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore: write the lock file and date the CHANGELOG for v${VERSION}"
+          git push origin "HEAD:${BRANCH}"

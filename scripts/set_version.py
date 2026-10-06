@@ -3,7 +3,8 @@
 
 A release changes the version in more than one place. `pyproject.toml` declares it and
 `uv.lock` repeats it under the project's own package entry; `package.json` declares it
-and `package-lock.json` repeats it twice. Writing only the first leaves the repository
+and `package-lock.json` repeats it twice; `.release-please-manifest.json`, where there
+is one, is what release-please bumps from (#819). Writing only the first leaves the repository
 in a state its own gates refuse:
 
     error: The lockfile at `uv.lock` needs to be updated, but `--check` was provided.
@@ -83,6 +84,16 @@ def _package_lock(text: str, version: str) -> tuple[str, int]:
     return text, first + second
 
 
+def _release_please_manifest(text: str, version: str) -> tuple[str, int]:
+    """release-please's record of the last version, for the root package `"."` (#819).
+
+    release-please reads the version to bump *from* here, not from `pyproject.toml`. A
+    release prepared without it — `mode=prepare`, a pre-release — that left this file
+    behind would have the next release pull request computed from the wrong version.
+    """
+    return re.subn(r'("\."\s*:\s*")[^"]+(")', r"\g<1>" + version + r"\g<2>", text, count=1)
+
+
 def project_name(root: Path) -> str:
     """The distribution name, read from the file that declares it.
 
@@ -119,6 +130,7 @@ def set_version(root: Path, version: str) -> dict[str, int]:
         "uv.lock": lambda t: _uv_lock(t, version, name),
         "package.json": lambda t: _package_json(t, version),
         "package-lock.json": lambda t: _package_lock(t, version),
+        ".release-please-manifest.json": lambda t: _release_please_manifest(t, version),
     }
 
     # Work out every change first. A partial write is the failure mode this guards
