@@ -80,17 +80,76 @@ def _json_code(body: bytes) -> str | None:
     return None
 
 
+# --- The ``RESULT`` / ``CODE`` family (#838) ---
+#
+# Seoul Open Data, BOK ECOS, NEIS and LOFIN answer with ``RESULT: {CODE, MESSAGE}`` and
+# codes that are words, not numbers: ``INFO-000`` is success, ``INFO-200`` is "no data"
+# — an ordinary empty answer — and the rest of the list below are refusals. The numeric
+# check above could not read any of them, so an invalid-key or server-error answer was
+# cached like a success.
+#
+# Only codes these providers' own adapters treat as errors are listed (seoul/envelope.py,
+# bok, neis and lofin adapters). A code outside the list is still not judged.
+
+#: A refusal by name: the key is invalid, restricted, or the request or server failed.
+_RESULT_FAILURE_CODES = frozenset({"INFO-100", "INFO-300", "INFO-400", "INFO-500", "ERROR"})
+#: ``ERROR-290``, ``ERROR-300``, ``ERROR-500`` …: every numbered error of the family.
+_RESULT_ERROR_PATTERN = re.compile(r"ERROR-\d{1,4}")
+
+_XML_RESULT_PATTERN = re.compile(rb"<RESULT>\s*<CODE>([^<]{0,32})</CODE>", re.IGNORECASE)
+
+
+def _is_result_failure(code: str) -> bool:
+    code = code.strip().upper()
+    return code in _RESULT_FAILURE_CODES or _RESULT_ERROR_PATTERN.fullmatch(code) is not None
+
+
+def _code_of_result(result: object) -> str | None:
+    """``CODE`` of one ``RESULT`` value: a mapping, or a list holding one (LOFIN)."""
+    if isinstance(result, list) and result:
+        result = result[0]
+    if not isinstance(result, dict):
+        return None
+    # Seoul's top-level form names the field ``RESULT.CODE``.
+    code = result.get("CODE", result.get("RESULT.CODE"))
+    return code if isinstance(code, str) else None
+
+
+def _json_result_code(body: bytes) -> str | None:
+    """The family's code at the two places an error answer carries it: a top-level
+    ``RESULT``, or the ``RESULT`` of the one service object (Seoul)."""
+    try:
+        payload = json.loads(body)
+    except (ValueError, UnicodeDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    code = _code_of_result(payload.get("RESULT"))
+    if code is not None:
+        return code
+    for value in payload.values():
+        if isinstance(value, dict):
+            code = _code_of_result(value.get("RESULT"))
+            if code is not None:
+                return code
+    return None
+
+
 def is_upstream_error_envelope(body: bytes, content_type: str) -> bool:
     """Whether this 200 response is really a refusal. True only when certain."""
     kind = content_type.split(";", 1)[0].strip().casefold()
     if "json" in kind:
         code = _json_code(body)
-        return code is not None and _is_failure_code(code)
+        if code is not None:
+            return _is_failure_code(code)
+        result_code = _json_result_code(body)
+        return result_code is not None and _is_result_failure(result_code)
     if "xml" in kind:
         match = _XML_CODE_PATTERN.search(body)
-        if match is None:
-            return False
-        return _is_failure_code(match.group(2).decode("ascii", "ignore"))
+        if match is not None:
+            return _is_failure_code(match.group(2).decode("ascii", "ignore"))
+        result = _XML_RESULT_PATTERN.search(body)
+        return result is not None and _is_result_failure(result.group(1).decode("ascii", "ignore"))
     return False
 
 
