@@ -183,11 +183,16 @@ agent.
   run a release workflow with `dry_run`, and draft the version and pin pull requests.
   Pushing a tag, creating a GitHub Release, approving the PyPI environment and
   changing what a release contains are a person's (POLICY 14).
-- **Propose the bump from the CHANGELOG, with the reason.** In 0.x, a breaking change
-  or a new feature is minor; fixes alone are patch.
+- **The bump comes from the commit titles.** In 0.x, a breaking change or a new
+  feature is minor; fixes alone are patch. In this repository release-please works it
+  out and keeps the release pull request open (`release-please.yml`, #819), so a
+  wrong type in a pull request title is a wrong version — fix the title before
+  merging. It writes the version only: the CHANGELOG stays hand-written, and merging
+  the pull request is what starts the gated release job. `mode=prepare` remains for a
+  pre-release and for a critical patch.
 - **Write what a release changes under `## [Unreleased]` in `CHANGELOG.md`, as you
-  merge it.** The prepare job dates that section and the release job publishes it as
-  the notes (#595). An empty `[Unreleased]` stops the release.
+  merge it.** The release pull request dates that section and the release job publishes
+  it as the notes (#595). An empty `[Unreleased]` stops the release.
 - **Builder and Studio share one version** (ADR 0004). They ship as one application,
   so a release that only changed one of them still raises both. kpubdata releases only
   when it has a reason, so it has nothing to skip.

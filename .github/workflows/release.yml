@@ -11,6 +11,11 @@
 #   workflow_dispatch, mode=release         gates what is declared now, then tags
 #   pull_request closed on `release/*`      the same, for the pull request path
 #
+# The release pull request is normally the one release-please keeps open
+# (release-please.yml, #819) — its branch is `release-please--branches--main`, and
+# merging it lands in the same release job. `mode=prepare` stays for what
+# release-please does not do: a pre-release, and a critical patch inside the interval.
+#
 # `mode=release` exists because a first release is not a bump. Both applications
 # already declare the version their CHANGELOG says they are preparing, so raising it
 # would leave that version unreleased for ever. The declared version is read from the
@@ -182,7 +187,8 @@ jobs:
       (github.event_name == 'pull_request' &&
        github.event.pull_request.merged == true &&
        github.event.pull_request.base.ref == 'main' &&
-       startsWith(github.event.pull_request.head.ref, 'release/'))
+       (startsWith(github.event.pull_request.head.ref, 'release/') ||
+        github.event.pull_request.head.ref == 'release-please--branches--main'))
     timeout-minutes: 20
     concurrency:
       group: release
@@ -269,9 +275,17 @@ jobs:
         if: github.event_name == 'pull_request'
         env:
           BRANCH: ${{ github.event.pull_request.head.ref }}
+          TITLE: ${{ github.event.pull_request.title }}
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
-          if [ "${BRANCH}" != "release/${TAG}" ]; then
+          # release-please's branch has one name for every release (#819), so there the
+          # version is in the title it wrote — `pull-request-title-pattern`.
+          if [ "${BRANCH}" = "release-please--branches--main" ]; then
+            if [ "${TITLE}" != "chore: release ${TAG}" ]; then
+              echo "::error::the pull request is titled '${TITLE}' but pyproject.toml says ${TAG}"
+              exit 1
+            fi
+          elif [ "${BRANCH}" != "release/${TAG}" ]; then
             echo "::error::branch is ${BRANCH} but pyproject.toml says release/${TAG}"
             exit 1
           fi
