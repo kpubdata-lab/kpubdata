@@ -86,6 +86,17 @@ def test_release_please_neither_tags_nor_labels() -> None:
     assert "git tag" not in workflow
 
 
+def test_it_runs_once_a_day_and_by_hand_not_on_every_push() -> None:
+    """Each run that changes the pull request pushes its branch twice, and every push is
+    a mail to every subscriber. On every push to ``main`` that was two mails a merge."""
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    triggers = workflow.split("\non:\n", 1)[1].split("\npermissions:", 1)[0]
+
+    assert "schedule:" in triggers
+    assert "workflow_dispatch:" in triggers
+    assert "push:" not in triggers
+
+
 def test_the_release_branch_gets_the_lock_file_and_the_dated_changelog() -> None:
     workflow = WORKFLOW.read_text(encoding="utf-8")
 
