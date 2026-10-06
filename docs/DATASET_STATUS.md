@@ -102,6 +102,31 @@ Labels: `type:bug`, `epic:trust`, plus `severity:major` for `broken`, `severity:
 이슈 본문에 추가할 항목을 싣고, 사람(또는 에이전트)이 적용한다. `RETIRED` 는 상태를
 움직이지 않지만 이슈는 연다 — 폐기는 사람의 판단이다.
 
+## 두 개의 축 (#842)
+
+`DatasetStatus` 는 데이터셋 하나에 이름 하나를 준다. 그래서 `application_required` 는 그 뒤의
+데이터셋이 fixture 로 검증됐는지 전혀 검증되지 않았는지를 가렸다. 요약(`status`)은 그대로 두고,
+서로를 움직이지 않는 두 축을 따로 읽을 수 있게 했다.
+
+| 축 | 타입 | 값 | 원천 |
+|---|---|---|---|
+| 검증 수준 | `VerificationLevel` | `planned` · `in_progress` · `fixture_verified` · `live_verified` · `production` | `dataset_metadata.json` 의 `verification` |
+| 활용신청 필요 여부 | `ApplicationRequirement` | `required` · `not_required` · `unknown` | spec/catalogue 의 `application.required`, 없으면 metadata 의 `level` |
+
+- `DatasetRef.verification` 은 활용신청 대기 중에도 바뀌지 않는다. 폐기된 데이터셋과 표에 없는
+  데이터셋은 `None` 이다.
+- `DatasetRef.application_requirement` 는 **기록된 것만** 말한다. `application.required` 가 선언돼
+  있으면 그 값, 없고 `level` 이 `application_required` 면 `required`, 그 밖은 `unknown` 이다.
+  `unknown` 은 "신청 불필요" 가 아니다 — 대부분의 데이터셋은 이 질문이 적힌 적이 없다.
+- 두 축 모두 라이선스·출처·재배포 조건을 말하지 않는다. 그것은 spec 의 `license` 이고(#609, #785),
+  선언이 없으면 `None`(알 수 없음)으로 남는다. "실API 검증" 은 "재배포 가능" 이 아니다.
+- 값은 SDK 의 어휘다. Builder 의 wire 어휘와 맞추지 않으며, Builder 가 필요하면 자기 쪽에서 매핑한다.
+
+`src/kpubdata/dataset_metadata.json` 이 원천이다. `scripts/sync_supported_data.py` 가 fixture 의
+`meta.json` 으로 그 파일을 다시 계산하고 `SUPPORTED_DATA.md` 의 상태·검증·검증일 열을 거기서 쓴다.
+`scripts/gen_dataset_status.py` 가 같은 파일에서 `dataset_status.json`(`DatasetRef.status`)을 쓴다.
+세 파일이 어긋나면 테스트가 실패한다.
+
 ## Pure Function
 
 ```python

@@ -93,6 +93,13 @@ Each `DatasetRef` returned by discovery exposes:
   records, shipped with the package, not a live check — `Client.probe()` makes the
   call. ``None`` means the table does not list the dataset (`datago.generic`, a
   provider registered at run time): unknown, never "verified"
+- `verification`: a `VerificationLevel` — how far the dataset has been checked, alone
+  (#842). It stays `fixture_verified` while `status` is `application_required`. ``None``
+  for an unlisted or a retired dataset
+- `application_requirement`: an `ApplicationRequirement` — `required`, `not_required` or
+  `unknown` (#842). It says what is recorded: the dataset's declared
+  `application.required`, or a recorded `application_required` level. `unknown` is not
+  "none needed"
 
 `DatasetRef.to_dict()` returns the reference as a JSON-serialisable dict (#784): the
 fields above plus `query_support`, `request_parameters`, `application` and

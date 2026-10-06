@@ -40,6 +40,33 @@ class DatasetStatus(str, Enum):
     RETIRED = "retired"
 
 
+class VerificationLevel(str, Enum):
+    """How far a dataset has been checked, whatever else is true of it (#842).
+
+    ``DatasetStatus`` answers with one name, so ``application_required`` hid whether
+    the dataset behind it had been checked against fixtures or not at all. This is
+    that axis alone. The values are the verification names of ``DatasetStatus``.
+    """
+
+    PLANNED = "planned"
+    IN_PROGRESS = "in_progress"
+    FIXTURE_VERIFIED = "fixture_verified"
+    LIVE_VERIFIED = "live_verified"
+    PRODUCTION = "production"
+
+
+class ApplicationRequirement(str, Enum):
+    """Whether the provider asks for a per-dataset application before it answers (#842).
+
+    ``UNKNOWN`` is the answer wherever nothing recorded says either way. It is not
+    "none needed": most datasets have never had the question written down.
+    """
+
+    REQUIRED = "required"
+    NOT_REQUIRED = "not_required"
+    UNKNOWN = "unknown"
+
+
 class SpecStatus(str, Enum):
     """Values of a spec's ``status:`` field. Kept in sync with ``specs/schema.json``."""
 
@@ -218,8 +245,8 @@ def transition(
 def _packaged_statuses() -> Mapping[str, DatasetStatus]:
     """The dataset id → status map shipped with the package.
 
-    ``scripts/gen_dataset_status.py`` writes it from SUPPORTED_DATA.md, and a test
-    fails when the two differ (#783).
+    ``scripts/gen_dataset_status.py`` writes it from ``dataset_metadata.json``, and a
+    test fails when the two differ (#783, #842).
     """
     text = resources.files("kpubdata").joinpath("dataset_status.json").read_text(encoding="utf-8")
     return MappingProxyType({key: DatasetStatus(value) for key, value in json.loads(text).items()})
@@ -234,6 +261,53 @@ def dataset_status(dataset_id: str) -> DatasetStatus | None:
     return _packaged_statuses().get(dataset_id)
 
 
+@lru_cache(maxsize=1)
+def _packaged_metadata() -> Mapping[str, Mapping[str, object]]:
+    """The dataset id → recorded level, verification and date shipped with the package.
+
+    ``dataset_metadata.json`` is the source SUPPORTED_DATA.md's level columns and
+    ``dataset_status.json`` are written from (``scripts/sync_supported_data.py``).
+    """
+    text = resources.files("kpubdata").joinpath("dataset_metadata.json").read_text(encoding="utf-8")
+    return MappingProxyType(
+        {key: MappingProxyType(dict(value)) for key, value in json.loads(text).items()}
+    )
+
+
+def dataset_verification(dataset_id: str) -> VerificationLevel | None:
+    """How far ``dataset_id`` has been checked, or None when nothing records it.
+
+    Independent of whether an application is pending: a dataset awaiting one is still
+    ``fixture_verified`` when its fixtures pass.
+    """
+    entry = _packaged_metadata().get(dataset_id)
+    if entry is None or entry["verification"] is None:
+        # Unlisted, or retired: a dataset that no longer answers is not checked.
+        return None
+    return VerificationLevel(str(entry["verification"]))
+
+
+def application_requirement(
+    dataset_id: str, declared: object | None = None
+) -> ApplicationRequirement:
+    """Whether ``dataset_id`` needs a per-dataset application.
+
+    Args:
+        dataset_id: The dataset.
+        declared: The ``application`` entry of its spec or catalogue, when it has one.
+            Its ``required`` flag decides; without one, a recorded
+            ``application_required`` level says an application is needed. Anything
+            else is ``UNKNOWN``.
+    """
+    required = declared.get("required") if isinstance(declared, Mapping) else None
+    if isinstance(required, bool):
+        return ApplicationRequirement.REQUIRED if required else ApplicationRequirement.NOT_REQUIRED
+    entry = _packaged_metadata().get(dataset_id)
+    if entry is not None and entry["level"] == DatasetStatus.APPLICATION_REQUIRED.value:
+        return ApplicationRequirement.REQUIRED
+    return ApplicationRequirement.UNKNOWN
+
+
 __all__ = [
     "PROBE_TO_DRIFT",
     "PRODUCTION_GRADE_TIERS",
@@ -241,10 +315,14 @@ __all__ = [
     "SUPPORTED_DATA_LEVELS",
     "TRANSIENT_FAILURE_STREAK",
     "UNSTABLE_TO_BROKEN_FAILURES",
+    "ApplicationRequirement",
     "DatasetStatus",
     "DriftClassification",
     "ProbeStatus",
     "SpecStatus",
+    "VerificationLevel",
+    "application_requirement",
     "dataset_status",
+    "dataset_verification",
     "transition",
 ]

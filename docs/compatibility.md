@@ -67,6 +67,8 @@ builder 와 studio 는 **한 애플리케이션, 한 버전**이다(ADR 0004 1�
 - `DatasetRef.to_dict()` 의 키 (#784). 항상 모두 있으며, `None` 은 "선언된 것이 없다"(알 수 없음)이다:
   `id`, `provider`, `dataset_key`, `name`, `description`, `tags`, `source_url`, `representation`, `operations`,
   `status`(`DatasetStatus` 값, #783),
+  `verification`(`VerificationLevel` 값 — 활용신청 여부와 무관한 검증 수준, 기록이 없거나 폐기면 `None`, #842),
+  `application_requirement`(`required`/`not_required`/`unknown` — 기록이 없으면 `unknown` 이며 "신청 불필요" 가 아니다, #842),
   `query_support`(`pagination`, `filterable_fields`, `sortable_fields`, `time_range`, `max_page_size`),
   `license`(`type`, `commercial_use`, `attribution_required`, `modification_allowed`, `redistribution`, `attribution`, `quota`, `pii_columns`, `note`),
   `request_parameters`(선언된 요청 파라미터 목록 — 항목마다 `name`, `required`, `type` 과 있으면 `description`·`example`·`enum`·`api_name`),

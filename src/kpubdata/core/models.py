@@ -13,7 +13,14 @@ from typing import Literal, get_args
 from kpubdata.core.capability import Operation, QuerySupport, _dataclass
 from kpubdata.core.representation import Representation
 from kpubdata.core.spec import LicenseSpec
-from kpubdata.core.status import DatasetStatus, dataset_status
+from kpubdata.core.status import (
+    ApplicationRequirement,
+    DatasetStatus,
+    VerificationLevel,
+    application_requirement,
+    dataset_status,
+    dataset_verification,
+)
 from kpubdata.exceptions import InvalidRequestError
 
 
@@ -56,6 +63,10 @@ class DatasetRef:
         license: The spec's ``license`` section as parsed, or None when the dataset
             declares none (#609). None means unknown, never "no restrictions";
             ``quota`` is the provider's own wording and is not parsed.
+        verification: How far the dataset has been checked, alone (#842): it stays
+            ``fixture_verified`` while an application is pending. None when unrecorded.
+        application_requirement: Whether the provider asks for a per-dataset
+            application (#842). ``unknown`` where nothing recorded says either way.
         status: How far the dataset has been verified — awaiting an application,
             checked against fixtures only, verified against the live API (#783).
             Read from the same table as SUPPORTED_DATA.md; None when that table
@@ -81,6 +92,22 @@ class DatasetRef:
         """Return the dataset's recorded verification status, or None when unknown."""
         return dataset_status(self.id)
 
+    @property
+    def verification(self) -> VerificationLevel | None:
+        """Return how far the dataset has been checked, or None when unrecorded (#842).
+
+        Unlike ``status`` it does not change while an application is pending.
+        """
+        return dataset_verification(self.id)
+
+    @property
+    def application_requirement(self) -> ApplicationRequirement:
+        """Return whether the provider asks for a per-dataset application (#842).
+
+        ``UNKNOWN`` where nothing recorded says either way — never "none needed".
+        """
+        return application_requirement(self.id, self.raw_metadata.get("application"))
+
     def to_dict(self) -> dict[str, object]:
         """Return the reference as a JSON-serialisable dict with a stable set of keys.
 
@@ -97,6 +124,7 @@ class DatasetRef:
         query_support = self.query_support
         license_spec = self.license
         status = self.status
+        verification = self.verification
         return {
             "id": self.id,
             "provider": self.provider,
@@ -108,6 +136,8 @@ class DatasetRef:
             "representation": str(getattr(self.representation, "value", self.representation)),
             "operations": sorted(operation.value for operation in self.operations),
             "status": None if status is None else status.value,
+            "verification": None if verification is None else verification.value,
+            "application_requirement": self.application_requirement.value,
             "query_support": None
             if query_support is None
             else {

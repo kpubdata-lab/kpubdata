@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A dataset's verification and its need for an application are read separately (#842). `DatasetRef.status` gives one name, so `application_required` hid whether the dataset behind it had passed its fixtures. `DatasetRef.verification` (`VerificationLevel`) stays `fixture_verified` while an application is pending, and `DatasetRef.application_requirement` (`ApplicationRequirement`: `required`, `not_required`, `unknown`) says only what is recorded — `unknown` is not "none needed". `to_dict()` gains the keys `verification` and `application_requirement`; `status` and every existing key are unchanged.
+
 ### Fixed
 
 - A data.go.kr `resultCode` is read the same way on every path (#843). The spec executor and the shared localdata/semas adapter compared NODATA to the text `"03"` while the datago adapter compared it to the number 3, so `"3"` or `"003"` was an empty result on one path and a provider error on the others; and the datago and family adapters refused a standard envelope whose code was a JSON number, which the spec path accepted. One reader (`core/_result_code.py`) now serves all three.
@@ -20,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `src/kpubdata/dataset_metadata.json` is the source for a dataset's level (#842). SUPPORTED_DATA.md's three level columns and `dataset_status.json` are written from it by `scripts/sync_supported_data.py` and `scripts/gen_dataset_status.py`; the document was the source before, and a level is no longer changed by editing the table. The retired `g2b_contract` row, which had its provider written into the date cell, is a nine-cell row again.
 - The architecture documents describe the 0.9 code (#845). `ARCHITECTURE.md` listed files that do not exist and left out the spec path (`SpecExecutor`, `SpecDatasetAdapter`, `CompositeProviderAdapter`, `query_records_all`); `PROVIDER_ADAPTER_CONTRACT.md` now matches `core/protocol.py` (`requires_api_key`, `get_dataset(dataset_key)`, the optional `query_records_all`); `CANONICAL_MODEL.md` gains `DatasetRef.status` / `to_dict()` and the validation report; `PRD.md` names the fourteen built-in providers and the current version; `docs/product-family-architecture.md` no longer says Builder does not authenticate its callers. The documents say that the SDK's own version is not the supported Builder/Studio combination, which `docs/compatibility.md` records and which is unchanged here.
 - **Breaking for callers that read `total_count` from seoul or kipris:** a result with no rows now reports `total_count == 0`, as every other adapter has since 0.9.0 (#806, #824). seoul reported `None` for it. kipris reported `None` when empty and otherwise the number of rows **on the page**, which is not a total — its envelope carries none — so a non-empty kipris result now reports `None` (not known). A caller that tested `total_count is None` for "no rows" on these two providers must test `== 0`; one that used kipris's value as the full count was using a page length.
 - The specs shipped in the package are read and validated once per process (#822). `discover_specs()` had no cache and a client called it for every provider it resolved, so listing every provider's datasets read 350 files for 25 specs. Each call still returns its own copy, so changing a returned spec's dictionaries affects nobody else. A directory passed to `discover_specs(root)` is read on every call, as before. A spec file edited inside the installed package while a process runs is not seen until the process restarts.

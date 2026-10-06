@@ -10,9 +10,15 @@
 > - 진행 중: 구현 중이지만 아직 테스트가 완료되지 않음
 > - 예정: 후보 단계 (이슈 등록 또는 아이디어)
 >
-> 상태·검증·검증일 열은 `scripts/sync_supported_data.py` 가 `tests/fixtures` 의 `meta.json` 에서 계산한다 —
-> 손으로 "지원" 을 쓰지 않는다. 검증일은 그 데이터셋 meta 의 가장 최근 `recorded_at` 이다.
-> 활용신청 대기·폐기·진행 중 같은 판단은 사람이 쓰고 스크립트가 보존한다.
+> 상태·검증·검증일 열의 원천은 `src/kpubdata/dataset_metadata.json` 이다 (#842). 이 표의 세 열은
+> `scripts/sync_supported_data.py` 가 그 파일에서 쓰므로 **표에서 손으로 고치지 않는다.**
+> 그 스크립트는 `tests/fixtures` 의 `meta.json` 이 있으면 지원·실API 검증·가장 최근 `recorded_at` 으로
+> metadata 를 다시 계산하고, 활용신청 대기·폐기·진행 중 같은 사람의 판단(metadata 의 `level`)은 보존한다.
+>
+> **상태와 검증은 서로 다른 축이다.** 활용신청 대기인 데이터셋도 fixture 테스트를 통과하면 검증은
+> 테스트 검증이다. 런타임에서는 `DatasetRef.status`(요약), `DatasetRef.verification`(검증 수준),
+> `DatasetRef.application_requirement`(활용신청 필요 여부: `required`/`not_required`/`unknown`)로 따로 읽는다.
+> 기록이 없으면 `unknown` 이며 "신청 불필요" 를 뜻하지 않는다.
 >
 > **검증 정의**
 >
@@ -121,7 +127,7 @@
 | 활용신청 대기 | 테스트 검증 | - | 지방행정인허가 (`localdata`) | `water_tank_cleaning` | 저수조청소업 인허가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 행정안전부 제공, 자원환경/환경관리 — 활용신청 필요(2026-09-09 프로브 #409) |
 | 활용신청 대기 | 테스트 검증 | - | 지방행정인허가 (`localdata`) | `publisher` | 출판사 인허가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 행정안전부 제공, 기타/미디어 — 활용신청 필요(2026-09-09 프로브 #409) |
 | 활용신청 대기 | 테스트 검증 | - | 지방행정인허가 (`localdata`) | `logistics_warehouse` | 물류창고업체 인허가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 행정안전부 제공, 기타/물류 — 활용신청 필요(2026-09-09 프로브 #409) |
-| 폐기 | 폐기 확인 | 2026-09-10  공공데이터포털 (`datago`) | `g2b_contract` | 나라장터 조달계약정보 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 조달청 제공 (CntrctInfoService / `getCntrctInfoListThng`), [#188](https://github.com/kpubdata-lab/kpubdata/issues/188) | — 2026-09-10 본문 프로브: NO_OPENAPI_SERVICE (drift #414/#415에서 확정) |
+| 폐기 | 폐기 확인 | 2026-09-10 | 공공데이터포털 (`datago`) | `g2b_contract` | 나라장터 조달계약정보 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 조달청 제공 (CntrctInfoService / `getCntrctInfoListThng`), [#188](https://github.com/kpubdata-lab/kpubdata/issues/188) — 2026-09-10 본문 프로브: NO_OPENAPI_SERVICE (drift #414/#415에서 확정) |
 | 지원 | 실API 검증 | 2026-10-01 | 공공데이터포털 (`datago`) | `social_enterprise` | 사회적기업 인증현황 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 고용노동부 제공 (ODcloud `socialEnterpriseList/v1`) — spec 단일원천 전환 완료(catalogue 제거, #409), PII 컬럼 3종 선언(대표자명·전화·팩스) |
 | 스키마만 | 테스트 검증 | - | 공공데이터포털 (`datago`) | `g2b_catalog` | 나라장터 종합쇼핑몰 품목정보 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 조달청 제공 (ShoppingMallPrdctInfoService / `getShoppingMallPrdctInfoList`), 필수 파라미터 `inqryDiv` 자동 전송 (`default_filters`), [#191](https://github.com/kpubdata-lab/kpubdata/issues/191), [#414](https://github.com/kpubdata-lab/kpubdata/issues/414) — 실API 검증 2026-09-09 로 표기됐으나 record(`meta.json`)가 없다 → `make record` 로 재기록하면 지원 (#621) |
 | 스키마만 | 테스트 검증 | - | 통계청 통계지리정보서비스 (`sgis`) | `boundary.sido` | 시도 행정구역 경계 | SGIS `consumer_key` + `consumer_secret` | [sgis.kostat.go.kr](https://sgis.kostat.go.kr/developer/html/main.html) | GeoJSON FeatureCollection 응답을 레코드 단위(`items`)로 정규화 |
@@ -212,6 +218,7 @@
 4. **README 동기화**: `지원` 항목만 [README.md](./README.md)의 요약 표에 추가
 5. **명칭 규칙**: provider slug와 dataset id는 코드의 실제 이름과 정확히 일치시킬 것
 6. **PR 포함**: adapter 추가/상태 변경 PR에는 이 문서의 업데이트를 반드시 포함
+7. **상태 변경은 metadata 에서**: 새 행을 추가하면 `src/kpubdata/dataset_metadata.json` 에도 같은 dataset id 의 항목을 넣고, 상태를 바꿀 때는 그 파일의 `level` 을 고친 뒤 `python scripts/sync_supported_data.py && python scripts/gen_dataset_status.py` 를 실행
 
 ## 비상구 / 고급 기능 (Escape Hatches)
 

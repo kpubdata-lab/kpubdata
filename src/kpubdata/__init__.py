@@ -16,7 +16,7 @@ from kpubdata.core.models import (
 )
 from kpubdata.core.representation import Representation
 from kpubdata.core.spec import LicenseSpec, discover_specs, find_spec
-from kpubdata.core.status import DatasetStatus
+from kpubdata.core.status import ApplicationRequirement, DatasetStatus, VerificationLevel
 from kpubdata.exceptions import (
     AuthError,
     ConfigError,
@@ -44,11 +44,13 @@ __all__ = [
     "SENSITIVE_PARAM_KEYS",
     "find_spec",
     "DatasetRef",
+    "ApplicationRequirement",
     "DatasetStatus",
     "LicenseSpec",
     "Query",
     "RecordBatch",
     "SchemaDescriptor",
+    "VerificationLevel",
     "FieldConstraints",
     "FieldDescriptor",
     "Operation",

@@ -1,0 +1,782 @@
+{
+  "bok.base_rate": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "bok.bond_yield_3y": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "bok.money_supply": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "bok.usd_krw": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "datago.agri_price": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.air_quality": {
+    "checked_on": "2026-09-09",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "datago.air_station": {
+    "checked_on": "2026-09-09",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "datago.airkorea_forecast": {
+    "checked_on": "2026-09-09",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "datago.airkorea_station_realtime": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "datago.apt_rent": {
+    "checked_on": "2026-09-09",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "datago.apt_trade": {
+    "checked_on": "2026-09-09",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "datago.asos_daily": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.asos_hourly": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.bond_price": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.bus_arrival": {
+    "checked_on": "2026-10-01",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "datago.culture_facility": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.dur_age_taboo": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.dur_dosage_caution": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.dur_efficacy_duplication": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.dur_er_tablet_split_caution": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.dur_medication_period_caution": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.dur_older_adult_caution": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.dur_pregnancy_taboo": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.dur_product_info": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.dur_usjnt_taboo": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.g2b_catalog": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "datago.g2b_contract": {
+    "checked_on": "2026-09-10",
+    "level": "retired",
+    "verification": null
+  },
+  "datago.hospital_info": {
+    "checked_on": "2026-09-09",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "datago.metro_fare": {
+    "checked_on": "2026-09-09",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "datago.mid_fcst": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.mid_land_fcst": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.mid_sea_fcst": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.mid_ta": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.ocean_buoy": {
+    "checked_on": null,
+    "level": "in_progress",
+    "verification": "in_progress"
+  },
+  "datago.offi_rent": {
+    "checked_on": "2026-09-09",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "datago.offi_trade": {
+    "checked_on": "2026-09-09",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "datago.rh_rent": {
+    "checked_on": "2026-09-09",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "datago.rh_trade": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.road_traffic": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "datago.sh_rent": {
+    "checked_on": "2026-09-09",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "datago.sh_trade": {
+    "checked_on": "2026-09-09",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "datago.social_enterprise": {
+    "checked_on": "2026-10-01",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "datago.sports_facility": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.subway_passengers": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "datago.tour_kor_area": {
+    "checked_on": "2026-09-09",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "datago.tour_kor_festival": {
+    "checked_on": "2026-09-09",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "datago.tour_kor_keyword": {
+    "checked_on": "2026-09-09",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "datago.tour_kor_location": {
+    "checked_on": "2026-09-09",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "datago.ultra_srt_fcst": {
+    "checked_on": "2026-10-01",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "datago.ultra_srt_ncst": {
+    "checked_on": "2026-10-01",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "datago.village_fcst": {
+    "checked_on": "2026-09-09",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "fds.traceability_item": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "kipris.patent_family": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "korean.dict_search": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "kosis.industrial_production": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "kosis.population_migration": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "krx.investor_flow": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "krx.kospi_index": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "krx.market_valuation": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "law.law_detail": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "law.law_search": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "law.ordin_search": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "localdata.affiliated_medical_institution": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.animal_hospital": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.animal_import": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.bakery": {
+    "checked_on": "2026-09-09",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "localdata.barber_shop": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.beauty_salon": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.billiard_hall": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.clinic": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.comprehensive_amusement_facility": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.comprehensive_sports_facility": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.dance_academy": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.dance_hall": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.dental_lab": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.door_to_door_sales": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.entertainment_bar": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.fitness_center": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.food_vending_machine": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.general_amusement_facility": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.general_restaurant": {
+    "checked_on": "2026-09-09",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "localdata.golf_course": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.golf_practice_range": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.groundwater_construction": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.hatchery": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.high_pressure_gas": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.horse_riding": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.hospital": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.ice_rink": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.karaoke": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.laundry": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.livestock_processing": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.livestock_storage": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.log_production": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.logistics_warehouse": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.milk_collection": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.movie_theater": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.online_music_service": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.optical_shop": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.performance_hall": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.pet_grooming": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.pharmacy": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.postpartum_care": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.public_bath": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.publisher": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.rest_cafe": {
+    "checked_on": "2026-09-09",
+    "level": "live_verified",
+    "verification": "live_verified"
+  },
+  "localdata.sawmill": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.singing_bar": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.ski_resort": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.slaughterhouse": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.swimming_pool": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.tourism_business": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.tourist_accommodation": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.tourist_entertainment_restaurant": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.tourist_pension": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.tourist_performance_hall": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.tourist_restaurant": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.video_viewing_room": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.water_tank_cleaning": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.yacht_marina": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "localdata.youth_game_provider": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "lofin.debt_ratio": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "lofin.expenditure_budget": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "lofin.expenditure_function": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "lofin.fiscal_independence": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "lofin.revenue_budget": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "lofin.revenue_by_source": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "neis.meal_diet": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "neis.school_info": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "semas.store_area": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "semas.store_building": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "semas.store_date": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "semas.store_dong": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "semas.store_one": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "semas.store_pnu": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "semas.store_polygon": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "semas.store_radius": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "semas.store_rect": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "semas.store_upjong": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "semas.upjong_large": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "semas.upjong_middle": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "semas.upjong_small": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "semas.zone_admi": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "semas.zone_one": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "semas.zone_radius": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "semas.zone_rect": {
+    "checked_on": null,
+    "level": "application_required",
+    "verification": "fixture_verified"
+  },
+  "seoul.bike_realtime": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "seoul.bike_rent_month": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "seoul.bike_station_master": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "seoul.citydata": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "seoul.park_info": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "seoul.park_usage": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "seoul.subway_realtime_arrival": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "sgis.boundary.emd": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "sgis.boundary.sido": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  },
+  "sgis.boundary.sigungu": {
+    "checked_on": null,
+    "level": "fixture_verified",
+    "verification": "fixture_verified"
+  }
+}
