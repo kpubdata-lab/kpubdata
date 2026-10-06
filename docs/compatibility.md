@@ -193,7 +193,7 @@ builder 의 릴리스를 받는다. builder 가 끝났고 studio 가 준비됐�
 `Critical-Patch` 줄은 보이지 않는다.
 
 **kpubdata 의 release PR 은 release-please 가 연다**(#819). `release-please.yml` 이
-`main` 에 push 될 때마다 마지막 태그 뒤의 커밋 제목에서 다음 버전을 계산해 release PR 을
+하루에 한 번(06:00 KST), 그리고 수동 실행(`workflow_dispatch`) 때 마지막 태그 뒤의 커밋 제목에서 다음 버전을 계산해 release PR 을
 열고 갱신한다 — BREAKING 이나 `feat` 이 있으면 minor, 수정만 있으면 patch, 그 밖의
 커밋뿐이면 PR 을 열지 않는다. release-please 가 하는 것은 거기까지다. CHANGELOG 는
 사람이 `[Unreleased]` 에 쓴 것을 그대로 쓰고(`skip-changelog`), `uv.lock` 과 CHANGELOG
