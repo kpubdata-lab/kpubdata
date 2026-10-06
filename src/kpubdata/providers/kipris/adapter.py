@@ -115,7 +115,9 @@ class KiprisAdapter:
         return RecordBatch(
             items=items,
             dataset=dataset,
-            total_count=len(items) if items else None,
+            # The envelope carries no total. An empty answer is zero rows (#806); for
+            # anything else the total is not known — the page's length is not it (#824).
+            total_count=None if items else 0,
             next_page=next_page,
             raw=payload,
         )

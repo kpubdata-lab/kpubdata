@@ -59,7 +59,8 @@ def test_query_records_builds_kipi_url() -> None:
     assert len(batch.items) == 2
     assert batch.items[0]["docdbFamilyID"] == "35462403"
     assert batch.items[1]["applicationCountryCode"] == "CN"
-    assert batch.total_count == 2
+    # The provider sends no total; the two rows of this page are not one (#824).
+    assert batch.total_count is None
 
 
 def test_query_records_missing_application_number_raises() -> None:
@@ -83,7 +84,7 @@ def test_empty_items_returns_empty_batch() -> None:
     batch = adapter.query_records(dataset, Query(filters={"applicationNumber": "1020050082226"}))
 
     assert batch.items == []
-    assert batch.total_count is None
+    assert batch.total_count == 0
 
 
 def test_full_page_sets_next_page() -> None:
@@ -96,6 +97,8 @@ def test_full_page_sets_next_page() -> None:
     )
 
     assert batch.next_page == 2
+    # More may follow, so the two rows of this full page are not the total (#824).
+    assert batch.total_count is None
 
 
 def test_call_raw_returns_full_envelope() -> None:
