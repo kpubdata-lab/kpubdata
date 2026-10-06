@@ -845,7 +845,9 @@ def _mask_url(url: str, *, secret_values: tuple[str, ...] = ()) -> str:
         for key, value in query_items
     ]
     if masked_items == query_items:
-        return url
+        # Nothing to mask in the query — but the path may have been masked above, and
+        # returning ``url`` here handed back the key that was just taken out of it (#839).
+        return urlunsplit(parts) if secret_values else url
     return urlunsplit(parts._replace(query=urlencode(masked_items, safe="[]")))
 
 
