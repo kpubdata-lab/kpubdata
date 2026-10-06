@@ -30,6 +30,8 @@ classDiagram
         +frozenset[Operation] operations
         +QuerySupport query_support
         +LicenseSpec license
+        +DatasetStatus status
+        +to_dict() dict
     }
     class Query {
         +dict filters
@@ -44,7 +46,10 @@ classDiagram
         +DatasetRef dataset
         +int total_count
         +int next_page
+        +str next_cursor
         +Any raw
+        +dict meta
+        +ValidationReport validation
     }
     class SchemaDescriptor {
         +DatasetRef dataset
@@ -80,7 +85,7 @@ KPubData에서 사용하는 핵심 타입들을 일상적인 도서관 비유로
 
 ### 3.1 DatasetRef (도서 카드)
 - **비유**: 도서관의 **"도서 목록 카드"**와 같습니다. 책이 어느 서가에 있는지, 대출이 가능한지(지원하는 기능), 어떤 내용인지 알려줍니다.
-- **역할**: 이 데이터셋이 어디에 있고(Provider), 고유한 이름(ID)은 무엇인지, 어떤 형식(Representation)인지 정보를 담고 있습니다. 또한 데이터셋에 대한 설명(description), 분류 태그(tags), 원본 문서 링크(source_url)를 포함할 수 있습니다.
+- **역할**: 이 데이터셋이 어디에 있고(Provider), 고유한 이름(ID)은 무엇인지, 어떤 형식(Representation)인지 정보를 담고 있습니다. 또한 데이터셋에 대한 설명(description), 분류 태그(tags), 원본 문서 링크(source_url)를 포함할 수 있습니다. `status`는 이 데이터셋이 어디까지 검증됐는지를 알려주고, `to_dict()`는 카드를 저장·전송할 수 있는 JSON dict로 바꿔줍니다.
 
 ### 3.2 Query (검색 조건)
 - **비유**: 도서관에서 책을 찾을 때 쓰는 **"검색 조건"**입니다. "2024년에 나온 소설 중 서울에서 발간된 것" 같은 조건이죠.
@@ -88,7 +93,7 @@ KPubData에서 사용하는 핵심 타입들을 일상적인 도서관 비유로
 
 ### 3.3 RecordBatch (검색 결과 목록)
 - **비유**: 검색 결과로 나온 **"책 목록 한 뭉치"**입니다. 실제 데이터(책 내용)뿐만 아니라 "총 몇 권이 나왔는지", "다음 페이지가 있는지" 같은 정보도 함께 들어있습니다.
-- **역할**: 실제 데이터 행(rows)과 메타정보를 함께 전달하는 운반체입니다.
+- **역할**: 실제 데이터 행(rows)과 메타정보를 함께 전달하는 운반체입니다. 정규화 중 발견한 필드 단위 문제는 `validation`(`ValidationReport`)에 담깁니다.
 
 ```mermaid
 flowchart LR
@@ -263,6 +268,13 @@ class DatasetRef:
     tags: tuple[str, ...] = ()
     source_url: str | None = None
     license: LicenseSpec | None = None
+
+    @property
+    def status(self) -> DatasetStatus | None: ...
+
+    def to_dict(self) -> dict[str, object]: ...
+
+    def supports(self, op: Operation) -> bool: ...
 ```
 
 Notes:
@@ -276,6 +288,23 @@ Notes:
 - `source_url` links to the original API documentation or data portal page
 - `raw_metadata` is immutable provider-native discovery metadata for debugging and adapter internals
 - `license` is the spec's `license` section as parsed, or `None` when the dataset declares none — `None` means unknown, never "no restrictions" (#609)
+- `status` is a read-only property, not a constructor field: the `DatasetStatus` recorded for `id` in the status table shipped with the package (`kpubdata/dataset_status.json`, the same table as `SUPPORTED_DATA.md`), or `None` when the table does not list the dataset — unknown, never "verified" (#783). It is what was last recorded, not a live check; `Client.probe()` makes the call
+- `to_dict()` returns the reference as a JSON-serialisable dict with a stable set of keys (#784): the fields above except `raw_metadata`, `status` as its string value, and `request_parameters`, `application` and `verified_at` taken from what the spec or catalogue entry declares. Every key is always present and `None` means "nothing declared". The key list and its compatibility promise are in [`docs/compatibility.md`](./docs/compatibility.md) §3
+
+`DatasetStatus` (`kpubdata.DatasetStatus`, defined in `core/status.py`):
+
+```python
+class DatasetStatus(str, Enum):
+    PLANNED = "planned"
+    IN_PROGRESS = "in_progress"
+    FIXTURE_VERIFIED = "fixture_verified"
+    LIVE_VERIFIED = "live_verified"
+    PRODUCTION = "production"
+    APPLICATION_REQUIRED = "application_required"
+    UNSTABLE = "unstable"
+    BROKEN = "broken"
+    RETIRED = "retired"
+```
 
 ### 6.4 Query
 
@@ -338,7 +367,46 @@ class RecordBatch:
     next_cursor: str | None = None
     raw: Any | None = None
     meta: dict[str, Any] = field(default_factory=dict)
+    validation: ValidationReport | None = None
 ```
+
+Notes:
+
+- `next_page` is for offset pagination and `next_cursor` for cursor pagination; both `None` means the last page
+- `meta` carries adapter metadata that fits no canonical field. Spec-backed datasets put `meta["provenance"]` there, and `list_all()` adds `meta["validation_total"]` (the report for the whole multi-page result)
+- `validation` is the field-level report for this batch's rows; `None` means the adapter did not run field-level validation (#572)
+- `to_pandas()` converts `items` to a DataFrame and needs the `kpubdata[pandas]` extra
+
+#### Validation report
+
+```python
+IssueKind = Literal["uncastable", "missing", "undeclared"]
+
+
+@dataclass(slots=True, frozen=True)
+class FieldIssue:
+    field: str
+    kind: IssueKind
+    declared_type: str | None = None
+    failed_count: int = 0
+    sample_values: tuple[str, ...] = ()
+    non_null_count: int | None = None
+    null_count: int | None = None
+
+
+@dataclass(slots=True, frozen=True)
+class ValidationReport:
+    issues: tuple[FieldIssue, ...] = ()
+
+    @property
+    def ok(self) -> bool: ...
+
+    def issues_of(self, kind: IssueKind) -> tuple[FieldIssue, ...]: ...
+
+    def to_dict(self) -> dict[str, object]: ...
+```
+
+`ok` is `True` when there are no issues. `issues_of(kind)` raises `ValueError` for an unknown kind, and `to_dict()` returns `{"ok": bool, "issues": [...]}`. Both classes live in `kpubdata.core.models`; they are not re-exported from the top-level package.
 
 ### 6.6 SchemaDescriptor
 
@@ -364,8 +432,9 @@ class FieldDescriptor:
     type: str | None = None
     description: str | None = None
     nullable: bool | None = None
-    constraints: FieldConstraints | None = None
     raw: MappingProxyType[str, object] = field(default_factory=_empty_object_proxy)
+    constraints: FieldConstraints | None = None
+    semantic_kind: str | None = None
 
 
 @dataclass(slots=True)
@@ -376,6 +445,8 @@ class SchemaDescriptor:
 ```
 
 ## 4. Error model
+
+Every error carries `provider`, `dataset_id`, `operation`, `status_code`, `provider_code` and `retryable`. Each class has a stable `code` (e.g. `auth_error`), and `to_dict()` returns `code`, `type`, `message` and those attributes as a JSON-serialisable dict (#786). The `code` table is in [`API_SPEC.md`](./API_SPEC.md) §7.
 
 ```python
 class PublicDataError(Exception): ...
@@ -422,18 +493,23 @@ class CapabilityContractError(PublicDataError): ...
 
 ## 5. Bound Dataset object
 
-A bound dataset object wraps `DatasetRef` plus registry/config context.
+A bound dataset object wraps `DatasetRef` plus the provider adapter that serves it.
 
-Suggested shape:
+Shape (`kpubdata.core.dataset.Dataset`):
 
 ```python
 class Dataset:
     ref: DatasetRef
 
-    def list(self, **filters) -> RecordBatch: ...
+    def list(self, **kwargs) -> RecordBatch: ...
+    def list_all(
+        self, *, max_pages: int | None = None, **kwargs
+    ) -> Generator[RecordBatch, None, None]: ...
     def schema(self) -> SchemaDescriptor | None: ...
     def call_raw(self, operation: str, **params) -> object: ...
 ```
+
+`list()` returns one page. `list_all()` yields one `RecordBatch` per page; for spec-backed datasets it fetches every page before yielding the first (see [`API_SPEC.md`](./API_SPEC.md) §4).
 
 ## 6. What the model deliberately does not do
 

@@ -103,7 +103,7 @@ sequenceDiagram
     B->>B: Manifest(빌드 기록) 생성
 
     Note over B, S: 3단계: 운영 및 모니터링
-    S->>B: POST /build (실행 명령)
+    S->>B: POST /build (실행 명령, 호출자 인증 포함)
     B-->>S: 빌드 상태 + 결과물 경로 반환
 
     Note over S, U: 4단계: 최종 서비스
@@ -125,6 +125,7 @@ sequenceDiagram
 3. **운영 및 모니터링** (KPubData Studio — `kpubdata-studio`)
    - 웹 브라우저를 통해 빌드를 시작하거나 상태를 확인합니다.
    - Builder 가 제공하는 [REST API](https://ko.wikipedia.org/wiki/REST)(웹을 통해 데이터를 주고받는 방식)를 호출하여 통신합니다.
+   - Builder 는 요청마다 호출자를 인증합니다 — 서비스 계정은 `X-API-Key`, 사람 사용자(Studio)는 OIDC IdP 가 발급한 `Authorization: Bearer` 토큰입니다.
 
 4. **최종 서비스** (studio → 사용자)
    - 사용자는 웹 화면에서 빌드 결과물을 미리보기하고, 다운로드할 수 있습니다.
@@ -164,12 +165,14 @@ sequenceDiagram
 ### 하는 일 / 하지 않는 일
 
 **KPubData (`kpubdata`)**
-- 하는 일: 공공 API 연결, API 키 인증 처리, XML/JSON 응답 파싱, 데이터 정규화, 에러 표준화, 원본 데이터 접근(`call_raw`)
-- 하지 않는 일: 데이터 저장, 복잡한 변환/가공, 파일 생성, 웹 UI 제공
+- 하는 일: 공공 API 연결, 공공기관이 발급한 API 키를 요청에 주입, XML/JSON 응답 파싱, 데이터 정규화, 에러 표준화, 원본 데이터 접근(`call_raw`)
+- 하지 않는 일: 데이터 저장, 복잡한 변환/가공, 파일 생성, 웹 UI 제공, 자신을 호출하는 사용자의 인증/인가(라이브러리이므로 호출자 개념이 없음)
 
 **KPubData Builder (`kpubdata-builder`)**
-- 하는 일: 빌드 기획서(BuildSpec) 검증, kpubdata를 통한 데이터 수집, 데이터 결합/필터링, 다양한 형식으로 내보내기, Manifest 생성
-- 하지 않는 일: 직접적인 API 통신(kpubdata에 위임), 웹 UI 제공, 사용자 인증/인가
+- 하는 일: 빌드 기획서(BuildSpec) 검증, kpubdata를 통한 데이터 수집, 데이터 결합/필터링, 다양한 형식으로 내보내기, Manifest 생성, HTTP 서비스 호출자 인증(`X-API-Key` 또는 OIDC Bearer 토큰)과 빌드 실행(run) 소유권 확인
+- 하지 않는 일: 직접적인 API 통신(kpubdata에 위임), 웹 UI 제공, 사용자 계정 발급·로그인 화면(외부 OIDC IdP 의 일 — Builder 는 발급된 토큰을 검증만 함)
+
+> Builder 의 인증은 두 경로입니다(`kpubdata-builder` 의 `src/kpubdata_builder/service/auth.py`). `X-API-Key` 는 서버의 `KPUBDATA_BUILDER_API_KEY` 와 비교하는 서비스 계정 경로이고, `Authorization: Bearer` 는 `OIDC_ISSUER` 가 설정된 배포에서만 켜지는 사람 사용자 경로입니다. 소유권 확인(`service/ownership.py`)은 `ENFORCE_OWNERSHIP` 이 켜져 있거나 OIDC 가 설정된 배포에서 적용되며, 그때 빌드 실행은 만든 사람의 것입니다. 이것은 **Builder 호출자**의 인증이고, KPubData 가 공공 API 에 보내는 **기관 API 키**와는 별개입니다.
 
 **KPubData Studio (`kpubdata-studio`)**
 - 하는 일: 빌드 기획서 시각적 편집, 빌드 실행/상태 모니터링, 결과물 미리보기, 게시(Publish) 관리
@@ -216,6 +219,8 @@ graph LR
 ## 5. 자세한 구현 문서
 
 각 프로젝트의 기술 스택, 배포 환경, 통신 방식, 로드맵 등 세부 사항은 각 저장소의 문서를 참고하세요.
+
+함께 쓸 수 있는 버전 조합은 [호환성 매트릭스](compatibility.md)에 있습니다. 그 표는 Builder·Studio 릴리스가 검증한 KPubData 버전을 적은 것이고 Builder·Studio 릴리스 때에만 바뀌므로, **KPubData 의 현재 버전**(`pyproject.toml`, [CHANGELOG](https://github.com/kpubdata-lab/kpubdata/blob/main/CHANGELOG.md))은 표의 버전보다 앞서 있을 수 있습니다. KPubData 는 단독으로 릴리스되기 때문입니다.
 
 | 제품 (저장소) | README | ARCHITECTURE |
 | :--- | :--- | :--- |
