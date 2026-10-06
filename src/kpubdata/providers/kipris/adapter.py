@@ -7,7 +7,9 @@ public data portal and uses serviceKey for authentication. Response shape::
 
 - With ``_type=json``, the shape is similar to standard envelope but lacks
   totalCount field (only ``numOfRows``/``pageNo`` available) — page
-  calculation falls back to item count.
+  calculation falls back to item count. ``pageNo``/``numOfRows`` are sent, and the
+  ``pageNo`` the envelope echoes is checked: a page other than the one asked for is
+  read as "no such page" (#837).
 - Required parameter: ``applicationNumber`` (domestic application number)
 """
 
@@ -101,11 +103,22 @@ class KiprisAdapter:
             "serviceKey": self._require_api_key(),
             "_type": "json",
             "applicationNumber": str(query.filters["applicationNumber"]),
+            # The page asked for was never sent (#837): every "next page" was the same
+            # request, so a full page made list_all fetch it again until its page limit.
+            "pageNo": str(page),
+            "numOfRows": str(page_size),
         }
 
         url = self._build_url(dataset, params)
         payload = self._request_and_decode(url, dataset.id)
         items = self._parse_kipris_envelope(payload, dataset.id)
+
+        # The envelope says which page it is. Whether this service pages at all has not
+        # been checked against the provider (#837); if it ignores ``pageNo`` it answers
+        # page 1 again, and those rows are not page ``page``'s — there is no such page.
+        answered = self._answered_page(payload)
+        if answered is not None and answered != page:
+            items = []
 
         # No totalCount available; determine next page by full-page fallback.
         next_page: int | None = None
@@ -187,6 +200,20 @@ class KiprisAdapter:
                 dataset_id=dataset_id,
             )
         return decoded
+
+    @staticmethod
+    def _answered_page(payload: Mapping[str, object]) -> int | None:
+        """The page number the envelope reports (``response.body.pageNo``), if it does."""
+        response = payload.get("response")
+        body = response.get("body") if isinstance(response, dict) else None
+        value = body.get("pageNo") if isinstance(body, dict) else None
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, int):
+            return value
+        if isinstance(value, str) and value.strip().isdigit():
+            return int(value.strip())
+        return None
 
     def _parse_kipris_envelope(
         self, payload: Mapping[str, object], dataset_id: str
