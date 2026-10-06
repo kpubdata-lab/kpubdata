@@ -394,19 +394,13 @@ def test_validate_envelope_raises_when_header_missing() -> None:
 
 
 # test validate envelope raises when result code not string Describes the scenario verified by the test.
-def test_validate_envelope_raises_when_result_code_not_string() -> None:
-    """
-    test validate envelope raises when result code not string Validates the scenario described by the test name.
-
-    Returns:
-        None: Result.
-
-    Raises:
-        Exceptions propagated."""
+def test_validate_envelope_raises_when_result_code_is_not_a_code() -> None:
+    """A code is text or a number (#843); anything else is a malformed envelope."""
     parser = DataGoEnvelopeParser()
 
-    with pytest.raises(ProviderResponseError, match="missing resultCode"):
-        _ = parser.parse({"response": {"header": {"resultCode": 0}, "body": {}}})
+    for not_a_code in (None, True, 0.0, ["00"]):
+        with pytest.raises(ProviderResponseError, match="missing resultCode"):
+            _ = parser.parse({"response": {"header": {"resultCode": not_a_code}, "body": {}}})
 
 
 # test raise for result code unknown code raises provider response error Describes the scenario verified by the test.

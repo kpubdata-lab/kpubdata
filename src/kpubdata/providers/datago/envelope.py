@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import NoReturn, cast
 
+from kpubdata.core._result_code import is_no_data_code, result_code_text
 from kpubdata.core.models import DatasetRef
 from kpubdata.exceptions import (
     AuthError,
@@ -28,18 +29,6 @@ def _is_success_code(code: str) -> bool:
     """
     try:
         return int(code) == 0
-    except ValueError:
-        return False
-
-
-def _is_no_data_code(code: str) -> bool:
-    """Return True for data.go.kr's NODATA_ERROR ("03", or 3 where the code is a number).
-
-    It says no record matched the request, not that the call failed, so it is an
-    empty result on every path (#470, #787).
-    """
-    try:
-        return int(code) == 3
     except ValueError:
         return False
 
@@ -110,7 +99,7 @@ class DataGoEnvelopeParser:
             "data.go.kr result",
             extra={"result_code": result_code, "result_msg": result_msg, "dataset_id": dataset_id},
         )
-        if _is_no_data_code(result_code):
+        if is_no_data_code(result_code):
             return payload, []
         if not _is_success_code(result_code):
             self._raise_for_result_code(result_code, result_msg, dataset_id)
@@ -130,8 +119,8 @@ class DataGoEnvelopeParser:
             )
 
         header_dict = cast(dict[str, object], header_obj)
-        result_code = header_dict.get("resultCode")
-        if not isinstance(result_code, str):
+        result_code = result_code_text(header_dict.get("resultCode"))
+        if result_code is None:
             raise ProviderResponseError(
                 "Malformed response envelope: missing resultCode",
                 provider="datago",
@@ -150,7 +139,7 @@ class DataGoEnvelopeParser:
         body_dict: dict[str, object] = (
             cast(dict[str, object], body_obj) if isinstance(body_obj, dict) else {}
         )
-        if _is_no_data_code(result_code):
+        if is_no_data_code(result_code):
             return body_dict, []
         if not _is_success_code(result_code):
             self._raise_for_result_code(result_code, result_msg, dataset_id)
@@ -183,7 +172,7 @@ class DataGoEnvelopeParser:
         body_dict: dict[str, object] = (
             cast(dict[str, object], body_obj) if isinstance(body_obj, dict) else {}
         )
-        if _is_no_data_code(result_code):
+        if is_no_data_code(result_code):
             return body_dict, []
         if not _is_success_code(result_code):
             self._raise_for_result_code(result_code, result_msg, dataset_id)
@@ -193,10 +182,9 @@ class DataGoEnvelopeParser:
         return body_dict, items
 
     def _coerce_result_code(self, result_code: object, dataset_id: str) -> str:
-        if isinstance(result_code, str):
-            return result_code
-        if isinstance(result_code, int):
-            return str(result_code)
+        code = result_code_text(result_code)
+        if code is not None:
+            return code
         raise ProviderResponseError(
             "Malformed response envelope: missing resultCode",
             provider="datago",
