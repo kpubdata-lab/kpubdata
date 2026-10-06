@@ -168,8 +168,11 @@ class Catalog:
         # Single-entry search-index cache (#279): the key is (provider,
         # dataset-id tuple); any change to the catalog composition changes
         # the key and triggers a rebuild automatically.
-        self._index_cache_key: tuple[str | None, tuple[str, ...]] | None = None
-        self._index_cache: builtins.list[_IndexedItem] = []
+        # Key and index are kept as one value: assigned separately, a thread reading
+        # between the two assignments got one key's index under another's key (#823).
+        self._index_cache: (
+            tuple[tuple[str | None, tuple[str, ...]], builtins.list[_IndexedItem]] | None
+        ) = None
 
     def _cached_index(
         self, provider: str | None, candidates: builtins.list[DatasetRef]
@@ -184,10 +187,14 @@ class Catalog:
         the key and forces an immediate rebuild.
         """
         key = (provider, tuple(dataset.id for dataset in candidates))
-        if key != self._index_cache_key:
-            self._index_cache = _build_index(candidates)
-            self._index_cache_key = key
-        return self._index_cache
+        cached = self._index_cache
+        if cached is not None and cached[0] == key:
+            return cached[1]
+        # Two threads may both build; each returns its own, correct index, and the last
+        # one stays. Building is deterministic, so no lock is held for it.
+        index = _build_index(candidates)
+        self._index_cache = (key, index)
+        return index
 
     def list(self, *, provider: str | None = None) -> builtins.list[DatasetRef]:
         """Return the discoverable datasets, optionally filtered by provider.
