@@ -26,11 +26,19 @@
 #
 # release.yml's `mode=prepare` is still there for what this cannot do: a pre-release,
 # and a critical patch inside the seven-day interval.
+#
+# Once a day, not on every push to `main`. Each run that changes the pull request
+# pushes its branch twice — release-please's commit, then the lock file and CHANGELOG
+# commit — and GitHub mails every subscriber for each push. On a day with a dozen
+# merges that was two dozen mails about a pull request nobody may merge for a week
+# (docs/compatibility.md §5.1). Run it by hand (`workflow_dispatch`) to bring the pull
+# request up to date before a release.
 name: Release please
 
 on:
-  push:
-    branches: [main]
+  schedule:
+    # 21:00 UTC — 06:00 KST, before the working day.
+    - cron: "0 21 * * *"
   workflow_dispatch:
 
 permissions:

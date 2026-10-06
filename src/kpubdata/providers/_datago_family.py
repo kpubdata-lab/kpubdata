@@ -22,6 +22,7 @@ from collections.abc import Mapping, Sequence
 from typing import ClassVar, NoReturn, cast
 
 from kpubdata.config import KPubDataConfig
+from kpubdata.core._result_code import is_no_data_code, result_code_text
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
 from kpubdata.exceptions import (
     AuthError,
@@ -328,8 +329,8 @@ class DataGoFamilyAdapter:
             )
 
         header_dict = cast(dict[str, object], header_obj)
-        result_code = header_dict.get("resultCode")
-        if not isinstance(result_code, str):
+        result_code = result_code_text(header_dict.get("resultCode"))
+        if result_code is None:
             raise ProviderResponseError(
                 "Malformed response envelope: missing resultCode",
                 provider=self.provider_name,
@@ -353,7 +354,7 @@ class DataGoFamilyAdapter:
         # no matching data exists, not that the call failed. Without this
         # branch, filtered queries with no results commonly raise exceptions.
         # semas handled this from the start; localdata was missing it (#470).
-        if result_code == "03":
+        if is_no_data_code(result_code):
             return body_dict, []
         if not _is_success_code(result_code):
             self._raise_for_result_code(result_code, result_msg, dataset_id)

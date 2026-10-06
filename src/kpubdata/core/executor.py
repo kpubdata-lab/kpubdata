@@ -33,6 +33,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from kpubdata._hosts import extra_hosts_env_var, host_is_allowed
 from kpubdata.config import KPubDataConfig
+from kpubdata.core._result_code import is_no_data_code, result_code_text
 from kpubdata.core.capability import Operation, PaginationMode, QuerySupport
 from kpubdata.core.models import (
     DatasetRef,
@@ -62,8 +63,6 @@ logger = logging.getLogger("kpubdata.core.executor")
 
 _AUTH_ERROR_CODES = frozenset({"30", "31", "20", "32"})
 _SERVICE_UNAVAILABLE_CODES = frozenset({"01", "02"})
-#: NODATA_ERROR: no record matched the request. An empty result, not a failure (#787).
-_NO_DATA_CODE = "03"
 _DEFAULT_PAGE_SIZE = 100
 # To avoid importing providers from core, generalize the datago 403 hint.
 _FORBIDDEN_HINT = (
@@ -596,6 +595,21 @@ def _build_provenance(
     return provenance
 
 
+#: Where a path-segment key waits in ``params`` when the spec names no parameter for it.
+_PATH_KEY_SLOT = "__path_key__"
+
+
+def _path_key_slot(spec: SpecDefinition) -> str:
+    """The ``params`` entry holding a ``path_segment`` key until the URL is built.
+
+    One name for putting it in, reading it and taking it out (#839). With no
+    ``param_name`` it was stored under ``__path_key__`` and looked for under ``""``: the
+    URL got an empty key, and the real one went out as a query parameter called
+    ``__path_key__`` with nothing marking it secret.
+    """
+    return spec.auth.param_name or _PATH_KEY_SLOT
+
+
 class SpecExecutor:
     """Provider-agnostic executor that interprets spec to execute queries."""
 
@@ -672,7 +686,7 @@ class SpecExecutor:
             if "{key}" not in template:
                 msg = f"{spec.id}: path_segment 인증은 path_template의 {{key}}가 필요합니다."
                 raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id)
-            params[spec.auth.param_name or "__path_key__"] = self._config.require_provider_key(
+            params[_path_key_slot(spec)] = self._config.require_provider_key(
                 spec.auth.provider_key or spec.provider
             )
         elif spec.auth.type != "none":
@@ -791,7 +805,7 @@ class SpecExecutor:
             spec,
             page=_to_int(page_part) or 1,
             page_size=_to_int(size_part) or _DEFAULT_PAGE_SIZE,
-            api_key=params.get(spec.auth.param_name or "", "")
+            api_key=params.get(_path_key_slot(spec), "")
             if spec.auth.type == "path_segment"
             else "",
         )
@@ -802,11 +816,12 @@ class SpecExecutor:
             self._require_allowed_host(spec, url)
         # Taken before a path-segment key leaves ``params``, so provenance can
         # still mask it (#612).
-        secret_values = (
-            (params.get(spec.auth.param_name or "", ""),) if spec.auth.type != "none" else ()
+        key_slot = (
+            _path_key_slot(spec) if spec.auth.type == "path_segment" else spec.auth.param_name
         )
+        secret_values = (params.get(key_slot or "", ""),) if spec.auth.type != "none" else ()
         if spec.auth.type == "path_segment":
-            params = {k: v for k, v in params.items() if k != (spec.auth.param_name or "")}
+            params = {k: v for k, v in params.items() if k != key_slot}
         try:
             response = self._transport.request(
                 "GET",
@@ -1100,18 +1115,16 @@ def check_payload_error(spec: SpecDefinition, payload: dict[str, object]) -> Non
     # missing, check top-level.
     if raw_code is None and isinstance(payload.get("resultCode"), (str, int)):
         raw_code = payload.get("resultCode")
-    if isinstance(raw_code, str):
-        code = raw_code
-    elif isinstance(raw_code, int) and not isinstance(raw_code, bool):
-        code = str(raw_code)
-    else:
+    code = result_code_text(raw_code)
+    if code is None:
         msg = f"{spec.id}: 응답 envelope에서 에러 코드를 찾을 수 없습니다({error.code_path!r})."
         raise ProviderResponseError(msg, provider=spec.provider, dataset_id=spec.id)
 
     ok_strings = {str(value) for value in error.ok_values}
     code_as_int = _to_int(code)
     is_success = code in ok_strings or (code_as_int == 0)
-    if is_success or code == _NO_DATA_CODE:
+    # NODATA_ERROR: no record matched the request. An empty result, not a failure (#787).
+    if is_success or is_no_data_code(code):
         return
 
     raw_message = _dot_get(payload, _resolve_path(_message_path(error.code_path), spec))
