@@ -9,6 +9,7 @@ adapter.
 from __future__ import annotations
 
 import os
+import threading
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -40,19 +41,25 @@ class SgisAuthClient:
         self._config: KPubDataConfig = config
         self._transport: HttpTransport = transport
         self._cached_token: _TokenState | None = None
+        # Held while a token is requested: callers that arrive together wait for the
+        # one request instead of each making their own (#823).
+        self._token_lock = threading.Lock()
 
     def get_access_token(self, *, force_refresh: bool = False) -> str:
         """Return access token."""
-        if (
-            not force_refresh
-            and self._cached_token is not None
-            and not self._is_expired(self._cached_token)
-        ):
-            return self._cached_token.value
+        stale = self._cached_token
+        if not force_refresh and stale is not None and not self._is_expired(stale):
+            return stale.value
 
-        token_state = self._request_access_token()
-        self._cached_token = token_state
-        return token_state.value
+        with self._token_lock:
+            current = self._cached_token
+            # Another caller refreshed while this one waited: its token is the new one,
+            # also for a caller that asked for a refresh of the token it had seen.
+            if current is not None and current is not stale and not self._is_expired(current):
+                return current.value
+            token_state = self._request_access_token()
+            self._cached_token = token_state
+            return token_state.value
 
     def invalidate(self) -> None:
         """Invalidate cached token state."""
