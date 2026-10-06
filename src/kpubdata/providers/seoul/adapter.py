@@ -107,7 +107,8 @@ class SeoulAdapter:
         return RecordBatch(
             items=items,
             dataset=dataset,
-            total_count=total_count if total_count > 0 else None,
+            # Zero is the provider's answer (INFO-200, no data), not a missing count (#806).
+            total_count=total_count,
             next_page=next_page,
             raw=payload,
         )
