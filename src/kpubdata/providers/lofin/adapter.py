@@ -11,7 +11,7 @@ import logging
 import ssl
 from collections.abc import Mapping, Sequence
 from typing import NoReturn, cast
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 from kpubdata.config import KPubDataConfig
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
@@ -239,14 +239,18 @@ class LofinAdapter:
         api_key = self._require_api_key()
         safe_page = page if page > 0 else 1
         safe_page_size = page_size if page_size > 0 else 100
-        url = (
-            f"{base_url_raw}/{dataset_code}"
-            f"?Key={api_key}&Type=json&pIndex={safe_page}&pSize={safe_page_size}"
-        )
+        # Every name and value goes through one encoder (#840). The key was put into the
+        # URL as it is: one holding ``&`` or ``#`` cut the query short or started a new
+        # parameter, and ``+`` reached the provider as a space.
+        pairs: list[tuple[str, str]] = [
+            ("Key", api_key),
+            ("Type", "json"),
+            ("pIndex", str(safe_page)),
+            ("pSize", str(safe_page_size)),
+        ]
         if filters:
-            for key, value in filters.items():
-                url += f"&{key}={quote(str(value), safe='')}"
-        return url
+            pairs.extend((str(key), str(value)) for key, value in filters.items())
+        return f"{base_url_raw}/{dataset_code}?{urlencode(pairs, quote_via=quote, safe='')}"
 
     def _request_and_decode(self, url: str, dataset_id: str = "") -> dict[str, object]:
         """Send HTTP GET request to LOFIN API and decode."""
