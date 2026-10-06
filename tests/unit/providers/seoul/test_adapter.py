@@ -223,7 +223,7 @@ def test_info_200_returns_empty_record_batch() -> None:
     batch = adapter.query_records(dataset, Query(filters={"stationName": "강남"}))
 
     assert batch.items == []
-    assert batch.total_count is None
+    assert batch.total_count == 0
     assert batch.next_page is None
 
 
