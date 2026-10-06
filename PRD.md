@@ -6,16 +6,17 @@
 - Product type: Python data access framework / SDK
 - Target runtime: Python 3.10+
 - Primary users: Python developers, backend developers, data engineers, agent/MCP developers
-- Product stage: active development — current release `v0.5.0` (see §2-current status)
+- Product stage: active development — current release `v0.9.0` (see §2-current status)
 
-## 2-current. 현재 제품 상태 (Current status — v0.5.0)
+## 2-current. 현재 제품 상태 (Current status — v0.9.0)
 
 > 이 절은 현재 실제로 출시된 제품 계약을 요약한다. 원래 초기 계획(§13 릴리스 계획의 v0.1)은 역사적 기록으로 보존하되, 아래 내용이 현재 기준이다.
 
-- **현재 버전**: `v0.5.0` (`pyproject.toml` 기준). PRD 초안이 가정한 "architecture and bootstrap" 단계를 이미 넘어섰다.
-- **지원 provider family**: `datago`, `localdata`, `semas`, `lofin`, `seoul`, `bok`, `krx`, `pykrx`, `sgis`, `law`, `kosis` 등 다수의 이질적 provider가 하나의 공개 인터페이스 아래 통합되어 있다. 정확한 데이터셋 수와 검증 수준은 [SUPPORTED_DATA.md](./SUPPORTED_DATA.md)를 단일 출처로 참조한다.
-- **핵심 API**: `Client` / `Client.from_env()`, `client.datasets.list()/search()`, `client.dataset(...)`, `dataset.list()/list_all()/schema()/call_raw()`, `RecordBatch`(+`to_pandas()`).
-- **CLI**: `kpubdata` 명령이 함께 설치되며 `datasets list/show`, `fetch`, `raw`, `scaffold provider` 서브커맨드를 제공한다.
+- **현재 버전**: `v0.9.0` (`pyproject.toml` 기준). PRD 초안이 가정한 "architecture and bootstrap" 단계를 이미 넘어섰다.
+  - 이것은 **SDK 자신의 버전**이다. Builder·Studio 와 함께 검증된 **지원 조합**은 별개이며 [docs/compatibility.md](./docs/compatibility.md) 1절과 `compatibility.json` 이 단일 출처다. 지원 조합은 Builder·Studio 릴리스 때에만 바뀌므로 SDK 버전이 그보다 앞서 있는 것이 정상이다.
+- **지원 provider**: 내장 provider는 `bok`, `datago`, `fds`, `kipris`, `korean`, `kosis`, `krx`, `law`, `localdata`, `lofin`, `neis`, `semas`, `seoul`, `sgis` 14개이며(`src/kpubdata/providers/manifest.py`), 하나의 공개 인터페이스 아래 통합되어 있다. 정확한 데이터셋 수와 검증 수준은 [SUPPORTED_DATA.md](./SUPPORTED_DATA.md)를 단일 출처로 참조한다.
+- **핵심 API**: `Client` / `Client.from_env()`, `client.datasets.list()/search()`, `client.dataset(...)`, `dataset.list()/list_all()/schema()/call_raw()`, `client.probe()/probe_all()`, `DatasetRef`(+`status`, `to_dict()`), `RecordBatch`(+`validation`, `to_pandas()`).
+- **CLI**: `kpubdata` 명령이 함께 설치되며 `datasets list/show`, `fetch`, `raw`, `probe`, `scaffold provider` 서브커맨드를 제공한다.
 - **부가 기능**: 디스크 기반 응답 캐시(TTL), pandas 변환(`kpubdata[pandas]`), 전체 페이지 자동 순회(`list_all()`).
 - **여전히 유효한 비목표**: async 지원 없음, MCP/HTTP 서비스 레이어는 코어에 미포함(별도 레포로 분리 예정).
 
@@ -146,7 +147,8 @@ Acceptance:
 
 - `client.datasets.list()`
 - `client.datasets.search(text)`
-- each descriptor exposes `id`, `provider`, `name`, `representation`, `capabilities`
+- each descriptor exposes `id`, `provider`, `name`, `representation`, `operations`
+- each descriptor exposes its recorded verification `status` and a JSON-serialisable `to_dict()`
 
 ### FR-4. Dataset binding
 
@@ -168,6 +170,7 @@ Acceptance:
 - includes `items`
 - includes `raw`
 - includes metadata about pagination and provider
+- includes a field-level `validation` report when the adapter ran one
 
 ### FR-6. Schema/metadata access
 
@@ -195,6 +198,7 @@ Acceptance:
 
 - `dataset.list_all(...)`가 페이지를 자동 순회하며 `RecordBatch`를 생성(yield)한다
 - 각 provider의 페이지네이션 규칙 차이를 호출자가 알 필요 없다
+- spec 기반 데이터셋은 컬럼 타입을 전체 결과에 대해 한 번에 결정하므로, 모든 페이지를 가져온 뒤에 첫 `RecordBatch`를 내보낸다 (어댑터의 `query_records_all`)
 
 ### FR-9. Error normalization
 
@@ -290,7 +294,7 @@ client.getRTMSDataSvcAptTradeDev(...)
 
 ## 13. Release plan
 
-> **참고**: 아래는 초기 릴리스 계획(역사적 기록)이다. v0.1·v0.2는 출시 완료(✅)되었고 provider 확장은 v0.5까지 진행되었다. 최신·향후 계획은 [ROADMAP.md](./ROADMAP.md)를 단일 출처로 참조한다. (예: MCP 어댑터는 코어에 포함하지 않고 별도 레포로 분리 예정.)
+> **참고**: 아래는 초기 릴리스 계획(역사적 기록)이다. v0.1·v0.2는 출시 완료(✅)되었고 provider 확장은 v0.9까지 계속 진행되었다. 최신·향후 계획은 [ROADMAP.md](./ROADMAP.md)를 단일 출처로 참조한다. (예: MCP 어댑터는 코어에 포함하지 않고 별도 레포로 분리 예정.)
 
 ### v0.1 ✅
 
