@@ -323,7 +323,19 @@ class Dataset:
                     "next_cursor": page_kwargs.get("cursor"),
                 },
             )
+            previous_items = batch.items
             batch = self.list(**page_kwargs)
+
+            # The same rows again under a new page number: the provider is not paging
+            # (#837). Going on would repeat the request until the page limit.
+            if batch.items and batch.items == previous_items:
+                raise InvalidRequestError(
+                    f"Detected repeated page: the page after {next_continuation!r} holds "
+                    "the same records as the one before it. "
+                    "This may indicate that the provider API ignores the page parameter.",
+                    provider=self._ref.provider,
+                    dataset_id=self._ref.id,
+                )
 
             # Check for consecutive empty batches
             if not batch.items:
