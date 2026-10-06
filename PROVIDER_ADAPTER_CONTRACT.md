@@ -222,6 +222,7 @@ def query_records_all(
     self, dataset: DatasetRef, query: Query, *, max_pages: int | None = None
 ) -> Iterator[RecordBatch]: ...
 
+
 def supports_query_records_all(self, dataset_key: str) -> bool: ...
 ```
 
