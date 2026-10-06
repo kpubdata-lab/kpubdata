@@ -595,6 +595,21 @@ def _build_provenance(
     return provenance
 
 
+#: Where a path-segment key waits in ``params`` when the spec names no parameter for it.
+_PATH_KEY_SLOT = "__path_key__"
+
+
+def _path_key_slot(spec: SpecDefinition) -> str:
+    """The ``params`` entry holding a ``path_segment`` key until the URL is built.
+
+    One name for putting it in, reading it and taking it out (#839). With no
+    ``param_name`` it was stored under ``__path_key__`` and looked for under ``""``: the
+    URL got an empty key, and the real one went out as a query parameter called
+    ``__path_key__`` with nothing marking it secret.
+    """
+    return spec.auth.param_name or _PATH_KEY_SLOT
+
+
 class SpecExecutor:
     """Provider-agnostic executor that interprets spec to execute queries."""
 
@@ -671,7 +686,7 @@ class SpecExecutor:
             if "{key}" not in template:
                 msg = f"{spec.id}: path_segment 인증은 path_template의 {{key}}가 필요합니다."
                 raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id)
-            params[spec.auth.param_name or "__path_key__"] = self._config.require_provider_key(
+            params[_path_key_slot(spec)] = self._config.require_provider_key(
                 spec.auth.provider_key or spec.provider
             )
         elif spec.auth.type != "none":
@@ -781,7 +796,7 @@ class SpecExecutor:
             spec,
             page=_to_int(page_part) or 1,
             page_size=_to_int(size_part) or _DEFAULT_PAGE_SIZE,
-            api_key=params.get(spec.auth.param_name or "", "")
+            api_key=params.get(_path_key_slot(spec), "")
             if spec.auth.type == "path_segment"
             else "",
         )
@@ -792,11 +807,12 @@ class SpecExecutor:
             self._require_allowed_host(spec, url)
         # Taken before a path-segment key leaves ``params``, so provenance can
         # still mask it (#612).
-        secret_values = (
-            (params.get(spec.auth.param_name or "", ""),) if spec.auth.type != "none" else ()
+        key_slot = (
+            _path_key_slot(spec) if spec.auth.type == "path_segment" else spec.auth.param_name
         )
+        secret_values = (params.get(key_slot or "", ""),) if spec.auth.type != "none" else ()
         if spec.auth.type == "path_segment":
-            params = {k: v for k, v in params.items() if k != (spec.auth.param_name or "")}
+            params = {k: v for k, v in params.items() if k != key_slot}
         try:
             response = self._transport.request(
                 "GET",
