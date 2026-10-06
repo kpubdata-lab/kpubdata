@@ -790,6 +790,15 @@ class SpecExecutor:
             AuthError: On transport 403 (with activation request hint).
             ProviderResponseError: If decoded result is not a dict.
         """
+        if spec.endpoint.method != "GET":
+            # The spec schema allows ``POST``, and every request here was sent as a GET
+            # whatever the spec said (#844). Where a POST's parameters go — body or
+            # query — is not defined, so it is refused rather than sent as something else.
+            msg = (
+                f"{spec.id}: endpoint.method {spec.endpoint.method!r} is not executed by "
+                "the spec executor yet; only GET is"
+            )
+            raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id)
         page_part = params.get(spec.pagination.page_param or "", "1")
         size_part = params.get(spec.pagination.size_param or "", str(_DEFAULT_PAGE_SIZE))
         url = self.build_url(
