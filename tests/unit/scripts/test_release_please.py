@@ -23,7 +23,11 @@ CONFIG = REPO_ROOT / "release-please-config.json"
 MANIFEST = REPO_ROOT / ".release-please-manifest.json"
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-please.yml"
 RELEASE = REPO_ROOT / ".github" / "workflows" / "release.yml"
+#: The prefix. release-please names the branch `<prefix>--components--<package>`; the
+#: first pull request it opened (#830) had that suffix, and an exact match on the bare
+#: prefix would have left its merge with no release job.
 BRANCH = "release-please--branches--main"
+OBSERVED_BRANCH = "release-please--branches--main--components--kpubdata"
 
 
 def _load_set_version():
@@ -94,8 +98,11 @@ def test_the_release_branch_gets_the_lock_file_and_the_dated_changelog() -> None
 def test_merging_the_release_please_branch_reaches_the_gated_release_job() -> None:
     release = RELEASE.read_text(encoding="utf-8")
 
-    assert f"github.event.pull_request.head.ref == '{BRANCH}'" in release
-    assert f'[ "${{BRANCH}}" = "{BRANCH}" ]' in release
+    assert f"startsWith(github.event.pull_request.head.ref, '{BRANCH}')" in release
+    assert f"{BRANCH}*) from_release_please=true" in release
+    # An exact comparison is what missed the real branch name.
+    assert f"head.ref == '{BRANCH}'" not in release
+    assert OBSERVED_BRANCH.startswith(BRANCH)
     # The hand-prepared path is still there for a pre-release and a critical patch.
     assert "startsWith(github.event.pull_request.head.ref, 'release/')" in release
 
