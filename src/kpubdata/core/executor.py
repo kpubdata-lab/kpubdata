@@ -33,6 +33,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from kpubdata._hosts import extra_hosts_env_var, host_is_allowed
 from kpubdata.config import KPubDataConfig
+from kpubdata.core._result_code import is_no_data_code, result_code_text
 from kpubdata.core.capability import Operation, PaginationMode, QuerySupport
 from kpubdata.core.models import (
     DatasetRef,
@@ -62,8 +63,6 @@ logger = logging.getLogger("kpubdata.core.executor")
 
 _AUTH_ERROR_CODES = frozenset({"30", "31", "20", "32"})
 _SERVICE_UNAVAILABLE_CODES = frozenset({"01", "02"})
-#: NODATA_ERROR: no record matched the request. An empty result, not a failure (#787).
-_NO_DATA_CODE = "03"
 _DEFAULT_PAGE_SIZE = 100
 # To avoid importing providers from core, generalize the datago 403 hint.
 _FORBIDDEN_HINT = (
@@ -1091,18 +1090,16 @@ def check_payload_error(spec: SpecDefinition, payload: dict[str, object]) -> Non
     # missing, check top-level.
     if raw_code is None and isinstance(payload.get("resultCode"), (str, int)):
         raw_code = payload.get("resultCode")
-    if isinstance(raw_code, str):
-        code = raw_code
-    elif isinstance(raw_code, int) and not isinstance(raw_code, bool):
-        code = str(raw_code)
-    else:
+    code = result_code_text(raw_code)
+    if code is None:
         msg = f"{spec.id}: 응답 envelope에서 에러 코드를 찾을 수 없습니다({error.code_path!r})."
         raise ProviderResponseError(msg, provider=spec.provider, dataset_id=spec.id)
 
     ok_strings = {str(value) for value in error.ok_values}
     code_as_int = _to_int(code)
     is_success = code in ok_strings or (code_as_int == 0)
-    if is_success or code == _NO_DATA_CODE:
+    # NODATA_ERROR: no record matched the request. An empty result, not a failure (#787).
+    if is_success or is_no_data_code(code):
         return
 
     raw_message = _dot_get(payload, _resolve_path(_message_path(error.code_path), spec))
