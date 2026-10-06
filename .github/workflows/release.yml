@@ -12,7 +12,7 @@
 #   pull_request closed on `release/*`      the same, for the pull request path
 #
 # The release pull request is normally the one release-please keeps open
-# (release-please.yml, #819) — its branch is `release-please--branches--main`, and
+# (release-please.yml, #819) — its branch starts with `release-please--branches--main`, and
 # merging it lands in the same release job. `mode=prepare` stays for what
 # release-please does not do: a pre-release, and a critical patch inside the interval.
 #
@@ -188,7 +188,7 @@ jobs:
        github.event.pull_request.merged == true &&
        github.event.pull_request.base.ref == 'main' &&
        (startsWith(github.event.pull_request.head.ref, 'release/') ||
-        github.event.pull_request.head.ref == 'release-please--branches--main'))
+        startsWith(github.event.pull_request.head.ref, 'release-please--branches--main')))
     timeout-minutes: 20
     concurrency:
       group: release
@@ -279,8 +279,11 @@ jobs:
           TAG: ${{ steps.tag.outputs.tag }}
         run: |
           # release-please's branch has one name for every release (#819), so there the
-          # version is in the title it wrote — `pull-request-title-pattern`.
-          if [ "${BRANCH}" = "release-please--branches--main" ]; then
+          # version is in the title it wrote — `pull-request-title-pattern`. The name is a
+          # prefix: release-please appends `--components--<package>` to it, which the
+          # first real pull request (#830) showed and an exact match did not expect.
+          case "${BRANCH}" in release-please--branches--main*) from_release_please=true ;; *) from_release_please=false ;; esac
+          if [ "${from_release_please}" = "true" ]; then
             if [ "${TITLE}" != "chore: release ${TAG}" ]; then
               echo "::error::the pull request is titled '${TITLE}' but pyproject.toml says ${TAG}"
               exit 1
