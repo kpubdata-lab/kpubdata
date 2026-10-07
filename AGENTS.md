@@ -29,10 +29,19 @@ framework with a small, stable public API and one adapter per provider.
 - Do not mark a capability as supported before a test proves it.
 - Keep provider complexity inside the provider adapter.
 - Update tests and documentation in the same change as the behaviour.
-- `SUPPORTED_DATA.md` is the single source of truth for which providers and
-  datasets are supported.
+- `SUPPORTED_DATA.md` lists which providers and datasets are supported. A
+  dataset's **level** — the table's status, verification and verified-on columns —
+  is not written there: its source is `src/kpubdata/dataset_metadata.json`
+  (`level`, `verification`, `checked_on`), and `scripts/sync_supported_data.py`
+  writes those three columns from it. A level edited in the table is put back
+  to the metadata's value, and `sync_supported_data.py --check` fails on it.
+- A level a person decides — awaiting an application, retired, in progress — is
+  written in `dataset_metadata.json`. `live_verified` and its date are not
+  written by hand: the script sets them from the recorded fixtures.
 - When a provider's or dataset's support status or verification level changes,
-  update `SUPPORTED_DATA.md` in the same PR.
+  change `dataset_metadata.json`, run `uv run python scripts/sync_supported_data.py`
+  and `uv run python scripts/gen_dataset_status.py`, and commit what they write
+  (`SUPPORTED_DATA.md`, `src/kpubdata/dataset_status.json`) in the same PR.
 - Mark something *supported* only once fixture, unit and contract tests pass.
 - Mark *live-API verified* only once a real-API integration test exists and
   passes. Until then it stays *test verified*.
@@ -249,12 +258,20 @@ make verify   # spec datasets: schema -> fixture -> replay -> example
    needs at least one meaningful assertion.
 5. [ ] Repeat until `make verify DATASET={provider}.{dataset_key}` passes. All
    four stages are judged mechanically.
-6. [ ] Update `SUPPORTED_DATA.md` and regenerate the documentation examples
+6. [ ] Add the dataset's row to `SUPPORTED_DATA.md` and its entry to
+   `src/kpubdata/dataset_metadata.json` — a row without an entry, or an entry
+   without a row, is an error. Then run
+   `uv run python scripts/sync_supported_data.py` and
+   `uv run python scripts/gen_dataset_status.py`: they write the row's status,
+   verification and verified-on cells and `src/kpubdata/dataset_status.json`.
+   Do not fill those three cells by hand. Regenerate the documentation examples
    (`uv run python scripts/gen_docs_examples.py`).
 
 ### Paths you may change (dataset work)
 
-`src/kpubdata/specs/`, `examples/`, `tests/fixtures/`, `SUPPORTED_DATA.md`
+`src/kpubdata/specs/`, `examples/`, `tests/fixtures/`, `SUPPORTED_DATA.md`,
+`src/kpubdata/dataset_metadata.json`, and `src/kpubdata/dataset_status.json` as
+`scripts/gen_dataset_status.py` writes it
 
 ### Paths you may not change (dataset work)
 
@@ -478,8 +495,11 @@ src/kpubdata/
 5. [ ] Guarantee `call_raw` still returns the original payload.
 6. [ ] Add unit tests under `tests/unit/providers/`.
 7. [ ] Add contract tests under `tests/contract/`.
-8. [ ] Update `SUPPORTED_DATA.md` (status, verification, auth, official docs,
-   notes).
+8. [ ] Add the dataset's row to `SUPPORTED_DATA.md` (auth, official docs, notes)
+   and its entry to `src/kpubdata/dataset_metadata.json`, then run
+   `uv run python scripts/sync_supported_data.py` and
+   `uv run python scripts/gen_dataset_status.py`. The row's status, verification
+   and verified-on cells come from the metadata; do not write them by hand.
 
 ```mermaid
 flowchart TD
@@ -490,7 +510,7 @@ flowchart TD
     F4 --> F5[5. guarantee call_raw]
     F5 --> F6[6. unit tests]
     F6 --> F7[7. contract tests]
-    F7 --> F8[8. update SUPPORTED_DATA.md]
+    F7 --> F8[8. add the row and metadata entry, run the sync scripts]
     F8 --> End[done]
 ```
 

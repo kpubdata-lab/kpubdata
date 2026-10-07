@@ -29,6 +29,8 @@ KEYS = (
     "representation",
     "operations",
     "status",
+    "verification",
+    "application_requirement",
     "query_support",
     "license",
     "request_parameters",

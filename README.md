@@ -26,7 +26,7 @@ KPubData 는 그 차이를 어댑터가 흡수해, 하나의 Python 인터페이
 <!-- END: datasets -->
 
 > **검증 수준 (#498)**: [SUPPORTED_DATA.md](./SUPPORTED_DATA.md)의 "지원"은 `meta.json`이 있는 record 완료본(실API 검증)에만 씁니다.
-> 그 열은 `scripts/sync_supported_data.py`가 fixture에서 계산합니다. 스키마만/활용신청 대기도 거기서 확인하세요.
+> 그 열은 `scripts/sync_supported_data.py`가 fixture에서 계산해 `dataset_metadata.json`에 쓰고 거기서 표를 씁니다. 스키마만/활용신청 대기도 거기서 확인하세요.
 
 ## 무엇을 해결하나
 
