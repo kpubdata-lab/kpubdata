@@ -99,8 +99,6 @@ jobs:
         id: pr
         run: |
           DATASET=$(grep -oE "datago\.[a-z0-9_]+" /tmp/issue.md | head -1 || true)
-          PROVIDER="${DATASET%%.*}"
-          KEY="${DATASET#*.}"
           BRANCH="agent/${DATASET:-issue-$ISSUE_NUMBER}"
           # A shell variable does not reach the next step (#858); later steps read these outputs.
           {
@@ -133,24 +131,31 @@ jobs:
             gh issue edit "$ISSUE_NUMBER" --add-label needs-human || true
             exit 1
           fi
-          # 이 절차가 만드는 것만 커밋한다. `git add -A` 는 에이전트가 어디에
-          # 무엇을 썼든 전부 담아서, 도구가 남긴 파일이나 관계없는 변경까지
-          # PR 로 올린다 — kpubdata-builder 의 agent/pipeline.py 에서 실제로
-          # .omx/ 세션 로그가 그렇게 올라갔다.
-          # 스펙은 src/kpubdata/specs/{provider}/{key}.yaml 다. provider 하위
-          # 디렉터리가 빠진 pathspec 하나가 git add 를 통째로 실패시킨다(원자적)
-          # — 첫 실전 실행(#740)이 정확히 여기서 죽었다. 두 경로는 따로 넣는다:
-          # spec-only 변경에 fixture 경로가 없어도 스테이징이 비지 않게.
+          # Only what adding this dataset produces is committed (#862): the list in
+          # scripts/dataset_artifacts.py, which AGENTS.md and the agent definition follow
+          # too. It is read from the dispatch commit, like the guard above, so the agent
+          # cannot widen it for its own run. A change to a path dataset work may not touch
+          # (scripts/, .github/, src/kpubdata/core/ ...) stops the run before any script
+          # under scripts/ runs; any other stray file is listed and left out. Each path is
+          # added on its own: one missing pathspec fails a whole `git add` (#740).
           if [ -n "$DATASET" ]; then
-            git add -- "src/kpubdata/specs/${PROVIDER}/${KEY}.yaml"
-            git add -- "tests/fixtures/${PROVIDER}/${KEY}" 2>/dev/null || true
-            # https 전환(#738)은 baseline 축소가 같은 PR 에 실려야 make verify 를
-            # 통과한다 — 전환된 스펙의 줄이 baseline 에 남으면 stale 실패다.
-            # 스펙을 그대로 두는 실행에서는 이 파일도 그대로라 add 는 no-op 이다.
-            git add -- "scripts/insecure_http_baseline.txt"
+            git show "$GITHUB_SHA:scripts/dataset_artifacts.py" > /tmp/dataset_artifacts.py
+            if ! python3 /tmp/dataset_artifacts.py check "$DATASET" --base "$GITHUB_SHA"; then
+              gh issue edit "$ISSUE_NUMBER" --add-label needs-human || true
+              exit 1
+            fi
+            # Generated files come from their generators, not from the agent's hand.
+            uv run python scripts/sync_supported_data.py
+            uv run python scripts/gen_dataset_status.py
+            uv run python scripts/gen_docs_examples.py
+            while IFS= read -r path; do
+              if [ -e "$path" ] || git ls-files --error-unmatch -- "$path" >/dev/null 2>&1; then
+                git add -A -- "$path"
+              fi
+            done < <(python3 /tmp/dataset_artifacts.py paths "$DATASET")
           fi
           if git diff --cached --quiet; then
-            echo "::error::에이전트가 예상 경로(spec/fixture/baseline) 밖에만 변경을 만들었다"
+            echo "::error::에이전트가 이 데이터셋의 산출물(scripts/dataset_artifacts.py) 밖에만 변경을 만들었다"
             git status --porcelain
             gh issue edit "$ISSUE_NUMBER" --add-label needs-human || true
             exit 1

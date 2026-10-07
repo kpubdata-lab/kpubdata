@@ -270,8 +270,19 @@ make verify   # spec datasets: schema -> fixture -> replay -> example
 ### Paths you may change (dataset work)
 
 `src/kpubdata/specs/`, `examples/`, `tests/fixtures/`, `SUPPORTED_DATA.md`,
-`src/kpubdata/dataset_metadata.json`, and `src/kpubdata/dataset_status.json` as
-`scripts/gen_dataset_status.py` writes it
+`src/kpubdata/dataset_metadata.json`, and `src/kpubdata/dataset_status.json` and
+`docs/dataset-examples.md` as `scripts/gen_dataset_status.py` and
+`scripts/gen_docs_examples.py` write them
+
+`scripts/dataset_artifacts.py` holds the same list for one dataset, split into what
+you write by hand and what a generator writes. Change the three together: a test
+compares this section and the agent definition with it. One more file may change:
+`scripts/insecure_http_baseline.txt` may lose this dataset's line, and nothing else
+(`scripts/check_baseline_shrink.py`).
+
+Under the agent workflow (`.github/workflows/build-dataset.yml`), the agent does not
+commit and does not open the pull request. The workflow runs the generators of step 6
+itself, then commits only the paths of that list, and opens the pull request.
 
 ### Paths you may not change (dataset work)
 
