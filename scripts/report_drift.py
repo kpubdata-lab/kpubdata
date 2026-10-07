@@ -12,7 +12,26 @@ Behavior:
    or files a new one
 4. ``--dry-run`` prints the verdict without filing issues
 
-Requires: gh CLI + a write-capable token (GH_TOKEN/GITHUB_TOKEN).
+The run ends with one verdict, printed as ``verdict=<name>``, and an exit status (#859):
+
+==================== ====== ======================================================
+verdict              status meaning
+==================== ====== ======================================================
+ok                   0      the last runs were read and no dataset failed twice
+drift                0      datasets failed twice in a row, and each was reported
+insufficient_history 0      fewer completed runs exist than a streak needs
+undetermined         2      the runs or their results could not be read
+report_failed        1      drift was found and an issue could not be filed
+==================== ====== ======================================================
+
+A failed ``gh`` call used to be read as an empty answer: a 403 on the run list ended as
+"not enough history", and a failed ``gh issue create`` printed that the issue was
+filed. Nothing is read as empty now — a call that fails, an answer that cannot be
+parsed, and a failed run whose results cannot be found all end ``undetermined``, and a
+dataset is never called healthy on the strength of a run nobody could read.
+
+Requires: gh CLI + a token with ``actions: read`` and ``issues: write``
+(GH_TOKEN/GITHUB_TOKEN).
 """
 
 from __future__ import annotations
@@ -30,16 +49,32 @@ WORKFLOW = "smoke.yml"
 _TEST_RE = re.compile(r"FAILED\s+\S*test_(?P<provider>[a-z]+)_(?P<key>[a-z0-9_]+)\b")
 
 
+class UndeterminedError(Exception):
+    """The runs or their results could not be read, so no verdict can be given."""
+
+
+class ReportFailedError(Exception):
+    """Drift was found and telling anyone about it failed."""
+
+
 @dataclass
 class DriftReport:
     """Drift determination result."""
 
     consecutive_failures: list[str] = field(default_factory=list)
     recent_runs: list[dict[str, object]] = field(default_factory=list)
+    #: Completed runs found. Fewer than a streak needs is "not enough history", which
+    #: is not the same as a list that could not be read.
+    completed_runs: int = 0
 
 
 def _gh(args: list[str]) -> str:
-    """Run gh CLI and return stdout."""
+    """Run gh CLI and return stdout.
+
+    Raises:
+        UndeterminedError: ``gh`` exited non-zero. Its message is cut short and carries
+            no token: ``gh`` does not print one.
+    """
     proc = subprocess.run(
         ["gh", *args, "--repo", REPO],
         check=False,
@@ -47,9 +82,15 @@ def _gh(args: list[str]) -> str:
         text=True,
     )
     if proc.returncode != 0:
-        print(f"gh 오류: {proc.stderr.strip()[:200]}")
-        return ""
+        raise UndeterminedError(f"gh {args[0]} {args[1]} 실패: {proc.stderr.strip()[:200]}")
     return proc.stdout
+
+
+def _json(text: str, what: str) -> object:
+    try:
+        return json.loads(text)
+    except ValueError as error:
+        raise UndeterminedError(f"{what} 응답을 해석할 수 없음: {error}") from error
 
 
 def _failed_datasets_from_run(run_id: str) -> set[str]:
@@ -68,8 +109,18 @@ def _failed_datasets_from_run(run_id: str) -> set[str]:
         capture_output=True,
         text=True,
     )
+    if listing.returncode != 0:
+        raise UndeterminedError(
+            f"실행 {run_id} 의 아티팩트 목록 조회 실패: {listing.stderr.strip()[:200]}"
+        )
+    artifact_ids = listing.stdout.split()
+    if not artifact_ids:
+        # The run failed and left no results: which datasets failed is not known. That
+        # is not the same as "none did".
+        raise UndeterminedError(f"실패한 실행 {run_id} 에 결과 아티팩트가 없음")
     found: set[str] = set()
-    for artifact_id in listing.stdout.split():
+    read_any = False
+    for artifact_id in artifact_ids:
         proc = subprocess.run(
             [
                 "gh",
@@ -82,13 +133,14 @@ def _failed_datasets_from_run(run_id: str) -> set[str]:
             capture_output=True,
         )
         if proc.returncode != 0 or not proc.stdout:
-            continue
+            raise UndeterminedError(f"실행 {run_id} 의 아티팩트 {artifact_id} 를 내려받지 못함")
         try:
             with zipfile.ZipFile(io.BytesIO(proc.stdout)) as archive:
                 for name in archive.namelist():
                     if not name.endswith(".xml"):
                         continue
                     root = ET.fromstring(archive.read(name))
+                    read_any = True
                     for case in root.iter("testcase"):
                         has_failure = any(child.tag in ("failure", "error") for child in case)
                         if not has_failure:
@@ -100,8 +152,12 @@ def _failed_datasets_from_run(run_id: str) -> set[str]:
                             match = _TEST_RE.search(f"test_{case.get('name', '')}")
                         if match:
                             found.add(f"{match.group('provider')}.{match.group('key')}")
-        except (zipfile.BadZipFile, ET.ParseError):
-            continue
+        except (zipfile.BadZipFile, ET.ParseError) as error:
+            raise UndeterminedError(
+                f"실행 {run_id} 의 아티팩트 {artifact_id} 를 해석할 수 없음: {type(error).__name__}"
+            ) from error
+    if not read_any:
+        raise UndeterminedError(f"실패한 실행 {run_id} 의 아티팩트에 테스트 결과(xml)가 없음")
     return found
 
 
@@ -119,11 +175,17 @@ def collect(consecutive_required: int = 2, limit: int = 6) -> DriftReport:
             "databaseId,status,conclusion,createdAt",
         ]
     )
-    if not listing:
-        return DriftReport()
-    runs = [run for run in json.loads(listing) if run.get("conclusion")]
+    loaded = _json(listing, "실행 목록")
+    if not isinstance(loaded, list):
+        raise UndeterminedError("실행 목록 응답이 배열이 아님")
+    runs = [run for run in loaded if isinstance(run, dict) and run.get("conclusion")]
+    if len(runs) < consecutive_required:
+        # Really too few completed runs — the list itself was read.
+        return DriftReport(completed_runs=len(runs))
     failures_per_run: list[tuple[str, set[str]]] = []
-    for run in runs:
+    # Only the runs a streak is counted over are read: a run outside that window that
+    # cannot be read must not stop a verdict it has no part in.
+    for run in runs[:consecutive_required]:
         run_id = str(run["databaseId"])
         conclusion = str(run.get("conclusion"))
         if conclusion == "success":
@@ -132,10 +194,9 @@ def collect(consecutive_required: int = 2, limit: int = 6) -> DriftReport:
             failures_per_run.append((run_id, _failed_datasets_from_run(run_id)))
 
     report = DriftReport(
-        recent_runs=[{"id": rid, "failures": sorted(f)} for rid, f in failures_per_run]
+        recent_runs=[{"id": rid, "failures": sorted(f)} for rid, f in failures_per_run],
+        completed_runs=len(runs),
     )
-    if len(failures_per_run) < consecutive_required:
-        return report
 
     _latest_id, latest = failures_per_run[0]
     for dataset in sorted(latest):
@@ -153,11 +214,11 @@ def _existing_drift_issue(dataset: str) -> int | None:
     out = _gh(
         ["issue", "list", "--search", f'"{dataset}" is:open label:drift', "--json", "number,title"]
     )
-    if not out:
-        return None
-    issues = json.loads(out)
+    issues = _json(out, "이슈 검색")
+    if not isinstance(issues, list):
+        raise UndeterminedError("이슈 검색 응답이 배열이 아님")
     for issue in issues:
-        if dataset in str(issue.get("title", "")):
+        if isinstance(issue, dict) and dataset in str(issue.get("title", "")):
             return int(issue["number"])
     return None
 
@@ -194,20 +255,26 @@ def file_or_update(dataset: str, report: DriftReport, dry_run: bool) -> None:
         print(f"[dry-run] {title}")
         return
 
-    existing = _existing_drift_issue(dataset)
-    if existing is not None:
-        _gh(
-            [
-                "issue",
-                "comment",
-                str(existing),
-                "--body",
-                "스모크 연속 실패 지속 (자동 갱신):\n" + body,
-            ]
-        )
-        print(f"갱신: #{existing} {dataset}")
-        return
-    out = _gh(["issue", "create", "--title", title, "--body", body, "--label", "drift"])
+    # A search that fails must not be read as "no issue yet": that is how a second
+    # issue for the same dataset gets filed. Nothing is created unless the search
+    # answered.
+    try:
+        existing = _existing_drift_issue(dataset)
+        if existing is not None:
+            _gh(
+                [
+                    "issue",
+                    "comment",
+                    str(existing),
+                    "--body",
+                    "스모크 연속 실패 지속 (자동 갱신):\n" + body,
+                ]
+            )
+            print(f"갱신: #{existing} {dataset}")
+            return
+        out = _gh(["issue", "create", "--title", title, "--body", body, "--label", "drift"])
+    except UndeterminedError as error:
+        raise ReportFailedError(f"{dataset}: {error}") from error
     print(f"발행: {out.strip()} {dataset}")
 
 
@@ -217,14 +284,34 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dry-run", action="store_true", help="이슈 발행 없이 판정만")
     args = parser.parse_args(argv)
 
-    report = collect()
+    try:
+        report = collect()
+    except UndeterminedError as error:
+        print(f"판정할 수 없음: {error}")
+        print("verdict=undetermined")
+        return 2
     if not report.recent_runs:
-        print("스모크 실행 기록이 부족하여 판정 불가 (최소 2회 필요)")
+        print(
+            f"완료된 스모크 실행이 {report.completed_runs}회뿐이라 "
+            "연속 실패를 셀 수 없음 (최소 2회)"
+        )
+        print("verdict=insufficient_history")
         return 0
     streak_text = report.consecutive_failures or "없음"
     print(f"최근 실행 {len(report.recent_runs)}회 분석 — 연속 실패: {streak_text}")
+    not_reported: list[str] = []
     for dataset in report.consecutive_failures:
-        file_or_update(dataset, report, args.dry_run)
+        try:
+            file_or_update(dataset, report, args.dry_run)
+        except ReportFailedError as error:
+            # Go on to the other datasets; one failed report must not hide the rest.
+            print(f"보고 실패: {error}")
+            not_reported.append(dataset)
+    if not_reported:
+        print(f"드리프트가 있으나 보고하지 못함: {', '.join(not_reported)}")
+        print("verdict=report_failed")
+        return 1
+    print(f"verdict={'drift' if report.consecutive_failures else 'ok'}")
     return 0
 
 
