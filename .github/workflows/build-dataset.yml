@@ -96,11 +96,17 @@ jobs:
           fi
 
       - name: PR or needs-human
+        id: pr
         run: |
           DATASET=$(grep -oE "datago\.[a-z0-9_]+" /tmp/issue.md | head -1 || true)
           PROVIDER="${DATASET%%.*}"
           KEY="${DATASET#*.}"
           BRANCH="agent/${DATASET:-issue-$ISSUE_NUMBER}"
+          # A shell variable does not reach the next step (#858); later steps read these outputs.
+          {
+            echo "dataset=$DATASET"
+            echo "branch=$BRANCH"
+          } >> "$GITHUB_OUTPUT"
           if [ -z "$(git status --porcelain)" ]; then
             gh issue comment "$ISSUE_NUMBER" --body "에이전트가 변경을 만들지 못했습니다(자동) — needs-human" || true
             gh issue edit "$ISSUE_NUMBER" --add-label needs-human || true
@@ -154,15 +160,65 @@ jobs:
           git commit -m "feat(datasets): add ${DATASET:-a requested dataset} via the agent procedure" \
             -m "Refs #$ISSUE_NUMBER"
           git push origin "$BRANCH"
-          gh pr create --title "feat(datasets): add ${DATASET:-a requested dataset} via the agent procedure" \
+          # The pull request number comes from the URL `gh pr create` prints (#858), not from
+          # a search by branch name. If the pull request cannot be made, this step fails and
+          # the verifier does not run.
+          PR_URL=$(gh pr create --title "feat(datasets): add ${DATASET:-a requested dataset} via the agent procedure" \
             --body "에이전트 절차 산출물 — verify 통과 확인 후 사람 리뷰. Closes #$ISSUE_NUMBER" \
-            --label agent-generated || true
+            --label agent-generated)
+          PR_NUMBER="${PR_URL##*/}"
+          case "$PR_NUMBER" in
+            '' | *[!0-9]*)
+              echo "::error::gh pr create 가 풀 리퀘스트 주소를 돌려주지 않았다: $PR_URL"
+              exit 1
+              ;;
+          esac
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
 
-      - name: Verifier review comment
-        if: success()
+      # The verifier checks the pull request the step above opened. A rejection, an output
+      # with no verdict, or a failed run fails this step and the workflow (#858).
+      - name: Verifier review
+        id: verifier
+        if: success() && steps.pr.outputs.pr_number != ''
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
         run: |
-          PR=$(gh pr list --head "agent/${DATASET:-issue-$ISSUE_NUMBER}" --json number -q '.[0].number' || true)
-          [ -n "$PR" ] && opencode run --agent dataset-verifier "PR #$PR 리뷰 — 체크리스트 실행 후 승인/반려 코멘트" || true
+          opencode run --agent dataset-verifier \
+            "PR #$PR_NUMBER 리뷰 — 체크리스트를 실행하고 정해진 산출 형식으로 판정을 출력하라" \
+            > /tmp/verifier.md
+          cat /tmp/verifier.md
+          gh pr comment "$PR_NUMBER" --body-file /tmp/verifier.md
+          VERDICT=$(sed -n 's/^[*[:space:]]*판정:[*[:space:]]*\(승인\|반려\).*/\1/p' /tmp/verifier.md | tail -n 1)
+          case "$VERDICT" in
+            승인) ;;
+            반려)
+              echo "::error::verifier 가 PR #$PR_NUMBER 를 반려했다"
+              exit 1
+              ;;
+            *)
+              echo "::error::verifier 출력에서 판정(승인/반려)을 읽지 못했다"
+              exit 1
+              ;;
+          esac
+
+      # The run summary tells a verifier that never ran from one that approved, and a pull
+      # request whose verification did not pass says so itself, for the reviewer to see.
+      - name: Record verifier outcome
+        if: always()
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+          OUTCOME: ${{ steps.verifier.outcome }}
+        run: |
+          case "$OUTCOME" in
+            success) LINE="verifier: PR #$PR_NUMBER 를 검사해 승인했다" ;;
+            failure) LINE="verifier: PR #$PR_NUMBER 를 반려했거나, 실행이나 판정 읽기에 실패했다" ;;
+            *) LINE="verifier: 실행되지 않았다 — 풀 리퀘스트가 없거나 앞 단계가 실패했다" ;;
+          esac
+          echo "$LINE" >> "$GITHUB_STEP_SUMMARY"
+          echo "$LINE"
+          if [ -n "$PR_NUMBER" ] && [ "$OUTCOME" != "success" ]; then
+            gh pr comment "$PR_NUMBER" --body "$LINE ([실행 로그]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID))"
+          fi
 
       - name: Failure summary
         if: failure()
