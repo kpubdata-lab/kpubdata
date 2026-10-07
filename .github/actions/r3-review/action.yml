@@ -5,6 +5,9 @@ description: >
   every other pull request, so the check can be required without leaving any pull
   request waiting for it. Wraps scripts/r3_review.py so the four repositories run one
   rule. Needs only `pull-requests: read`, so it works on fork pull requests too.
+  Each approver's repository permission is looked up when the check runs (#860): an
+  approval counts only from an account that can push now, and one whose permission
+  cannot be read does not count.
 
 inputs:
   pr-number:
@@ -48,9 +51,38 @@ runs:
         gh api "repos/${REPO}/pulls/${NUMBER}" > "${dir}/pull.json"
         gh api --paginate "repos/${REPO}/pulls/${NUMBER}/reviews?per_page=100" --jq '.[]' \
           > "${dir}/reviews.jsonl"
+        script="${{ github.action_path }}/../../../scripts/r3_review.py"
+
+        # Whose approval would count, if they can write (#860). The list is empty for a
+        # pull request without the label, so no lookup is made for it. An account whose
+        # permission cannot be read is recorded as null — not an approval — and the
+        # decision goes on: one failed lookup must not hide another approver's review,
+        # and must never read as "may write".
+        python3 "${script}" --pull "${dir}/pull.json" --reviews "${dir}/reviews.jsonl" \
+          --label "${LABEL}" --candidates > "${dir}/candidates"
+        echo '{}' > "${dir}/permissions.json"
+        while IFS= read -r login; do
+          [ -n "${login}" ] || continue
+          permission=""
+          if [[ "${login}" =~ ^[A-Za-z0-9-]+$ ]]; then
+            if ! permission="$(gh api "repos/${REPO}/collaborators/${login}/permission" \
+                --jq '.permission' 2> "${dir}/lookup.err")"; then
+              permission=""
+              echo "::warning::could not read the repository permission of ${login}; their approval does not count"
+            fi
+          else
+            echo "::warning::${login} is not an account name this check looks up; their approval does not count"
+          fi
+          jq --arg login "${login}" --arg permission "${permission}" \
+            '. + {($login): (if $permission == "" then null else $permission end)}' \
+            "${dir}/permissions.json" > "${dir}/permissions.next"
+          mv "${dir}/permissions.next" "${dir}/permissions.json"
+        done < "${dir}/candidates"
+
         status=0
-        python3 "${{ github.action_path }}/../../../scripts/r3_review.py" \
+        python3 "${script}" \
           --pull "${dir}/pull.json" --reviews "${dir}/reviews.jsonl" --label "${LABEL}" \
+          --permissions "${dir}/permissions.json" \
           > "${dir}/out" || status=$?
         cat "${dir}/out" >> "$GITHUB_OUTPUT"
         sed -n 's/^reason=//p' "${dir}/out" >> "$GITHUB_STEP_SUMMARY"

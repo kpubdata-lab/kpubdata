@@ -21,15 +21,31 @@ The rule, decided by the owner on 2026-10-01:
   * an approval given on an older head still counts, because GitHub keeps it too;
   * an approval followed by a request for changes, or dismissed, does not count.
 
-- Only a person counts. A bot account (``user.type == "Bot"``) is not a human review,
-  and neither is an account without write access to the repository: on a public
-  repository anyone can submit an APPROVED review, so only ``OWNER``, ``MEMBER`` and
-  ``COLLABORATOR`` associations count — the same people GitHub's required reviews count.
+- Only a person counts. A bot account (``user.type == "Bot"``) is not a human review.
+- Only someone who can write to the repository **now** counts (#860). On a public
+  repository anyone can submit an APPROVED review. The review's ``author_association``
+  (``OWNER``, ``MEMBER``, ``COLLABORATOR``) says how the account is related to the
+  repository, not what it may do: an organisation member or a collaborator can hold
+  read or triage access only. So the approver's permission is looked up — ``admin`` or
+  ``write`` counts (GitHub reports ``maintain`` as ``write`` and ``triage`` as
+  ``read``) — and an approver whose permission could not be read does not count. The
+  association is still required as well; it costs nothing and narrows who is asked
+  about.
 
-The script reads the pull request and its reviews as JSON and makes no network call,
-so every branch of the rule is a unit test. The action fetches them.
+  The permission is the one held when the check runs, not when the review was
+  submitted: an approval from someone who has since lost write access stops counting
+  the next time the check runs. Losing access is not an event the check runs on, so
+  until a push, a label change or a review re-runs it, the earlier result stands.
 
-    $ python3 scripts/r3_review.py --pull pr.json --reviews reviews.json
+The script reads the pull request, its reviews and the approvers' permissions as JSON
+and makes no network call, so every branch of the rule is a unit test. The action
+fetches them, in two steps: ``--candidates`` prints the accounts whose permission is
+needed, and the decision is made once those are known.
+
+    $ python3 scripts/r3_review.py --pull pr.json --reviews reviews.json --candidates
+    alice
+    $ python3 scripts/r3_review.py --pull pr.json --reviews reviews.json \
+          --permissions permissions.json
     passed=true
     reason=#12 is review:R3 and approved by alice
 
@@ -51,8 +67,14 @@ R3_LABEL = "review:R3"
 # Reviews that set a reviewer's state. COMMENTED and PENDING do not.
 _DECIDING_STATES = frozenset({"APPROVED", "CHANGES_REQUESTED", "DISMISSED"})
 
-# Accounts GitHub would count toward required reviews: people with write access.
+# Associations an account with write access always has. Necessary, not sufficient: a
+# member or a collaborator may hold read or triage access only (#860).
 _TRUSTED_ASSOCIATIONS = frozenset({"OWNER", "MEMBER", "COLLABORATOR"})
+
+# ``permission`` values of ``GET /repos/{owner}/{repo}/collaborators/{user}/permission``
+# that let an account push. GitHub folds ``maintain`` into ``write`` and ``triage``
+# into ``read`` in this field.
+_WRITE_PERMISSIONS = frozenset({"admin", "write"})
 
 
 @dataclass(frozen=True)
@@ -69,8 +91,18 @@ def _login(user: Any) -> str | None:
     return login if isinstance(login, str) and login else None
 
 
-def current_approvers(reviews: Iterable[Mapping[str, Any]], author: str) -> tuple[str, ...]:
-    """The non-author humans with write access whose latest deciding review approves.
+def can_write(permissions: Mapping[str, Any], login: str) -> bool:
+    """Whether ``permissions`` says ``login`` can push. Unknown, null or unread: no."""
+    wanted = login.casefold()
+    for name, permission in permissions.items():
+        if isinstance(name, str) and name.casefold() == wanted:
+            return isinstance(permission, str) and permission in _WRITE_PERMISSIONS
+    return False
+
+
+def approval_candidates(reviews: Iterable[Mapping[str, Any]], author: str) -> tuple[str, ...]:
+    """The non-author humans, related to the repository, whose latest deciding review
+    approves — the accounts whose permission decides whether the approval counts.
 
     Reviews are ordered by ``submitted_at`` and then by ``id``; GitHub returns them in
     that order already, but the rule should not depend on it.
@@ -102,32 +134,80 @@ def current_approvers(reviews: Iterable[Mapping[str, Any]], author: str) -> tupl
     return tuple(sorted(approvers, key=str.casefold))
 
 
-def evaluate(
+def current_approvers(
+    reviews: Iterable[Mapping[str, Any]], author: str, permissions: Mapping[str, Any]
+) -> tuple[str, ...]:
+    """The candidates who can write to the repository now, by ``permissions``."""
+    return tuple(
+        login for login in approval_candidates(reviews, author) if can_write(permissions, login)
+    )
+
+
+def _is_labelled(pull: Mapping[str, Any], label: str) -> bool:
+    labels = {item.get("name") for item in pull.get("labels") or [] if isinstance(item, Mapping)}
+    return label in labels
+
+
+def candidates_to_look_up(
     pull: Mapping[str, Any],
     reviews: Iterable[Mapping[str, Any]],
     label: str = R3_LABEL,
+) -> tuple[str, ...]:
+    """The accounts whose permission ``evaluate`` will need — none when the pull request
+    does not carry the label or its author cannot be read, since nothing is then asked."""
+    if not _is_labelled(pull, label):
+        return ()
+    author = _login(pull.get("user"))
+    if author is None:
+        return ()
+    return approval_candidates(reviews, author)
+
+
+def evaluate(
+    pull: Mapping[str, Any],
+    reviews: Iterable[Mapping[str, Any]],
+    permissions: Mapping[str, Any],
+    label: str = R3_LABEL,
 ) -> Decision:
-    """Decide one pull request. ``pull`` is the REST ``pulls/{n}`` object."""
+    """Decide one pull request. ``pull`` is the REST ``pulls/{n}`` object and
+    ``permissions`` maps each candidate's login to their repository permission."""
     number = pull.get("number")
-    labels = {item.get("name") for item in pull.get("labels") or [] if isinstance(item, Mapping)}
-    if label not in labels:
+    if not _is_labelled(pull, label):
         return Decision(True, f"#{number} is not {label}; no review is required by this check")
 
     author = _login(pull.get("user"))
     if author is None:
         return Decision(False, f"#{number} is {label} but its author could not be read")
 
-    approvers = current_approvers(reviews, author)
+    reviews = list(reviews)
+    approvers = current_approvers(reviews, author, permissions)
     if approvers:
         return Decision(
             True, f"#{number} is {label} and approved by {', '.join(approvers)}", approvers
         )
+    without_write = [
+        login for login in approval_candidates(reviews, author) if not can_write(permissions, login)
+    ]
+    not_counted = (
+        f" Approved by {', '.join(without_write)}, whose write access could not be "
+        "confirmed — read or triage access, or a permission lookup that failed, does not count."
+        if without_write
+        else ""
+    )
     return Decision(
         False,
         f"#{number} is {label} and needs an approval from a person other than its author "
         f"({author}) who has write access. A later request for changes or a dismissal "
-        "cancels an approval; bots do not count (POLICY 14.1).",
+        f"cancels an approval; bots do not count (POLICY 14.1).{not_counted}",
     )
+
+
+def _load_permissions(text: str) -> dict[str, Any]:
+    """``{login: permission}``. A permission that could not be read is ``null``."""
+    loaded = json.loads(text) if text.strip() else {}
+    if not isinstance(loaded, dict):
+        raise ValueError("permissions must be a JSON object of login to permission")
+    return loaded
 
 
 def _load_reviews(text: str) -> list[dict[str, Any]]:
@@ -154,19 +234,42 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--label", default=R3_LABEL, help=f"Label that requires review ({R3_LABEL})"
     )
+    parser.add_argument(
+        "--permissions",
+        type=Path,
+        help="JSON object of login to repository permission; without it nobody has write access",
+    )
+    parser.add_argument(
+        "--candidates",
+        action="store_true",
+        help="Print the logins whose permission is needed, one per line, and decide nothing",
+    )
     args = parser.parse_args(argv)
 
     try:
         pull = json.loads(args.pull.read_text(encoding="utf-8"))
         reviews = _load_reviews(args.reviews.read_text(encoding="utf-8"))
+        permissions = (
+            _load_permissions(args.permissions.read_text(encoding="utf-8"))
+            if args.permissions is not None
+            else {}
+        )
     except (OSError, ValueError) as error:
-        print(f"::error::cannot read the pull request or its reviews: {error}", file=sys.stderr)
+        print(
+            f"::error::cannot read the pull request, its reviews or the permissions: {error}",
+            file=sys.stderr,
+        )
         return 2
     if not isinstance(pull, dict):
         print("::error::the pull request JSON is not an object", file=sys.stderr)
         return 2
 
-    decision = evaluate(pull, reviews, args.label)
+    if args.candidates:
+        for login in candidates_to_look_up(pull, reviews, args.label):
+            print(login)
+        return 0
+
+    decision = evaluate(pull, reviews, permissions, args.label)
     print(f"passed={'true' if decision.passed else 'false'}")
     print(f"reason={decision.reason}")
     print(f"approvers={','.join(decision.approvers)}")
