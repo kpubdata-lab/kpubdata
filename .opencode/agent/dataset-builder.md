@@ -23,11 +23,13 @@ tools:
 3. `make record DATASET={provider}.{dataset_key}` — 실API fixture 3종 기록 (API 키는 환경 변수)
 4. `examples/{provider}/{dataset_key}.py` 작성 — **파라미터는 spec examples[]와 동일** (replay 매칭 계약), 의미 있는 assert ≥1
 5. `make verify DATASET={provider}.{dataset_key}` exit 0까지 반복
-6. `SUPPORTED_DATA.md` 행 추가 + `uv run python scripts/gen_docs_examples.py`
+6. `SUPPORTED_DATA.md` 행과 `src/kpubdata/dataset_metadata.json` 항목 추가. 상태·검증·검증일 칸과 생성 파일(`dataset_status.json`, `docs/dataset-examples.md`)은 손으로 쓰지 않는다 — `scripts/sync_supported_data.py`, `scripts/gen_dataset_status.py`, `scripts/gen_docs_examples.py` 가 쓴다
 
 ## 수정 허용 경로
 
-`src/kpubdata/specs/`, `examples/`, `tests/fixtures/` (make record로만), `docs/datasets/`, `docs/sources/`, `SUPPORTED_DATA.md`
+`src/kpubdata/specs/`, `examples/`, `tests/fixtures/` (make record로만), `SUPPORTED_DATA.md`, `src/kpubdata/dataset_metadata.json`, `src/kpubdata/dataset_status.json`, `docs/dataset-examples.md` (뒤의 둘은 생성기로만)
+
+이 목록의 기준은 `scripts/dataset_artifacts.py` 다(AGENTS.md 와 같다). `docs/sources/` 는 읽기 전용 캐시이며 저장소에 들어가지 않는다. `scripts/insecure_http_baseline.txt` 는 이 데이터셋의 줄을 지우는 것만 허용된다.
 
 ## 수정 금지 경로
 
@@ -53,4 +55,4 @@ tools:
 
 ## 완료 조건
 
-`make verify DATASET=<id>` exit 0 + 품질 게이트(`make quality`) 통과 + 커밋(영문 메시지) 후 PR. PR 본문에 "Closes #<이슈번호>" 포함.
+`make verify DATASET=<id>` exit 0 + 품질 게이트(`make quality`) 통과. **커밋하지 않고 PR 도 열지 않는다** — 워크플로(`build-dataset.yml`)가 생성기를 돌린 뒤 위 목록의 파일만 커밋하고 PR 을 연다. 에이전트가 커밋을 만들면 워크플로는 멈춘다.
