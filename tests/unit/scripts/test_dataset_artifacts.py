@@ -146,6 +146,7 @@ def repo(tmp_path: Path) -> Path:
     _git(tmp_path, "config", "user.name", "t")
     (tmp_path / "scripts").mkdir()
     (tmp_path / "scripts" / "insecure_http_baseline.txt").write_text("a\nb\n", encoding="utf-8")
+    (tmp_path / "scripts" / "gen.py").write_text("", encoding="utf-8")
     (tmp_path / "SUPPORTED_DATA.md").write_text("| x |\n", encoding="utf-8")
     _git(tmp_path, "add", "-A")
     _git(tmp_path, "commit", "-qm", "base")
@@ -197,3 +198,83 @@ def test_a_stray_file_elsewhere_is_named_and_left_out(
         "left out (not a datago.x artifact): examples/datago/other.py",
         "left out (not a datago.x artifact): notes.txt",
     ]
+
+
+# The review of #867 found three forbidden changes the check let through.
+
+
+def _forbidden_in(err: str) -> list[str]:
+    return [
+        line.removeprefix("error: dataset work may not change ")
+        for line in err.splitlines()
+        if line.startswith("error: dataset work may not change ")
+    ]
+
+
+@pytest.mark.parametrize("name", ["한글.py", "a b.py"], ids=["non-ascii", "space"])
+def test_a_new_file_with_an_unusual_name_under_a_forbidden_path_fails(
+    repo: Path, capsys: pytest.CaptureFixture[str], name: str
+) -> None:
+    """git quotes such a name unless the list is read NUL-separated (``-z``)."""
+    (repo / "scripts" / name).write_text("", encoding="utf-8")
+
+    code, out, err = _check(repo, capsys)
+
+    assert code == 1
+    assert _forbidden_in(err) == [f"scripts/{name}"]
+    assert out == ""
+
+
+def test_a_file_moved_out_of_a_forbidden_path_fails(
+    repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """With rename detection the move shows only as the new name, outside ``scripts/``."""
+    _git(repo, "mv", "scripts/gen.py", "moved.py")
+
+    code, _, err = _check(repo, capsys)
+
+    assert code == 1
+    assert _forbidden_in(err) == ["scripts/gen.py"]
+
+
+@pytest.mark.parametrize("rule_file", [".gitignore", ".git/info/exclude"])
+def test_a_file_hidden_by_an_ignore_rule_under_a_forbidden_path_fails(
+    repo: Path, capsys: pytest.CaptureFixture[str], rule_file: str
+) -> None:
+    """``scripts/json.py`` would be imported by the generators the workflow runs next."""
+    (repo / rule_file).parent.mkdir(parents=True, exist_ok=True)
+    (repo / rule_file).write_text("scripts/json.py\n", encoding="utf-8")
+    (repo / "scripts" / "json.py").write_text("", encoding="utf-8")
+
+    code, _, err = _check(repo, capsys)
+
+    assert code == 1
+    assert _forbidden_in(err) == ["scripts/json.py"]
+
+
+def test_python_bytecode_cache_under_a_forbidden_path_passes(
+    repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``make verify`` writes it; Python never imports a cached file without its source."""
+    (repo / ".gitignore").write_text("__pycache__/\n*.pyc\n", encoding="utf-8")
+    _git(repo, "add", ".gitignore")
+    _git(repo, "commit", "-qm", "ignore")
+    (repo / "scripts" / "__pycache__").mkdir()
+    (repo / "scripts" / "__pycache__" / "gen.cpython-312.pyc").write_bytes(b"")
+
+    assert _check(repo, capsys) == (0, "", "")
+
+
+def test_a_sourceless_bytecode_file_under_a_forbidden_path_fails(
+    repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``scripts/json.pyc`` outside ``__pycache__`` is importable, ignored or not."""
+    (repo / ".gitignore").write_text("*.pyc\n", encoding="utf-8")
+    _git(repo, "add", ".gitignore")
+    _git(repo, "commit", "-qm", "ignore")
+    (repo / "scripts" / "json.pyc").write_bytes(b"")
+
+    code, _, err = _check(repo, capsys)
+
+    assert code == 1
+    assert _forbidden_in(err) == ["scripts/json.pyc"]

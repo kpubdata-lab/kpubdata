@@ -89,23 +89,32 @@ def is_forbidden(path: str) -> bool:
     return any(path == prefix or path.startswith(prefix) for prefix in FORBIDDEN)
 
 
+def _git_paths(root: Path, *args: str) -> set[str]:
+    """The paths a git command lists, read NUL-separated (``-z``): a name with a space or
+    a non-ASCII character comes back as it is, not quoted or split (#867 review)."""
+    output = subprocess.run(
+        ["git", *args], cwd=root, capture_output=True, check=True
+    ).stdout.decode("utf-8", errors="surrogateescape")
+    return {path for path in output.split("\0") if path}
+
+
 def changed_paths(root: Path, base: str) -> list[str]:
-    """Tracked files changed since ``base`` and untracked files, ignored ones left out."""
-    tracked = subprocess.run(
-        ["git", "diff", "--name-only", base, "--"],
-        cwd=root,
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.split()
-    untracked = subprocess.run(
-        ["git", "ls-files", "--others", "--exclude-standard"],
-        cwd=root,
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.split()
-    return sorted({*tracked, *untracked})
+    """Every path changed since ``base``, for the forbidden-path check and the report.
+
+    - Tracked changes are listed without rename detection, so a file moved out of a
+      forbidden path shows up as deleted there.
+    - Untracked files under a forbidden path are listed whatever the ignore rules say.
+      An agent can add a rule (``.gitignore``, ``.git/info/exclude``) before it writes
+      ``scripts/json.py``, which the generators run next would import. Python's bytecode
+      cache (``__pycache__/``) is left out: running ``make verify`` writes it there, and
+      Python never imports a cached file whose source is missing.
+    - Untracked files elsewhere are listed as the ignore rules say, for the report.
+    """
+    tracked = _git_paths(root, "diff", "-z", "--name-only", "--no-renames", base, "--")
+    hidden = _git_paths(root, "ls-files", "-z", "--others", "--", *FORBIDDEN)
+    untracked = _git_paths(root, "ls-files", "-z", "--others", "--exclude-standard")
+    hidden = {path for path in hidden if "__pycache__" not in path.split("/")}
+    return sorted(tracked | hidden | untracked)
 
 
 def _covered(path: str, allowed: list[str]) -> bool:
