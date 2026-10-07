@@ -70,6 +70,13 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # scripts/report_drift.py lists this workflow's runs and downloads their result
+    # artifacts (actions: read), and files or updates the drift issue (issues: write).
+    # The workflow default is contents: read alone, under which both were refused (#859).
+    permissions:
+      contents: read
+      actions: read
+      issues: write
     steps:
       - uses: actions/checkout@v7
 
