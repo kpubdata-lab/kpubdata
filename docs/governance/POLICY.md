@@ -803,8 +803,18 @@ Agent는 다음을 단독으로 결정하지 않는다.
   APPROVED 인 경우. COMMENTED 는 상태를 바꾸지 않는다. 이전 head 에 준 승인도 센다 —
   branch protection 의 "dismiss stale approvals" 가 꺼져 있는 것과 맞춘다.
 - 세지 않는 것: 작성자 본인, 봇 계정(사람 리뷰가 아니다), 저장소 쓰기 권한이 없는
-  계정(`OWNER`·`MEMBER`·`COLLABORATOR` 가 아닌 association — 공개 저장소에서는 누구나
-  APPROVED 를 남길 수 있다).
+  계정 — 공개 저장소에서는 누구나 APPROVED 를 남길 수 있다.
+- **쓰기 권한은 조회해서 확인한다(#860).** 리뷰의 `author_association`
+  (`OWNER`·`MEMBER`·`COLLABORATOR`)은 계정과 저장소의 관계이지 권한이 아니다 — 조직
+  구성원이나 협력자가 읽기·분류(triage) 권한만 가질 수 있다. 그래서 association 이 맞는
+  승인자마다 `GET /repos/{owner}/{repo}/collaborators/{login}/permission` 을 조회해
+  `admin` 또는 `write` 일 때만 센다(이 필드에서 `maintain` 은 `write`, `triage` 는
+  `read` 로 온다). **조회에 실패한 계정의 승인은 세지 않는다.** 한 계정의 조회 실패가
+  다른 승인자의 리뷰를 가리지는 않는다.
+- **권한은 승인한 때가 아니라 check 가 도는 때의 것이다.** 승인한 뒤 쓰기 권한을 잃은
+  사람의 승인은 다음 판정부터 세지 않는다. 다만 권한 변경은 check 를 다시 돌리는
+  이벤트가 아니므로, push·라벨 변경·리뷰로 다시 돌기 전까지는 앞선 결과가 남는다.
+  권한을 회수한 뒤 열려 있는 R3 PR 이 있으면 check 를 다시 돌린다.
 - 라벨을 떼면 check 는 통과한다. 그래서 R3 를 낮추는 것은 여전히 사람만 한다(위 목록).
 - 이벤트마다 별도 실행(check suite)이 생기고, branch protection 은 한 suite 에서 실패한
   check 를 다른 suite 가 통과해도 실패로 본다. 그래서 승인으로 돈 실행이 통과하면 같은
