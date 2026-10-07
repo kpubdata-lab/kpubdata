@@ -614,3 +614,30 @@ def test_the_action_does_not_look_up_the_author_a_bot_or_an_outsider(tmp_path: P
     assert status == 1
     assert outputs["passed"] == "false"
     assert _lookups(calls) == []
+
+
+def test_the_action_looks_up_an_account_whose_name_holds_an_underscore(tmp_path: Path) -> None:
+    """Enterprise Managed User logins end in ``_<shortcode>``; the name check used to
+    leave them out, so their approval could never count."""
+    status, outputs, calls = _run_the_action_step(
+        tmp_path,
+        _pull("review:R3"),
+        [_review("reviewer_corp", "APPROVED", association="MEMBER")],
+        {"reviewer_corp": "write"},
+    )
+
+    assert status == 0, outputs["stderr"]
+    assert outputs["approvers"] == "reviewer_corp"
+    assert len(_lookups(calls)) == 1
+
+
+@pytest.mark.parametrize("login", ["a/b", "a b", "a?x=1", "..", "a%2Fb"])
+def test_the_action_puts_no_other_kind_of_name_into_a_url(tmp_path: Path, login: str) -> None:
+    """Negative: a name that is not a login is refused, not looked up."""
+    status, outputs, calls = _run_the_action_step(
+        tmp_path, _pull("review:R3"), [_review(login, "APPROVED")], {}
+    )
+
+    assert status == 1
+    assert _lookups(calls) == []
+    assert "is not an account name this check looks up" in outputs["stdout"]

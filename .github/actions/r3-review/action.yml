@@ -64,7 +64,9 @@ runs:
         while IFS= read -r login; do
           [ -n "${login}" ] || continue
           permission=""
-          if [[ "${login}" =~ ^[A-Za-z0-9-]+$ ]]; then
+          # A GitHub login is letters, digits and hyphens; an Enterprise Managed User's
+          # ends in `_<shortcode>`. Anything else is not put into a URL.
+          if [[ "${login}" =~ ^[A-Za-z0-9_-]+$ ]]; then
             if ! permission="$(gh api "repos/${REPO}/collaborators/${login}/permission" \
                 --jq '.permission' 2> "${dir}/lookup.err")"; then
               permission=""
