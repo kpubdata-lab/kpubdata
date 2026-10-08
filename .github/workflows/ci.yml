@@ -171,6 +171,11 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
+        include:
+          # Instrumentation rides one leg only: the same information, without
+          # the extra full run a separate job cost (#872).
+          - python-version: "3.12"
+            coverage: "--cov --cov-report=term-missing"
     steps:
       - uses: actions/checkout@v7
 
@@ -187,33 +192,9 @@ jobs:
         run: uv sync --frozen --extra dev
 
       - name: Run tests
-        run: uv run pytest -ra
-
-  coverage:
-    # 커버리지 게이트 (#456). 지금 도달한 수준이 조용히 내려가지 않게 잠근다.
-    # 하한은 pyproject 의 [tool.coverage.report] fail_under 한 곳에서만 관리한다.
-    # 테스트 매트릭스(4개)에 --cov 를 얹지 않고 이 잡 하나만 계측한다 — 얻는 정보는
-    # 같은데 비용만 4배이기 때문이다.
-    name: Coverage Gate
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: uv sync --frozen --extra dev
-
-      - name: Run tests with coverage
-        run: uv run pytest -ra --cov --cov-report=term-missing
+        env:
+          COVERAGE_ARGS: ${{ matrix.coverage }}
+        run: uv run pytest -ra ${COVERAGE_ARGS}
 
   build:
     name: Build Package
@@ -371,7 +352,7 @@ jobs:
   gate:
     name: CI gate
     runs-on: ubuntu-latest
-    needs: [quality, test, coverage, build, base-install, docs, secret-scan]
+    needs: [quality, test, build, base-install, docs, secret-scan]
     # `always()` so a failed job still reaches this step. Without it the gate is
     # skipped when something upstream fails, and a skipped required check is the same
     # absence this job exists to remove.
