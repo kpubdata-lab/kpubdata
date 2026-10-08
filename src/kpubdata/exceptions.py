@@ -191,11 +191,39 @@ class CapabilityContractError(PublicDataError):
     code: ClassVar[str] = "capability_contract_error"
 
 
+class IncompleteListError(PublicDataError):
+    """Raised after ``list_all(partial=True)`` has yielded the pages it read (#876).
+
+    A listing that fails part way, with ``partial=True``, first hands over the pages
+    it already read and then raises this, so a caller can keep them and still knows
+    the listing did not finish. ``pages`` is how many were yielded. The request that
+    failed is ``__cause__``; its ``provider``, ``status_code``, ``provider_code`` and
+    ``retryable`` are copied here, so a caller can judge the failure without
+    unwrapping it.
+    """
+
+    code: ClassVar[str] = "incomplete_list"
+
+    def __init__(self, cause: PublicDataError, *, pages: int) -> None:
+        """Wrap ``cause``, the failure after ``pages`` yielded pages."""
+        super().__init__(
+            f"listing stopped after {pages} page(s): {cause}",
+            provider=cause.provider,
+            dataset_id=cause.dataset_id,
+            operation=cause.operation,
+            status_code=cause.status_code,
+            provider_code=cause.provider_code,
+            retryable=cause.retryable,
+        )
+        self.pages = pages
+
+
 __all__ = [
     "AuthError",
     "CapabilityContractError",
     "ConfigError",
     "DatasetNotFoundError",
+    "IncompleteListError",
     "InvalidRequestError",
     "ParseError",
     "ProviderNotRegisteredError",

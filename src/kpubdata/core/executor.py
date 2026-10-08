@@ -50,8 +50,10 @@ from kpubdata.core.spec import SpecDefinition, reported_license
 from kpubdata.exceptions import (
     AuthError,
     DatasetNotFoundError,
+    IncompleteListError,
     InvalidRequestError,
     ProviderResponseError,
+    PublicDataError,
     RateLimitError,
     ServiceUnavailableError,
     TransportError,
@@ -1371,7 +1373,12 @@ class SpecDatasetAdapter:
         return self._executor.query(spec, dataset, query)
 
     def query_records_all(
-        self, dataset: DatasetRef, query: Query, *, max_pages: int | None = None
+        self,
+        dataset: DatasetRef,
+        query: Query,
+        *,
+        max_pages: int | None = None,
+        partial: bool = False,
     ) -> Iterator[RecordBatch]:
         """Multi-page query with global column casting (#481, #614, #789).
 
@@ -1389,8 +1396,14 @@ class SpecDatasetAdapter:
         **A page that fails takes the earlier ones with it.** If a request fails, or a
         provider error comes back, on page *n*, the exception propagates and no batch
         is yielded: pages 1 to *n*-1 are discarded with the temporary file. They could
-        not be yielded earlier without knowing how their columns would be cast, and a
-        caller that needs partial progress pages with ``list()`` instead.
+        not be yielded earlier without knowing how their columns would be cast.
+
+        **Unless the caller asks to keep them** (``partial=True``, #876). Then the
+        columns are cast over the pages that were read, those pages are yielded, and
+        ``IncompleteListError`` is raised with the failure as its cause. A provider
+        key's daily quota is spent on every page requested; without this a failure on
+        page 31 spent 31 requests and returned nothing. A failure on the first page is
+        raised as it is.
 
         Pagination follows :meth:`SpecExecutor.query` exactly: ``page_size``
         is capped to the spec's ``pagination.max_size`` and ``next_page`` is
@@ -1408,6 +1421,8 @@ class SpecDatasetAdapter:
             InvalidRequestError: More than ``max_pages`` pages would be
                 needed. As in the legacy ``Dataset.list_all`` path, the
                 ``max_pages`` batches already fetched are yielded first.
+            IncompleteListError: With ``partial=True``, a request after the first
+                failed; the pages before it were yielded first.
         """
         spec = self._specs.get(dataset.dataset_key)
         if spec is None:
@@ -1417,20 +1432,27 @@ class SpecDatasetAdapter:
         effective_max = max_pages if max_pages is not None else 1000
         decision = _CastingDecision(spec)
         spool = _PageSpool()
+        failure: PublicDataError | None = None
         try:
             total_count: int | None = None
             page_query = query
             next_page: int | None = None
 
             while True:
-                self._executor._require_supported_envelope(spec)
-                params = self._executor.build_params(spec, page_query, format_hint=None)
-                payload, provenance = self._executor._request(spec, params)
-                self._executor._check_error(spec, payload)
-
-                staged = self._executor._stage_fields(
-                    spec, self._executor._extract_items(spec, payload)
-                )
+                try:
+                    self._executor._require_supported_envelope(spec)
+                    params = self._executor.build_params(spec, page_query, format_hint=None)
+                    payload, provenance = self._executor._request(spec, params)
+                    self._executor._check_error(spec, payload)
+                    staged = self._executor._stage_fields(
+                        spec, self._executor._extract_items(spec, payload)
+                    )
+                except PublicDataError as error:
+                    if not partial or not len(spool):
+                        raise
+                    # Keep what was read (#876): cast and yield it, then raise.
+                    failure = error
+                    break
                 page_count = self._executor._extract_total_count(spec, payload)
                 if total_count is None:
                     total_count = page_count
@@ -1472,6 +1494,8 @@ class SpecDatasetAdapter:
         finally:
             spool.close()
 
+        if failure is not None:
+            raise IncompleteListError(failure, pages=len(spool)) from failure
         if next_page is not None:
             raise InvalidRequestError(
                 f"Pagination limit exceeded: reached {effective_max + 1} pages "

@@ -146,7 +146,16 @@ which is the one that decided casting.
 On that path a fetched page waits in a temporary file, not in memory, so memory use
 follows the page size and not the size of the result (#789). If a page fails, the
 exception propagates and no batch is yielded — the pages fetched before it are
-discarded. Use `list()` page by page when partial progress matters.
+discarded.
+
+`list_all(partial=True)` keeps them (#876). When a request after the first fails,
+the pages read before it are yielded — on the spec path, cast over those pages —
+and then `IncompleteListError` is raised. Its `pages` is how many were yielded, its
+`__cause__` is the failure, and the failure's `provider`, `status_code`,
+`provider_code` and `retryable` are copied onto it. A failure of the first request is
+raised as it is, since nothing was read. The other paths already yield each page as
+it arrives; `partial=True` gives them the same ending, so a caller tells a short
+listing from a complete one the same way on every path. `partial` must be a bool.
 
 Dataset metadata may expose provider-specific pagination styles through
 `DatasetRef.query_support.pagination`, including `offset`, `cursor`, and
@@ -310,6 +319,7 @@ does not change with the message, so map on it rather than on the text.
 | `UnsupportedCapabilityError` | `unsupported_capability` | an operation the dataset does not have |
 | `ProviderNotRegisteredError` | `provider_not_registered` | a provider absent from the registry |
 | `CapabilityContractError` | `capability_contract_error` | an adapter whose declared and actual capabilities disagree |
+| `IncompleteListError` | `incomplete_list` | `list_all(partial=True)` stopped after yielding `pages` pages; `__cause__` is the failure |
 
 `RateLimitError`, `ServiceUnavailableError` and `TransportTimeoutError` are
 `TransportError`s; `AuthError` is not, so `except TransportError` does not catch a 401.

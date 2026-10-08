@@ -1047,3 +1047,17 @@ def test_fetch_all_accepts_valid_max_pages_integer(
     payload = cast(list[dict[str, object]], json.loads(captured.out))
     assert len(payload) == 2
     assert fake_client.closed is True
+
+
+def test_fetch_all_refuses_partial_as_a_parameter(
+    fake_client: FakeClient, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """``partial`` is a ``list_all`` option (#876), never sent as a provider parameter."""
+    exit_code = main(["fetch", "bok.base_rate", "--all", "-p", "partial=true"])
+
+    captured = capsys.readouterr()
+
+    assert exit_code == 2
+    assert "error: InvalidRequestError: partial is not a parameter of fetch --all" in captured.err
+    assert fake_client.dataset_stub.list_calls == []
+    assert fake_client.closed is True

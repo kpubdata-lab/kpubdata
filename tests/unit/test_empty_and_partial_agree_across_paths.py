@@ -17,7 +17,12 @@ from kpubdata.config import KPubDataConfig
 from kpubdata.core.dataset import Dataset
 from kpubdata.core.executor import SpecDatasetAdapter, SpecExecutor
 from kpubdata.core.models import Query, RecordBatch
-from kpubdata.exceptions import PublicDataError, TransportError
+from kpubdata.exceptions import (
+    IncompleteListError,
+    InvalidRequestError,
+    PublicDataError,
+    TransportError,
+)
 from kpubdata.providers.datago.adapter import DataGoAdapter
 from kpubdata.providers.localdata.adapter import LocaldataAdapter
 from kpubdata.providers.semas.adapter import SemasAdapter
@@ -200,3 +205,80 @@ def test_query_records_agrees_with_list_on_an_empty_answer() -> None:
     batch = SpecExecutor(transport, _CONFIG).query(spec, _ref(spec), Query(filters=_SPEC_FILTERS))
 
     assert (batch.items, batch.total_count, batch.next_page) == ([], None, None)
+
+
+# --- partial=True: keep what was read (#876) ------------------------------------------
+
+
+def _collect_partial(path: str, failing: int) -> tuple[list[list[str]], int, BaseException | None]:
+    transport = _FailsOnPage(failing)
+    dataset, filters = _PATHS[path](transport)
+    seen: list[list[str]] = []
+    try:
+        for batch in dataset.list_all(page_size=2, partial=True, **filters):
+            seen.append([str(row.get("n", row)) for row in batch.items])
+    except PublicDataError as error:
+        return seen, transport.sent, error
+    return seen, transport.sent, None
+
+
+@pytest.mark.parametrize("path", _PATHS)
+def test_partial_hands_over_the_pages_read_then_says_the_list_is_incomplete(path: str) -> None:
+    seen, sent, error = _collect_partial(path, failing=3)
+
+    assert len(seen) == 2
+    assert [len(page) for page in seen] == [2, 2]
+    assert sent == 3  # nothing was asked for after the failure
+    assert isinstance(error, IncompleteListError)
+    assert error.pages == 2
+    assert isinstance(error.__cause__, TransportError)
+    # What a caller judges the failure by travels with it.
+    assert (error.provider, error.status_code, error.retryable) == ("datago", 500, True)
+
+
+@pytest.mark.parametrize("path", _PATHS)
+def test_partial_raises_a_failed_first_page_as_it_is(path: str) -> None:
+    seen, sent, error = _collect_partial(path, failing=1)
+
+    assert seen == []
+    assert sent == 1
+    assert type(error) is TransportError
+
+
+@pytest.mark.parametrize("path", _PATHS)
+def test_partial_changes_nothing_when_nothing_fails(path: str) -> None:
+    seen, sent, error = _collect_partial(path, failing=99)
+
+    assert error is None
+    assert sum(len(page) for page in seen) == 6
+    assert sent == 3
+
+
+def test_without_partial_the_spec_path_still_hands_over_nothing() -> None:
+    seen, _, error = _collect("spec", failing=3)
+
+    assert seen == []
+    assert type(error) is TransportError
+
+
+def test_partial_casts_over_the_pages_it_kept() -> None:
+    # The casting decision is made from the pages read; the pages yielded carry the
+    # report of that decision, as a complete listing's pages do.
+    transport = _FailsOnPage(failing=3)
+    dataset, filters = _PATHS["spec"](transport)
+
+    batches = []
+    with pytest.raises(IncompleteListError):
+        for batch in dataset.list_all(page_size=2, partial=True, **filters):
+            batches.append(batch)
+
+    assert len(batches) == 2
+    assert all("validation_total" in batch.meta for batch in batches)
+
+
+@pytest.mark.parametrize("value", [1, "yes", None])
+def test_partial_must_be_a_boolean(value: object) -> None:
+    dataset, filters = _PATHS["spec"](_FailsOnPage(failing=99))
+
+    with pytest.raises(InvalidRequestError, match="partial must be True or False"):
+        list(dataset.list_all(partial=value, **filters))  # type: ignore[arg-type]
