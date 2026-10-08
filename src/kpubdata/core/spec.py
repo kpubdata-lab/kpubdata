@@ -797,7 +797,9 @@ def load_spec_file(path: Path) -> SpecDefinition:
 #: libyaml's safe loader when PyYAML was built with it, the pure-Python one otherwise.
 #: Both resolve the same YAML 1.1 types; the C one parses the bundled specs ten times
 #: faster.
-_SafeLoader: type[yaml.SafeLoader] = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+_SafeLoader: type[yaml.SafeLoader] | type[yaml.CSafeLoader] = getattr(
+    yaml, "CSafeLoader", yaml.SafeLoader
+)
 
 
 def _default_specs_dir() -> Path:

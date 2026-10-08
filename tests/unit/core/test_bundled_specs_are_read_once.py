@@ -158,3 +158,21 @@ def test_a_client_holds_its_own_copy_of_its_provider_specs(reads: list[Path]) ->
     assert [spec.id for spec in again] == [
         spec.id for spec in discover_specs() if spec.provider == "datago"
     ]
+
+
+def test_a_client_copies_only_its_own_provider_specs(
+    reads: list[Path], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Copying every spec for each provider was most of the time a listing took."""
+    copied: list[str] = []
+    real = bootstrap.copy.deepcopy
+
+    def counted(value: list[spec_module.SpecDefinition]) -> list[spec_module.SpecDefinition]:
+        copied.extend(spec.id for spec in value)
+        return real(value)
+
+    monkeypatch.setattr(bootstrap.copy, "deepcopy", counted)
+    _use("datago", "datago.apt_trade")
+
+    datago = [spec.id for spec in spec_module._shared_bundled_specs() if spec.provider == "datago"]
+    assert copied == datago
