@@ -14,9 +14,94 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # A newer push to a pull request makes the older run pointless. On main every push
+  # is a merged change and its run is the record of that commit, so none is cancelled.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Whether every changed file is documentation that nothing else reads. When it is,
+  # the jobs that test or package the code are skipped: the code they would run is the
+  # base branch's, which already passed them. Lint, `make verify`, the docs build and
+  # the secret scan still run, and the gate accepts a skip only in that case.
+  #
+  # A changed file counts as documentation when it is a `*.md` outside src/, tests/,
+  # examples/ and scripts/, and neither its file name nor any directory above it
+  # (below docs/) is mentioned in tests/, scripts/, src/, .github/, pyproject.toml or
+  # the Makefile. SUPPORTED_DATA.md, README.md, AGENTS.md, CHANGELOG.md and the
+  # status pages are read by tests, so a change to one runs everything. Anything this
+  # job cannot work out also runs everything.
+  changes:
+    name: Changed paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      docs-only: ${{ steps.classify.outputs.docs-only }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Is every change documentation that nothing reads?
+        id: classify
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          PUSH_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          decide() {
+            echo "docs-only=$1" >> "$GITHUB_OUTPUT"
+            echo "docs-only=$1: $2"
+            exit 0
+          }
+
+          # A pull request is checked out as the merge commit, whose first parent is
+          # the base branch: its diff is what merging would change, fork or not.
+          case "$EVENT_NAME" in
+            pull_request)
+              git rev-parse -q --verify "HEAD^2" > /dev/null \
+                || decide false "HEAD is not a merge commit"
+              range="HEAD^1 HEAD"
+              ;;
+            push)
+              if [ -z "$BEFORE_SHA" ] \
+                || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ] \
+                || ! git cat-file -e "${BEFORE_SHA}^{commit}" 2> /dev/null; then
+                decide false "no earlier commit to compare with"
+              fi
+              range="${BEFORE_SHA} ${PUSH_SHA}"
+              ;;
+            *)
+              decide false "event ${EVENT_NAME}"
+              ;;
+          esac
+
+          # shellcheck disable=SC2086  # range is two revisions
+          changed=$(git diff --name-only $range)
+          [ -n "$changed" ] || decide false "no changed files"
+          echo "changed files:"
+          echo "$changed"
+
+          readers=(tests scripts src .github pyproject.toml Makefile)
+          while IFS= read -r path; do
+            case "$path" in
+              src/* | tests/* | examples/* | scripts/*) decide false "$path is not documentation" ;;
+              *.md) ;;
+              *) decide false "$path is not documentation" ;;
+            esac
+            if git grep -qF -e "$(basename "$path")" -- "${readers[@]}"; then
+              decide false "$path is read by something the tests run"
+            fi
+            dir=$(dirname "$path")
+            while [ "$dir" != "." ] && [ "$dir" != "docs" ]; do
+              if git grep -qF -e "$dir/" -- "${readers[@]}"; then
+                decide false "$dir/ (above $path) is named by something the tests run"
+              fi
+              dir=$(dirname "$dir")
+            done
+          done <<< "$changed"
+          decide true "every changed file is documentation"
+
   quality:
     name: Lint & Type Check
     runs-on: ubuntu-latest
@@ -165,6 +250,8 @@ jobs:
 
   test:
     name: Test (Python ${{ matrix.python-version }})
+    needs: [changes]
+    if: needs.changes.outputs.docs-only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -186,40 +273,26 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen --extra dev
 
+      # The coverage gate (#456) rides on the 3.12 leg instead of a job of its own that
+      # ran the whole suite a fifth time. The floor is set in one place, pyproject's
+      # [tool.coverage.report] fail_under, and falling below it fails this leg, so the
+      # gate fails. The other legs are not instrumented: what they would report is the
+      # same.
       - name: Run tests
+        if: matrix.python-version != '3.12'
         run: uv run pytest -ra
 
-  coverage:
-    # 커버리지 게이트 (#456). 지금 도달한 수준이 조용히 내려가지 않게 잠근다.
-    # 하한은 pyproject 의 [tool.coverage.report] fail_under 한 곳에서만 관리한다.
-    # 테스트 매트릭스(4개)에 --cov 를 얹지 않고 이 잡 하나만 계측한다 — 얻는 정보는
-    # 같은데 비용만 4배이기 때문이다.
-    name: Coverage Gate
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: uv sync --frozen --extra dev
-
       - name: Run tests with coverage
+        if: matrix.python-version == '3.12'
         run: uv run pytest -ra --cov --cov-report=term-missing
 
   build:
     name: Build Package
+    # Building reads nothing the lint or the tests produce, so it does not wait for them.
+    needs: [changes]
+    if: needs.changes.outputs.docs-only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [quality, test]
     steps:
       - uses: actions/checkout@v7
 
@@ -246,9 +319,10 @@ jobs:
 
   base-install:
     name: Base install (no extras)
+    needs: [changes]
+    if: needs.changes.outputs.docs-only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [quality]
     strategy:
       fail-fast: false
       matrix:
@@ -283,15 +357,22 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
+      # The docs extra at the versions uv.lock holds, so a new mkdocs-material release
+      # cannot change or break the build on its own.
       - name: Install docs dependencies
-        run: pip install mkdocs-material pymdown-extensions
+        run: uv sync --frozen --extra docs
 
       - name: Build docs (strict)
-        run: mkdocs build --strict
+        run: uv run --frozen mkdocs build --strict
 
   # One gate, so that editing the matrix is not also editing branch protection
   # (kpubdata-studio#416). Requiring a matrix-suffixed context means every matrix edit
@@ -371,20 +452,33 @@ jobs:
   gate:
     name: CI gate
     runs-on: ubuntu-latest
-    needs: [quality, test, coverage, build, base-install, docs, secret-scan]
+    timeout-minutes: 5
+    needs: [changes, quality, test, build, base-install, docs, secret-scan]
     # `always()` so a failed job still reaches this step. Without it the gate is
     # skipped when something upstream fails, and a skipped required check is the same
     # absence this job exists to remove.
     if: always()
     steps:
+      # A skip passes only for the jobs `changes` may skip, and only when it said every
+      # change is documentation. A job skipped for any other reason, such as `changes`
+      # failing, fails the gate like a failure or a cancellation does.
       - name: Every job this gate covers must have succeeded
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          DOCS_ONLY: ${{ needs.changes.outputs.docs-only }}
         run: |
-          results="${{ join(needs.*.result, ' ') }}"
-          echo "upstream results: ${results}"
-          for result in ${results}; do
-            if [ "${result}" != "success" ]; then
-              echo "::error::CI gate failed — upstream results were: ${results}"
-              exit 1
-            fi
-          done
-          echo "every upstream job succeeded"
+          set -euo pipefail
+          echo "documentation only: ${DOCS_ONLY:-unknown}"
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          failed=$(echo "$NEEDS" | jq -r --arg docs "$DOCS_ONLY" '
+            to_entries[]
+            | select(.value.result != "success")
+            | select((.value.result == "skipped"
+                      and $docs == "true"
+                      and (.key | IN("test", "build", "base-install"))) | not)
+            | "\(.key)=\(.value.result)"')
+          if [ -n "$failed" ]; then
+            echo "::error::CI gate failed — these jobs did not pass: ${failed//$'\n'/ }"
+            exit 1
+          fi
+          echo "every upstream job passed"

@@ -17,13 +17,19 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - run: pip install mkdocs-material pymdown-extensions
-      - run: mkdocs build --strict
+      # The docs extra at the versions uv.lock holds, the same as the CI docs build.
+      - run: uv sync --frozen --extra docs
+      - run: uv run --frozen mkdocs build --strict
       - uses: actions/upload-pages-artifact@v5
         with:
           path: site
@@ -31,6 +37,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
