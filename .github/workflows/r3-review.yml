@@ -40,7 +40,7 @@ jobs:
     steps:
       # The action is this repository's own, so it has to be checked out first. The
       # other three repositories reference it remotely and need no checkout.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           persist-credentials: false
 
