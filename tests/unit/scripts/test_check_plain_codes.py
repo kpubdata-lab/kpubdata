@@ -140,6 +140,18 @@ def test_no_tracked_document_is_a_failure_not_a_pass(tmp_path: Path) -> None:
     assert _run(root).returncode == 1
 
 
+def test_a_named_file_that_does_not_exist_is_a_failure_not_a_pass(tmp_path: Path) -> None:
+    root = _git_repo(tmp_path, {"README.md": "단위 테스트(V1)\n"})
+    result = subprocess.run(
+        [sys.executable, str(_SCRIPT), "--root", str(root), "README.md", "docs/missing.md"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 1
+    assert "docs/missing.md: no such file" in result.stderr
+
+
 def test_this_repository_passes() -> None:
     result = _run(REPO_ROOT)
     assert result.returncode == 0, result.stderr

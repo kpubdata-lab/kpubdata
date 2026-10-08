@@ -190,6 +190,11 @@ def main(argv: list[str] | None = None) -> int:
     for name in names:
         path = root / name
         if not path.is_file():
+            # A file named on the command line that is not there was not checked,
+            # and saying nothing would read as a pass. A tracked file deleted from
+            # the working tree has nothing left to check.
+            if args.files:
+                problems.append(f"{name}: no such file")
             continue
         text = path.read_text(encoding="utf-8")
         for number, code, line in bare_codes(text, changelog=path.name == "CHANGELOG.md"):
