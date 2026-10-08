@@ -14,6 +14,11 @@ What is swept: every ``*.yml``/``*.yaml`` under ``.github/workflows`` and
 repository's own code at the same commit and passes. A ``docker://`` image must be
 pinned by ``@sha256:`` digest.
 
+A file is read twice. Line by line, which gives the line number, and as parsed YAML,
+which finds the forms a line pattern misses: a flow mapping (``- {uses: a/b@v1}``) and
+a quoted key (``"uses": a/b@v1``). A reference found either way is checked, and a file
+that is not valid YAML is refused, since its references cannot be listed.
+
 Third-party actions carry a ``# vX.Y.Z`` comment, and Dependabot (``github-actions``)
 raises the SHA and the comment together.
 
@@ -27,9 +32,12 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+from collections import Counter
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import NamedTuple
+
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 SWEPT_DIRS = (".github/workflows", ".github/actions")
@@ -69,17 +77,76 @@ def _reason(ref: str) -> str | None:
     return f"'{version}' can move; pin a full 40-character commit SHA"
 
 
+def _step_refs(container: dict[object, object]) -> list[str]:
+    steps = container.get("steps")
+    if not isinstance(steps, list):
+        return []
+    return [
+        step["uses"]
+        for step in steps
+        if isinstance(step, dict) and isinstance(step.get("uses"), str)
+    ]
+
+
+def _parsed_refs(document: object) -> list[str]:
+    """Every ``uses`` a runner would act on: a job's, a job's steps', a composite action's."""
+    if not isinstance(document, dict):
+        return []
+    refs: list[str] = []
+    jobs = document.get("jobs")
+    if isinstance(jobs, dict):
+        for job in jobs.values():
+            if not isinstance(job, dict):
+                continue
+            if isinstance(job.get("uses"), str):
+                refs.append(job["uses"])
+            refs.extend(_step_refs(job))
+    runs = document.get("runs")
+    if isinstance(runs, dict):
+        refs.extend(_step_refs(runs))
+    return refs
+
+
+def _line_of(lines: Sequence[str], ref: str) -> int:
+    return next((number for number, line in enumerate(lines, 1) if ref in line), 1)
+
+
+def _check_file(path: Path) -> list[Violation]:
+    lines = path.read_text(encoding="utf-8").splitlines()
+    violations: list[Violation] = []
+    for number, line in enumerate(lines, 1):
+        match = _USES.match(line)
+        if match is None:
+            continue
+        ref = match["ref"]
+        reason = _reason(ref)
+        if reason is not None:
+            violations.append(Violation(path, number, ref, reason))
+
+    try:
+        document = yaml.safe_load("\n".join(lines))
+    except yaml.YAMLError as error:
+        problem = str(error).splitlines()[0]
+        violations.append(Violation(path, 1, "-", f"not valid YAML, so not checked: {problem}"))
+        return violations
+
+    # What the line pattern already reported is not reported again.
+    reported = Counter(violation.ref for violation in violations)
+    for ref in _parsed_refs(document):
+        reason = _reason(ref)
+        if reason is None:
+            continue
+        if reported[ref] > 0:
+            reported[ref] -= 1
+            continue
+        violations.append(Violation(path, _line_of(lines, ref), ref, reason))
+    return sorted(violations, key=lambda violation: violation.line)
+
+
 def check(paths: Iterable[Path]) -> list[Violation]:
     violations: list[Violation] = []
     for path in paths:
-        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-            match = _USES.match(line)
-            if match is None:
-                continue
-            ref = match["ref"]
-            reason = _reason(ref)
-            if reason is not None:
-                violations.append(Violation(path, number, ref, reason))
+        violations.extend(_check_file(path))
     return violations
 
 

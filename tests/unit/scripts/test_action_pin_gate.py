@@ -50,6 +50,11 @@ def _workflow(tmp_path: Path, steps: str) -> Path:
         "      - uses: actions/checkout\n",
         "      - uses: docker://alpine:3.20\n",
         "    uses: org/repo/.github/workflows/reusable.yml@main\n",
+        # Valid YAML a line pattern does not match: a flow mapping and a quoted key.
+        "      - {uses: actions/checkout@v7}\n",
+        '      - "uses": actions/checkout@v7\n',
+        "      - 'uses': actions/checkout@v7\n",
+        "      - {name: checkout, uses: actions/checkout@v7, with: {fetch-depth: 0}}\n",
     ],
 )
 def test_movable_reference_is_refused(tmp_path: Path, line: str) -> None:
@@ -71,8 +76,10 @@ def test_movable_reference_is_refused(tmp_path: Path, line: str) -> None:
         "    uses: ./.github/workflows/publish-dataset.yml\n",
         "      - uses: docker://alpine@sha256:" + "a" * 64 + "\n",
         # Not a step: text that only mentions a ref is not run.
-        "      - run: echo 'uses: actions/checkout@v7'\n",
+        """      - run: "echo 'uses: actions/checkout@v7'"\n""",
         "      # - uses: actions/checkout@v7\n",
+        f"      - {{uses: actions/checkout@{_OTHER_SHA}}}\n",
+        f'      - "uses": actions/checkout@{_OTHER_SHA}\n',
     ],
 )
 def test_pinned_or_local_reference_passes(tmp_path: Path, line: str) -> None:
@@ -87,3 +94,25 @@ def test_repository_workflows_are_pinned() -> None:
 
     assert any(p.name == "release.yml" for p in paths)
     assert gate.check(paths) == []
+
+
+def test_a_composite_action_step_in_a_flow_mapping_is_refused(tmp_path: Path) -> None:
+    path = tmp_path / "action.yml"
+    path.write_text(
+        "runs:\n  using: composite\n  steps:\n    - {uses: actions/checkout@v7}\n",
+        encoding="utf-8",
+    )
+
+    assert [violation.line for violation in gate.check([path])] == [4]
+
+
+def test_a_file_that_is_not_yaml_is_refused(tmp_path: Path) -> None:
+    """Its references cannot be listed, so it cannot be called pinned."""
+    path = tmp_path / "wf.yml"
+    path.write_text("jobs:\n  a: [unclosed\n", encoding="utf-8")
+
+    violations = gate.check([path])
+
+    assert len(violations) == 1
+    assert "not valid YAML" in violations[0].reason
+    assert gate.main([str(path)]) == 1
