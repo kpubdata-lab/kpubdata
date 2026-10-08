@@ -8,6 +8,7 @@ and how. The public API is unchanged.
 
 from __future__ import annotations
 
+import copy
 import importlib
 import logging
 from collections.abc import Callable
@@ -17,7 +18,7 @@ from kpubdata.config import KPubDataConfig
 from kpubdata.core.bridge import CompositeProviderAdapter
 from kpubdata.core.executor import SpecDatasetAdapter, SpecExecutor
 from kpubdata.core.protocol import ProviderAdapter
-from kpubdata.core.spec import SpecDefinition, discover_specs
+from kpubdata.core.spec import SpecDefinition, _shared_bundled_specs
 from kpubdata.providers.manifest import BUILTIN_PROVIDERS
 from kpubdata.registry import ProviderRegistry
 from kpubdata.transport.http import (
@@ -116,8 +117,13 @@ def _wrap_with_specs(
 
 
 def _specs_for_provider(provider_name: str) -> tuple[SpecDefinition, ...]:
-    """Collect the bundled specs belonging to this provider."""
-    return tuple(spec for spec in discover_specs() if spec.provider == provider_name)
+    """Collect copies of the bundled specs belonging to this provider.
+
+    Only this provider's specs are copied: copying all of them for each of the
+    fourteen providers was most of the time a new client spent listing datasets.
+    """
+    shared = [spec for spec in _shared_bundled_specs() if spec.provider == provider_name]
+    return tuple(copy.deepcopy(shared))
 
 
 def _get_transport_requirements(adapter: ProviderAdapter) -> TransportRequirements | None:
