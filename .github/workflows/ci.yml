@@ -21,102 +21,6 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # Whether every changed file is documentation that nothing else reads. When it is,
-  # the jobs that test or package the code are skipped: the code they would run is the
-  # base branch's, which already passed them. Lint, `make verify`, the docs build and
-  # the secret scan still run, and the gate accepts a skip only in that case.
-  #
-  # A changed file counts as documentation when it is a `*.md` outside src/, tests/,
-  # examples/ and scripts/, and neither its file name nor any directory above it
-  # (below docs/) is mentioned in tests/, scripts/, src/, .github/, pyproject.toml or
-  # the Makefile. SUPPORTED_DATA.md, README.md, AGENTS.md, CHANGELOG.md and the
-  # status pages are read by tests, so a change to one runs everything. Anything this
-  # job cannot work out also runs everything.
-  changes:
-    name: Changed paths
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      docs-only: ${{ steps.classify.outputs.docs-only }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Is every change documentation that nothing reads?
-        id: classify
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          BEFORE_SHA: ${{ github.event.before }}
-          PUSH_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          decide() {
-            echo "docs-only=$1" >> "$GITHUB_OUTPUT"
-            echo "docs-only=$1: $2"
-            exit 0
-          }
-
-          # A pull request is checked out as the merge commit, whose first parent is
-          # the base branch: its diff is what merging would change, fork or not.
-          case "$EVENT_NAME" in
-            pull_request)
-              git rev-parse -q --verify "HEAD^2" > /dev/null \
-                || decide false "HEAD is not a merge commit"
-              range="HEAD^1 HEAD"
-              ;;
-            push)
-              if [ -z "$BEFORE_SHA" ] \
-                || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ] \
-                || ! git cat-file -e "${BEFORE_SHA}^{commit}" 2> /dev/null; then
-                decide false "no earlier commit to compare with"
-              fi
-              range="${BEFORE_SHA} ${PUSH_SHA}"
-              ;;
-            *)
-              decide false "event ${EVENT_NAME}"
-              ;;
-          esac
-
-          # --no-renames lists both sides of a rename, so `src/x.py` renamed to
-          # `notes/x.md` is seen as a source change. quotePath=false keeps non-ASCII
-          # names unquoted, so they match `*.md`.
-          # shellcheck disable=SC2086  # range is two revisions
-          changed=$(git -c core.quotePath=false diff --no-renames --name-only $range)
-          [ -n "$changed" ] || decide false "no changed files"
-          echo "changed files:"
-          echo "$changed"
-
-          readers=(tests scripts src .github pyproject.toml Makefile)
-          # git grep exits 1 for no match; anything else is an error, not "unread".
-          mentioned() {
-            local status=0
-            git grep -qF -e "$1" -- "${readers[@]}" || status=$?
-            case "$status" in
-              0) return 0 ;;
-              1) return 1 ;;
-              *) decide false "git grep failed ($status) looking for $1" ;;
-            esac
-          }
-          while IFS= read -r path; do
-            case "$path" in
-              src/* | tests/* | examples/* | scripts/*) decide false "$path is not documentation" ;;
-              *.md) ;;
-              *) decide false "$path is not documentation" ;;
-            esac
-            if mentioned "$(basename "$path")"; then
-              decide false "$path is read by something the tests run"
-            fi
-            dir=$(dirname "$path")
-            while [ "$dir" != "." ] && [ "$dir" != "docs" ]; do
-              if mentioned "$dir/"; then
-                decide false "$dir/ (above $path) is named by something the tests run"
-              fi
-              dir=$(dirname "$dir")
-            done
-          done <<< "$changed"
-          decide true "every changed file is documentation"
-
   quality:
     name: Lint & Type Check
     runs-on: ubuntu-latest
@@ -265,8 +169,6 @@ jobs:
 
   test:
     name: Test (Python ${{ matrix.python-version }})
-    needs: [changes]
-    if: needs.changes.outputs.docs-only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -304,8 +206,6 @@ jobs:
   build:
     name: Build Package
     # Building reads nothing the lint or the tests produce, so it does not wait for them.
-    needs: [changes]
-    if: needs.changes.outputs.docs-only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -334,8 +234,6 @@ jobs:
 
   base-install:
     name: Base install (no extras)
-    needs: [changes]
-    if: needs.changes.outputs.docs-only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
@@ -468,29 +366,21 @@ jobs:
     name: CI gate
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [changes, quality, test, build, base-install, docs, secret-scan]
+    needs: [quality, test, build, base-install, docs, secret-scan]
     # `always()` so a failed job still reaches this step. Without it the gate is
     # skipped when something upstream fails, and a skipped required check is the same
     # absence this job exists to remove.
     if: always()
     steps:
-      # A skip passes only for the jobs `changes` may skip, and only when it said every
-      # change is documentation. A job skipped for any other reason, such as `changes`
-      # failing, fails the gate like a failure or a cancellation does.
       - name: Every job this gate covers must have succeeded
         env:
           NEEDS: ${{ toJSON(needs) }}
-          DOCS_ONLY: ${{ needs.changes.outputs.docs-only }}
         run: |
           set -euo pipefail
-          echo "documentation only: ${DOCS_ONLY:-unknown}"
           echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
-          failed=$(echo "$NEEDS" | jq -r --arg docs "$DOCS_ONLY" '
+          failed=$(echo "$NEEDS" | jq -r '
             to_entries[]
             | select(.value.result != "success")
-            | select((.value.result == "skipped"
-                      and $docs == "true"
-                      and (.key | IN("test", "build", "base-install"))) | not)
             | "\(.key)=\(.value.result)"')
           if [ -n "$failed" ]; then
             echo "::error::CI gate failed — these jobs did not pass: ${failed//$'\n'/ }"
