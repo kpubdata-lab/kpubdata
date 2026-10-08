@@ -38,9 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - CI does less work for the same verdict. No change to the package.
-  - A push to `main` no longer cancels the CI or Security run of the push before it, so every merged commit keeps a finished run. A pull request still cancels its own older run.
+  - A push to `main` no longer cancels the CI or Security run of the push before it, running or queued, so every merged commit keeps a finished run. A pull request still cancels its own older run.
   - The coverage gate runs on the Python 3.12 test leg instead of in a job that ran the whole suite a fifth time. The floor is still `fail_under` in `pyproject.toml`, and falling below it still fails `CI gate`.
-  - A `Changed paths` job works out whether every changed file is documentation that nothing reads: a `*.md` outside `src/`, `tests/`, `examples/` and `scripts/` whose name, and whose directories below `docs/`, appear nowhere in `tests/`, `scripts/`, `src/`, `.github/`, `pyproject.toml` or the `Makefile`. If so, the test matrix, the package build and the base install are skipped. `CI gate` accepts those three skips only in that case and fails on any other skip, failure or cancellation. A change to a file the tests read, such as `SUPPORTED_DATA.md`, `README.md` or `CHANGELOG.md`, still runs everything.
+  - A `Changed paths` job works out whether every changed file is documentation that nothing reads: a `*.md` outside `src/`, `tests/`, `examples/` and `scripts/` whose name, and whose directories below `docs/`, appear nowhere (a rename counts both sides, so a source file renamed to `.md` runs everything) in `tests/`, `scripts/`, `src/`, `.github/`, `pyproject.toml` or the `Makefile`. If so, the test matrix, the package build and the base install are skipped. `CI gate` accepts those three skips only in that case and fails on any other skip, failure or cancellation. A change to a file the tests read, such as `SUPPORTED_DATA.md`, `README.md` or `CHANGELOG.md`, still runs everything.
   - The package build and the base install no longer wait for the lint and test jobs. They read nothing those jobs produce.
   - The docs build in `ci.yml` and `docs.yml` installs the `docs` extra from `uv.lock` instead of the latest `mkdocs-material`.
   - Every job has a `timeout-minutes`.

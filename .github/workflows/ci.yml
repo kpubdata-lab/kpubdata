@@ -13,9 +13,11 @@ permissions:
   actions: read
 
 concurrency:
-  group: ci-${{ github.ref }}
-  # A newer push to a pull request makes the older run pointless. On main every push
-  # is a merged change and its run is the record of that commit, so none is cancelled.
+  # A newer push to a pull request makes the older run pointless, so a pull request's
+  # runs share a group and the older one is cancelled. On main every push is a merged
+  # change and its run is the record of that commit, so each run gets a group of its
+  # own: a shared group would still cancel a run waiting behind a newer one.
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -76,25 +78,38 @@ jobs:
               ;;
           esac
 
+          # --no-renames lists both sides of a rename, so `src/x.py` renamed to
+          # `notes/x.md` is seen as a source change. quotePath=false keeps non-ASCII
+          # names unquoted, so they match `*.md`.
           # shellcheck disable=SC2086  # range is two revisions
-          changed=$(git diff --name-only $range)
+          changed=$(git -c core.quotePath=false diff --no-renames --name-only $range)
           [ -n "$changed" ] || decide false "no changed files"
           echo "changed files:"
           echo "$changed"
 
           readers=(tests scripts src .github pyproject.toml Makefile)
+          # git grep exits 1 for no match; anything else is an error, not "unread".
+          mentioned() {
+            local status=0
+            git grep -qF -e "$1" -- "${readers[@]}" || status=$?
+            case "$status" in
+              0) return 0 ;;
+              1) return 1 ;;
+              *) decide false "git grep failed ($status) looking for $1" ;;
+            esac
+          }
           while IFS= read -r path; do
             case "$path" in
               src/* | tests/* | examples/* | scripts/*) decide false "$path is not documentation" ;;
               *.md) ;;
               *) decide false "$path is not documentation" ;;
             esac
-            if git grep -qF -e "$(basename "$path")" -- "${readers[@]}"; then
+            if mentioned "$(basename "$path")"; then
               decide false "$path is read by something the tests run"
             fi
             dir=$(dirname "$path")
             while [ "$dir" != "." ] && [ "$dir" != "docs" ]; do
-              if git grep -qF -e "$dir/" -- "${readers[@]}"; then
+              if mentioned "$dir/"; then
                 decide false "$dir/ (above $path) is named by something the tests run"
               fi
               dir=$(dirname "$dir")
