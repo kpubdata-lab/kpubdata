@@ -1495,7 +1495,9 @@ class SpecDatasetAdapter:
             spool.close()
 
         if failure is not None:
-            raise IncompleteListError(failure, pages=len(spool)) from failure
+            raise IncompleteListError(
+                failure, pages=len(spool), provider=dataset.provider, dataset_id=dataset.id
+            ) from failure
         if next_page is not None:
             raise InvalidRequestError(
                 f"Pagination limit exceeded: reached {effective_max + 1} pages "

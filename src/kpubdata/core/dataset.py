@@ -354,7 +354,12 @@ class Dataset:
                 if not partial:
                     raise
                 # The pages before this request have been yielded already (#876).
-                raise IncompleteListError(error, pages=page_index - 1) from error
+                raise IncompleteListError(
+                    error,
+                    pages=page_index - 1,
+                    provider=self._ref.provider,
+                    dataset_id=self._ref.id,
+                ) from error
 
             # The same rows again under a new page number: the provider is not paging
             # (#837). Going on would repeat the request until the page limit.

@@ -8,7 +8,9 @@ adapters — to one answer, so a fix on one cannot drift from the others again.
 
 from __future__ import annotations
 
+import copy
 import json
+import pickle
 from collections.abc import Callable
 
 import pytest
@@ -21,6 +23,7 @@ from kpubdata.exceptions import (
     IncompleteListError,
     InvalidRequestError,
     PublicDataError,
+    RateLimitError,
     TransportError,
 )
 from kpubdata.providers.datago.adapter import DataGoAdapter
@@ -282,3 +285,22 @@ def test_partial_must_be_a_boolean(value: object) -> None:
 
     with pytest.raises(InvalidRequestError, match="partial must be True or False"):
         list(dataset.list_all(partial=value, **filters))  # type: ignore[arg-type]
+
+
+def test_an_incomplete_list_error_survives_pickle_and_copy() -> None:
+    cause = RateLimitError("quota", provider="datago", status_code=429, provider_code="22")
+    error = IncompleteListError(cause, pages=30)
+
+    for clone in (pickle.loads(pickle.dumps(error)), copy.copy(error)):
+        assert type(clone) is IncompleteListError
+        assert str(clone) == str(error)
+        assert clone.pages == 30
+        assert clone.to_dict() == error.to_dict()
+
+
+def test_an_incomplete_list_error_names_the_dataset_when_its_cause_does_not() -> None:
+    error = IncompleteListError(
+        TransportError("connection reset"), pages=2, provider="datago", dataset_id="datago.x"
+    )
+
+    assert (error.provider, error.dataset_id) == ("datago", "datago.x")

@@ -18,7 +18,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from enum import Enum
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 from kpubdata import __version__
 from kpubdata.client import Client
@@ -389,8 +389,6 @@ def _handle_fetch_command(client: Client, args: argparse.Namespace) -> int:
             # A list_all option (#876), not a provider parameter; fetch --all reads
             # every page or fails.
             raise InvalidRequestError("partial is not a parameter of fetch --all")
-        # Provider parameters only: max_pages and partial are taken out above.
-        filters = cast("dict[str, Any]", list_kwargs)
 
         if raw_max_pages is not None:
             # CLI parser returns strings, so we need to convert "10" to 10
@@ -419,11 +417,11 @@ def _handle_fetch_command(client: Client, args: argparse.Namespace) -> int:
                     f"max_pages must be a positive integer or None, got {max_pages_value}"
                 )
             # Only pass max_pages when explicitly provided by user
-            for batch in dataset.list_all(max_pages=max_pages_value, **filters):
+            for batch in dataset.list_all(max_pages=max_pages_value, partial=False, **list_kwargs):
                 items.extend(batch.items)
         else:
             # No max_pages specified, use default
-            for batch in dataset.list_all(max_pages=None, **filters):
+            for batch in dataset.list_all(max_pages=None, partial=False, **list_kwargs):
                 items.extend(batch.items)
         rendered = _render_records(items, output_format=output_format)
     else:
