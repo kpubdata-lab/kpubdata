@@ -28,7 +28,48 @@
 - 네 저장소의 `AGENTS.md`, `CONTRIBUTING.md`는 이 문서를 링크하고, 여기와 충돌하는 규칙을 두지 않는다.
 - 충돌이 생기면 이 문서가 우선한다.
 - 저장소별 문서에는 해당 저장소 고유의 절차(빌드 명령, 디렉터리 규칙)만 남긴다.
-- 이 문서를 바꾸는 변경은 R3(25절)로 취급한다.
+- 이 문서를 바꾸는 변경은 작성자가 아닌 사람의 승인이 필요한 변경(R3, 25절)으로 취급한다.
+
+<a id="writing-codes"></a>
+
+## 0.1 작성 규칙 — 뜻을 먼저, 코드는 괄호로 — 2026-10-08 추가
+
+리뷰 수준(R0~R3)과 검증 수준(V0~V5)은 내부 코드다. 프로젝트 밖 사람은 `V2` 만 보고
+뜻을 알 수 없고, 쓰는 사람도 틀린다 — 2026-10-08 새 이슈 4건이 단위 테스트를 `V2` 로
+적었다(정의상 단위 테스트는 V1, V2 는 replay·계약 테스트). 그래서(#878):
+
+- **뜻을 먼저 쓰고, 코드는 괄호에 넣는다.** "단위 테스트(V1)", "작성자가 아닌 사람의
+  승인이 필요(R3)". 영어로는 "unit tests (V1)", "an approval from someone other than
+  the author (R3)".
+- 코드만 쓰고 싶으면 [아래 용어표](#codes)로 링크한다: `[R3](POLICY.md#codes)`.
+- 라벨·체크·스크립트 이름(`review:R3`, `R3 review`, `scripts/r3_review.py`)은 이름이다.
+  바꾸지 않고 코드 서식(backtick)으로 쓴다.
+- 검사는 `scripts/check_plain_codes.py` 가 한다(CI `Lint & Type Check` 작업). `git ls-files` 가 주는
+  모든 Markdown 과 `.github/ISSUE_TEMPLATE/` 이슈 양식을 본다. 코드 서식·코드 블록 안,
+  `<!-- plain-codes: off -->` 와 `<!-- plain-codes: on -->` 사이(아래 용어표와 18·18.1절의
+  정의 표)는 보지 않는다. `CHANGELOG.md` 는 `## [Unreleased]` 절만 본다 — 지난 릴리스
+  절은 기록이라 고치지 않는다.
+- 절 번호 참조("POLICY 14.1")는 이 규칙의 범위가 아니다.
+
+<a id="codes"></a>
+
+## 0.2 코드 용어표
+
+<!-- plain-codes: off -->
+| 코드 | 뜻 | 정의 |
+|---|---|---|
+| R0 | 리뷰 수준 0 — 오타·링크·포맷·생성 파일. 가장 가벼운 확인 | 18.1절 |
+| R1 | 리뷰 수준 1 — 일반 버그 수정·작은 기능 | 18.1절 |
+| R2 | 리뷰 수준 2 — public API·spec·데이터 변환을 바꾸는 변경 | 18.1절 |
+| R3 | 리뷰 수준 3 — BYOK·인증·캐시 격리, 게시 정책·개인정보, 워크플로·CI 근거, 릴리스. **작성자가 아닌 사람의 승인이 있어야 머지된다** | 18.1절, 14.1절 |
+| V0 | 정적 검사 — lint, 타입 검사, 스키마 검증 | 18절 |
+| V1 | 단위 테스트 | 18절 |
+| V2 | replay·계약 테스트 — 녹화한 fixture 로 돌린다 | 18절 |
+| V3 | 구성요소 통합 테스트 — 실제 구성요소끼리 붙여 본다 | 18절 |
+| V4 | 실제 provider API 호출 검증 — 국내 runner 와 CI secret 이 필요 | 18절 |
+| V5-replay | 제품 E2E(replay) — Studio → Builder → kpubdata 를 replay provider 로 | 18절 |
+| V5-live | 제품 E2E(실제) — Studio → Builder → kpubdata 를 실제 provider 로 | 18절 |
+<!-- plain-codes: on -->
 
 ---
 
@@ -475,7 +516,7 @@ Issue를 만들기 전에 반드시 다음 질문에 답한다.
 
 # 7. Issue Template
 
-## 7.1 기본 템플릿 — R1 이상
+## 7.1 기본 템플릿 — 일반 버그 수정·작은 기능 이상(R1 이상)
 
 ```markdown
 # Problem
@@ -510,7 +551,9 @@ Issue를 만들기 전에 반드시 다음 질문에 답한다.
 
 # Required Verification
 
-V0 / V1 / V2 / V3 / V4 / V5-replay / V5-live
+검증 수준을 뜻과 함께 적는다. 예: 단위 테스트(V1), replay·계약 테스트(V2).
+정적 검사(V0) / 단위 테스트(V1) / replay·계약 테스트(V2) / 구성요소 통합 테스트(V3) /
+실제 provider API 검증(V4) / replay 제품 E2E(V5-replay) / 실제 제품 E2E(V5-live)
 
 # Dependencies
 
@@ -526,7 +569,7 @@ Blocks:
 추가 정보.
 ```
 
-## 7.2 경량 템플릿 — R0 전용
+## 7.2 경량 템플릿 — 오타·링크·포맷·생성 파일 전용(R0)
 
 ```markdown
 # Problem
@@ -537,7 +580,7 @@ Blocks:
 
 # Required Verification
 
-V0
+정적 검사(V0)
 ```
 
 ---
@@ -781,21 +824,21 @@ Agent는 다음을 단독으로 결정하지 않는다.
 - 자신의 PR 최종 승인
 - 자신의 evidence를 신뢰 evidence로 승인
 - 자신의 Issue를 완료 판단하여 close.
-  **Required Verification 이 PR 에서 이미 충족된 R0 이슈는 워크플로 자동화가
+  **Required Verification 이 PR 에서 이미 충족된 가벼운 이슈(R0)는 워크플로 자동화가
   close 할 수 있다.** 그 판단을 에이전트가 직접 하지는 않는다 — 자동화는 조건을
   기계적으로 확인하고, 에이전트는 자기 작업의 완료를 선언하지 않는다.
 - Review Level 하향
 
-## 14.1 R3 는 작성자가 아닌 사람의 승인이 있어야 머지된다 — 2026-10-01 개정
+## 14.1 무거운 변경(R3)은 작성자가 아닌 사람의 승인이 있어야 머지된다 — 2026-10-01 개정
 
 `review:R3` 라벨이 붙은 PR 은 **작성자가 아닌 사람의 승인(APPROVED)이 하나 이상**
 있어야 머지된다. 오너 결정(kpubdata-builder#905, 2026-10-01)이고, 강제 장치는
 `R3 review` required check 다(kpubdata#722). Branch protection 의 승인 수는 0 으로
-두므로 R3 가 아닌 PR 은 영향이 없다.
+두므로 그 라벨이 없는 PR 은 영향이 없다.
 
 - 판정 로직은 하나다: `scripts/r3_review.py` 와 `.github/actions/r3-review` (kpubdata).
   네 저장소가 `@main` 으로 같은 액션을 부른다.
-- check 는 **모든 PR 에서 돌고, R3 가 아니면 통과한다.** 일부 PR 에서만 생기는
+- check 는 **모든 PR 에서 돌고, `review:R3` 라벨이 없으면 통과한다.** 일부 PR 에서만 생기는
   required check 는 그 PR 을 영원히 BLOCKED 로 둔다(18.2절).
 - 라벨 변경(`labeled`/`unlabeled`), push(`synchronize`), 리뷰 제출·dismiss 때마다
   다시 판정한다.
@@ -814,8 +857,8 @@ Agent는 다음을 단독으로 결정하지 않는다.
 - **권한은 승인한 때가 아니라 check 가 도는 때의 것이다.** 승인한 뒤 쓰기 권한을 잃은
   사람의 승인은 다음 판정부터 세지 않는다. 다만 권한 변경은 check 를 다시 돌리는
   이벤트가 아니므로, push·라벨 변경·리뷰로 다시 돌기 전까지는 앞선 결과가 남는다.
-  권한을 회수한 뒤 열려 있는 R3 PR 이 있으면 check 를 다시 돌린다.
-- 라벨을 떼면 check 는 통과한다. 그래서 R3 를 낮추는 것은 여전히 사람만 한다(위 목록).
+  권한을 회수한 뒤 열려 있는 `review:R3` PR 이 있으면 check 를 다시 돌린다.
+- 라벨을 떼면 check 는 통과한다. 그래서 `review:R3` 를 낮은 수준으로 바꾸는 것은 여전히 사람만 한다(위 목록).
 - 이벤트마다 별도 실행(check suite)이 생기고, branch protection 은 한 suite 에서 실패한
   check 를 다른 suite 가 통과해도 실패로 본다. 그래서 승인으로 돈 실행이 통과하면 같은
   head 의 앞선 실패 실행을 `required-check-refresh.yml` 이 다시 돌린다(#759). 다시 도는
@@ -952,6 +995,7 @@ Follow-up Issue
 
 모든 Issue에는 Required Verification을 지정한다.
 
+<!-- plain-codes: off -->
 | Level | 내용 | 신뢰 evidence 생성 위치 |
 |---|---|---|
 | V0 — Static | lint, typecheck, schema validation | CI |
@@ -961,13 +1005,15 @@ Follow-up Issue
 | V4 — Live Provider | 실제 provider API 호출 | 국내 runner CI + CI secret |
 | V5-replay — Product E2E | Studio → Builder → kpubdata → replay provider → Artifact | CI |
 | V5-live — Product E2E | Studio → Builder → kpubdata → 실제 Provider → Artifact | 국내 runner CI |
+<!-- plain-codes: on -->
 
-PR에서는 V5-replay를 사용할 수 있다.
+PR에서는 replay provider 로 도는 제품 E2E(V5-replay)를 사용할 수 있다.
 
-V5-live는 실제 Provider가 필요한 release 수준 검증에 사용한다.
+실제 provider 로 도는 제품 E2E(V5-live)는 실제 Provider가 필요한 release 수준 검증에 사용한다.
 
 ## 18.1 변경 유형별 기본 요구
 
+<!-- plain-codes: off -->
 | 변경 유형 | Review | Required Verification |
 |---|---|---|
 | 오타·링크·포맷·생성 파일 | R0 | V0 |
@@ -979,6 +1025,7 @@ V5-live는 실제 Provider가 필요한 release 수준 검증에 사용한다.
 | publish policy·PII | R3 | V3 + 부정 테스트 |
 | workflow·CI evidence | R3 | V3 이상 |
 | release | R3 | V5-live |
+<!-- plain-codes: on -->
 
 표보다 높은 수준을 요구하는 것은 자유다.
 
@@ -1028,14 +1075,14 @@ Required Verification: V4
 
 | 참조 위치 | 가리키는 절 | 내용 |
 |---|---|---|
-| 0절, 2.1절 | **25절** | Review Level R0~R3 정의 |
+| 0절, 2.1절 | **25절** | 리뷰 수준(R0~R3) 정의 |
 | 2.1절 | **33절** | Target Release |
 | 1.2절, 5절(EPIC-A) | **34절** | Stable 정의 |
 
 그동안 이 세 가지는 다음과 같이 읽는다 — 20~34절이 도착하면 이 절은 통째로
 교체한다.
 
-- **R0~R3**: 18.1절의 변경 유형 표가 사실상의 기준이다. R3는 사람 리뷰가
+- **리뷰 수준(R0~R3)**: 18.1절의 변경 유형 표가 사실상의 기준이다. 가장 무거운 수준(R3)은 사람 리뷰가
   반드시 필요한 등급이고, 이 문서를 바꾸는 변경이 여기 해당한다(0절).
   작성자가 아닌 사람의 승인이 없으면 `R3 review` check 가 머지를 막는다(14.1절).
 - **Target Release**: GitHub Project 필드로만 관리하고 사람이 설정한다(2.1절).
@@ -1044,7 +1091,7 @@ Required Verification: V4
   [compatibility.md 5.1절](../compatibility.md#release-cadence)에 있다.
 - **Stable**: 증거 기반 지원 대상(1.2절). 승격 결정은 사람이 한다(14절).
 
-이 구간이 채워지기 전까지 R0~R3 라벨의 자동 부여 규칙(2.1절)은 구현하지 않는다.
+이 구간이 채워지기 전까지 리뷰 수준(R0~R3) 라벨의 자동 부여 규칙(2.1절)은 구현하지 않는다.
 기준이 없는 상태로 자동화하면 라벨이 틀린 채로 쌓인다.
 
 ## 백로그 부록 A 중 아직 반영하지 못한 것
@@ -1058,10 +1105,10 @@ Required Verification: V4
 | 2.1 | Blocked·Needs Human 은 Status 필드로만 | ✅ 반영 |
 | 8 | P0/P1/P2 는 치환이 아니라 원점 재판정 | ✅ 반영 |
 | 10 | Critical 보안·개인정보·법률은 WIP 제한보다 우선 | ✅ 반영 |
-| 14 | R0 는 워크플로 자동화가 close 가능, 에이전트는 불가 | ✅ 반영 |
+| 14 | 가벼운 이슈(R0)는 워크플로 자동화가 close 가능, 에이전트는 불가 | ✅ 반영 |
 | 15 | Project 상태에서 `Merged` 제거 | ✅ 반영 |
 | 15.1 | 병합 시 `In Review → Verifying` | ✅ 반영 |
-| **25** | spec `base_url` 호스트 변경은 R3 자동 승격 | ❌ 절 자체가 없다 |
+| **25** | spec `base_url` 호스트 변경은 무거운 리뷰 수준(R3)으로 자동 승격 | ❌ 절 자체가 없다 |
 | **31** | 신뢰 recorder 의 호스트 허용 목록 검사, DNS rebinding | ❌ 절 자체가 없다 |
 | **34** | 등급 표를 축 분리 모델로 교체, `user_access` 제외 | ❌ 절 자체가 없다 |
 | **35** | 규칙을 설정으로 강제 | ❌ 절 자체가 없다 |
@@ -1069,5 +1116,5 @@ Required Verification: V4
 
 미반영 4개 중 **25절과 31절은 열려 있는 보안 이슈와 직접 연결된다** —
 `base_url` 호스트를 검사하지 않고 provider 키를 전송하는 경로가 실제로
-있다(#519). 그 이슈는 이 문서와 무관하게 진행하지만, R3 자동 승격 규칙은
+있다(#519). 그 이슈는 이 문서와 무관하게 진행하지만, 무거운 리뷰 수준(R3)으로의 자동 승격 규칙은
 25절이 도착해야 쓸 수 있다.
