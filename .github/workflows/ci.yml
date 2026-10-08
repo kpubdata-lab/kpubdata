@@ -283,15 +283,21 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
       - name: Install docs dependencies
-        run: pip install mkdocs-material pymdown-extensions
+        # uv.lock resolves the docs extra; an unpinned pip install let a new
+        # mkdocs-material release turn the strict gate red at random (#874).
+        run: uv sync --extra docs
 
       - name: Build docs (strict)
-        run: mkdocs build --strict
+        run: uv run mkdocs build --strict
 
   # One gate, so that editing the matrix is not also editing branch protection
   # (kpubdata-studio#416). Requiring a matrix-suffixed context means every matrix edit
