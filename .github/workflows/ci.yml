@@ -14,7 +14,9 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # A pull request's new push replaces only that pull request's earlier run. A
+  # merge to main must finish and leave its result behind (#871).
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   quality:
@@ -371,6 +373,7 @@ jobs:
   gate:
     name: CI gate
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [quality, test, coverage, build, base-install, docs, secret-scan]
     # `always()` so a failed job still reaches this step. Without it the gate is
     # skipped when something upstream fails, and a skipped required check is the same
