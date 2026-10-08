@@ -45,7 +45,7 @@ jobs:
           echo "issue=$ISSUE_NUMBER repo=$GITHUB_REPOSITORY"
           command -v opencode >/dev/null || { echo "::error::opencode CLI 미설치 — 활성화 체크리스트 확인"; exit 1; }
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
       - name: Resolve issue body
         run: |
