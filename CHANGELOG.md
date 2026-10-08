@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI does less work for the same verdict. No change to the package.
   - A push to `main` no longer cancels the CI or Security run of the push before it, running or queued, so every merged commit keeps a finished run. A pull request still cancels its own older run.
   - The coverage gate runs on the Python 3.12 test leg instead of in a job that ran the whole suite a fifth time. The floor is still `fail_under` in `pyproject.toml`, and falling below it still fails `CI gate`.
+  - `tests/unit/scripts/test_ci_gate_covers_every_job.py` fails when a job in `ci.yml` is missing from the `CI gate` job's `needs`, or when a job in any workflow has no `timeout-minutes`.
   - The package build and the base install no longer wait for the lint and test jobs. They read nothing those jobs produce.
   - The docs build in `ci.yml` and `docs.yml` installs the `docs` extra from `uv.lock` instead of the latest `mkdocs-material`.
   - Every job has a `timeout-minutes`.

@@ -105,7 +105,7 @@ mypy_path = ["src"]
 #
 # `--cov` 를 기본 addopts 에 넣지 않는다: 테스트 잡이 4개(py3.10~3.13)라 전부에
 # 계측을 걸면 같은 정보를 4배 비용으로 사고, 로컬 `pytest` 도 함께 느려진다.
-# CI 의 전용 coverage 잡 하나가 게이트를 담당한다.
+# CI 의 Python 3.12 테스트 레그 하나만 `--cov` 로 실행해 게이트를 담당한다.
 #
 # 수치는 기본 마커 조합(`-m 'not integration'`) 기준이다 — integration 은 실 API
 # 키가 필요해 CI 에서 항상 deselect 되므로, 게이트가 보는 값과 개발자가 로컬에서
