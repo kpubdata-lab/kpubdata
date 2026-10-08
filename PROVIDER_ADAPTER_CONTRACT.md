@@ -219,7 +219,12 @@ An adapter may also provide:
 
 ```python
 def query_records_all(
-    self, dataset: DatasetRef, query: Query, *, max_pages: int | None = None
+    self,
+    dataset: DatasetRef,
+    query: Query,
+    *,
+    max_pages: int | None = None,
+    partial: bool = False,
 ) -> Iterator[RecordBatch]: ...
 
 
@@ -235,6 +240,15 @@ def supports_query_records_all(self, dataset_key: str) -> bool: ...
   `raw`, `meta["provenance"]`, `next_page` and `validation`, plus
   `meta["validation_total"]` for the whole result. A page that fails raises and no
   batch is yielded.
+- `partial` is `Dataset.list_all(partial=True)` (#876). When it is `True` and a request
+  after the first fails, yield the pages read before it — decided over those pages
+  alone — and then raise `IncompleteListError(cause, pages=<pages yielded>)` from the
+  failure. A failure of the first request is raised as it is. When it is `False`, the
+  rule above holds.
+- `partial` is passed only when the caller set it, so an adapter whose
+  `query_records_all` has no such parameter is called exactly as before. Such an
+  adapter cannot serve `list_all(partial=True)`: the call fails with the `TypeError`
+  Python raises for an unexpected keyword argument, so add the parameter to support it.
 - `max_pages` must be honoured: yield the pages fetched, then raise
   `InvalidRequestError` when more would be needed.
 - `supports_query_records_all` is for an adapter that has the method but serves only

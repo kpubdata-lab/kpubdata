@@ -26,7 +26,19 @@ _BLOCK = re.compile(r"```python\n(.*?)```", re.DOTALL)
 _CALLS = frozenset({"list", "list_all", "call_raw"})
 #: Keywords the library reads itself rather than sending as a filter.
 _CANONICAL = frozenset(
-    {"page", "page_size", "cursor", "start_date", "end_date", "fields", "sort", "operation"}
+    {
+        "page",
+        "page_size",
+        "cursor",
+        "start_date",
+        "end_date",
+        "fields",
+        "sort",
+        "operation",
+        # Options of list_all() itself (#876).
+        "max_pages",
+        "partial",
+    }
 )
 
 

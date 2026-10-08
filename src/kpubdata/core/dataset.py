@@ -9,7 +9,12 @@ from typing import cast
 from kpubdata.core.capability import Operation
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
 from kpubdata.core.protocol import ProviderAdapter
-from kpubdata.exceptions import InvalidRequestError, UnsupportedCapabilityError
+from kpubdata.exceptions import (
+    IncompleteListError,
+    InvalidRequestError,
+    PublicDataError,
+    UnsupportedCapabilityError,
+)
 
 from .._typing import override
 
@@ -174,6 +179,7 @@ class Dataset:
         self,
         *,
         max_pages: int | None = None,
+        partial: bool = False,
         **kwargs: object,
     ) -> Generator[RecordBatch, None, None]:
         """Continuously yield RecordBatch while next page or cursor exists.
@@ -181,12 +187,20 @@ class Dataset:
         Args:
             max_pages: Maximum number of pages to fetch. Defaults to 1000.
                 Raises InvalidRequestError if limit is reached.
+            partial: Keep what was read when a later page fails (#876). The pages
+                read before the failed request are yielded, then
+                ``IncompleteListError`` is raised with the failure as its cause. A
+                failure of the first request is raised as it is: nothing was read.
+                Without it, a spec dataset yields nothing when any page fails, since
+                its columns are cast over every page together (#481, #789).
             **kwargs: Filter parameters passed to the provider adapter.
 
         Raises:
             UnsupportedCapabilityError: If this dataset does not support list.
             InvalidRequestError: If max_pages limit is reached or infinite loop
                 is detected.
+            IncompleteListError: With ``partial=True``, after the pages read
+                before a failed request were yielded.
         """
         if Operation.LIST not in self._ref.operations:
             raise UnsupportedCapabilityError(
@@ -218,6 +232,13 @@ class Dataset:
                     dataset_id=self._ref.id,
                 )
 
+        if not isinstance(partial, bool):
+            raise InvalidRequestError(
+                f"partial must be True or False, got {type(partial).__name__}: {partial!r}",
+                provider=self._ref.provider,
+                dataset_id=self._ref.id,
+            )
+
         effective_max_pages = max_pages if max_pages is not None else _DEFAULT_MAX_PAGES
 
         # Spec-backed datasets: use global column casting across all pages (#481).
@@ -234,7 +255,10 @@ class Dataset:
             # Split page/page_size/... out of the filters, as list() does, so they
             # drive pagination instead of being sent as raw parameters (#614).
             query = _build_query(kwargs)
-            batches = query_records_all(self._ref, query, max_pages=effective_max_pages)
+            # Passed only when asked for, so an adapter written before #876 is
+            # called as it was.
+            options: dict[str, object] = {"partial": True} if partial else {}
+            batches = query_records_all(self._ref, query, max_pages=effective_max_pages, **options)
             for batch in batches:
                 yield batch
             return
@@ -324,7 +348,18 @@ class Dataset:
                 },
             )
             previous_items = batch.items
-            batch = self.list(**page_kwargs)
+            try:
+                batch = self.list(**page_kwargs)
+            except PublicDataError as error:
+                if not partial:
+                    raise
+                # The pages before this request have been yielded already (#876).
+                raise IncompleteListError(
+                    error,
+                    pages=page_index - 1,
+                    provider=self._ref.provider,
+                    dataset_id=self._ref.id,
+                ) from error
 
             # The same rows again under a new page number: the provider is not paging
             # (#837). Going on would repeat the request until the page limit.

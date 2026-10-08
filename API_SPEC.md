@@ -137,7 +137,7 @@ the pages fetched so far are yielded and then `InvalidRequestError` is raised.
 
 For spec-backed datasets, `list_all()` decides column casting across all pages
 at once, so it **buffers**: every page is fetched before the first batch is
-yielded, and memory grows with the total result (bounded by `max_pages`).
+yielded.
 `page_size` is capped to the spec's `pagination.max_size`, as in `list()`. Each
 batch still carries its own page's `raw`, `meta["provenance"]`, `next_page` and
 `validation`; `meta["validation_total"]` holds the report for the whole result,
@@ -146,7 +146,37 @@ which is the one that decided casting.
 On that path a fetched page waits in a temporary file, not in memory, so memory use
 follows the page size and not the size of the result (#789). If a page fails, the
 exception propagates and no batch is yielded — the pages fetched before it are
-discarded. Use `list()` page by page when partial progress matters.
+discarded.
+
+`list_all(partial=True)` keeps them (#876). When a request after the first fails,
+the pages read before it are yielded — on the spec path, cast over those pages —
+and then `IncompleteListError` is raised. Its `pages` is how many were yielded, its
+`__cause__` is the failure, and the failure's `provider`, `status_code`,
+`provider_code` and `retryable` are copied onto it. A failure of the first request is
+raised as it is, since nothing was read. The other paths already yield each page as
+it arrives; `partial=True` gives them the same ending, so a caller tells a short
+listing from a complete one the same way on every path. `partial` must be a bool.
+
+The pages arrive before the exception, so consume the generator in a loop and catch
+around it. `list(dataset.list_all(partial=True))` loses them: the exception leaves
+`list()` before it returns anything.
+
+```python
+from kpubdata import IncompleteListError
+
+rows = []
+try:
+    for batch in dataset.list_all(partial=True):
+        rows.extend(batch.items)
+except IncompleteListError as error:
+    print(f"kept {error.pages} page(s); stopped by {error.__cause__!r}")
+```
+
+`IncompleteListError` covers a failed request only. A listing that stops at
+`max_pages`, or because the provider repeats a page, still ends with
+`InvalidRequestError` after the pages it read, with or without `partial`. Because
+`partial` is now an option of `list_all()`, it can no longer be sent as a provider
+filter of that name through `list_all()`.
 
 Dataset metadata may expose provider-specific pagination styles through
 `DatasetRef.query_support.pagination`, including `offset`, `cursor`, and
@@ -310,6 +340,7 @@ does not change with the message, so map on it rather than on the text.
 | `UnsupportedCapabilityError` | `unsupported_capability` | an operation the dataset does not have |
 | `ProviderNotRegisteredError` | `provider_not_registered` | a provider absent from the registry |
 | `CapabilityContractError` | `capability_contract_error` | an adapter whose declared and actual capabilities disagree |
+| `IncompleteListError` | `incomplete_list` | `list_all(partial=True)` stopped after yielding `pages` pages; `__cause__` is the failure |
 
 `RateLimitError`, `ServiceUnavailableError` and `TransportTimeoutError` are
 `TransportError`s; `AuthError` is not, so `except TransportError` does not catch a 401.
