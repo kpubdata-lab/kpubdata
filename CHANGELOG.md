@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Every third-party action in the workflows is pinned to a full commit SHA with a `# vX.Y.Z` comment, and `scripts/check_action_pins.py`, ported from kpubdata-builder (kpubdata-builder#1003), fails the lint job on a `uses:` that names a tag or a branch. A tag such as `@v7` can move without a change here, so the release, title and review gates could run code nobody here reviewed. Each pin is the commit its major tag pointed at when pinned, so no action changes version; Dependabot (`github-actions`) moves the SHA and the comment together. Actions in `.github/actions/` used by local path pass. The gate reads each file as parsed YAML as well as line by line, so a flow mapping (`- {uses: a/b@v1}`) or a quoted key (`"uses": a/b@v1`) is checked too, and a file that is not valid YAML is refused. No change to the package.
 - CI does less work for the same verdict. No change to the package.
   - A push to `main` no longer cancels the CI or Security run of the push before it, running or queued, so every merged commit keeps a finished run. A pull request still cancels its own older run.
   - The coverage gate runs on the Python 3.12 test leg instead of in a job that ran the whole suite a fifth time. The floor is still `fail_under` in `pyproject.toml`, and falling below it still fails `CI gate`.
