@@ -29,43 +29,56 @@ pagination:
 fields:
 - name: addr
   type: string
+  title: 주소
   description: 소재지
 - name: baseD
   type: string
+  title: 기준일
   description: 기준일 (YYYY-MM-DD)
 - name: busiAreaNm
   type: string
+  title: 사업 지역
   description: 사업 지역
 - name: busiContV
   type: string
+  title: 사업 내용
   description: 사업 내용
 - name: busiFiledNm
   type: string
+  title: 업종명
   description: 업종명
 - name: ceoNmV
   type: string
+  title: 대표자명
   description: 대표자명
 - name: certiEvalResult
   type: string
+  title: 인증 평가 결과
   description: 인증 평가 결과
 - name: certiIssuD
   type: string
+  title: 인증 발급일
   description: 인증 발급일 (YYYY-MM-DD)
 - name: certiNumV
   type: string
+  title: 인증 번호
   description: 인증 번호
   semantic_kind: code
 - name: entNmV
   type: string
+  title: 기업명
   description: 기업명
 - name: faxNo
   type: string
+  title: 팩스번호
   description: 팩스번호
 - name: homepageAddrV
   type: string
+  title: 홈페이지 주소
   description: 홈페이지 주소
 - name: telNo
   type: string
+  title: 전화번호
   description: 전화번호
 license:
   redistribution: unknown

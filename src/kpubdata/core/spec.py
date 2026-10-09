@@ -894,6 +894,10 @@ def find_spec(
 
 #: The one line the recorder rewrites after a successful record (#522).
 _LAST_VERIFIED_LINE = re.compile(r"^last_verified:.*$\n?", re.MULTILINE)
+#: A field's display name and unit (#877): what a reader is shown, never what the
+#: recorder sent or how a value is cast. Only the field-level keys, indented two spaces
+#: under a ``fields`` item; the spec's own top-level ``title`` stays in the digest.
+_DISPLAY_ONLY_LINE = re.compile(r"^  (?:title|unit):.*$\n?", re.MULTILINE)
 
 
 def spec_file_digest(path: Path) -> str | None:
@@ -902,15 +906,16 @@ def spec_file_digest(path: Path) -> str | None:
     Evidence binding hashes what the recorder executed, so the digest must
     stay stable across the one rewrite the recorder itself performs after
     recording: ``record.py`` syncs ``last_verified`` to the record date —
-    provenance, not pipeline. Those lines are dropped before hashing; any
-    other change moves the digest and voids evidence recorded against the
-    old spec. None when the file cannot be read.
+    provenance, not pipeline. Those lines are dropped before hashing, and so
+    are a field's ``title`` and ``unit`` (#877), which only label what was
+    recorded; any other change moves the digest and voids evidence recorded
+    against the old spec. None when the file cannot be read.
     """
     try:
         text = path.read_text(encoding="utf-8")
     except OSError:
         return None
-    normalized = _LAST_VERIFIED_LINE.sub("", text)
+    normalized = _DISPLAY_ONLY_LINE.sub("", _LAST_VERIFIED_LINE.sub("", text))
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 

@@ -59,28 +59,37 @@ pagination:
 fields:
 - name: baseDate
   type: integer
+  title: 발표일자
   description: 발표 날짜
 - name: baseTime
   type: integer
+  title: 발표시각
   description: 발표 시각
 - name: category
   type: string
+  title: 자료 구분
+  semantic_kind: code
   description: 예보 구분
 - name: fcstDate
   type: integer
+  title: 예보일자
   description: 예보 날짜
 - name: fcstTime
   type: string
+  title: 예보시각
   semantic_kind: code
   description: 예보 시각
 - name: fcstValue
   type: integer
+  title: 예보 값
   description: 예보 값
 - name: nx
   type: integer
+  title: 예보지점 X 좌표
   description: 격자 X
 - name: ny
   type: integer
+  title: 예보지점 Y 좌표
   description: 격자 Y
 examples:
 - name: seoul_default

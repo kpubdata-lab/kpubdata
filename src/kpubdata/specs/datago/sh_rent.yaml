@@ -48,42 +48,69 @@ pagination:
 fields:
 - name: buildYear
   type: integer
+  title: 건축년도
   description: 건축연도
 - name: contractTerm
   type: string
+  title: 계약기간
+  semantic_kind: period
   description: 계약기간
 - name: contractType
   type: string
+  title: 계약 구분
+  semantic_kind: code
   description: 계약구분
 - name: dealDay
   type: integer
+  title: 계약일
   description: 거래일
 - name: dealMonth
   type: integer
+  title: 계약월
   description: 거래월
 - name: dealYear
   type: integer
+  title: 계약년도
   description: 거래연도
 - name: deposit
   type: integer
+  title: 보증금
+  unit: 만원
+  semantic_kind: measure
 - name: houseType
   type: string
+  title: 주택 유형
+  semantic_kind: code
 - name: monthlyRent
   type: integer
+  title: 월세
+  unit: 만원
+  semantic_kind: measure
 - name: preDeposit
   type: string
+  title: 종전 계약 보증금
+  unit: 만원
 - name: preMonthlyRent
   type: string
+  title: 종전 계약 월세
+  unit: 만원
 - name: sggCd
   type: integer
+  title: 시군구 코드
   description: 시군구 코드
 - name: totalFloorAr
   type: integer
+  title: 연면적
+  unit: ㎡
 - name: umdNm
   type: string
+  title: 법정동명
+  semantic_kind: text
   description: 법정동 이름
 - name: useRRRight
   type: string
+  title: 갱신요구권 사용 여부
+  semantic_kind: code
 license:
   type: "공공누리_1유형"
   redistribution: allowed

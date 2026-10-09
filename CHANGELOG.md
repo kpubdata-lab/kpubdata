@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Every field of the bundled specs has a Korean display name, and a unit and a meaning where they are known (#877). No spec set `title` or `unit`, so a consumer showed provider field names and bare numbers — `dealAmount` read `101300` with no 만원. All 417 fields of the 22 specs that declare fields now have `title` (`FieldDescriptor.title`); 85 have `unit` (만원, ㎡, ㎍/㎥, ppm, 원, 분, °C …) and 222 have `semantic_kind`. A meaning is set only where the field's storage type allows it (ADR 0006): seven codes stored as integers (`areacode`, `sigungucode` of three tour specs, `fcstTime` of `ultra_srt_fcst`) and the year/month/day integers are left without one, since changing a type changes what is returned. No schema key is new.
+
 ### Changed
 
+- A field's `title` and `unit` lines no longer move the spec digest that fixtures are bound to (#877, #522). They label what was recorded and change neither the request nor the casting, so filling them in voided the evidence of every bound fixture with no way to re-record it without a key. No spec on `main` had such a line, so every recorded digest is unchanged; any other change — the spec's own `title`, a field's `semantic_kind`, `type` or `description` — still moves it. For the four datasets whose fixtures are bound (`bus_arrival`, `social_enterprise`, `ultra_srt_fcst`, `ultra_srt_ncst`) `semantic_kind` is therefore not added here; it needs `make record`.
 - The compatibility matrix records the pin Builder's `main` has now (`docs/compatibility.md`). The row said `>=0.8.0,<0.9` with kpubdata 0.8.0; Builder moved to `>=0.9.0,<0.10` (kpubdata-builder#1050) and then to `>=0.10.0,<0.11` (kpubdata-builder#1217), and its tests run with 0.10.0. No change to the package.
 
 ## [0.10.0] — 2026-10-09

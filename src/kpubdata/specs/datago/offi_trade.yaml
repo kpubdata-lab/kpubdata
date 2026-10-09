@@ -48,53 +48,84 @@ pagination:
 fields:
 - name: buildYear
   type: integer
+  title: 건축년도
   description: 건축연도
 - name: buyerGbn
   type: string
+  title: 매수자 구분
+  semantic_kind: code
   description: 매수자 구분
 - name: cdealDay
   type: string
+  title: 계약 해제 사유 발생일
+  semantic_kind: date
   description: 해제사유 발생일
 - name: cdealType
   type: string
+  title: 계약 해제 여부
+  semantic_kind: code
   description: 해제사유 발생일
 - name: dealAmount
   type: integer
+  title: 거래금액
+  unit: 만원
+  semantic_kind: measure
   description: 거래금액(만원)
 - name: dealDay
   type: integer
+  title: 계약일
   description: 거래일
 - name: dealMonth
   type: integer
+  title: 계약월
   description: 거래월
 - name: dealYear
   type: integer
+  title: 계약년도
   description: 거래연도
 - name: dealingGbn
   type: string
+  title: 거래 유형
+  semantic_kind: code
 - name: estateAgentSggNm
   type: string
+  title: 중개사 소재지
+  semantic_kind: text
   description: 중개사 소재지
 - name: excluUseAr
   type: string
+  title: 전용면적
+  unit: ㎡
   description: 전용면적
 - name: floor
   type: integer
+  title: 층
+  semantic_kind: measure
   description: 층
 - name: jibun
   type: integer
+  title: 지번
   description: 지번
 - name: offiNm
   type: string
+  title: 단지명
+  semantic_kind: text
 - name: sggCd
   type: integer
+  title: 시군구 코드
   description: 시군구 코드
 - name: sggNm
   type: string
+  title: 시군구명
+  semantic_kind: text
 - name: slerGbn
   type: string
+  title: 매도자 구분
+  semantic_kind: code
 - name: umdNm
   type: string
+  title: 법정동명
+  semantic_kind: text
   description: 법정동 이름
 license:
   type: "공공누리_1유형"

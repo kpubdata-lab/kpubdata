@@ -61,47 +61,78 @@ pagination:
 fields:
 - name: coFlag
   type: string
+  title: 일산화탄소 측정자료 상태
+  semantic_kind: code
 - name: coGrade
   type: integer
+  title: 일산화탄소 지수 등급
 - name: coValue
   type: string
+  title: 일산화탄소 농도
+  unit: ppm
   description: CO 농도
 - name: dataTime
   type: string
+  title: 측정 일시
+  semantic_kind: date
   description: 측정 시각
 - name: khaiGrade
   type: integer
+  title: 통합대기환경지수 등급
   description: 통합대기환경등급
 - name: khaiValue
   type: integer
+  title: 통합대기환경지수
+  semantic_kind: measure
   description: 통합대기환경지수
 - name: no2Flag
   type: string
+  title: 이산화질소 측정자료 상태
+  semantic_kind: code
 - name: no2Grade
   type: integer
+  title: 이산화질소 지수 등급
 - name: no2Value
   type: string
+  title: 이산화질소 농도
+  unit: ppm
   description: NO2 농도
 - name: o3Flag
   type: string
+  title: 오존 측정자료 상태
+  semantic_kind: code
 - name: o3Grade
   type: integer
+  title: 오존 지수 등급
 - name: o3Value
   type: string
+  title: 오존 농도
+  unit: ppm
   description: O3 농도
 - name: pm10Flag
   type: string
+  title: 미세먼지(PM10) 측정자료 상태
+  semantic_kind: code
 - name: pm10Grade
   type: integer
+  title: 미세먼지(PM10) 지수 등급
 - name: pm10Value
   type: integer
+  title: 미세먼지(PM10) 농도
+  unit: ㎍/㎥
+  semantic_kind: measure
   description: PM10 농도
 - name: so2Flag
   type: string
+  title: 아황산가스 측정자료 상태
+  semantic_kind: code
 - name: so2Grade
   type: integer
+  title: 아황산가스 지수 등급
 - name: so2Value
   type: string
+  title: 아황산가스 농도
+  unit: ppm
   description: SO2 농도
 license:
   type: "공공누리_1유형"
