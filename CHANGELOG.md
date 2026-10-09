@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-10-09
+
 ### Added
 
 - Review and verification levels are written meaning first, with the code in parentheses (#878): "unit tests (V1)", not a bare `V2` that a reader outside the project cannot decode and a writer can get wrong. POLICY 0.1 states the rule and 0.2 is the glossary (`POLICY.md#codes`). `scripts/check_plain_codes.py` checks every Markdown file and issue form that git tracks and fails CI on a bare code; code spans, fenced blocks, the `review:R0`..`review:R3` labels, links to the glossary and the definition tables between `plain-codes: off`/`on` markers are left alone, and `CHANGELOG.md` is checked in its Unreleased section only. The governance documents, the PR template and AGENTS.md were rewritten to pass. Labels and gates (`review:R3`, the `R3 review` check) do not change. No change to the package.
