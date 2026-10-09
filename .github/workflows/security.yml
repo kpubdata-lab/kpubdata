@@ -26,8 +26,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: security-${{ github.ref }}
-  cancel-in-progress: true
+  # Only a pull request's older run is cancelled. A push to main or the weekly run is
+  # the record for its commit and runs to the end, in a group of its own: a shared
+  # group would still cancel a run waiting behind a newer one.
+  group: security-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   dependency-audit:
