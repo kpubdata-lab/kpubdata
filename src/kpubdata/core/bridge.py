@@ -127,19 +127,33 @@ class CompositeProviderAdapter:
         return callable(getattr(self._inner, "query_records_all", None))
 
     def query_records_all(
-        self, dataset: DatasetRef, query: Query, *, max_pages: int | None = None
+        self,
+        dataset: DatasetRef,
+        query: Query,
+        *,
+        max_pages: int | None = None,
+        partial: bool = False,
     ) -> Iterator[RecordBatch]:
         """Multi-page query with global casting, delegated by ownership (#611).
+
+        ``partial`` (#876) reaches the inner adapter only when set, so one written
+        before it is called as it was.
 
         Raises:
             NotImplementedError: Neither adapter serves this key; check
                 ``supports_query_records_all`` first.
         """
         if self._spec_owns(dataset.dataset_key):
-            return self._spec.query_records_all(dataset, query, max_pages=max_pages)
+            return self._spec.query_records_all(
+                dataset, query, max_pages=max_pages, partial=partial
+            )
         inner_all = getattr(self._inner, "query_records_all", None)
         if callable(inner_all):
-            return cast("Iterator[RecordBatch]", inner_all(dataset, query, max_pages=max_pages))
+            options: dict[str, object] = {"partial": True} if partial else {}
+            return cast(
+                "Iterator[RecordBatch]",
+                inner_all(dataset, query, max_pages=max_pages, **options),
+            )
         msg = f"{dataset.id} has no multi-page query path; use the per-page path"
         raise NotImplementedError(msg)
 

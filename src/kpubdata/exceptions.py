@@ -191,11 +191,55 @@ class CapabilityContractError(PublicDataError):
     code: ClassVar[str] = "capability_contract_error"
 
 
+class IncompleteListError(PublicDataError):
+    """Raised after ``list_all(partial=True)`` has yielded the pages it read (#876).
+
+    A listing that fails part way, with ``partial=True``, first hands over the pages
+    it already read and then raises this, so a caller can keep them and still knows
+    the listing did not finish. ``pages`` is how many were yielded. The request that
+    failed is ``__cause__``; its ``provider``, ``status_code``, ``provider_code`` and
+    ``retryable`` are copied here, so a caller can judge the failure without
+    unwrapping it. A failure raised below the adapter (a transport error) may not
+    name its provider or dataset; ``provider`` and ``dataset_id`` fill those in.
+    """
+
+    code: ClassVar[str] = "incomplete_list"
+
+    def __init__(
+        self,
+        cause: PublicDataError,
+        *,
+        pages: int,
+        provider: str | None = None,
+        dataset_id: str | None = None,
+    ) -> None:
+        """Wrap ``cause``, the failure after ``pages`` yielded pages."""
+        super().__init__(
+            f"listing stopped after {pages} page(s): {cause}",
+            provider=cause.provider or provider,
+            dataset_id=cause.dataset_id or dataset_id,
+            operation=cause.operation,
+            status_code=cause.status_code,
+            provider_code=cause.provider_code,
+            retryable=cause.retryable,
+        )
+        self.pages = pages
+
+    def __reduce__(self) -> tuple[object, ...]:
+        """Rebuild from the message and attributes, not by calling ``__init__``.
+
+        ``Exception`` pickles and copies as ``cls(*args)``, and ``args`` here is the
+        message alone, which this ``__init__`` does not take.
+        """
+        return (Exception.__new__, (type(self), *self.args), self.__dict__)
+
+
 __all__ = [
     "AuthError",
     "CapabilityContractError",
     "ConfigError",
     "DatasetNotFoundError",
+    "IncompleteListError",
     "InvalidRequestError",
     "ParseError",
     "ProviderNotRegisteredError",

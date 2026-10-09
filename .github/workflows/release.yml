@@ -367,6 +367,7 @@ jobs:
     name: Say what to do next
     needs: [release]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Next step
         env:

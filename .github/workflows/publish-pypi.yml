@@ -112,6 +112,8 @@ jobs:
   publish:
     name: Publish to PyPI
     runs-on: ubuntu-latest
+    # Counts from the job's start, not from the wait for the environment's approval.
+    timeout-minutes: 10
     needs: [build]
     environment: pypi
     permissions:
