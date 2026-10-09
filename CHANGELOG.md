@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The compatibility matrix records the pin Builder's `main` has now (`docs/compatibility.md`). The row said `>=0.8.0,<0.9` with kpubdata 0.8.0; Builder moved to `>=0.9.0,<0.10` (kpubdata-builder#1050) and then to `>=0.10.0,<0.11` (kpubdata-builder#1217), and its tests run with 0.10.0. No change to the package.
+
 ## [0.10.0] — 2026-10-09
 
 ### Added

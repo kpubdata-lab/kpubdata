@@ -16,13 +16,13 @@ KPubData Product Family는 세 저장소가 독립적으로 릴리스되지만, 
 builder 와 studio 는 **한 애플리케이션, 한 버전**이다(ADR 0004 1절). 그래서 표는 두 열이다 —
 애플리케이션 버전 × kpubdata 버전.
 
-**kpubdata 열은 범위가 아니라 사실이다.** `pyproject.toml` 의 `kpubdata>=0.8.0,<0.9` 는
+**kpubdata 열은 범위가 아니라 사실이다.** `pyproject.toml` 의 `kpubdata>=0.10.0,<0.11` 은
 의도이고, 릴리스 게이트는 `uv.lock` 이 고정한 **한 버전**으로 돌았다. 그 버전을 적는다.
 **빈 셀은 검증되지 않았음을 뜻한다** — 동작할 수도 있지만 보장하지 않는다.
 
 | 애플리케이션 (builder = studio) | kpubdata (릴리스 게이트가 검증한 버전) | 비고 |
 | :--- | :--- | :--- |
-| main (다음 릴리스) | 0.8.0 | 릴리스가 아니다 — 행은 릴리스 때 확정된다. 의존 핀 `>=0.8.0,<0.9` (builder#882, 2026-09-30). 0.8.0 은 코드 열의 앞자리 0 을 보존해 `str` 로 돌려준다(BREAKING, #613). |
+| main (다음 릴리스) | 0.10.0 | 릴리스가 아니다 — 행은 릴리스 때 확정된다. 의존 핀 `>=0.10.0,<0.11` (builder#1217, 2026-10-09). 0.10.0 은 seoul·kipris 가 빈 결과의 `total_count` 를 `0` 으로 돌려준다(BREAKING, #827). 그 앞의 핀은 `>=0.9.0,<0.10`(builder#1050), `>=0.8.0,<0.9`(builder#882, 2026-09-30) 였고, 0.8.0 은 코드 열의 앞자리 0 을 보존해 `str` 로 돌려준다(BREAKING, #613). |
 | 0.4.0 | 0.6.0 | 2026-09-28, builder·studio 모두 태그·GitHub Release. Builder API 계약 v1.29.0. 의존 핀 `>=0.6.0,<0.7`. |
 | 0.1.x (builder 만) | 0.5.x | studio 가 같은 버전을 쓰기 전. Medallion(Bronze→Silver→Gold) 파이프라인 + 서비스 façade 도입. |
 
