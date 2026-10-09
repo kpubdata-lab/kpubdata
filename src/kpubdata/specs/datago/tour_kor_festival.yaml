@@ -60,79 +60,125 @@ pagination:
 fields:
 - name: addr1
   type: string
+  title: 주소
+  semantic_kind: text
   description: 주소
 - name: addr2
   type: string
+  title: 상세주소
+  semantic_kind: text
   description: 상세주소
 - name: areacode
   type: string
+  title: 지역 코드
+  semantic_kind: code
   description: 지역 코드
 - name: cat1
   type: string
+  title: 대분류 코드
+  semantic_kind: code
   description: 대분류
 - name: cat2
   type: string
+  title: 중분류 코드
+  semantic_kind: code
   description: 중분류
 - name: cat3
   type: string
+  title: 소분류 코드
+  semantic_kind: code
   description: 소분류
 - name: contentid
   type: integer
+  title: 콘텐츠 ID
   description: 콘텐츠 ID
 - name: contenttypeid
   type: integer
+  title: 콘텐츠 유형 ID
   description: 콘텐츠 타입 ID
 - name: cpyrhtDivCd
   type: string
+  title: 저작권 유형 코드
+  semantic_kind: code
 - name: createdtime
   type: integer
+  title: 등록일시
   description: 등록일시
 - name: eventenddate
   type: integer
+  title: 행사 종료일
 - name: eventstartdate
   type: integer
+  title: 행사 시작일
 - name: festivaltype
   type: string
+  title: 행사 유형
+  semantic_kind: code
 - name: firstimage
   type: string
+  title: 대표 이미지(원본)
+  semantic_kind: text
   description: 대표 이미지
 - name: firstimage2
   type: string
+  title: 대표 이미지(썸네일)
+  semantic_kind: text
 - name: lDongRegnCd
   type: integer
+  title: 법정동 시도 코드
 - name: lDongSignguCd
   type: integer
+  title: 법정동 시군구 코드
 - name: lclsSystm1
   type: string
+  title: 분류체계 대분류
+  semantic_kind: code
 - name: lclsSystm2
   type: string
+  title: 분류체계 중분류
+  semantic_kind: code
 - name: lclsSystm3
   type: string
+  title: 분류체계 소분류
+  semantic_kind: code
 - name: mapx
   type: string
+  title: 경도(X 좌표)
   description: 경도
 - name: mapy
   type: string
+  title: 위도(Y 좌표)
   description: 위도
 - name: mlevel
   type: string
+  title: 지도 레벨
   description: 맵 레벨
 - name: modifiedtime
   type: integer
+  title: 수정일시
   description: 수정일시
 - name: progresstype
   type: string
+  title: 진행 상태
+  semantic_kind: code
 - name: sigungucode
   type: string
+  title: 시군구 코드
+  semantic_kind: code
   description: 시군구 코드
 - name: tel
   type: string
+  title: 전화번호
+  semantic_kind: text
   description: 전화번호
 - name: title
   type: string
+  title: 제목
+  semantic_kind: text
   description: 제목
 - name: zipcode
   type: string
+  title: 우편번호
   semantic_kind: code
 license:
   type: "공공누리_1유형"

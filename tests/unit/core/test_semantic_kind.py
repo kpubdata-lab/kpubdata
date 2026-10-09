@@ -114,7 +114,33 @@ def test_the_code_columns_found_in_613_are_declared_codes() -> None:
     assert ("datago.bus_arrival", "stationId") in codes
     assert ("datago.bus_arrival", "routeTypeCd") in codes
     assert ("datago.social_enterprise", "certiNumV") in codes
-    assert len(codes) == 23
+    # The 23 found in #613 stay codes; #877 declared more, so the count is not pinned.
+    found_in_613 = {
+        ("datago.apt_rent", "roadnmbonbun"),
+        ("datago.apt_rent", "roadnmbubun"),
+        ("datago.apt_trade", "bonbun"),
+        ("datago.apt_trade", "bubun"),
+        ("datago.apt_trade", "roadNmBonbun"),
+        ("datago.apt_trade", "roadNmBubun"),
+        ("datago.apt_trade", "roadNmSeq"),
+        ("datago.bus_arrival", "routeDestId"),
+        ("datago.bus_arrival", "routeId"),
+        ("datago.bus_arrival", "routeTypeCd"),
+        ("datago.bus_arrival", "stationId"),
+        ("datago.bus_arrival", "vehId1"),
+        ("datago.bus_arrival", "vehId2"),
+        ("datago.hospital_info", "clCd"),
+        ("datago.hospital_info", "postNo"),
+        ("datago.metro_fare", "arvlStnCd"),
+        ("datago.metro_fare", "dptreStnCd"),
+        ("datago.social_enterprise", "certiNumV"),
+        ("datago.tour_kor_area", "zipcode"),
+        ("datago.tour_kor_festival", "zipcode"),
+        ("datago.tour_kor_keyword", "zipcode"),
+        ("datago.tour_kor_location", "zipcode"),
+        ("datago.village_fcst", "fcstTime"),
+    }
+    assert found_in_613 <= codes
     for spec in discover_specs():
         for field in spec.fields:
             assert not field_conflicts(

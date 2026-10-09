@@ -45,89 +45,122 @@ pagination:
 fields:
 - name: crowded1
   type: string
+  title: 첫 번째 버스 혼잡도
   description: 첫 번째 버스 혼잡도 코드
 - name: crowded2
   type: string
+  title: 두 번째 버스 혼잡도
   description: 두 번째 버스 혼잡도 코드
 - name: flag
   type: string
+  title: 운행 상태
   description: 운행 상태 (PASS/STOP 등)
 - name: locationNo1
   type: integer
+  title: 첫 번째 버스 남은 정류장 수
+  unit: 정류장
   description: 첫 번째 버스 현재 정류장 순번
 - name: locationNo2
   type: integer
+  title: 두 번째 버스 남은 정류장 수
+  unit: 정류장
   description: 두 번째 버스 현재 정류장 순번
 - name: lowPlate1
   type: string
+  title: 첫 번째 버스 저상버스 여부
   description: 첫 번째 저상버스 여부
 - name: lowPlate2
   type: string
+  title: 두 번째 버스 저상버스 여부
   description: 두 번째 저상버스 여부
 - name: plateNo1
   type: string
+  title: 첫 번째 버스 차량번호
   description: 첫 번째 버스 차량 번호
 - name: plateNo2
   type: string
+  title: 두 번째 버스 차량번호
   description: 두 번째 버스 차량 번호
 - name: predictTime1
   type: integer
+  title: 첫 번째 버스 도착 예정 시간
+  unit: 분
   description: 첫 번째 버스 도착 예정 시간(분)
 - name: predictTime2
   type: integer
+  title: 두 번째 버스 도착 예정 시간
+  unit: 분
   description: 두 번째 버스 도착 예정 시간(분)
 - name: remainSeatCnt1
   type: integer
+  title: 첫 번째 버스 빈자리 수
+  unit: 석
   description: 첫 번째 버스 잔여 좌석
 - name: remainSeatCnt2
   type: integer
+  title: 두 번째 버스 빈자리 수
+  unit: 석
   description: 두 번째 버스 잔여 좌석
 - name: routeDestId
   type: string
+  title: 노선 종점 정류소 ID
   semantic_kind: code
   description: 노선 종점 정류장 ID
 - name: routeDestName
   type: string
+  title: 노선 종점 정류소명
   description: 노선 종점 정류장명
 - name: routeId
   type: string
+  title: 노선 ID
   semantic_kind: code
   description: 노선 ID
 - name: routeName
   type: string
+  title: 노선명
   description: 노선명
 - name: routeTypeCd
   type: string
+  title: 노선 유형 코드
   semantic_kind: code
   description: 노선 유형 코드
 - name: staOrder
   type: integer
+  title: 정류소 순번
   description: 정류장 순번
 - name: stationId
   type: string
+  title: 정류소 ID
   semantic_kind: code
   description: 정류장 ID
 - name: stationNm1
   type: string
+  title: 첫 번째 버스 현재 정류소명
   description: 첫 번째 버스 다음 정류장명
 - name: stationNm2
   type: string
+  title: 두 번째 버스 현재 정류소명
   description: 두 번째 버스 다음 정류장명
 - name: taglessCd1
   type: string
+  title: 첫 번째 버스 태그리스 단말기 코드
   description: 첫 번째 버스 교통카드 단말기 코드
 - name: taglessCd2
   type: string
+  title: 두 번째 버스 태그리스 단말기 코드
   description: 두 번째 버스 교통카드 단말기 코드
 - name: turnSeq
   type: integer
+  title: 회차 순번
   description: 회차 순번
 - name: vehId1
   type: string
+  title: 첫 번째 버스 차량 ID
   semantic_kind: code
   description: 첫 번째 버스 차량 ID
 - name: vehId2
   type: string
+  title: 두 번째 버스 차량 ID
   semantic_kind: code
   description: 두 번째 버스 차량 ID
 license:

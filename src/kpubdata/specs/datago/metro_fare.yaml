@@ -38,54 +38,110 @@ pagination:
 fields:
 - name: addCrgExpln
   type: string
+  title: 추가 요금 설명
+  semantic_kind: text
 - name: arvlStnCd
   type: string
+  title: 도착역 코드
   semantic_kind: code
 - name: arvlStnNm
   type: string
+  title: 도착역명
+  semantic_kind: text
 - name: arvlStnNo
   type: integer
+  title: 도착역 번호
 - name: childAddFare
   type: integer
+  title: 어린이 추가 운임
+  unit: 원
+  semantic_kind: measure
 - name: childCardFare
   type: integer
+  title: 어린이 교통카드 운임
+  unit: 원
+  semantic_kind: measure
 - name: childCashFare
   type: integer
+  title: 어린이 현금 운임
+  unit: 원
+  semantic_kind: measure
 - name: childDscntFare
   type: integer
+  title: 어린이 할인 운임
+  unit: 원
+  semantic_kind: measure
 - name: clmtcmpnCardGffYn
   type: string
+  title: 기후동행카드 하차 가능 여부
+  semantic_kind: code
 - name: clmtcmpnCardTkcarYn
   type: string
+  title: 기후동행카드 승차 가능 여부
+  semantic_kind: code
 - name: cmtkFare
   type: integer
+  title: 정기권 운임
+  unit: 원
+  semantic_kind: measure
 - name: crtrYmd
   type: integer
+  title: 기준일자
 - name: dptreStnCd
   type: string
+  title: 출발역 코드
   semantic_kind: code
 - name: dptreStnNm
   type: string
+  title: 출발역명
+  semantic_kind: text
 - name: dptreStnNo
   type: integer
+  title: 출발역 번호
 - name: gnrlAddFare
   type: integer
+  title: 일반 추가 운임
+  unit: 원
+  semantic_kind: measure
 - name: gnrlCardFare
   type: integer
+  title: 일반 교통카드 운임
+  unit: 원
+  semantic_kind: measure
 - name: gnrlCashFare
   type: integer
+  title: 일반 현금 운임
+  unit: 원
+  semantic_kind: measure
 - name: gnrlDscntFare
   type: integer
+  title: 일반 할인 운임
+  unit: 원
+  semantic_kind: measure
 - name: mvmnDstc
   type: string
+  title: 이동 거리
+  unit: km
 - name: yungAddFare
   type: integer
+  title: 청소년 추가 운임
+  unit: 원
+  semantic_kind: measure
 - name: yungCardFare
   type: integer
+  title: 청소년 교통카드 운임
+  unit: 원
+  semantic_kind: measure
 - name: yungCashFare
   type: integer
+  title: 청소년 현금 운임
+  unit: 원
+  semantic_kind: measure
 - name: yungDscntFare
   type: integer
+  title: 청소년 할인 운임
+  unit: 원
+  semantic_kind: measure
 license:
   type: "공공누리_1유형"
   redistribution: allowed

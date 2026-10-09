@@ -58,21 +58,27 @@ pagination:
 fields:
 - name: baseDate
   type: integer
+  title: 발표일자
   description: 발표 날짜
 - name: baseTime
   type: integer
+  title: 발표시각
   description: 발표 시각
 - name: category
   type: string
+  title: 자료 구분
   description: 예보 구분
 - name: nx
   type: integer
+  title: 예보지점 X 좌표
   description: 격자 X
 - name: ny
   type: integer
+  title: 예보지점 Y 좌표
   description: 격자 Y
 - name: obsrValue
   type: integer
+  title: 실황 값
   description: 관측 값
 license:
   type: "공공누리_1유형"

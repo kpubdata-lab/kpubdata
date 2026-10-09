@@ -49,90 +49,138 @@ pagination:
 fields:
 - name: aptDong
   type: integer
+  title: 아파트 동
 - name: aptNm
   type: string
+  title: 아파트명
+  semantic_kind: text
   description: 아파트 이름
 - name: aptSeq
   type: string
+  title: 단지 일련번호
+  semantic_kind: code
 - name: bonbun
   type: string
+  title: 지번 본번
   semantic_kind: code
   description: 본번
 - name: bubun
   type: string
+  title: 지번 부번
   semantic_kind: code
   description: 부번
 - name: buildYear
   type: integer
+  title: 건축년도
   description: 건축연도
 - name: buyerGbn
   type: string
+  title: 매수자 구분
+  semantic_kind: code
   description: 매수자 구분
 - name: cdealDay
   type: string
+  title: 계약 해제 사유 발생일
+  semantic_kind: date
   description: 해제사유 발생일
 - name: cdealType
   type: string
+  title: 계약 해제 여부
+  semantic_kind: code
   description: 해제사유 발생일
 - name: dealAmount
   type: integer
+  title: 거래금액
+  unit: 만원
+  semantic_kind: measure
   description: 거래금액(만원)
 - name: dealDay
   type: integer
+  title: 계약일
   description: 거래일
 - name: dealMonth
   type: integer
+  title: 계약월
   description: 거래월
 - name: dealYear
   type: integer
+  title: 계약년도
   description: 거래연도
 - name: dealingGbn
   type: string
+  title: 거래 유형
+  semantic_kind: code
 - name: estateAgentSggNm
   type: string
+  title: 중개사 소재지
+  semantic_kind: text
   description: 중개사 소재지
 - name: excluUseAr
   type: string
+  title: 전용면적
+  unit: ㎡
   description: 전용면적
 - name: floor
   type: integer
+  title: 층
+  semantic_kind: measure
   description: 층
 - name: jibun
   type: integer
+  title: 지번
   description: 지번
 - name: landCd
   type: integer
+  title: 법정동 지번코드
 - name: landLeaseholdGbn
   type: string
+  title: 토지임대부 아파트 여부
+  semantic_kind: code
 - name: rgstDate
   type: string
+  title: 등기일자
+  semantic_kind: date
   description: 등기일
 - name: roadNm
   type: string
+  title: 도로명
+  semantic_kind: text
 - name: roadNmBonbun
   type: string
+  title: 도로명 건물 본번호
   semantic_kind: code
 - name: roadNmBubun
   type: string
+  title: 도로명 건물 부번호
   semantic_kind: code
 - name: roadNmCd
   type: integer
+  title: 도로명 코드
 - name: roadNmSeq
   type: string
+  title: 도로명 일련번호
   semantic_kind: code
 - name: roadNmSggCd
   type: integer
+  title: 도로명 시군구코드
 - name: roadNmbCd
   type: integer
+  title: 도로명 지상지하 코드
 - name: sggCd
   type: integer
+  title: 시군구 코드
   description: 시군구 코드
 - name: slerGbn
   type: string
+  title: 매도자 구분
+  semantic_kind: code
 - name: umdCd
   type: integer
+  title: 법정동 코드
 - name: umdNm
   type: string
+  title: 법정동명
+  semantic_kind: text
   description: 법정동 이름
 examples:
 - name: seoul_gangnam_2024_01

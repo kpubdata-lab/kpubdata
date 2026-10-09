@@ -53,48 +53,89 @@ pagination:
 fields:
 - name: obsvtrNm
   type: string
+  title: 관측소명
+  semantic_kind: text
   description: 관측소 이름
 - name: lot
   type: number
+  title: 경도
+  unit: °
   description: 경도
 - name: lat
   type: number
+  title: 위도
+  unit: °
   description: 위도
 - name: obsrvnDt
   type: string
+  title: 관측 일시
+  semantic_kind: date
   description: 관측 일시
 - name: wndrct
   type: number
+  title: 풍향
+  unit: °
+  semantic_kind: measure
   description: 풍향 (도)
 - name: wspd
   type: number
+  title: 풍속
+  unit: m/s
+  semantic_kind: measure
   description: 풍속 (m/s)
 - name: maxMmntWspd
   type: number
+  title: 최대 순간 풍속
+  unit: m/s
+  semantic_kind: measure
   description: 최대 순간 풍속 (m/s)
 - name: artmp
   type: number
+  title: 기온
+  unit: °C
+  semantic_kind: measure
   description: 기온 (°C)
 - name: atmpr
   type: number
+  title: 기압
+  unit: hPa
+  semantic_kind: measure
   description: 기압 (hPa)
 - name: wvhgt
   type: number
+  title: 파고
+  unit: m
+  semantic_kind: measure
   description: 파고 (m)
 - name: wvpd
   type: number
+  title: 파주기
+  unit: 초
+  semantic_kind: measure
   description: 파주기 (초)
 - name: crdir
   type: number
+  title: 유향
+  unit: °
+  semantic_kind: measure
   description: 유향 (도)
 - name: crsp
   type: number
+  title: 유속
+  unit: cm/s
+  semantic_kind: measure
   description: 유속 (cm/s)
 - name: wtem
   type: number
+  title: 수온
+  unit: °C
+  semantic_kind: measure
   description: 수온 (°C)
 - name: slnty
   type: number
+  title: 염분
+  unit: PSU
+  semantic_kind: measure
   description: 염분 (PSU)
 license:
   type: "공공누리_1유형"

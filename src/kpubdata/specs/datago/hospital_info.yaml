@@ -39,66 +39,133 @@ pagination:
 fields:
 - name: XPos
   type: number
+  title: 경도(X 좌표)
 - name: YPos
   type: number
+  title: 위도(Y 좌표)
 - name: addr
   type: string
+  title: 주소
+  semantic_kind: text
 - name: clCd
   type: string
+  title: 종별 코드
   semantic_kind: code
 - name: clCdNm
   type: string
+  title: 종별 코드명
+  semantic_kind: text
 - name: cmdcGdrCnt
   type: integer
+  title: 한방 일반의 수
+  unit: 명
+  semantic_kind: measure
 - name: cmdcIntnCnt
   type: integer
+  title: 한방 인턴 수
+  unit: 명
+  semantic_kind: measure
 - name: cmdcResdntCnt
   type: integer
+  title: 한방 레지던트 수
+  unit: 명
+  semantic_kind: measure
 - name: cmdcSdrCnt
   type: integer
+  title: 한방 전문의 수
+  unit: 명
+  semantic_kind: measure
 - name: detyGdrCnt
   type: integer
+  title: 치과 일반의 수
+  unit: 명
+  semantic_kind: measure
 - name: detyIntnCnt
   type: integer
+  title: 치과 인턴 수
+  unit: 명
+  semantic_kind: measure
 - name: detyResdntCnt
   type: integer
+  title: 치과 레지던트 수
+  unit: 명
+  semantic_kind: measure
 - name: detySdrCnt
   type: integer
+  title: 치과 전문의 수
+  unit: 명
+  semantic_kind: measure
 - name: drTotCnt
   type: integer
+  title: 의사 총수
+  unit: 명
+  semantic_kind: measure
 - name: emdongNm
   type: string
+  title: 읍면동명
+  semantic_kind: text
 - name: estbDd
   type: integer
+  title: 개설일자
 - name: hospUrl
   type: string
+  title: 홈페이지
+  semantic_kind: text
 - name: mdeptGdrCnt
   type: integer
+  title: 의과 일반의 수
+  unit: 명
+  semantic_kind: measure
 - name: mdeptIntnCnt
   type: integer
+  title: 의과 인턴 수
+  unit: 명
+  semantic_kind: measure
 - name: mdeptResdntCnt
   type: integer
+  title: 의과 레지던트 수
+  unit: 명
+  semantic_kind: measure
 - name: mdeptSdrCnt
   type: integer
+  title: 의과 전문의 수
+  unit: 명
+  semantic_kind: measure
 - name: pnursCnt
   type: integer
+  title: 조산사 수
+  unit: 명
+  semantic_kind: measure
 - name: postNo
   type: string
+  title: 우편번호
   semantic_kind: code
 - name: sgguCd
   type: integer
+  title: 시군구 코드
 - name: sgguCdNm
   type: string
+  title: 시군구명
+  semantic_kind: text
 - name: sidoCd
   type: integer
+  title: 시도 코드
 - name: sidoCdNm
   type: string
+  title: 시도명
+  semantic_kind: text
 - name: telno
   type: string
+  title: 전화번호
+  semantic_kind: text
 - name: yadmNm
   type: string
+  title: 요양기관명
+  semantic_kind: text
 - name: ykiho
   type: string
+  title: 암호화된 요양기호
+  semantic_kind: code
 license:
   type: "공공누리_1유형"
   redistribution: allowed
