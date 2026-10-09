@@ -88,6 +88,11 @@ jobs:
       - name: README parity
         run: uv run python scripts/check_readme_parity.py
 
+      # POLICY 0.1: a review or verification level is written meaning first, code in
+      # parentheses -- "unit tests (V1)", never a bare V2 (#878).
+      - name: Plain review and verification codes
+        run: uv run python scripts/check_plain_codes.py
+
       # ADR 0007 Rules 1-2: KPubData never depends on KPubData Builder or Studio.
       # Dependencies flow Studio -> Builder -> KPubData only (#668).
       - name: Independence (no Builder or Studio dependency)

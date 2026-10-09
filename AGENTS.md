@@ -140,6 +140,12 @@ What is specific to agents:
   author, with write access, approves it: the required `R3 review` check fails until
   then (POLICY 14.1). The author's own approval, a bot's, and one followed by a
   request for changes do not count. Ask for the review; do not remove the label.
+- Write a review or verification level meaning first, code in parentheses:
+  "unit tests (V1)", "replay and contract tests (V2)", "an approval from someone
+  other than the author (R3)" — never a bare code. The glossary is
+  [POLICY 0.2](docs/governance/POLICY.md#codes), and `scripts/check_plain_codes.py`
+  fails CI on a bare code in any tracked Markdown file or issue form (#878). Label,
+  check and script names (`review:R3`, `R3 review`) stay as they are, in code spans.
 
 What an agent does not do:
 
