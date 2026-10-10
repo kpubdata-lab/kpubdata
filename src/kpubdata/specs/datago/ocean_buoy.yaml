@@ -5,7 +5,7 @@ description: 국립해양조사원 해양관측부이(32해역)의 수온·염�
 source:
   url: https://www.data.go.kr/data/15155516/openapi.do
 endpoint:
-  base_url: http://apis.data.go.kr/1192136/twRecent
+  base_url: https://apis.data.go.kr/1192136/twRecent
   operation: GetTWRecentApiService
   method: GET
   format_param:

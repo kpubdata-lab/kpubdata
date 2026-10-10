@@ -1,6 +1,6 @@
 # Insecure-http baseline (#738): specs whose endpoint.base_url still says
 # http://, sending the service key across the network in the clear. Frozen
-# at 23 entries from the 2026-10-01 audit. Every one sits on
+# at 23 entries from the 2026-10-01 audit; 22 remain. Every one sits on
 # apis.data.go.kr, which answers https with identical envelopes — the
 # reproducible record (commands and raw envelopes, all 16 service paths)
 # sits as a comment on #738 (2026-10-01). The two specs already on https
@@ -21,7 +21,6 @@ datago.apt_rent
 datago.apt_trade
 datago.hospital_info
 datago.metro_fare
-datago.ocean_buoy
 datago.offi_rent
 datago.offi_trade
 datago.rh_rent
