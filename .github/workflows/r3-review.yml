@@ -20,7 +20,8 @@ on:
   pull_request_review:
     types: [submitted, dismissed]
 
-# `contents: read` is here only because this repository checks its own action out;
+# `contents: read` is here only because this repository checks its own action out
+# (from the base branch, #861);
 # the other three call it remotely and grant `pull-requests: read` alone.
 permissions:
   contents: read
@@ -40,8 +41,16 @@ jobs:
     steps:
       # The action is this repository's own, so it has to be checked out first. The
       # other three repositories reference it remotely and need no checkout.
+      #
+      # What is checked out is the base branch's commit, not the pull request (#861).
+      # The default would be the pull request's merge commit, and then the pull request
+      # being judged supplies the judge: an edit to scripts/r3_review.py or to the
+      # action could approve itself. A change to the judge takes effect once merged.
+      # This file is still the pull request's own copy — see POLICY 14.1 for what that
+      # leaves open.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
 
       - uses: ./.github/actions/r3-review
