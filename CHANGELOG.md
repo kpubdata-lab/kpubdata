@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `datago.ocean_buoy` sends its service key over https (#738). Its `base_url` said `http://`, so the key crossed the network in the clear. The spec has no recorded fixture, so nothing is re-recorded, and its line leaves `scripts/insecure_http_baseline.txt` (22 remain). The other 22 keep `http://` until their fixtures are re-recorded: replay matches a request by its exact URL, and a recording only comes from the recording workflow.
 
+### Fixed
+
+- The `R3 review` check runs the base branch's judge, not the pull request's (#861). `r3-review.yml` checked out the pull request's merge commit, so a pull request could edit `scripts/r3_review.py` or the action and be judged by its own edit. It now checks out `github.event.pull_request.base.sha`. The workflow file itself is still the pull request's copy; POLICY 14.1 says what that leaves open and why a required workflow is not available on the organisation's plan.
+
 ## [0.10.0] — 2026-10-09
 
 ### Added

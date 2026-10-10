@@ -838,6 +838,27 @@ Agent는 다음을 단독으로 결정하지 않는다.
 
 - 판정 로직은 하나다: `scripts/r3_review.py` 와 `.github/actions/r3-review` (kpubdata).
   네 저장소가 `@main` 으로 같은 액션을 부른다.
+- **판정 코드는 PR 의 것이 아니라 기준 브랜치의 것을 쓴다(#861).** kpubdata 의
+  `r3-review.yml` 은 `github.event.pull_request.base.sha` 를 체크아웃한다. PR 의 merge
+  commit 을 체크아웃하면 판정받는 PR 이 `scripts/r3_review.py` 와 액션을 고쳐 스스로를
+  통과시킬 수 있다. 다른 저장소는 액션을 고정 커밋으로 원격 참조하므로 같은 성질을
+  이미 가진다. 판정 로직을 고치는 PR 은 머지된 뒤부터 그 로직으로 판정된다.
+- **남아 있는 구멍: 워크플로 파일 자체.** `pull_request` 와 `pull_request_review` 는
+  PR 쪽의 워크플로 정의로 돈다. PR 이 `r3-review.yml` 의 단계를 지우거나 job 에
+  `if: false` 를 넣으면 그 PR 안에서 check 가 통과하거나 건너뛰어지고, branch
+  protection 은 건너뛴 check 를 통과로 읽는다. 저장소 안의 코드로는 막을 수 없다.
+  막는 방법 셋과 지금 쓰지 않는 이유:
+  - 조직 ruleset 의 필수 워크플로(기준 브랜치의 정의로 돈다) — 조직 ruleset 은 GitHub
+    Team 이상에서만 만들 수 있고, 이 조직은 Free 다(2026-10-11,
+    `gh api orgs/kpubdata-lab --jq .plan.name` → `free`).
+  - `pull_request_target` — 기준 브랜치의 정의로 돌지만 리뷰 이벤트에는 대응하는
+    것이 없어, 승인·dismiss 때의 재판정은 여전히 PR 의 정의로 돈다.
+  - check 를 게시하는 GitHub App — 호스팅하고 관리할 서비스가 하나 생긴다.
+
+  그래서 지금의 방어는 사람의 눈이다: `.github/workflows/` 를 고치는 PR 은 diff 에
+  드러나고 CODEOWNERS 가 소유자를 리뷰어로 부른다. 리뷰어는 `r3-review.yml` 이 바뀐
+  PR 에서 `R3 review` 가 **실행되어 통과했는지**(건너뜀이 아닌지) 확인한다. 조직이
+  Team 이상이 되면 필수 워크플로로 옮긴다.
 - check 는 **모든 PR 에서 돌고, `review:R3` 라벨이 없으면 통과한다.** 일부 PR 에서만 생기는
   required check 는 그 PR 을 영원히 BLOCKED 로 둔다(18.2절).
 - 라벨 변경(`labeled`/`unlabeled`), push(`synchronize`), 리뷰 제출·dismiss 때마다

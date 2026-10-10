@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "r3_review.py"
@@ -284,6 +285,34 @@ def test_the_job_is_never_skipped_by_a_condition() -> None:
     """A required check that does not run leaves the pull request BLOCKED for ever."""
     _, _, jobs = WORKFLOW.read_text(encoding="utf-8").partition("\njobs:")
     assert "\n    if:" not in jobs
+
+
+def test_the_judge_is_the_base_branchs_not_the_pull_requests() -> None:
+    """A pull request must not supply the code that decides whether it may merge (#861).
+
+    ``actions/checkout`` without ``ref`` checks out the pull request's merge commit, so
+    its own ``scripts/r3_review.py`` and action would run. Every checkout in the job
+    names the base commit, and nothing else in the job fetches the pull request's code.
+    """
+    workflow = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+    steps = workflow["jobs"]["r3-review"]["steps"]
+    checkouts = [
+        step for step in steps if str(step.get("uses", "")).startswith("actions/checkout@")
+    ]
+
+    assert checkouts
+    for step in checkouts:
+        assert step["with"]["ref"] == "${{ github.event.pull_request.base.sha }}"
+    local = [
+        index
+        for index, step in enumerate(steps)
+        if step.get("uses") == "./.github/actions/r3-review"
+    ]
+    assert local and steps.index(checkouts[0]) < local[0]
+    text = WORKFLOW.read_text(encoding="utf-8")
+    for head in ("pull_request.head", "github.head_ref", "refs/pull/"):
+        assert head not in text, head
+    assert [step for step in steps if "run" in step] == []
 
 
 # --- who can write, now (#860) -----------------------------------------------------
