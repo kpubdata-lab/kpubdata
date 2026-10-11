@@ -27,7 +27,8 @@ from __future__ import annotations
 import hashlib
 import json
 import time
-from collections.abc import Mapping
+import warnings
+from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -35,7 +36,9 @@ from urllib.parse import urlsplit
 
 from kpubdata.config import KPubDataConfig
 from kpubdata.core import status as _status
+from kpubdata.core.capability import Operation
 from kpubdata.core.models import DatasetRef, Query, RecordBatch
+from kpubdata.core.protocol import ProviderAdapter
 from kpubdata.core.spec import SpecDefinition, discover_specs, find_spec
 from kpubdata.exceptions import (
     AuthError,
@@ -71,6 +74,10 @@ PROBE_STATUSES: tuple[str, ...] = tuple(status.value for status in _status.Probe
 #: The values are plain strings in results and reports; ``core.status.ProbeStatus``
 #: is the enum that defines them (ADR 0005).
 ProbeStatus = str
+
+#: Providers whose catalogue datasets (no spec) the probe classifies through the
+#: adapter's own call: they share data.go.kr's gateway and result codes (#916).
+_DATAGO_FAMILY: frozenset[str] = frozenset({"datago", "semas", "localdata"})
 
 #: data.go.kr standard result codes, as mapped in ``core/executor.py``.
 #: ``raise_for_code`` already turns these into typed exceptions, so the codes are
@@ -176,7 +183,11 @@ def service_id_of(spec: SpecDefinition) -> str:
     air-quality datasets. Listing them per dataset would make it look like
     three separate applications.
     """
-    base_url = getattr(spec.endpoint, "base_url", "") or ""
+    return _service_id_of_url(getattr(spec.endpoint, "base_url", "") or "")
+
+
+def _service_id_of_url(base_url: str) -> str:
+    """The last path segment of a data.go.kr ``base_url``: its service identifier."""
     path = urlsplit(base_url).path.rstrip("/")
     return path.rsplit("/", 1)[-1] if path else ""
 
@@ -309,10 +320,15 @@ def probe_dataset(
     config: KPubDataConfig | None = None,
     transport: HttpTransport | None = None,
 ) -> ProbeResult | None:
-    """Probe one dataset with a single call; None when no spec exists."""
+    """Probe one dataset with a single call.
+
+    A spec dataset is called through the spec executor; a catalogue dataset of a
+    data.go.kr adapter through the adapter itself (#916). None for any other
+    dataset, which the probe cannot classify honestly.
+    """
     spec = find_spec(dataset_id)
     if spec is None:
-        return None
+        return _probe_catalogue_dataset(dataset_id, config=config, transport=transport)
 
     resolved_config = config or KPubDataConfig.from_env()
 
@@ -366,12 +382,32 @@ def _call_and_classify(
     latency_ms = int((time.perf_counter() - started) * 1000)
 
     provider = spec.auth.provider_key or spec.provider
-    status, detail = classify(error, secrets=_configured_secrets(config, provider))
+    return _verdict(
+        spec.id,
+        service_id_of(spec),
+        error=error,
+        batch=batch,
+        latency_ms=latency_ms,
+        secrets=_configured_secrets(config, provider),
+    )
+
+
+def _verdict(
+    dataset_id: str,
+    service_id: str,
+    *,
+    error: BaseException | None,
+    batch: RecordBatch | None,
+    latency_ms: int,
+    secrets: tuple[str, ...],
+) -> ProbeResult:
+    """Build the ``ProbeResult`` for one completed probe call."""
+    status, detail = classify(error, secrets=secrets)
     http_status = 200 if error is None else getattr(error, "status_code", None)
     result_code = None if error is None else getattr(error, "provider_code", None)
     return ProbeResult(
-        dataset_id=spec.id,
-        service_id=service_id_of(spec),
+        dataset_id=dataset_id,
+        service_id=service_id,
         status=status,
         probed_at=_now(),
         detail=detail,
@@ -381,6 +417,111 @@ def _call_and_classify(
         schema_hash=_schema_hash(batch.items) if error is None and batch is not None else None,
         classification=_classification_of(status),
     )
+
+
+def _datago_family_adapter(
+    provider: str, config: KPubDataConfig, transport: HttpTransport
+) -> ProviderAdapter | None:
+    """The catalogue adapter of a provider the probe can classify, or None.
+
+    Only the adapters that speak data.go.kr's contract qualify: the gateway's 403
+    for a key not activated for the service (raised as ``AuthError``) and the
+    result-code table ``_CODE_STATUS`` reads. Any other provider has its own
+    codes, and mapping them onto this vocabulary would be guessing (#916).
+    """
+    factory: Callable[..., ProviderAdapter]
+    if provider == "datago":
+        from kpubdata.providers.datago.adapter import DataGoAdapter
+
+        factory = DataGoAdapter
+    elif provider == "semas":
+        from kpubdata.providers.semas.adapter import SemasAdapter
+
+        factory = SemasAdapter
+    elif provider == "localdata":
+        from kpubdata.providers.localdata.adapter import LocaldataAdapter
+
+        factory = LocaldataAdapter
+    else:
+        return None
+    return factory(config=config, transport=transport)
+
+
+def _probe_catalogue_dataset(
+    dataset_id: str,
+    *,
+    config: KPubDataConfig | None,
+    transport: HttpTransport | None,
+) -> ProbeResult | None:
+    """Probe a catalogue dataset of a data.go.kr adapter with one one-record list call.
+
+    None when the provider is not a data.go.kr adapter, the key is not in its
+    catalogue, or the dataset has no ``list`` operation (``datago.generic`` is
+    raw-only, and its refusal would read as a verdict on a service never called).
+    """
+    provider, _, dataset_key = dataset_id.partition(".")
+    if provider not in _DATAGO_FAMILY or not dataset_key:
+        return None
+
+    resolved_config = config or KPubDataConfig.from_env()
+    owned = transport is None
+    resolved_transport = transport if transport is not None else new_probe_transport()
+    try:
+        adapter = _datago_family_adapter(provider, resolved_config, resolved_transport)
+        if adapter is None:
+            return None
+        try:
+            dataset = adapter.get_dataset(dataset_key)
+        except DatasetNotFoundError:
+            return None
+        if Operation.LIST not in dataset.operations:
+            return None
+
+        base_url = dataset.raw_metadata.get("base_url")
+        service_id = _service_id_of_url(base_url if isinstance(base_url, str) else "")
+        # semas and localdata fall back to the shared data.go.kr key.
+        if not (
+            resolved_config.get_provider_key(provider) or resolved_config.get_provider_key("datago")
+        ):
+            return ProbeResult(
+                dataset_id=dataset.id,
+                service_id=service_id,
+                status="auth_unknown",
+                probed_at=_now(),
+                detail=f"no credential configured for provider {provider!r}",
+                classification=_classification_of("auth_unknown"),
+            )
+
+        error: BaseException | None = None
+        batch: RecordBatch | None = None
+        started = time.perf_counter()
+        try:
+            with warnings.catch_warnings():
+                # A deprecated id still answers; the warning is for its users,
+                # and the probe is not one.
+                warnings.simplefilter("ignore", DeprecationWarning)
+                batch = adapter.query_records(dataset, Query(page=1, page_size=1))
+        except PublicDataError as exc:
+            error = exc
+        except Exception as exc:  # noqa: BLE001 — the probe must classify every failure
+            error = exc
+        latency_ms = int((time.perf_counter() - started) * 1000)
+
+        secrets = tuple(
+            set(_configured_secrets(resolved_config, provider))
+            | set(_configured_secrets(resolved_config, "datago"))
+        )
+        return _verdict(
+            dataset.id,
+            service_id,
+            error=error,
+            batch=batch,
+            latency_ms=latency_ms,
+            secrets=secrets,
+        )
+    finally:
+        if owned:
+            resolved_transport.close()
 
 
 def _ref_for(spec: SpecDefinition) -> DatasetRef:

@@ -18,6 +18,15 @@ from kpubdata.core.models import (
 from kpubdata.core.representation import Representation
 from kpubdata.exceptions import ConfigError
 
+#: The message for a data.go.kr gateway 403, which datago and the data.go.kr
+#: family adapters (semas, localdata) all raise as ``AuthError``: the gateway
+#: refuses a key that has not been activated for the service (#916).
+DATAGO_403_HINT = (
+    "data.go.kr returned 403. This usually means the specific API has not been activated "
+    "(활용신청) for your key. Visit the dataset's page on https://www.data.go.kr and "
+    "click '활용신청'. Approval is usually automatic and becomes active within a few minutes."
+)
+
 _CATALOGUE_CANONICAL_KEYS = frozenset(
     {
         "dataset_key",

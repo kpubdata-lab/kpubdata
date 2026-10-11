@@ -245,10 +245,25 @@ every: list[ProbeResult] = client.probe_all(provider="datago")
 
 - `Client.probe(dataset_id) -> ProbeResult | None` — at most one call per
   dataset, classified into `PROBE_STATUSES` (the `ProbeStatus` vocabulary of
-  ADR 0005). `None` when no spec exists for the id: only spec-defined datasets
-  can be probed.
+  ADR 0005). It covers:
+  - every spec-defined dataset, called through its spec with the first
+    `examples[]` entry;
+  - the catalogue datasets (no spec) of the data.go.kr adapters `datago`,
+    `semas` and `localdata`, called through the adapter with one
+    `list` call of one record (`page=1`, `page_size=1`). These adapters share
+    data.go.kr's gateway, which refuses a key not activated for the service
+    with HTTP 403 (raised as `AuthError`), and its result-code table, so the
+    verdict means the same as a spec dataset's. A dataset that needs filters
+    is called without them; once the gateway lets the key through, the
+    service's answer to the missing filters reads `params_invalid`.
+
+  It returns `None` for every other id: an unknown one, a catalogue dataset
+  without a `list` operation (`datago.generic`), and the catalogue datasets of
+  every other provider, whose error codes are their own and would have to be
+  guessed onto this vocabulary.
 - `Client.probe_all(*, provider=None) -> list[ProbeResult]` — every
-  spec-defined dataset, or those of one provider.
+  spec-defined dataset, or those of one provider. It does not enumerate
+  catalogue datasets; probe those one at a time with `probe`.
 - A failed call is the verdict, not an exception.
 - Probing uses its own fast-fail transport (15 s timeout, zero retries, no
   cache), not the client's `timeout`, `max_retries` or `cache`.

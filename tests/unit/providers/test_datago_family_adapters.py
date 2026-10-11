@@ -31,6 +31,7 @@ from kpubdata.exceptions import (
     ProviderResponseError,
     RateLimitError,
     ServiceUnavailableError,
+    TransportError,
 )
 from kpubdata.providers.localdata.adapter import LocaldataAdapter
 from kpubdata.providers.semas.adapter import SemasAdapter
@@ -537,3 +538,69 @@ def test_an_unwrapped_single_record_is_still_one_record(cls: Any, provider: str)
     dataset = _ref(provider, base_url="https://api.test/svc", default_operation="getList")
 
     assert adapter.query_records(dataset, Query()).items == [{"bizNm": "테스트"}]
+
+
+# --- Gateway 403 (#916) ----------------------------------------------------
+
+
+class _RefusingTransport:
+    """Raises what ``HttpTransport`` raises for an HTTP error status, without a network."""
+
+    def __init__(self, status_code: int) -> None:
+        self._status_code = status_code
+
+    def request(self, method: str, url: str, **kwargs: object) -> _FakeResponse:
+        del kwargs
+        raise TransportError(
+            f"HTTP status error {self._status_code} for {method} {url}",
+            status_code=self._status_code,
+        ) from None
+
+
+def _refusing_adapter(cls: Any, status_code: int) -> Any:
+    return cls(
+        config=KPubDataConfig(provider_keys={"datago": "test-key"}),
+        transport=cast(HttpTransport, cast(object, _RefusingTransport(status_code))),
+    )
+
+
+@pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
+def test_gateway_403_on_list_is_an_auth_error_like_datago(cls: Any, provider: str) -> None:
+    """data.go.kr answers a key not activated for the service with 403, as for datago."""
+    adapter = _refusing_adapter(cls, 403)
+    dataset = adapter.list_datasets()[0]
+
+    with pytest.raises(AuthError) as excinfo:
+        adapter.query_records(dataset, Query(page_size=1))
+
+    error = excinfo.value
+    assert error.status_code == 403
+    assert error.provider == provider
+    assert error.dataset_id == dataset.id
+    assert "활용신청" in str(error)
+    assert isinstance(error.__cause__, TransportError)
+    assert error.__cause__.status_code == 403
+
+
+@pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
+def test_gateway_403_on_call_raw_is_an_auth_error(cls: Any, provider: str) -> None:
+    adapter = _refusing_adapter(cls, 403)
+    dataset = adapter.list_datasets()[0]
+
+    with pytest.raises(AuthError) as excinfo:
+        adapter.call_raw(dataset, "", {})
+
+    assert excinfo.value.status_code == 403
+    assert excinfo.value.provider == provider
+
+
+@pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
+@pytest.mark.parametrize("status_code", [404, 500])
+def test_other_http_errors_stay_transport_errors(cls: Any, provider: str, status_code: int) -> None:
+    adapter = _refusing_adapter(cls, status_code)
+    dataset = adapter.list_datasets()[0]
+
+    with pytest.raises(TransportError) as excinfo:
+        adapter.query_records(dataset, Query(page_size=1))
+
+    assert excinfo.value.status_code == status_code

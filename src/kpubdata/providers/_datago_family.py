@@ -32,8 +32,10 @@ from kpubdata.exceptions import (
     ProviderResponseError,
     RateLimitError,
     ServiceUnavailableError,
+    TransportError,
 )
 from kpubdata.providers._common import (
+    DATAGO_403_HINT,
     build_schema_from_metadata,
     load_catalogue,
     reported_total,
@@ -268,16 +270,29 @@ class DataGoFamilyAdapter:
         key = self._config.get_provider_key(self.provider_name) or self._config.get_provider_key(
             "datago"
         )
-        response = self._transport.request(
-            "GET",
-            url,
-            params=string_params,
-            dataset_id=dataset_id,
-            provider=self.provider_name,
-            # The key parameter's name comes from catalogue metadata
-            # (``service_key_param``); the value masks it whatever the name is (#805).
-            secret_values=(key,) if key else (),
-        )
+        try:
+            response = self._transport.request(
+                "GET",
+                url,
+                params=string_params,
+                dataset_id=dataset_id,
+                provider=self.provider_name,
+                # The key parameter's name comes from catalogue metadata
+                # (``service_key_param``); the value masks it whatever the name is (#805).
+                secret_values=(key,) if key else (),
+            )
+        except TransportError as exc:
+            # The data.go.kr gateway answers a key not activated for the service
+            # with HTTP 403, as it does for datago. Read ``status_code``, not the
+            # cause: the transport breaks the chain when the request carries a key.
+            if exc.status_code == 403:
+                raise AuthError(
+                    DATAGO_403_HINT,
+                    provider=self.provider_name,
+                    dataset_id=dataset_id or None,
+                    status_code=403,
+                ) from exc
+            raise
 
         try:
             content_type = detect_content_type(response)
