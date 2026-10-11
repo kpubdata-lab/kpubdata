@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-10-11
+
 ### Added
 
 - Every field of the bundled specs has a Korean display name, and a unit and a meaning where they are known (#877). No spec set `title` or `unit`, so a consumer showed provider field names and bare numbers — `dealAmount` read `101300` with no 만원. All 417 fields of the 22 specs that declare fields now have `title` (`FieldDescriptor.title`); 85 have `unit` (만원, ㎡, ㎍/㎥, ppm, 원, 분, °C …) and 222 have `semantic_kind`. A meaning is set only where the field's storage type allows it (ADR 0006): seven codes stored as integers (`areacode`, `sigungucode` of three tour specs, `fcstTime` of `ultra_srt_fcst`) and the year/month/day integers are left without one, since changing a type changes what is returned. No schema key is new.
