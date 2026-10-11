@@ -260,9 +260,14 @@ type(scope)!: description
 `i18n` 은 2026-09-29 에 뺐다 — 번역은 `docs` 또는 `chore(i18n)` 이다. 그 전에 병합된 제목은
 이력이므로 고치지 않는다.
 
-**제목은 릴리스 분류를 정하지 않는다.** 버전은 `release.yml` prepare 의 `bump` 입력(사람이
-고른다, 14절)이, 릴리스 노트는 CHANGELOG 절이 정한다. `!` 는 리뷰어에게 주는 표시이고,
-호환성을 깨는지와 그에 따른 bump 는 릴리스 규칙(compatibility.md)에 따라 사람이 판단한다.
+**제목이 버전을 정한다 — 2026-10-11 개정 (#819, #895).** kpubdata 는 release-please
+(`release-please.yml`)가 마지막 태그 뒤의 커밋 제목을 읽어 다음 버전을 계산하고 release PR 을
+연다 — 0.x 에서 BREAKING(`!`)이나 `feat` 이 있으면 minor, `fix` 만 있으면 patch 다. 그래서 틀린
+type 은 틀린 버전이 된다. 병합 전에 제목을 고친다. 사람이 하는 것은 그 release PR 을 검토하고
+병합할지 정하는 것이다(14절 "Release 수행"). `release.yml` prepare 의 `bump` 입력은 release-please
+가 하지 않는 pre-release 와 critical patch 에만 쓴다. 릴리스 노트는 여전히 사람이 쓴 CHANGELOG
+절이 정한다 — release-please 는 CHANGELOG 를 쓰지 않는다. kpubdata-builder·kpubdata-studio 는
+아직 release-please 로 옮기지 않았으므로 prepare 의 `bump` 를 사람이 고른다(#895).
 
 **병합은 squash 하나뿐이다** (2026-09-29, 네 저장소 설정): merge commit·rebase merge 는 꺼져
 있고, squash 커밋 제목은 PR 제목, **본문은 PR 본문**이다 (2026-10-01 에 커밋 메시지 모음에서

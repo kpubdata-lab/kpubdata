@@ -202,10 +202,21 @@ builder 의 릴리스를 받는다. builder 가 끝났고 studio 가 준비됐�
 날짜는 같은 워크플로가 `set_version.py`·`release_notes.py` 로 release 브랜치에 더하며,
 태그는 만들지 않는다(`skip-github-release`). PR 을 병합하면 위의 release 경로가 그대로
 돈다 — 창 검사, 게이트, 그다음 태그. 그래서 **7일 안에 병합한 release PR 은 태그 없이
-`main` 에 남는다**; 병합 자체를 막는 검사는 아직 없다. pre-release 와 critical patch 는
-release-please 가 하지 않으므로 `mode=prepare` 로 낸다. `GITHUB_TOKEN` 으로 연 PR 은
+`main` 에 남는다**; 병합 자체를 막는 검사는 아직 없다. 7일 안에 태그까지 내려면 release PR 본문에
+`Critical-Patch: #N` 줄을 더한 뒤 병합한다 — v0.10.0 이 그렇게 나갔다. v0.9.0
+(10/06 KST) 사흘 뒤인 10/09 에 release-please 의 PR #830 이 `Critical-Patch: #821` 줄과
+함께 병합됐고, 창 검사는 "critical patch for #821" 로 통과했다(#895). 줄이 없었다면
+10/13 까지 태그되지 않았다. `tests/unit/scripts/test_release_window.py` 가 이 두 경우를
+`release.yml` 의 스크립트 그대로 돌려 확인한다. pre-release 는 release-please 가 하지
+않으므로 `mode=prepare` 로 낸다. `GITHUB_TOKEN` 으로 연 PR 은
 필수 체크가 돌지 않는다 — `RELEASE_PLEASE_TOKEN` secret 이 없으면 사람이 PR 을 닫았다
-다시 열어야 체크가 시작된다. builder·studio 는 아직 `mode=prepare` 를 쓴다.
+다시 열어야 체크가 시작된다. builder·studio 는 아직 `mode=prepare` 를 쓴다 — 옮기는 일과
+두 버전이 어긋나면 실패하는 검사는 #895 에 남아 있다.
+
+**워크플로는 PR 을 병합하지 않는다.** Dependabot PR 도 사람이 병합한다. 자동 병합
+워크플로는 필수 체크는 지키지만, `review:R3` 이 아닌 PR 에는 사람의 승인을 요구하는
+보호 규칙이 없어서 사람을 건너뛴다. `tests/unit/test_no_workflow_merges.py` 가
+`.github/` 의 어떤 파일도 PR 을 병합·자동 병합·승인하지 않는다는 것을 지킨다(#895).
 
 **동결도 게이트가 막는다.** `scripts/release_freeze.py` 가 동결 규칙의 유일한 구현이고,
 `.github/actions/release-freeze` 가 그것을 감싸 builder·studio 의 PR 워크플로가 부른다.
