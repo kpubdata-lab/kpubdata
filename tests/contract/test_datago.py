@@ -13,8 +13,11 @@ from typing import cast
 import pytest
 
 from kpubdata.config import KPubDataConfig
+from kpubdata.core.bridge import CompositeProviderAdapter
 from kpubdata.core.capability import Operation, PaginationMode
+from kpubdata.core.executor import SpecDatasetAdapter, SpecExecutor
 from kpubdata.core.models import DatasetRef, Query
+from kpubdata.core.spec import discover_specs
 from kpubdata.providers.datago.adapter import DataGoAdapter
 from kpubdata.transport.http import HttpTransport
 from tests.contract.provider_adapter import ProviderAdapterContract
@@ -191,7 +194,7 @@ class TestDataGoAdapterContract(ProviderAdapterContract):
         Raises:
             Exception from implementation or subordinate dependencies may propagate unchanged.
         """
-        return "metro_fare"
+        return "subway_passengers"
 
     @pytest.fixture()
     def invalid_dataset_key(self) -> str:
@@ -220,7 +223,7 @@ class TestDataGoAdapterContract(ProviderAdapterContract):
         Raises:
             Exception from implementation or subordinate dependencies may propagate unchanged.
         """
-        return adapter.get_dataset("metro_fare")
+        return adapter.get_dataset("subway_passengers")
 
     @pytest.fixture()
     def sample_query(self) -> Query:
@@ -1018,6 +1021,7 @@ class TestDataGoCultureFacilityContract(ProviderAdapterContract):
         return ("cultureartspaces/performingplace", {"page": 1, "page_size": 5})
 
 
+@pytest.mark.filterwarnings("ignore:datago.airkorea_station_realtime is deprecated")
 class TestDataGoAirkoreaStationRealtimeContract(ProviderAdapterContract):
     """Air Korea real-time measurement data by station contract (#224)."""
 
@@ -1050,11 +1054,24 @@ class TestDataGoAirkoreaStationRealtimeContract(ProviderAdapterContract):
 
 
 class TestDataGoAirkoreaForecastContract(ProviderAdapterContract):
-    """Air Korea air quality forecast contract (#224)."""
+    """Air Korea air quality forecast contract (#224).
+
+    Only its spec declares the dataset since #898, so the contract runs on the merged
+    adapter a ``Client`` builds, with the spec executor reading the same fixture.
+    """
 
     @pytest.fixture()
-    def adapter(self) -> DataGoAdapter:
-        return _build_adapter(["success_airkorea_forecast.json"] * 5)
+    def adapter(self) -> CompositeProviderAdapter:
+        transport = cast(
+            HttpTransport,
+            cast(object, _FixtureTransport(["success_airkorea_forecast.json"] * 5)),
+        )
+        config = KPubDataConfig(provider_keys={"datago": "test-key"})
+        specs = [spec for spec in discover_specs() if spec.provider == "datago"]
+        return CompositeProviderAdapter(
+            DataGoAdapter(config=config, transport=transport),
+            SpecDatasetAdapter("datago", specs, SpecExecutor(transport, config)),
+        )
 
     @pytest.fixture()
     def valid_dataset_key(self) -> str:
@@ -1065,7 +1082,7 @@ class TestDataGoAirkoreaForecastContract(ProviderAdapterContract):
         return "nonexistent_dataset_key_xyz"
 
     @pytest.fixture()
-    def sample_dataset(self, adapter: DataGoAdapter) -> DatasetRef:
+    def sample_dataset(self, adapter: CompositeProviderAdapter) -> DatasetRef:
         return adapter.get_dataset("airkorea_forecast")
 
     @pytest.fixture()

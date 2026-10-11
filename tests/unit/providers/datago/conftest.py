@@ -158,7 +158,7 @@ def configured_adapter() -> Callable[
             config=config,
             transport=cast(HttpTransport, cast(object, transport)),
         )
-        dataset = adapter.get_dataset("metro_fare")
+        dataset = adapter.get_dataset("subway_passengers")
         return adapter, dataset, transport
 
     return _build

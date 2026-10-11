@@ -13,6 +13,7 @@
 /scripts/verify_spec.py           @yeongseon
 /scripts/check_fixture_authorship.py @yeongseon
 /scripts/*_baseline.txt          @yeongseon
+/scripts/check_catalogue_baseline.py @yeongseon
 /tests/fixtures/**/*.raw.json     @yeongseon
 /tests/fixtures/**/*.meta.json    @yeongseon
 /tests/fixtures/**/*.expected.json @yeongseon

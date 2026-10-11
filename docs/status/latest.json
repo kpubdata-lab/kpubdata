@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-01T01:08:14+00:00",
+  "generated_at": "2026-10-11T11:14:09+00:00",
   "spec_datasets": {
     "total": 25,
     "verified": 24,
@@ -110,7 +110,7 @@
   },
   "catalogue_datasets": {
     "bok": 4,
-    "datago": 39,
+    "datago": 25,
     "fds": 1,
     "kipris": 1,
     "korean": 1,
