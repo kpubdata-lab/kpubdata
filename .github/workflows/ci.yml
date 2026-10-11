@@ -98,6 +98,12 @@ jobs:
       - name: Plain review and verification codes
         run: uv run python scripts/check_plain_codes.py
 
+      # Every locked package has a recorded licence and every bundled asset is listed;
+      # a new dependency without a record fails here. The record states what packages
+      # declare and is not a legal conclusion (#847).
+      - name: Licence inventory drift
+        run: uv run python scripts/license_inventory.py --check
+
       # ADR 0007 Rules 1-2: KPubData never depends on KPubData Builder or Studio.
       # Dependencies flow Studio -> Builder -> KPubData only (#668).
       - name: Independence (no Builder or Studio dependency)

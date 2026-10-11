@@ -1,0 +1,846 @@
+{
+  "packages": {
+    "annotated-types==0.7.0": {
+      "version": "0.7.0",
+      "scope": "extra:mcp",
+      "license": "MIT License",
+      "source": "https://github.com/annotated-types/annotated-types",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "anyio==4.14.2": {
+      "version": "4.14.2",
+      "scope": "runtime",
+      "license": "MIT",
+      "source": "https://pypi.org/project/anyio/",
+      "basis": "other-version",
+      "status": "recorded"
+    },
+    "anyio==4.15.1": {
+      "version": "4.15.1",
+      "scope": "runtime",
+      "license": "MIT",
+      "source": "https://pypi.org/project/anyio/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "ast-serialize==0.11.2": {
+      "version": "0.11.2",
+      "scope": "dev",
+      "license": "MIT",
+      "source": "https://github.com/mypyc/ast_serialize",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "attrs==26.1.0": {
+      "version": "26.1.0",
+      "scope": "extra:mcp",
+      "license": "MIT",
+      "source": "https://pypi.org/project/attrs/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "babel==2.18.0": {
+      "version": "2.18.0",
+      "scope": "extra:docs",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/python-babel/babel",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "backrefs==7.0": {
+      "version": "7.0",
+      "scope": "extra:docs",
+      "license": "MIT",
+      "source": "https://github.com/facelessuser/backrefs",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "build==1.6.1": {
+      "version": "1.6.1",
+      "scope": "dev",
+      "license": "MIT",
+      "source": "https://build.pypa.io",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "certifi==2026.2.25": {
+      "version": "2026.2.25",
+      "scope": "runtime",
+      "license": "MPL-2.0",
+      "source": "https://github.com/certifi/python-certifi",
+      "basis": "installed",
+      "status": "needs review"
+    },
+    "cffi==2.0.0": {
+      "version": "2.0.0",
+      "scope": "dev",
+      "license": "MIT",
+      "source": "https://pypi.org/project/cffi/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "charset-normalizer==3.4.7": {
+      "version": "3.4.7",
+      "scope": "extra:docs",
+      "license": "MIT",
+      "source": "https://pypi.org/project/charset-normalizer/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "click==8.5.0": {
+      "version": "8.5.0",
+      "scope": "extra:docs",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/pallets/click/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "colorama==0.4.6": {
+      "version": "0.4.6",
+      "scope": "extra:docs",
+      "license": "BSD License",
+      "source": "https://github.com/tartley/colorama",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "contourpy==1.3.2": {
+      "version": "1.3.2",
+      "scope": "extra:krx",
+      "license": "BSD License",
+      "source": "https://github.com/contourpy/contourpy",
+      "basis": "other-version",
+      "status": "recorded"
+    },
+    "contourpy==1.3.3": {
+      "version": "1.3.3",
+      "scope": "extra:krx",
+      "license": "BSD License",
+      "source": "https://github.com/contourpy/contourpy",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "coverage==7.13.5": {
+      "version": "7.13.5",
+      "scope": "dev",
+      "license": "Apache-2.0",
+      "source": "https://github.com/coveragepy/coveragepy",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "cryptography==50.0.1": {
+      "version": "50.0.1",
+      "scope": "dev",
+      "license": "Apache-2.0 OR BSD-3-Clause",
+      "source": "https://github.com/pyca/cryptography",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "cycler==0.12.1": {
+      "version": "0.12.1",
+      "scope": "extra:krx",
+      "license": "BSD License",
+      "source": "https://matplotlib.org/cycler/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "deprecated==1.3.1": {
+      "version": "1.3.1",
+      "scope": "extra:krx",
+      "license": "MIT",
+      "source": "https://github.com/laurent-laporte-pro/deprecated",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "exceptiongroup==1.3.1": {
+      "version": "1.3.1",
+      "scope": "runtime",
+      "license": "",
+      "source": "https://pypi.org/project/exceptiongroup/",
+      "basis": "none",
+      "status": "needs review"
+    },
+    "fonttools==4.62.1": {
+      "version": "4.62.1",
+      "scope": "extra:krx",
+      "license": "MIT",
+      "source": "http://github.com/fonttools/fonttools",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "ghp-import==2.1.0": {
+      "version": "2.1.0",
+      "scope": "extra:docs",
+      "license": "Apache Software License",
+      "source": "https://github.com/c-w/ghp-import",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "h11==0.16.0": {
+      "version": "0.16.0",
+      "scope": "runtime",
+      "license": "MIT",
+      "source": "https://github.com/python-hyper/h11",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "httpcore2==2.13.1": {
+      "version": "2.13.1",
+      "scope": "extra:mcp",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/pydantic/httpx2",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "httpcore==1.0.9": {
+      "version": "1.0.9",
+      "scope": "runtime",
+      "license": "BSD-3-Clause",
+      "source": "https://www.encode.io/httpcore/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "httpx2-jsfetch==1.0": {
+      "version": "1.0",
+      "scope": "extra:mcp",
+      "license": "",
+      "source": "https://pypi.org/project/httpx2-jsfetch/",
+      "basis": "none",
+      "status": "needs review"
+    },
+    "httpx2==2.13.1": {
+      "version": "2.13.1",
+      "scope": "extra:mcp",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/pydantic/httpx2",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "httpx==0.28.1": {
+      "version": "0.28.1",
+      "scope": "runtime",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/encode/httpx",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "idna==3.20": {
+      "version": "3.20",
+      "scope": "runtime",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/kjd/idna",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "importlib-metadata==9.0.0": {
+      "version": "9.0.0",
+      "scope": "dev",
+      "license": "",
+      "source": "https://pypi.org/project/importlib-metadata/",
+      "basis": "none",
+      "status": "needs review"
+    },
+    "iniconfig==2.3.0": {
+      "version": "2.3.0",
+      "scope": "dev",
+      "license": "MIT",
+      "source": "https://github.com/pytest-dev/iniconfig",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "jinja2==3.1.6": {
+      "version": "3.1.6",
+      "scope": "extra:docs",
+      "license": "BSD License",
+      "source": "https://github.com/pallets/jinja/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "jsonschema-specifications==2025.9.1": {
+      "version": "2025.9.1",
+      "scope": "extra:mcp",
+      "license": "MIT",
+      "source": "https://github.com/python-jsonschema/jsonschema-specifications",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "jsonschema==4.26.0": {
+      "version": "4.26.0",
+      "scope": "extra:mcp",
+      "license": "MIT",
+      "source": "https://github.com/python-jsonschema/jsonschema",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "kiwisolver==1.5.0": {
+      "version": "1.5.0",
+      "scope": "extra:krx",
+      "license": "BSD License",
+      "source": "https://github.com/nucleic/kiwi",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "librt==0.16.0": {
+      "version": "0.16.0",
+      "scope": "dev",
+      "license": "MIT",
+      "source": "https://github.com/mypyc/librt",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "markdown==3.10.2": {
+      "version": "3.10.2",
+      "scope": "extra:docs",
+      "license": "BSD-3-Clause",
+      "source": "https://Python-Markdown.github.io/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "markupsafe==3.0.3": {
+      "version": "3.0.3",
+      "scope": "extra:docs",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/pallets/markupsafe/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "matplotlib==3.10.9": {
+      "version": "3.10.9",
+      "scope": "extra:krx",
+      "license": "Python Software Foundation License",
+      "source": "https://matplotlib.org",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "mcp-types==2.3.0": {
+      "version": "2.3.0",
+      "scope": "extra:mcp",
+      "license": "MIT",
+      "source": "https://modelcontextprotocol.io",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "mcp==2.3.0": {
+      "version": "2.3.0",
+      "scope": "extra:mcp",
+      "license": "MIT",
+      "source": "https://modelcontextprotocol.io",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "mergedeep==1.3.4": {
+      "version": "1.3.4",
+      "scope": "extra:docs",
+      "license": "UNKNOWN",
+      "source": "https://github.com/clarketm/mergedeep",
+      "basis": "installed",
+      "status": "needs review"
+    },
+    "mkdocs-get-deps==0.2.2": {
+      "version": "0.2.2",
+      "scope": "extra:docs",
+      "license": "MIT",
+      "source": "https://github.com/mkdocs/get-deps",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "mkdocs-material-extensions==1.3.1": {
+      "version": "1.3.1",
+      "scope": "extra:docs",
+      "license": "MIT",
+      "source": "https://github.com/facelessuser/mkdocs-material-extensions",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "mkdocs-material==9.7.7": {
+      "version": "9.7.7",
+      "scope": "extra:docs",
+      "license": "MIT",
+      "source": "https://github.com/squidfunk/mkdocs-material",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "mkdocs==1.6.1": {
+      "version": "1.6.1",
+      "scope": "extra:docs",
+      "license": "BSD-2-Clause",
+      "source": "https://github.com/mkdocs/mkdocs",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "multipledispatch==1.0.0": {
+      "version": "1.0.0",
+      "scope": "extra:krx",
+      "license": "BSD",
+      "source": "http://github.com/mrocklin/multipledispatch/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "mypy-extensions==1.1.0": {
+      "version": "1.1.0",
+      "scope": "dev",
+      "license": "MIT",
+      "source": "https://github.com/python/mypy_extensions",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "mypy==2.4.0": {
+      "version": "2.4.0",
+      "scope": "dev",
+      "license": "MIT",
+      "source": "https://www.mypy-lang.org/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "numpy==2.2.6": {
+      "version": "2.2.6",
+      "scope": "extra:krx",
+      "license": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0",
+      "source": "https://numpy.org",
+      "basis": "other-version",
+      "status": "needs review"
+    },
+    "numpy==2.4.4": {
+      "version": "2.4.4",
+      "scope": "extra:krx",
+      "license": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0",
+      "source": "https://numpy.org",
+      "basis": "installed",
+      "status": "needs review"
+    },
+    "opentelemetry-api==1.45.0": {
+      "version": "1.45.0",
+      "scope": "extra:mcp",
+      "license": "Apache-2.0",
+      "source": "https://github.com/open-telemetry/opentelemetry-python/tree/main/opentelemetry-api",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "packaging==26.0": {
+      "version": "26.0",
+      "scope": "extra:docs",
+      "license": "Apache-2.0 OR BSD-2-Clause",
+      "source": "https://github.com/pypa/packaging",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "paginate==0.5.7": {
+      "version": "0.5.7",
+      "scope": "extra:docs",
+      "license": "MIT",
+      "source": "https://github.com/Signum/paginate",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "pandas-stubs==2.3.3.260113": {
+      "version": "2.3.3.260113",
+      "scope": "dev",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/pandas-dev/pandas-stubs",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "pandas==2.3.3": {
+      "version": "2.3.3",
+      "scope": "extra:krx",
+      "license": "BSD License",
+      "source": "https://pandas.pydata.org",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "pathspec==1.0.4": {
+      "version": "1.0.4",
+      "scope": "extra:docs",
+      "license": "Mozilla Public License 2.0 (MPL 2.0)",
+      "source": "https://pypi.org/project/pathspec/",
+      "basis": "installed",
+      "status": "needs review"
+    },
+    "pillow==12.3.0": {
+      "version": "12.3.0",
+      "scope": "extra:krx",
+      "license": "MIT-CMU",
+      "source": "https://python-pillow.github.io",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "platformdirs==4.9.6": {
+      "version": "4.9.6",
+      "scope": "extra:docs",
+      "license": "MIT",
+      "source": "https://github.com/tox-dev/platformdirs",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "pluggy==1.6.0": {
+      "version": "1.6.0",
+      "scope": "dev",
+      "license": "MIT",
+      "source": "https://pypi.org/project/pluggy/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "pycparser==3.0": {
+      "version": "3.0",
+      "scope": "dev",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/eliben/pycparser",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "pydantic-core==2.46.5": {
+      "version": "2.46.5",
+      "scope": "extra:mcp",
+      "license": "MIT",
+      "source": "https://github.com/pydantic",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "pydantic==2.13.5": {
+      "version": "2.13.5",
+      "scope": "extra:mcp",
+      "license": "MIT",
+      "source": "https://github.com/pydantic/pydantic",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "pygments==2.20.0": {
+      "version": "2.20.0",
+      "scope": "extra:docs",
+      "license": "BSD-2-Clause",
+      "source": "https://pygments.org",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "pyjwt==2.15.1": {
+      "version": "2.15.1",
+      "scope": "extra:mcp",
+      "license": "MIT",
+      "source": "https://github.com/jpadilla/pyjwt",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "pykrx==1.2.9": {
+      "version": "1.2.9",
+      "scope": "extra:krx",
+      "license": "MIT",
+      "source": "https://github.com/sharebook-kr/pykrx/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "pymdown-extensions==12.1": {
+      "version": "12.1",
+      "scope": "extra:docs",
+      "license": "MIT",
+      "source": "https://github.com/facelessuser/pymdown-extensions",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "pyparsing==3.3.2": {
+      "version": "3.3.2",
+      "scope": "extra:krx",
+      "license": "MIT",
+      "source": "https://github.com/pyparsing/pyparsing/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "pyproject-hooks==1.2.0": {
+      "version": "1.2.0",
+      "scope": "dev",
+      "license": "MIT License",
+      "source": "https://github.com/pypa/pyproject-hooks",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "pytest-cov==7.1.0": {
+      "version": "7.1.0",
+      "scope": "dev",
+      "license": "MIT",
+      "source": "https://pypi.org/project/pytest-cov/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "pytest==9.1.1": {
+      "version": "9.1.1",
+      "scope": "dev",
+      "license": "MIT",
+      "source": "https://docs.pytest.org/en/latest/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "python-dateutil==2.9.0.post0": {
+      "version": "2.9.0.post0",
+      "scope": "extra:docs",
+      "license": "Dual License",
+      "source": "https://github.com/dateutil/dateutil",
+      "basis": "installed",
+      "status": "needs review"
+    },
+    "python-multipart==0.0.32": {
+      "version": "0.0.32",
+      "scope": "extra:mcp",
+      "license": "Apache-2.0",
+      "source": "https://github.com/Kludex/python-multipart",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "pytz==2026.1.post1": {
+      "version": "2026.1.post1",
+      "scope": "extra:krx",
+      "license": "MIT",
+      "source": "http://pythonhosted.org/pytz",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "pywin32==311": {
+      "version": "311",
+      "scope": "extra:mcp",
+      "license": "",
+      "source": "https://pypi.org/project/pywin32/",
+      "basis": "none",
+      "status": "needs review"
+    },
+    "pyyaml-env-tag==1.1": {
+      "version": "1.1",
+      "scope": "extra:docs",
+      "license": "MIT",
+      "source": "https://github.com/waylan/pyyaml-env-tag",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "pyyaml==6.0.3": {
+      "version": "6.0.3",
+      "scope": "runtime",
+      "license": "MIT",
+      "source": "https://pyyaml.org/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "referencing==0.37.0": {
+      "version": "0.37.0",
+      "scope": "extra:mcp",
+      "license": "MIT",
+      "source": "https://github.com/python-jsonschema/referencing",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "requests==2.33.1": {
+      "version": "2.33.1",
+      "scope": "extra:docs",
+      "license": "Apache-2.0",
+      "source": "https://github.com/psf/requests",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "rpds-py==0.30.0": {
+      "version": "0.30.0",
+      "scope": "extra:mcp",
+      "license": "MIT",
+      "source": "https://github.com/crate-py/rpds",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "ruff==0.16.10": {
+      "version": "0.16.10",
+      "scope": "dev",
+      "license": "MIT",
+      "source": "https://github.com/astral-sh/ruff",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "six==1.17.0": {
+      "version": "1.17.0",
+      "scope": "extra:docs",
+      "license": "MIT",
+      "source": "https://github.com/benjaminp/six",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "sse-starlette==3.3.4": {
+      "version": "3.3.4",
+      "scope": "extra:mcp",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/sysid/sse-starlette",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "starlette==1.7.0": {
+      "version": "1.7.0",
+      "scope": "extra:mcp",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/Kludex/starlette",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "tomli==2.4.1": {
+      "version": "2.4.1",
+      "scope": "dev",
+      "license": "",
+      "source": "https://pypi.org/project/tomli/",
+      "basis": "none",
+      "status": "needs review"
+    },
+    "truststore==0.10.4": {
+      "version": "0.10.4",
+      "scope": "extra:mcp",
+      "license": "MIT",
+      "source": "https://github.com/sethmlarson/truststore",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "types-pytz==2026.1.1.20260408": {
+      "version": "2026.1.1.20260408",
+      "scope": "dev",
+      "license": "Apache-2.0",
+      "source": "https://github.com/python/typeshed",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "types-pyyaml==6.0.12.20260906": {
+      "version": "6.0.12.20260906",
+      "scope": "dev",
+      "license": "Apache-2.0",
+      "source": "https://github.com/python/typeshed",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "typing-extensions==4.15.0": {
+      "version": "4.15.0",
+      "scope": "runtime",
+      "license": "PSF-2.0",
+      "source": "https://github.com/python/typing_extensions",
+      "basis": "other-version",
+      "status": "recorded"
+    },
+    "typing-extensions==4.16.0": {
+      "version": "4.16.0",
+      "scope": "runtime",
+      "license": "PSF-2.0",
+      "source": "https://github.com/python/typing_extensions",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "typing-inspection==0.4.2": {
+      "version": "0.4.2",
+      "scope": "extra:mcp",
+      "license": "MIT",
+      "source": "https://github.com/pydantic/typing-inspection",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "tzdata==2025.3": {
+      "version": "2025.3",
+      "scope": "extra:krx",
+      "license": "Apache-2.0",
+      "source": "https://github.com/python/tzdata",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "urllib3==2.8.0": {
+      "version": "2.8.0",
+      "scope": "extra:docs",
+      "license": "MIT",
+      "source": "https://pypi.org/project/urllib3/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "uvicorn==0.42.0": {
+      "version": "0.42.0",
+      "scope": "extra:mcp",
+      "license": "BSD-3-Clause",
+      "source": "https://uvicorn.dev/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "watchdog==6.0.0": {
+      "version": "6.0.0",
+      "scope": "extra:docs",
+      "license": "Apache-2.0",
+      "source": "https://github.com/gorakhargosh/watchdog/",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "wrapt==2.1.2": {
+      "version": "2.1.2",
+      "scope": "extra:krx",
+      "license": "BSD-2-Clause",
+      "source": "https://github.com/GrahamDumpleton/wrapt",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "xmltodict==1.0.4": {
+      "version": "1.0.4",
+      "scope": "extra:xml",
+      "license": "MIT",
+      "source": "https://github.com/martinblech/xmltodict",
+      "basis": "installed",
+      "status": "recorded"
+    },
+    "zipp==3.23.0": {
+      "version": "3.23.0",
+      "scope": "dev",
+      "license": "",
+      "source": "https://pypi.org/project/zipp/",
+      "basis": "none",
+      "status": "needs review"
+    }
+  },
+  "assets": [
+    {
+      "id": "terminal-captures",
+      "paths": [
+        "docs/assets/terminal/*"
+      ],
+      "kind": "image (GIF)",
+      "in_wheel": false,
+      "origin": "recorded from this project's own CLI and examples (docs/terminal-captures.md)",
+      "terms": "made in this repository; MIT",
+      "status": "recorded"
+    },
+    {
+      "id": "dataset-metadata-and-status",
+      "paths": [
+        "src/kpubdata/dataset_metadata.json",
+        "src/kpubdata/dataset_status.json"
+      ],
+      "kind": "data file",
+      "in_wheel": true,
+      "origin": "written in this repository (verification levels and dates)",
+      "terms": "made in this repository; MIT",
+      "status": "recorded"
+    },
+    {
+      "id": "dataset-specs",
+      "paths": [
+        "src/kpubdata/specs/*"
+      ],
+      "kind": "data file (YAML specs)",
+      "in_wheel": true,
+      "origin": "written in this repository from each provider's public usage guide",
+      "terms": "structure written here; names, parameter descriptions and per-dataset terms declared in the spec's license field follow the provider (docs/policy/terms-matrix.md)",
+      "status": "needs review"
+    },
+    {
+      "id": "provider-catalogues",
+      "paths": [
+        "src/kpubdata/providers/*/catalogue.json"
+      ],
+      "kind": "data file (dataset catalogues)",
+      "in_wheel": true,
+      "origin": "dataset names and identifiers taken from each provider's public listing",
+      "terms": "facts about third-party datasets; provider terms are not recorded per entry",
+      "status": "needs review"
+    },
+    {
+      "id": "recorded-fixtures",
+      "paths": [
+        "tests/fixtures/*"
+      ],
+      "kind": "recorded API responses",
+      "in_wheel": false,
+      "origin": "recorded from live provider APIs by the recording workflow",
+      "terms": "third-party data under each provider's own terms (for example KOGL, the Korean Open Government License marks, set per service on data.go.kr); NOT relicensed as MIT, see docs/policy/terms-matrix.md",
+      "status": "needs review"
+    }
+  ]
+}
