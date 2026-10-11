@@ -172,6 +172,18 @@ def test_changes_outside_the_fixture_tree_do_not_block(repo: Path) -> None:
 _HEAD_SHA = "1" * 40
 
 
+def _run(
+    workflow_name: str | None = None,
+    head_sha: str = _HEAD_SHA,
+    status: str = "completed",
+    conclusion: str | None = "success",
+) -> object:
+    """A run as the API reports it; by default the recording run, succeeded."""
+    return cfa.RunDetails(
+        workflow_name or cfa.RECORDING_WORKFLOW_NAME, head_sha, status, conclusion
+    )
+
+
 def _record_evidence(repo: Path, *, run_ref: str | None, commit: str | None) -> None:
     """Write raw+meta as the recorder would, carrying whatever binding it has."""
     meta: dict[str, object] = {"dataset_id": "datago.x", "recorded_by": "kpubdata-agent"}
@@ -188,7 +200,7 @@ def test_a_recording_without_a_run_reference_fails(
 ) -> None:
     """The #728 case: the name is the recorder's, the proof is missing."""
 
-    def _no_lookup(run_ref: str) -> tuple[str, str] | None:
+    def _no_lookup(run_ref: str) -> object:
         raise AssertionError("a meta without run_ref must not trigger a lookup")
 
     monkeypatch.setattr(cfa, "_run_details", _no_lookup)
@@ -201,7 +213,7 @@ def test_a_recording_without_a_run_reference_fails(
 def test_a_run_from_a_foreign_workflow_fails(
     repo: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.setattr(cfa, "_run_details", lambda run_ref: ("Release kpubdata", _HEAD_SHA))
+    monkeypatch.setattr(cfa, "_run_details", lambda run_ref: _run("Release kpubdata", _HEAD_SHA))
     _record_evidence(repo, run_ref="42", commit=_HEAD_SHA)
     _commit(repo, "record the fixture", author="kpubdata-agent")
 
@@ -212,7 +224,7 @@ def test_a_run_from_a_foreign_workflow_fails(
 def test_a_run_from_another_repository_is_not_verifiable(
     repo: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr(cfa, "_run_details", lambda run_ref: None)
+    monkeypatch.setattr(cfa, "_run_details", lambda run_ref: "HTTP 404: Not Found")
     _record_evidence(repo, run_ref="999999", commit=_HEAD_SHA)
     _commit(repo, "record the fixture", author="kpubdata-agent")
 
@@ -220,9 +232,7 @@ def test_a_run_from_another_repository_is_not_verifiable(
 
 
 def test_a_head_sha_mismatch_fails(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(
-        cfa, "_run_details", lambda run_ref: (cfa.RECORDING_WORKFLOW_NAME, "2" * 40)
-    )
+    monkeypatch.setattr(cfa, "_run_details", lambda run_ref: _run(head_sha="2" * 40))
     _record_evidence(repo, run_ref="7", commit=_HEAD_SHA)
     _commit(repo, "record the fixture", author="kpubdata-agent")
 
@@ -230,13 +240,127 @@ def test_a_head_sha_mismatch_fails(repo: Path, monkeypatch: pytest.MonkeyPatch) 
 
 
 def test_a_recording_workflow_run_passes(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(
-        cfa, "_run_details", lambda run_ref: (cfa.RECORDING_WORKFLOW_NAME, _HEAD_SHA)
-    )
+    monkeypatch.setattr(cfa, "_run_details", lambda run_ref: _run())
     _record_evidence(repo, run_ref="7", commit=_HEAD_SHA)
     _commit(repo, "record the fixture", author="kpubdata-agent")
 
     assert cfa.main() == 0
+
+
+@pytest.mark.parametrize(
+    "conclusion", ["failure", "cancelled", "timed_out", "startup_failure", "skipped", None]
+)
+def test_a_recording_run_that_did_not_succeed_fails(
+    repo: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    conclusion: str | None,
+) -> None:
+    """#515: the right workflow at the right commit is not enough. A run that
+    failed or was cancelled may have failed at the very step that checks the
+    evidence, so what it wrote is not verified evidence."""
+    monkeypatch.setattr(cfa, "_run_details", lambda run_ref: _run(conclusion=conclusion))
+    _record_evidence(repo, run_ref="7", commit=_HEAD_SHA)
+    _commit(repo, "record the fixture", author="kpubdata-agent")
+
+    assert cfa.main() == 1
+    assert "not success" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("status", ["in_progress", "queued", "waiting"])
+def test_a_recording_run_still_going_fails(
+    repo: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    status: str,
+) -> None:
+    """A run that has not finished has not succeeded yet. The gate refuses
+    and says to re-run it, rather than passing on a promise."""
+    monkeypatch.setattr(cfa, "_run_details", lambda run_ref: _run(status=status, conclusion=None))
+    _record_evidence(repo, run_ref="7", commit=_HEAD_SHA)
+    _commit(repo, "record the fixture", author="kpubdata-agent")
+
+    assert cfa.main() == 1
+    err = capsys.readouterr().err
+    assert f"still {status}" in err
+    assert "re-run this check" in err
+
+
+def test_a_run_ref_that_is_not_a_run_id_is_not_looked_up() -> None:
+    """A run_ref goes into an API path; anything but digits is refused before
+    gh is ever called."""
+    assert cfa._run_details("7/../../other") == "run_ref is not a run id"
+
+
+def _stub_gh(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, script: str) -> None:
+    stub = tmp_path / "stub-bin"
+    stub.mkdir(exist_ok=True)
+    (stub / "gh").write_text("#!/bin/sh\n" + script, encoding="utf-8")
+    (stub / "gh").chmod(0o755)
+    monkeypatch.setenv("PATH", f"{stub}:{os.environ['PATH']}")
+
+
+def test_no_token_fails_closed_and_says_why(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Offline or without a token, gh exits non-zero. The lookup reports why,
+    and the binding check turns that into a failure, never a pass."""
+    _stub_gh(
+        tmp_path,
+        monkeypatch,
+        "echo 'gh: To use GitHub CLI in a GitHub Actions workflow, set the GH_TOKEN "
+        "environment variable.' >&2\nexit 4\n",
+    )
+    reason = cfa._run_details("7")
+    assert isinstance(reason, str)
+    assert "GH_TOKEN" in reason
+
+
+def test_gh_missing_fails_closed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("PATH", str(tmp_path / "empty"))
+    reason = cfa._run_details("7")
+    assert isinstance(reason, str)
+    assert "gh could not be run" in reason
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected"),
+    [
+        (
+            {
+                "name": "Build Dataset (agent)",
+                "head_sha": "a",
+                "status": "completed",
+                "conclusion": "failure",
+            },
+            ("Build Dataset (agent)", "a", "completed", "failure"),
+        ),
+        (
+            {
+                "name": "Build Dataset (agent)",
+                "head_sha": "a",
+                "status": "in_progress",
+                "conclusion": None,
+            },
+            ("Build Dataset (agent)", "a", "in_progress", None),
+        ),
+    ],
+)
+def test_the_api_payload_is_read_into_run_details(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    payload: dict[str, object],
+    expected: tuple[object, ...],
+) -> None:
+    _stub_gh(tmp_path, monkeypatch, f"cat <<'EOF'\n{json.dumps(payload)}\nEOF\n")
+    assert cfa._run_details("7") == expected
+
+
+def test_a_payload_without_a_status_is_not_a_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _stub_gh(tmp_path, monkeypatch, """echo '{"name": "x", "head_sha": "a"}'\n""")
+    assert isinstance(cfa._run_details("7"), str)
 
 
 def test_a_base_that_cannot_be_resolved_is_an_error(

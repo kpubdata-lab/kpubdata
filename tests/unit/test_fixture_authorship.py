@@ -69,7 +69,61 @@ def _edit(repo: Path, relative: str, value: object) -> None:
     path.write_text(json.dumps({"a": value}) + "\n", encoding="utf-8")
 
 
+def _record_bound_meta(
+    repo: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    status: str = "completed",
+    conclusion: str | None,
+) -> None:
+    """Commit a recorder meta bound to run 4242, and stub ``gh`` to report that
+    run as the recording workflow at the recorded commit with ``conclusion``."""
+    sha = "1" * 40
+    fixture = repo / "tests" / "fixtures" / "datago" / "air_quality"
+    (fixture / "seoul.meta.json").write_text(
+        json.dumps({"dataset_id": "datago.air_quality", "record_commit": sha, "run_ref": "4242"})
+        + "\n",
+        encoding="utf-8",
+    )
+    _edit(repo, "tests/fixtures/datago/air_quality/seoul.raw.json", 2)
+    _git(repo, *_RECORDER, "commit", "-qam", "chore(record): re-record")
+
+    stub = repo / "bin"
+    stub.mkdir()
+    run = {
+        "name": "Build Dataset (agent)",
+        "head_sha": sha,
+        "status": status,
+        "conclusion": conclusion,
+    }
+    (stub / "gh").write_text(
+        "#!/bin/sh\necho '" + json.dumps(run) + "'\n",
+        encoding="utf-8",
+    )
+    (stub / "gh").chmod(0o755)
+    monkeypatch.setenv("PATH", f"{stub}:{os.environ['PATH']}")
+
+
 class TestItRefuses:
+    @pytest.mark.parametrize("conclusion", ["failure", "cancelled"])
+    def test_evidence_from_a_recording_run_that_did_not_succeed(
+        self, repo: Path, monkeypatch: pytest.MonkeyPatch, conclusion: str
+    ) -> None:
+        """#515: the recorder's name, the recording workflow and the recorded
+        commit all match, but the run failed. Its evidence is not verified."""
+        _record_bound_meta(repo, monkeypatch, conclusion=conclusion)
+        result = _run(repo)
+        assert result.returncode == 1
+        assert f"concluded {conclusion}" in result.stderr
+
+    def test_evidence_from_a_recording_run_still_in_progress(
+        self, repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _record_bound_meta(repo, monkeypatch, status="in_progress", conclusion=None)
+        result = _run(repo)
+        assert result.returncode == 1
+        assert "still in_progress" in result.stderr
+
     @pytest.mark.parametrize("suffix", ["raw", "expected", "meta"])
     def test_a_human_editing_evidence(self, repo: Path, suffix: str) -> None:
         relative = f"tests/fixtures/datago/air_quality/seoul.{suffix}.json"
@@ -123,31 +177,11 @@ class TestItAllows:
         """The full pass path (#729): recorder name, meta bound to a run of
         the recording workflow whose head SHA is the recorded commit. ``gh``
         is stubbed on PATH - a subprocess cannot be monkeypatched."""
-        sha = "1" * 40
-        fixture = repo / "tests" / "fixtures" / "datago" / "air_quality"
-        (fixture / "seoul.meta.json").write_text(
-            json.dumps(
-                {"dataset_id": "datago.air_quality", "record_commit": sha, "run_ref": "4242"}
-            )
-            + "\n",
-            encoding="utf-8",
-        )
-        _edit(repo, "tests/fixtures/datago/air_quality/seoul.raw.json", 2)
-        _git(repo, *_RECORDER, "commit", "-qam", "chore(record): re-record")
-
-        stub = repo / "bin"
-        stub.mkdir()
-        (stub / "gh").write_text(
-            "#!/bin/sh\n"
-            'echo \'{"workflowName": "Build Dataset (agent)", "headSha": "' + sha + "\"}'\n",
-            encoding="utf-8",
-        )
-        (stub / "gh").chmod(0o755)
-        monkeypatch.setenv("PATH", f"{stub}:{os.environ['PATH']}")
+        _record_bound_meta(repo, monkeypatch, conclusion="success")
 
         result = _run(repo)
         assert result.returncode == 0, result.stderr
-        assert "bound to a recording-workflow run" in result.stdout
+        assert "bound to a successful recording-workflow run" in result.stdout
 
     def test_source_changes_by_a_human(self, repo: Path) -> None:
         """Writing code is the normal contribution. Only evidence is gated."""

@@ -17,12 +17,20 @@ Two layers, one per lie an evidence change can tell:
    and ``run_ref`` must resolve to a run of this repository's recording
    workflow whose head SHA is that commit. A name without a run proves
    nothing; a run from another workflow or repository is not this recorder.
+3. **Run conclusion (#515):** that run must also have finished and succeeded.
+   A run that failed, was cancelled or timed out did not produce evidence
+   anyone checked -- its verify or verifier step may be exactly what failed.
+   A run still in progress is refused too: re-run this check once it ends.
 
 Not a security boundary on its own -- what stops forgery is the trust
 boundary in #521 (secrets only reachable from a protected environment) plus
 branch protection in #520. This check makes the casual and the accidental
 edit visible instead of silent, and fails closed when a run cannot be
 verified.
+
+Run lookups go through the GitHub REST API (``gh api``). Without network or
+a token the lookup fails, and so does the check: CI passes ``GH_TOKEN``, and
+a local run without one refuses any changed meta rather than passing it.
 
 Usage::
 
@@ -36,6 +44,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import NamedTuple
 
 #: Files that hold recorded evidence. ``expected`` is derived from ``raw``, and
 #: both plus ``meta`` decide whether a dataset counts as verified.
@@ -52,6 +61,21 @@ RECORDER_AUTHORS = frozenset({"kpubdata-agent", "github-actions[bot]"})
 #: ``name:`` field. It runs on the kr runner with the provider keys, and its
 #: runs are what a meta's ``run_ref`` must point at.
 RECORDING_WORKFLOW_NAME = "Build Dataset (agent)"
+
+#: The one run outcome that counts as evidence (#515). GitHub reports
+#: ``status`` ``completed`` with a ``conclusion`` of ``success``, ``failure``,
+#: ``cancelled``, ``timed_out``, ``skipped``, ``neutral``, ``stale``,
+#: ``startup_failure`` or ``action_required``; only the first passes.
+SUCCESS_CONCLUSION = "success"
+
+
+class RunDetails(NamedTuple):
+    """What the gate needs to know about one workflow run."""
+
+    workflow_name: str
+    head_sha: str
+    status: str
+    conclusion: str | None
 
 
 def _git(*args: str) -> str:
@@ -75,37 +99,50 @@ def _authors_touching(base: str, path: str) -> set[str]:
     return {line.strip() for line in log.splitlines() if line.strip()}
 
 
-def _run_details(run_ref: str) -> tuple[str, str] | None:
-    """(workflow name, head SHA) of a run in this repository, or None.
+def _run_details(run_ref: str) -> RunDetails | str:
+    """The run ``run_ref`` in this repository, or why it cannot be looked up.
 
-    ``None`` covers every way a run reference can fail to be *this* recorder:
-    no such run here (a run id from another repository resolves to nothing),
-    a network or permission failure, or a payload without the fields. The
+    A string covers every way a run reference can fail to be *this*
+    recorder: no such run here (a run id from another repository resolves to
+    nothing), no network or no token, or a payload without the fields. The
     gate fails closed on all of them -- an unverifiable run is not evidence.
     """
-    completed = subprocess.run(
-        ["gh", "run", "view", run_ref, "--json", "workflowName,headSha"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    if not run_ref.isdigit():
+        return "run_ref is not a run id"
+    try:
+        completed = subprocess.run(
+            ["gh", "api", f"repos/{{owner}}/{{repo}}/actions/runs/{run_ref}"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+        )
+    except OSError as exc:
+        return f"gh could not be run ({exc})"
     if completed.returncode != 0:
-        return None
+        reason = completed.stderr.strip().splitlines()
+        return reason[-1] if reason else f"gh exited {completed.returncode}"
     try:
         payload = json.loads(completed.stdout)
     except ValueError:
-        return None
-    name = payload.get("workflowName")
-    head = payload.get("headSha")
-    if not isinstance(name, str) or not isinstance(head, str):
-        return None
-    return name, head
+        return "the API did not return JSON"
+    if not isinstance(payload, dict):
+        return "the API did not return a run"
+    name = payload.get("name")
+    head = payload.get("head_sha")
+    status = payload.get("status")
+    conclusion = payload.get("conclusion")
+    if not isinstance(name, str) or not isinstance(head, str) or not isinstance(status, str):
+        return "the run has no name, head_sha or status"
+    if conclusion is not None and not isinstance(conclusion, str):
+        return "the run's conclusion is not a string"
+    return RunDetails(name, head, status, conclusion)
 
 
 def _binding_failures(metas: list[str]) -> list[str]:
     """Every changed meta that does not name a recording-workflow run (#729)."""
     failures: list[str] = []
-    runs: dict[str, tuple[str, str] | None] = {}
+    runs: dict[str, RunDetails | str] = {}
     for meta_path in metas:
         try:
             meta = json.loads(Path(meta_path).read_text(encoding="utf-8"))
@@ -129,23 +166,36 @@ def _binding_failures(metas: list[str]) -> list[str]:
         if run_ref not in runs:
             runs[run_ref] = _run_details(run_ref)
         details = runs[run_ref]
-        if details is None:
+        if isinstance(details, str):
             failures.append(
                 f"{meta_path}: run {run_ref} is not verifiable in this repository "
-                "(missing, from another repository, or the lookup failed)"
+                f"(missing, from another repository, or the lookup failed: {details})"
             )
             continue
-        workflow_name, head_sha = details
-        if workflow_name != RECORDING_WORKFLOW_NAME:
+        if details.workflow_name != RECORDING_WORKFLOW_NAME:
             failures.append(
-                f"{meta_path}: run {run_ref} is '{workflow_name}', not the "
+                f"{meta_path}: run {run_ref} is '{details.workflow_name}', not the "
                 f"recording workflow ({RECORDING_WORKFLOW_NAME})"
             )
             continue
-        if commit != head_sha:
+        if commit != details.head_sha:
             failures.append(
                 f"{meta_path}: record_commit {commit[:8]} does not match run "
-                f"{run_ref} head {head_sha[:8]}"
+                f"{run_ref} head {details.head_sha[:8]}"
+            )
+            continue
+        if details.status != "completed":
+            failures.append(
+                f"{meta_path}: run {run_ref} is still {details.status} - evidence "
+                "counts only once its run has succeeded; re-run this check when "
+                "the run ends"
+            )
+            continue
+        if details.conclusion != SUCCESS_CONCLUSION:
+            failures.append(
+                f"{meta_path}: run {run_ref} concluded {details.conclusion or 'without a result'}, "
+                f"not {SUCCESS_CONCLUSION} - a run that did not succeed produced no "
+                "verified evidence (#515)"
             )
     return failures
 
@@ -177,7 +227,7 @@ def main() -> int:
     if not offenders and not binding:
         print(
             f"{len(paths)} evidence file(s) changed, all by the recorder, "
-            "each meta bound to a recording-workflow run"
+            "each meta bound to a successful recording-workflow run"
         )
         return 0
 
