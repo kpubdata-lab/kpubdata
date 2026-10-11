@@ -59,6 +59,7 @@ nav:
   - 가이드:
       - 캐싱: caching.md
       - Provider 호스트 허용 목록: host-allowlist.md
+      - 외부 전송 데이터 흐름표: compliance/data-flows.md
       - 로깅: logging.md
       - Cookbook:
           - 시작하기: cookbook/getting-started.md
