@@ -20,11 +20,13 @@ from typing import Any
 import pytest
 
 from kpubdata import ApplicationRequirement, Client, DatasetStatus, VerificationLevel
+from kpubdata.core.spec import discover_specs
 from kpubdata.core.status import (
     SUPPORTED_DATA_LEVELS,
     application_requirement,
     dataset_status,
     dataset_verification,
+    recorded_application,
 )
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -91,7 +93,8 @@ class TestThePackagedMapMatchesTheMetadata:
 
         assert sorted(metadata) == sorted(statuses)
         assert all(
-            sorted(entry) == ["checked_on", "level", "verification"] for entry in metadata.values()
+            sorted(set(entry) - {"application"}) == ["checked_on", "level", "verification"]
+            for entry in metadata.values()
         )
 
 
@@ -189,3 +192,81 @@ class TestVerificationAndApplicationAreSeparateAxes:
                 None if ref.verification is None else ref.verification.value
             )
             assert payload["application_requirement"] == ref.application_requirement.value
+
+
+def _application_problems(metadata: dict[str, Any], spec_ids: list[str]) -> list[str]:
+    """Spec datasets whose metadata entry does not answer the application question (#902).
+
+    A spec has no ``application`` field, so ``dataset_metadata.json`` is where the answer
+    lives. ``null`` is an answer -- "looked, nothing recorded" -- but a missing key is not.
+    """
+    problems: list[str] = []
+    for dataset_id in spec_ids:
+        entry = metadata.get(dataset_id, {})
+        if "application" not in entry:
+            problems.append(f"{dataset_id}: no application entry")
+            continue
+        application = entry["application"]
+        if application is None:
+            continue
+        if not isinstance(application, dict) or not isinstance(application.get("required"), bool):
+            problems.append(f"{dataset_id}: application.required is not true or false")
+        elif not isinstance(application.get("url"), str):
+            problems.append(f"{dataset_id}: application.url is not a string")
+    return problems
+
+
+class TestSpecDatasetsRecordTheApplicationQuestion:
+    """#901 dropped the catalogue copies that carried it; the metadata now does (#902)."""
+
+    def test_every_spec_dataset_answers_it(self) -> None:
+        metadata = json.loads(gen.METADATA.read_text(encoding="utf-8"))
+        spec_ids = sorted(spec.id for spec in discover_specs())
+
+        assert spec_ids
+        assert _application_problems(metadata, spec_ids) == []
+
+    def test_a_spec_dataset_without_the_entry_fails_the_check(self) -> None:
+        metadata = {
+            "datago.a": _entry("live_verified"),
+            "datago.b": {**_entry("live_verified"), "application": {"required": "yes"}},
+            "datago.c": {**_entry("live_verified"), "application": {"required": True}},
+            "datago.d": {**_entry("live_verified"), "application": None},
+        }
+
+        assert _application_problems(metadata, sorted(metadata)) == [
+            "datago.a: no application entry",
+            "datago.b: application.required is not true or false",
+            "datago.c: application.url is not a string",
+        ]
+
+    @pytest.mark.parametrize(
+        ("dataset_id", "url"),
+        [
+            ("datago.air_quality", "https://www.data.go.kr/data/15073861/openapi.do"),
+            ("datago.airkorea_forecast", "https://www.data.go.kr/data/15073861/openapi.do"),
+            ("datago.ultra_srt_ncst", "https://www.data.go.kr/data/15084084/openapi.do"),
+            ("datago.bus_arrival", "https://www.data.go.kr/data/15080346/openapi.do"),
+            *(
+                (
+                    f"datago.tour_kor_{name}",
+                    "https://www.data.go.kr/tcs/dss/selectApiDataDetailView.do?publicDataPk=15101578",
+                )
+                for name in ("area", "location", "keyword", "festival")
+            ),
+        ],
+    )
+    def test_the_removed_catalogue_answers_reach_the_dataset(
+        self, client: Client, dataset_id: str, url: str
+    ) -> None:
+        ref = client.dataset(dataset_id).ref
+
+        assert ref.application_requirement is ApplicationRequirement.REQUIRED
+        assert ref.to_dict()["application"] == {"required": True, "url": url}
+
+    def test_a_spec_dataset_with_nothing_recorded_stays_unknown(self, client: Client) -> None:
+        ref = client.dataset("datago.apt_rent").ref
+
+        assert recorded_application("datago.apt_rent") is None
+        assert ref.application_requirement is ApplicationRequirement.UNKNOWN
+        assert ref.to_dict()["application"] is None

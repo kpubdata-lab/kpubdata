@@ -20,6 +20,7 @@ from kpubdata.core.status import (
     application_requirement,
     dataset_status,
     dataset_verification,
+    recorded_application,
 )
 from kpubdata.exceptions import InvalidRequestError
 
@@ -118,8 +119,9 @@ class DatasetRef:
         restrictions".
 
         ``request_parameters``, ``application`` and ``verified_at`` are what the
-        dataset's spec or catalogue entry declares. The rest of ``raw_metadata`` is
-        left out.
+        dataset's spec or catalogue entry declares; ``application`` falls back to the
+        entry ``dataset_metadata.json`` records, since a spec has no such field (#902).
+        The rest of ``raw_metadata`` is left out.
         """
         query_support = self.query_support
         license_spec = self.license
@@ -161,7 +163,9 @@ class DatasetRef:
                 "note": license_spec.note,
             },
             "request_parameters": _plain(self.raw_metadata.get("request_parameters")),
-            "application": _plain(self.raw_metadata.get("application")),
+            "application": _plain(
+                self.raw_metadata.get("application") or recorded_application(self.id)
+            ),
             "verified_at": _plain(self.raw_metadata.get("verified_at")),
         }
 

@@ -287,6 +287,17 @@ def dataset_verification(dataset_id: str) -> VerificationLevel | None:
     return VerificationLevel(str(entry["verification"]))
 
 
+def recorded_application(dataset_id: str) -> Mapping[str, object] | None:
+    """The ``application`` entry ``dataset_metadata.json`` records for ``dataset_id`` (#902).
+
+    A spec has no ``application`` field, so the metadata is where a spec dataset's
+    answer lives. None when nothing is recorded.
+    """
+    entry = _packaged_metadata().get(dataset_id)
+    application = None if entry is None else entry.get("application")
+    return application if isinstance(application, Mapping) else None
+
+
 def application_requirement(
     dataset_id: str, declared: object | None = None
 ) -> ApplicationRequirement:
@@ -294,14 +305,18 @@ def application_requirement(
 
     Args:
         dataset_id: The dataset.
-        declared: The ``application`` entry of its spec or catalogue, when it has one.
-            Its ``required`` flag decides; without one, a recorded
+        declared: The ``application`` entry of its catalogue, when it has one.
+            Its ``required`` flag decides; without one, the ``application.required``
+            recorded in ``dataset_metadata.json`` decides (#902), and then a recorded
             ``application_required`` level says an application is needed. Anything
             else is ``UNKNOWN``.
     """
-    required = declared.get("required") if isinstance(declared, Mapping) else None
-    if isinstance(required, bool):
-        return ApplicationRequirement.REQUIRED if required else ApplicationRequirement.NOT_REQUIRED
+    for source in (declared, recorded_application(dataset_id)):
+        required = source.get("required") if isinstance(source, Mapping) else None
+        if isinstance(required, bool):
+            if required:
+                return ApplicationRequirement.REQUIRED
+            return ApplicationRequirement.NOT_REQUIRED
     entry = _packaged_metadata().get(dataset_id)
     if entry is not None and entry["level"] == DatasetStatus.APPLICATION_REQUIRED.value:
         return ApplicationRequirement.REQUIRED
@@ -324,5 +339,6 @@ __all__ = [
     "application_requirement",
     "dataset_status",
     "dataset_verification",
+    "recorded_application",
     "transition",
 ]

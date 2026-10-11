@@ -124,6 +124,30 @@ class TestTheRules:
             assert sync.refresh(metadata, {}) == metadata
             assert _levels(sync.sync_row(_row("지원", "실API 검증", "-"), metadata))[0] == label
 
+    def test_the_recorded_application_survives_a_recording(self) -> None:
+        # The application answer is written by a person (#902); evidence never rewrites it.
+        application = {"required": True, "url": "https://www.data.go.kr/data/1/openapi.do"}
+        metadata = {
+            "datago.d": {
+                **_entry("fixture_verified", "fixture_verified"),
+                "application": application,
+            },
+            "datago.e": {
+                **_entry("live_verified", "live_verified", "2025-04-15"),
+                "application": None,
+            },
+        }
+
+        refreshed = sync.refresh(metadata, {("datago", "d"): "2026-09-09"})
+
+        assert refreshed == {
+            "datago.d": {
+                **_entry("live_verified", "live_verified", "2026-09-09"),
+                "application": application,
+            },
+            "datago.e": {**_entry("fixture_verified", "fixture_verified"), "application": None},
+        }
+
     def test_an_application_does_not_hide_the_verification(self) -> None:
         metadata = {"datago.d": _entry("application_required", "fixture_verified")}
 

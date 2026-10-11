@@ -97,13 +97,15 @@ Each `DatasetRef` returned by discovery exposes:
   (#842). It stays `fixture_verified` while `status` is `application_required`. ``None``
   for an unlisted or a retired dataset
 - `application_requirement`: an `ApplicationRequirement` — `required`, `not_required` or
-  `unknown` (#842). It says what is recorded: the dataset's declared
-  `application.required`, or a recorded `application_required` level. `unknown` is not
-  "none needed"
+  `unknown` (#842). It says what is recorded: the catalogue's declared
+  `application.required`, then the `application.required` that
+  `dataset_metadata.json` records (a spec has no `application` field, #902), then a
+  recorded `application_required` level. `unknown` is not "none needed"
 
 `DatasetRef.to_dict()` returns the reference as a JSON-serialisable dict (#784): the
 fields above plus `query_support`, `request_parameters`, `application` and
-`verified_at`, with `status` as its string value. Every key is always present and
+`verified_at`, with `status` as its string value. A spec dataset's `application` is the
+entry `dataset_metadata.json` records for it (#902). Every key is always present and
 ``None`` means "nothing declared". The key list is in
 [`docs/compatibility.md`](./docs/compatibility.md) §3; `kpubdata datasets list
 --format json` and `datasets show --format json` print the same dict.

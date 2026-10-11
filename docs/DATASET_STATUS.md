@@ -111,12 +111,16 @@ Labels: `type:bug`, `epic:trust`, plus `severity:major` for `broken`, `severity:
 | 축 | 타입 | 값 | 원천 |
 |---|---|---|---|
 | 검증 수준 | `VerificationLevel` | `planned` · `in_progress` · `fixture_verified` · `live_verified` · `production` | `dataset_metadata.json` 의 `verification` |
-| 활용신청 필요 여부 | `ApplicationRequirement` | `required` · `not_required` · `unknown` | spec/catalogue 의 `application.required`, 없으면 metadata 의 `level` |
+| 활용신청 필요 여부 | `ApplicationRequirement` | `required` · `not_required` · `unknown` | catalogue 의 `application.required`, 없으면 metadata 의 `application.required`(#902), 그것도 없으면 metadata 의 `level` |
 
 - `DatasetRef.verification` 은 활용신청 대기 중에도 바뀌지 않는다. 폐기된 데이터셋과 표에 없는
   데이터셋은 `None` 이다.
 - `DatasetRef.application_requirement` 는 **기록된 것만** 말한다. `application.required` 가 선언돼
   있으면 그 값, 없고 `level` 이 `application_required` 면 `required`, 그 밖은 `unknown` 이다.
+- spec 에는 `application` 필드가 없다. spec 데이터셋의 답은 `dataset_metadata.json` 항목의
+  `application`(`{"required": true, "url": ...}`)에 적고, 기록이 없으면 `null` 로 적는다 — 키가
+  빠진 spec 데이터셋은 테스트가 실패한다(#902). `null` 은 `unknown` 으로 읽힌다.
+  `sync_supported_data.py` 는 이 값을 사람의 판단으로 보고 그대로 둔다.
   `unknown` 은 "신청 불필요" 가 아니다 — 대부분의 데이터셋은 이 질문이 적힌 적이 없다.
 - 두 축 모두 라이선스·출처·재배포 조건을 말하지 않는다. 그것은 spec 의 `license` 이고(#609, #785),
   선언이 없으면 `None`(알 수 없음)으로 남는다. "실API 검증" 은 "재배포 가능" 이 아니다.
