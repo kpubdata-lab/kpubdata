@@ -67,7 +67,7 @@ jobs:
       # Existing-feature stabilization only (POLICY 1.3). Fail closed on PR changes
       # that look like new user or operational scope; preserve the existing CI gate.
       - name: Stabilization scope tests
-        run: python3 -m unittest discover -s scripts -p test_stabilization_scope.py -v
+        run: python3 scripts/test_stabilization_scope.py -v
 
       - name: Stabilization scope gate
         if: github.event_name == 'pull_request'
