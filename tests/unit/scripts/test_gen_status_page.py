@@ -70,3 +70,30 @@ def test_every_supported_data_row_is_counted() -> None:
     # A dataset row with a level the page does not know would silently drop out.
     assert set(dataset_rows) <= set(level_rows)
     assert sum(gen._supported_summary().values()) == len(level_rows)
+
+
+def test_family_pass_rate_is_computed_from_metadata() -> None:
+    """Each family's counts and rates come from dataset_metadata.json (#899)."""
+    import json
+
+    metadata = json.loads(
+        (REPO_ROOT / "src" / "kpubdata" / "dataset_metadata.json").read_text(encoding="utf-8")
+    )
+    families = gen.build_status()["family_pass_rate"]
+    assert sum(f["total"] for f in families.values()) == len(metadata)
+    for name, f in families.items():
+        ids = [k for k in metadata if k.split(".", 1)[0] == name]
+        live = [k for k in ids if metadata[k]["level"] in ("live_verified", "production")]
+        assert f["total"] == len(ids)
+        assert f["live_passing"] == len(live)
+        assert f["pass_rate"] == round(len(live) / len(ids) * 100, 1)
+        assert 0 <= f["pass_rate"] <= f["fixture_pass_rate"] <= 100
+
+
+def test_family_pass_rate_reaches_the_rendered_page() -> None:
+    """The page carries a row per family, so ``--check`` gates the numbers."""
+    status = gen.build_status()
+    text = gen.render_md(status)
+    assert "## 계열별 통과율" in text
+    for name in status["family_pass_rate"]:
+        assert f"| {name} |" in text

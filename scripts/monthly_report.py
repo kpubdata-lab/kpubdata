@@ -74,12 +74,22 @@ def collect_spec_status() -> dict[str, object]:
     return json.loads(status_path.read_text(encoding="utf-8"))
 
 
-def build_report(month: str) -> str:
+def _family_lines(families: dict[str, dict[str, object]]) -> list[str]:
+    """Per-family pass-rate rows, copied from the status snapshot."""
+    return [
+        f"| {name} | {f['total']} | {f['live_passing']} | {f['pass_rate']}% | "
+        f"{f['fixture_passing']} | {f['fixture_pass_rate']}% |"
+        for name, f in families.items()
+    ]
+
+
+def build_report(month: str, as_of: str | None = None) -> str:
     """Generate monthly report."""
     pilot = collect_pilot_stats(month)
     drift = collect_drift_issues(month)
     spec = collect_spec_status()
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    families = spec.get("family_pass_rate", {})
 
     total = pilot.get("total", 0)
     passed = pilot.get("passed", 0)
@@ -93,6 +103,7 @@ def build_report(month: str) -> str:
         f"# 월간 집계 — {month}",
         "",
         f"> 생성: {now} — `scripts/monthly_report.py` (직접 편집 금지)",
+        *([f"> 기준일: {as_of} (월 중간 집계 — 달이 끝나기 전의 수치)"] if as_of else []),
         "",
         "## 파일럿 통계",
         f"- 시도 {total}건 · 통과 {passed} · 보류 {skipped} · 실패 {failed}",
@@ -115,6 +126,14 @@ def build_report(month: str) -> str:
             f"- spec: {spec_total}종",
             f"- catalogue: {catalogue_total}종",
             "",
+            "## 계열별 통과율",
+            "- 원천: `docs/status/latest.json` 의 `family_pass_rate` "
+            "(`scripts/gen_status_page.py` 가 `dataset_metadata.json` 에서 계산)",
+            "",
+            "| 계열 | 전체 | 실API 통과 | 통과율 | 테스트 통과 | 테스트 통과율 |",
+            "|---|---|---|---|---|---|",
+            *_family_lines(families),
+            "",
             "## 개선 권고 (자동 생성)",
             "- 통과율 70% 이상: 게이트 완화 검토 (#384 6.3)",
             "- doc-wrong 다수: 활용가이드 캐시 보강",
@@ -127,8 +146,9 @@ def build_report(month: str) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="월간 집계 리포트")
     parser.add_argument("--month", default=datetime.utcnow().strftime("%Y-%m"))
+    parser.add_argument("--as-of", help="label a report written before the month ends (YYYY-MM-DD)")
     args = parser.parse_args(argv)
-    report = build_report(args.month)
+    report = build_report(args.month, args.as_of)
     out = REPO_ROOT / "docs/internal" / f"monthly-{args.month}.md"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(report, encoding="utf-8")

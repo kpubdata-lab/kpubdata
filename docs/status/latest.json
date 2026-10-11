@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-11T11:14:09+00:00",
+  "generated_at": "2026-10-11T11:52:09+00:00",
   "spec_datasets": {
     "total": 25,
     "verified": 24,
@@ -131,5 +131,152 @@
     "폐기": 1,
     "진행 중": 1,
     "예정": 1
+  },
+  "family_pass_rate": {
+    "bok": {
+      "total": 4,
+      "live_passing": 0,
+      "fixture_passing": 4,
+      "levels": {
+        "fixture_verified": 4
+      },
+      "pass_rate": 0.0,
+      "fixture_pass_rate": 100.0
+    },
+    "datago": {
+      "total": 47,
+      "live_passing": 21,
+      "fixture_passing": 45,
+      "levels": {
+        "application_required": 21,
+        "live_verified": 21,
+        "fixture_verified": 3,
+        "retired": 1,
+        "in_progress": 1
+      },
+      "pass_rate": 44.7,
+      "fixture_pass_rate": 95.7
+    },
+    "fds": {
+      "total": 1,
+      "live_passing": 0,
+      "fixture_passing": 1,
+      "levels": {
+        "fixture_verified": 1
+      },
+      "pass_rate": 0.0,
+      "fixture_pass_rate": 100.0
+    },
+    "kipris": {
+      "total": 1,
+      "live_passing": 0,
+      "fixture_passing": 1,
+      "levels": {
+        "fixture_verified": 1
+      },
+      "pass_rate": 0.0,
+      "fixture_pass_rate": 100.0
+    },
+    "korean": {
+      "total": 1,
+      "live_passing": 0,
+      "fixture_passing": 1,
+      "levels": {
+        "fixture_verified": 1
+      },
+      "pass_rate": 0.0,
+      "fixture_pass_rate": 100.0
+    },
+    "kosis": {
+      "total": 2,
+      "live_passing": 0,
+      "fixture_passing": 2,
+      "levels": {
+        "fixture_verified": 2
+      },
+      "pass_rate": 0.0,
+      "fixture_pass_rate": 100.0
+    },
+    "krx": {
+      "total": 3,
+      "live_passing": 0,
+      "fixture_passing": 3,
+      "levels": {
+        "fixture_verified": 3
+      },
+      "pass_rate": 0.0,
+      "fixture_pass_rate": 100.0
+    },
+    "law": {
+      "total": 3,
+      "live_passing": 0,
+      "fixture_passing": 3,
+      "levels": {
+        "fixture_verified": 3
+      },
+      "pass_rate": 0.0,
+      "fixture_pass_rate": 100.0
+    },
+    "localdata": {
+      "total": 59,
+      "live_passing": 3,
+      "fixture_passing": 59,
+      "levels": {
+        "application_required": 56,
+        "live_verified": 3
+      },
+      "pass_rate": 5.1,
+      "fixture_pass_rate": 100.0
+    },
+    "lofin": {
+      "total": 6,
+      "live_passing": 0,
+      "fixture_passing": 6,
+      "levels": {
+        "fixture_verified": 6
+      },
+      "pass_rate": 0.0,
+      "fixture_pass_rate": 100.0
+    },
+    "neis": {
+      "total": 2,
+      "live_passing": 0,
+      "fixture_passing": 2,
+      "levels": {
+        "fixture_verified": 2
+      },
+      "pass_rate": 0.0,
+      "fixture_pass_rate": 100.0
+    },
+    "semas": {
+      "total": 17,
+      "live_passing": 0,
+      "fixture_passing": 17,
+      "levels": {
+        "application_required": 17
+      },
+      "pass_rate": 0.0,
+      "fixture_pass_rate": 100.0
+    },
+    "seoul": {
+      "total": 7,
+      "live_passing": 0,
+      "fixture_passing": 7,
+      "levels": {
+        "fixture_verified": 7
+      },
+      "pass_rate": 0.0,
+      "fixture_pass_rate": 100.0
+    },
+    "sgis": {
+      "total": 3,
+      "live_passing": 0,
+      "fixture_passing": 3,
+      "levels": {
+        "fixture_verified": 3
+      },
+      "pass_rate": 0.0,
+      "fixture_pass_rate": 100.0
+    }
   }
 }
