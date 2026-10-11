@@ -110,6 +110,24 @@ entry `dataset_metadata.json` records for it (#902). Every key is always present
 [`docs/compatibility.md`](./docs/compatibility.md) §3; `kpubdata datasets list
 --format json` and `datasets show --format json` print the same dict.
 
+### Spec definitions
+
+`find_spec(dataset_key, provider=None)` returns the `SpecDefinition` of a spec-served
+dataset, or ``None``; `discover_specs()` returns all of them. `SpecDefinition` is
+importable as `from kpubdata import SpecDefinition` (#913). It is a frozen dataclass.
+
+The compatibility promise covers only these attributes:
+
+- `id`, `provider`, `dataset_key`
+- `examples`: a tuple of examples, each with `name` and `params`
+- `pagination.type`
+- `endpoint.base_url`
+- `auth.type`
+
+Every other attribute of `SpecDefinition`, and of the objects nested in it, is **not
+covered** by the compatibility promise: it may be renamed, retyped or removed in any
+release. Nothing is added to the stable list until it is documented here.
+
 ## 4. Bound dataset operations
 
 ### List/query
@@ -315,6 +333,7 @@ KPubData promises stability for:
 - `Client.from_env()`
 - `Client.probe()` / `Client.probe_all()`, `ProbeResult`, `PROBE_STATUSES`
 - dataset discovery methods
+- `find_spec()` / `discover_specs()` and the `SpecDefinition` they return (#913), limited to the attributes listed under *Spec definitions* below
 - `Dataset.list/list_all/schema/call_raw`
 - canonical model classes
 - canonical error types, each error's `code` and the keys of `to_dict()`

@@ -15,7 +15,7 @@ from kpubdata.core.models import (
     SchemaDescriptor,
 )
 from kpubdata.core.representation import Representation
-from kpubdata.core.spec import LicenseSpec, discover_specs, find_spec
+from kpubdata.core.spec import LicenseSpec, SpecDefinition, discover_specs, find_spec
 from kpubdata.core.status import ApplicationRequirement, DatasetStatus, VerificationLevel
 from kpubdata.exceptions import (
     AuthError,
@@ -44,6 +44,7 @@ __all__ = [
     "PROBE_STATUSES",
     "SENSITIVE_PARAM_KEYS",
     "find_spec",
+    "SpecDefinition",
     "DatasetRef",
     "ApplicationRequirement",
     "DatasetStatus",
