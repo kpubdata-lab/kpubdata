@@ -13,6 +13,8 @@ metadata:
 - none exists but the entry claims ``live_verified`` → ``fixture_verified``, no date
 - any other level (awaiting an application, retired, in progress …) is a human
   judgement written in the metadata, and is kept
+- ``application`` — whether the provider wants a per-dataset application, and where
+  (#902) — is a human judgement too, and is kept as written
 
 A dataset row with no metadata entry, or an entry with no row, is an error.
 
@@ -58,7 +60,7 @@ VERIFICATION_LABELS = {
     "production": "실API 검증",
 }
 
-Entry = dict[str, str | None]
+Entry = dict[str, object]
 
 COLUMNS = 9
 CELL_SPLIT = re.compile(r"(?<!\\)\|")
@@ -116,7 +118,10 @@ def refresh(metadata: dict[str, Entry], dates: dict[tuple[str, str], str]) -> di
         elif entry["level"] == "live_verified" or entry["verification"] == "live_verified":
             level = "fixture_verified" if entry["level"] == "live_verified" else entry["level"]
             entry = {"level": level, "verification": "fixture_verified", "checked_on": None}
-        refreshed[dataset_id] = {key: entry[key] for key in ("level", "verification", "checked_on")}
+        kept = {key: entry[key] for key in ("level", "verification", "checked_on")}
+        if "application" in metadata[dataset_id]:
+            kept["application"] = metadata[dataset_id]["application"]
+        refreshed[dataset_id] = kept
     return refreshed
 
 
@@ -135,8 +140,8 @@ def sync_row(line: str, metadata: dict[str, Entry]) -> str:
         LEVEL_LABELS[str(entry["level"])],
         RETIREMENT_CONFIRMED
         if entry["verification"] is None
-        else VERIFICATION_LABELS[entry["verification"]],
-        entry["checked_on"] or "-",
+        else VERIFICATION_LABELS[str(entry["verification"])],
+        str(entry["checked_on"] or "-"),
     ]
     return "| " + " | ".join(cells) + " |"
 

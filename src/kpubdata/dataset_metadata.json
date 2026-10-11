@@ -25,16 +25,25 @@
     "verification": "fixture_verified"
   },
   "datago.air_quality": {
+    "application": {
+      "required": true,
+      "url": "https://www.data.go.kr/data/15073861/openapi.do"
+    },
     "checked_on": "2026-09-09",
     "level": "live_verified",
     "verification": "live_verified"
   },
   "datago.air_station": {
+    "application": null,
     "checked_on": "2026-09-09",
     "level": "live_verified",
     "verification": "live_verified"
   },
   "datago.airkorea_forecast": {
+    "application": {
+      "required": true,
+      "url": "https://www.data.go.kr/data/15073861/openapi.do"
+    },
     "checked_on": "2026-09-09",
     "level": "live_verified",
     "verification": "live_verified"
@@ -45,11 +54,13 @@
     "verification": "fixture_verified"
   },
   "datago.apt_rent": {
+    "application": null,
     "checked_on": "2026-09-09",
     "level": "live_verified",
     "verification": "live_verified"
   },
   "datago.apt_trade": {
+    "application": null,
     "checked_on": "2026-09-09",
     "level": "live_verified",
     "verification": "live_verified"
@@ -70,6 +81,10 @@
     "verification": "fixture_verified"
   },
   "datago.bus_arrival": {
+    "application": {
+      "required": true,
+      "url": "https://www.data.go.kr/data/15080346/openapi.do"
+    },
     "checked_on": "2026-10-01",
     "level": "live_verified",
     "verification": "live_verified"
@@ -135,11 +150,13 @@
     "verification": null
   },
   "datago.hospital_info": {
+    "application": null,
     "checked_on": "2026-09-09",
     "level": "live_verified",
     "verification": "live_verified"
   },
   "datago.metro_fare": {
+    "application": null,
     "checked_on": "2026-09-09",
     "level": "live_verified",
     "verification": "live_verified"
@@ -165,21 +182,25 @@
     "verification": "fixture_verified"
   },
   "datago.ocean_buoy": {
+    "application": null,
     "checked_on": null,
     "level": "in_progress",
     "verification": "in_progress"
   },
   "datago.offi_rent": {
+    "application": null,
     "checked_on": "2026-09-09",
     "level": "live_verified",
     "verification": "live_verified"
   },
   "datago.offi_trade": {
+    "application": null,
     "checked_on": "2026-09-09",
     "level": "live_verified",
     "verification": "live_verified"
   },
   "datago.rh_rent": {
+    "application": null,
     "checked_on": "2026-09-09",
     "level": "live_verified",
     "verification": "live_verified"
@@ -195,16 +216,19 @@
     "verification": "fixture_verified"
   },
   "datago.sh_rent": {
+    "application": null,
     "checked_on": "2026-09-09",
     "level": "live_verified",
     "verification": "live_verified"
   },
   "datago.sh_trade": {
+    "application": null,
     "checked_on": "2026-09-09",
     "level": "live_verified",
     "verification": "live_verified"
   },
   "datago.social_enterprise": {
+    "application": null,
     "checked_on": "2026-10-01",
     "level": "live_verified",
     "verification": "live_verified"
@@ -220,36 +244,58 @@
     "verification": "fixture_verified"
   },
   "datago.tour_kor_area": {
+    "application": {
+      "required": true,
+      "url": "https://www.data.go.kr/tcs/dss/selectApiDataDetailView.do?publicDataPk=15101578"
+    },
     "checked_on": "2026-09-09",
     "level": "live_verified",
     "verification": "live_verified"
   },
   "datago.tour_kor_festival": {
+    "application": {
+      "required": true,
+      "url": "https://www.data.go.kr/tcs/dss/selectApiDataDetailView.do?publicDataPk=15101578"
+    },
     "checked_on": "2026-09-09",
     "level": "live_verified",
     "verification": "live_verified"
   },
   "datago.tour_kor_keyword": {
+    "application": {
+      "required": true,
+      "url": "https://www.data.go.kr/tcs/dss/selectApiDataDetailView.do?publicDataPk=15101578"
+    },
     "checked_on": "2026-09-09",
     "level": "live_verified",
     "verification": "live_verified"
   },
   "datago.tour_kor_location": {
+    "application": {
+      "required": true,
+      "url": "https://www.data.go.kr/tcs/dss/selectApiDataDetailView.do?publicDataPk=15101578"
+    },
     "checked_on": "2026-09-09",
     "level": "live_verified",
     "verification": "live_verified"
   },
   "datago.ultra_srt_fcst": {
+    "application": null,
     "checked_on": "2026-10-01",
     "level": "live_verified",
     "verification": "live_verified"
   },
   "datago.ultra_srt_ncst": {
+    "application": {
+      "required": true,
+      "url": "https://www.data.go.kr/data/15084084/openapi.do"
+    },
     "checked_on": "2026-10-01",
     "level": "live_verified",
     "verification": "live_verified"
   },
   "datago.village_fcst": {
+    "application": null,
     "checked_on": "2026-09-09",
     "level": "live_verified",
     "verification": "live_verified"
@@ -325,6 +371,7 @@
     "verification": "fixture_verified"
   },
   "localdata.bakery": {
+    "application": null,
     "checked_on": "2026-09-09",
     "level": "live_verified",
     "verification": "live_verified"
@@ -400,6 +447,7 @@
     "verification": "fixture_verified"
   },
   "localdata.general_restaurant": {
+    "application": null,
     "checked_on": "2026-09-09",
     "level": "live_verified",
     "verification": "live_verified"
@@ -525,6 +573,7 @@
     "verification": "fixture_verified"
   },
   "localdata.rest_cafe": {
+    "application": null,
     "checked_on": "2026-09-09",
     "level": "live_verified",
     "verification": "live_verified"
