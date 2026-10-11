@@ -25,6 +25,7 @@ REQUIRED = [
     "/scripts/verify_spec.py",
     "/scripts/check_fixture_authorship.py",
     "/scripts/*_baseline.txt",
+    "/scripts/check_catalogue_baseline.py",
     "/tests/fixtures/**/*.raw.json",
     "/tests/fixtures/**/*.meta.json",
     "/tests/fixtures/**/*.expected.json",

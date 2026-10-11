@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from collections.abc import Mapping, Sequence
 from typing import cast
 from urllib.parse import urlparse
@@ -33,6 +34,14 @@ from kpubdata.transport.decode import decode_json, decode_xml, detect_content_ty
 from kpubdata.transport.http import HttpTransport, TransportConfig
 
 logger = logging.getLogger("kpubdata.provider.datago")
+
+#: Catalogue datasets another dataset already serves, with that dataset's key (#898).
+#: They stay resolvable so existing callers keep working, and warn on every query.
+_SUPERSEDED_BY = {
+    # Same endpoint (ArpltnInforInqireSvc/getMsrstnAcctoRltmMesureDnsty) as the
+    # air_station spec, which accepts the same stationName/dataTerm filters.
+    "airkorea_station_realtime": "air_station",
+}
 
 _DATAGO_403_HINT = (
     "data.go.kr returned 403. This usually means the specific API has not been activated "
@@ -132,6 +141,16 @@ class DataGoAdapter:
                 "datago.generic does not support list(); use call_raw with _base_url instead",
                 provider="datago",
                 dataset_id=dataset.id,
+            )
+
+        replacement = _SUPERSEDED_BY.get(dataset.dataset_key)
+        if replacement is not None:
+            warnings.warn(
+                f"{dataset.id} is deprecated: datago.{replacement} calls the same endpoint "
+                "and accepts the same filters. Its spec types some fields, so pm10Value "
+                "and khaiValue arrive as integers rather than strings.",
+                DeprecationWarning,
+                stacklevel=2,
             )
 
         page = query.page or 1

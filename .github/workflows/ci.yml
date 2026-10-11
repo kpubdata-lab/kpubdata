@@ -67,6 +67,11 @@ jobs:
       - name: Validate dataset specs
         run: uv run python scripts/validate_spec.py
 
+      # A dataset is declared by a spec or by a catalogue, never both, and the
+      # catalogue-only list may only shrink (#898).
+      - name: Catalogue-only baseline
+        run: uv run python scripts/check_catalogue_baseline.py
+
       - name: Contract replay verify
         run: make verify
         env:

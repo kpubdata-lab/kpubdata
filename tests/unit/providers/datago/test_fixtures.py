@@ -10,7 +10,9 @@ from typing import Protocol, cast
 import pytest
 
 from kpubdata.config import KPubDataConfig
-from kpubdata.core.models import DatasetRef, Query
+from kpubdata.core.executor import SpecDatasetAdapter, SpecExecutor
+from kpubdata.core.models import DatasetRef, Query, RecordBatch
+from kpubdata.core.spec import discover_specs
 from kpubdata.exceptions import (
     AuthError,
     InvalidRequestError,
@@ -90,6 +92,41 @@ def _build_real_estate_adapter(
     )
     dataset = adapter.get_dataset(dataset_key)
     return adapter, dataset
+
+
+def _query_spec_fixture(fixture_name: str, dataset_key: str) -> RecordBatch:
+    """Parse a fixture through the bundled spec that serves ``dataset_key`` (#898).
+
+    These datasets used to be declared in the datago catalogue as well; the spec
+    already won at run time, so the catalogue copy was removed and the payload is
+    checked on the path users reach. The query uses the spec's first example.
+    """
+    data = load_fixture_bytes(fixture_name)
+
+    class _FakeResponse:
+        def __init__(self) -> None:
+            self.status_code = 200
+            self.headers: dict[str, str] = {"content-type": "application/json"}
+            self.content: bytes = data
+            self.text: str = data.decode("utf-8")
+
+    class _FakeTransport:
+        def request(self, _method: str, _url: str, **_kwargs: object) -> _FakeResponse:
+            return _FakeResponse()
+
+    specs = [spec for spec in discover_specs() if spec.provider == "datago"]
+    spec = next(spec for spec in specs if spec.dataset_key == dataset_key)
+    adapter = SpecDatasetAdapter(
+        "datago",
+        specs,
+        SpecExecutor(
+            cast(HttpTransport, cast(object, _FakeTransport())),
+            KPubDataConfig(provider_keys={"datago": "test-key"}),
+        ),
+    )
+    return adapter.query_records(
+        adapter.get_dataset(dataset_key), Query(filters=dict(spec.examples[0].params))
+    )
 
 
 # test fixture dur usjnt taboo parses Describes the scenario verified by the test.
@@ -503,9 +540,7 @@ def test_fixture_apt_rent_parses() -> None:
 
     Raises:
         Exceptions propagated."""
-    adapter, dataset = _build_real_estate_adapter("success_apt_rent.json", "apt_rent")
-
-    batch = adapter.query_records(dataset, Query())
+    batch = _query_spec_fixture("success_apt_rent.json", "apt_rent")
 
     assert len(batch.items) == 2
     assert "deposit" in batch.items[0]
@@ -523,9 +558,7 @@ def test_fixture_offi_trade_parses() -> None:
 
     Raises:
         Exceptions propagated."""
-    adapter, dataset = _build_real_estate_adapter("success_offi_trade.json", "offi_trade")
-
-    batch = adapter.query_records(dataset, Query())
+    batch = _query_spec_fixture("success_offi_trade.json", "offi_trade")
 
     assert len(batch.items) == 2
     assert "dealAmount" in batch.items[0]
@@ -542,9 +575,7 @@ def test_fixture_offi_rent_parses() -> None:
 
     Raises:
         Exceptions propagated."""
-    adapter, dataset = _build_real_estate_adapter("success_offi_rent.json", "offi_rent")
-
-    batch = adapter.query_records(dataset, Query())
+    batch = _query_spec_fixture("success_offi_rent.json", "offi_rent")
 
     assert len(batch.items) == 2
     assert "deposit" in batch.items[0]
@@ -581,9 +612,7 @@ def test_fixture_rh_rent_parses() -> None:
 
     Raises:
         Exceptions propagated."""
-    adapter, dataset = _build_real_estate_adapter("success_rh_rent.json", "rh_rent")
-
-    batch = adapter.query_records(dataset, Query())
+    batch = _query_spec_fixture("success_rh_rent.json", "rh_rent")
 
     assert len(batch.items) == 2
     assert "deposit" in batch.items[0]
@@ -601,9 +630,7 @@ def test_fixture_sh_trade_parses() -> None:
 
     Raises:
         Exceptions propagated."""
-    adapter, dataset = _build_real_estate_adapter("success_sh_trade.json", "sh_trade")
-
-    batch = adapter.query_records(dataset, Query())
+    batch = _query_spec_fixture("success_sh_trade.json", "sh_trade")
 
     assert len(batch.items) == 2
     assert "dealAmount" in batch.items[0]
@@ -620,9 +647,7 @@ def test_fixture_sh_rent_parses() -> None:
 
     Raises:
         Exceptions propagated."""
-    adapter, dataset = _build_real_estate_adapter("success_sh_rent.json", "sh_rent")
-
-    batch = adapter.query_records(dataset, Query())
+    batch = _query_spec_fixture("success_sh_rent.json", "sh_rent")
 
     assert len(batch.items) == 2
     assert "deposit" in batch.items[0]
@@ -640,9 +665,7 @@ def test_fixture_tour_kor_area_parses() -> None:
 
     Raises:
         Exceptions propagated."""
-    adapter, dataset = _build_real_estate_adapter("success_tour_kor_area.json", "tour_kor_area")
-
-    batch = adapter.query_records(dataset, Query())
+    batch = _query_spec_fixture("success_tour_kor_area.json", "tour_kor_area")
 
     assert len(batch.items) == 2
     assert batch.items[0]["title"] == "경복궁"
@@ -660,11 +683,7 @@ def test_fixture_tour_kor_location_parses() -> None:
 
     Raises:
         Exceptions propagated."""
-    adapter, dataset = _build_real_estate_adapter(
-        "success_tour_kor_location.json", "tour_kor_location"
-    )
-
-    batch = adapter.query_records(dataset, Query())
+    batch = _query_spec_fixture("success_tour_kor_location.json", "tour_kor_location")
 
     assert len(batch.items) == 2
     assert "dist" in batch.items[0]
@@ -681,11 +700,7 @@ def test_fixture_tour_kor_keyword_parses() -> None:
 
     Raises:
         Exceptions propagated."""
-    adapter, dataset = _build_real_estate_adapter(
-        "success_tour_kor_keyword.json", "tour_kor_keyword"
-    )
-
-    batch = adapter.query_records(dataset, Query())
+    batch = _query_spec_fixture("success_tour_kor_keyword.json", "tour_kor_keyword")
 
     assert len(batch.items) == 2
     assert "title" in batch.items[0]
@@ -702,11 +717,7 @@ def test_fixture_tour_kor_festival_parses() -> None:
 
     Raises:
         Exceptions propagated."""
-    adapter, dataset = _build_real_estate_adapter(
-        "success_tour_kor_festival.json", "tour_kor_festival"
-    )
-
-    batch = adapter.query_records(dataset, Query())
+    batch = _query_spec_fixture("success_tour_kor_festival.json", "tour_kor_festival")
 
     assert len(batch.items) == 2
     assert "eventstartdate" in batch.items[0]
@@ -724,9 +735,7 @@ def test_fixture_metro_fare_parses() -> None:
 
     Raises:
         Exceptions propagated."""
-    adapter, dataset = _build_real_estate_adapter("success_metro_fare.json", "metro_fare")
-
-    batch = adapter.query_records(dataset, Query())
+    batch = _query_spec_fixture("success_metro_fare.json", "metro_fare")
 
     assert len(batch.items) == 2
     assert "startStation" in batch.items[0]
@@ -1462,7 +1471,8 @@ def test_fixture_airkorea_station_realtime_parses() -> None:
         "success_airkorea_station_realtime.json", "airkorea_station_realtime"
     )
 
-    batch = adapter.query_records(dataset, Query(filters={"stationName": "강남구"}))
+    with pytest.warns(DeprecationWarning, match=r"datago\.air_station"):
+        batch = adapter.query_records(dataset, Query(filters={"stationName": "강남구"}))
 
     assert len(batch.items) == 2
     assert batch.items[0]["pm10Value"] == "42"
@@ -1473,11 +1483,7 @@ def test_fixture_airkorea_station_realtime_parses() -> None:
 # test fixture airkorea forecast parses Describes the scenario verified by the test.
 def test_fixture_airkorea_forecast_parses() -> None:
     """AirKorea forecast notice fixturenormalized to standard envelope (#224)."""
-    adapter, dataset = _build_real_estate_adapter(
-        "success_airkorea_forecast.json", "airkorea_forecast"
-    )
-
-    batch = adapter.query_records(dataset, Query(filters={"informCode": "PM10"}))
+    batch = _query_spec_fixture("success_airkorea_forecast.json", "airkorea_forecast")
 
     assert len(batch.items) == 2
     assert "informGrade" in batch.items[0]

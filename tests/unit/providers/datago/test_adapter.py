@@ -15,9 +15,12 @@ from typing import Protocol, cast
 import pytest
 
 from kpubdata.config import KPubDataConfig
+from kpubdata.core.bridge import CompositeProviderAdapter
 from kpubdata.core.capability import Operation, PaginationMode
+from kpubdata.core.executor import SpecDatasetAdapter, SpecExecutor
 from kpubdata.core.models import DatasetRef, Query
 from kpubdata.core.representation import Representation
+from kpubdata.core.spec import discover_specs
 from kpubdata.exceptions import (
     AuthError,
     DatasetNotFoundError,
@@ -27,7 +30,7 @@ from kpubdata.exceptions import (
     TransportError,
 )
 from kpubdata.providers.datago.adapter import DataGoAdapter
-from kpubdata.transport.http import HttpTransport
+from kpubdata.transport.http import HttpTransport, TransportConfig
 
 REAL_ESTATE_DATASET_KEYS = [
     "apt_rent",
@@ -38,6 +41,20 @@ REAL_ESTATE_DATASET_KEYS = [
     "sh_trade",
     "sh_rent",
 ]
+
+
+def _served_datago() -> CompositeProviderAdapter:
+    """The datago adapter as ``Client`` serves it: catalogue and specs merged.
+
+    Most real-estate datasets are declared only by a spec since #898, so their ids
+    are checked on the path a user reaches rather than on the catalogue alone.
+    """
+    specs = [spec for spec in discover_specs() if spec.provider == "datago"]
+    config = KPubDataConfig()
+    executor = SpecExecutor(HttpTransport(TransportConfig()), config)
+    return CompositeProviderAdapter(
+        DataGoAdapter(config=config), SpecDatasetAdapter("datago", specs, executor)
+    )
 
 
 class FakeResponse:
@@ -178,7 +195,7 @@ def _build_adapter_with_transport(
         config=config,
         transport=cast(HttpTransport, cast(object, transport)),
     )
-    dataset = adapter.get_dataset("metro_fare")
+    dataset = adapter.get_dataset("subway_passengers")
     return adapter, dataset, transport
 
 
@@ -277,9 +294,9 @@ class TestDataGoAdapterDiscovery:
             Exceptions propagated."""
         adapter = DataGoAdapter()
 
-        dataset = adapter.get_dataset("metro_fare")
-        assert dataset.id == "datago.metro_fare"
-        assert dataset.dataset_key == "metro_fare"
+        dataset = adapter.get_dataset("subway_passengers")
+        assert dataset.id == "datago.subway_passengers"
+        assert dataset.dataset_key == "subway_passengers"
 
     # test get dataset not found Describes the scenario verified by the test.
     def test_get_dataset_not_found(self) -> None:
@@ -331,9 +348,9 @@ class TestDataGoAdapterDiscovery:
             Exceptions propagated."""
         adapter = DataGoAdapter()
 
-        results = adapter.search_datasets("fare")
+        results = adapter.search_datasets("passengers")
         assert results
-        assert any(dataset.dataset_key == "metro_fare" for dataset in results)
+        assert any(dataset.dataset_key == "subway_passengers" for dataset in results)
 
     # test search datasets no match Describes the scenario verified by the test.
     def test_search_datasets_no_match(self) -> None:
@@ -364,8 +381,8 @@ class TestDataGoAdapterDiscovery:
         datasets = adapter.list_datasets()
         assert datasets
 
-        dataset = adapter.get_dataset("metro_fare")
-        assert dataset.id == "datago.metro_fare"
+        dataset = adapter.get_dataset("subway_passengers")
+        assert dataset.id == "datago.subway_passengers"
 
 
 class TestDataGoAdapterRealEstateDatasets:
@@ -384,7 +401,7 @@ class TestDataGoAdapterRealEstateDatasets:
 
         Raises:
             Exceptions propagated."""
-        adapter = DataGoAdapter()
+        adapter = _served_datago()
 
         dataset_keys = {dataset.dataset_key for dataset in adapter.list_datasets()}
 
@@ -404,7 +421,7 @@ class TestDataGoAdapterRealEstateDatasets:
 
         Raises:
             Exceptions propagated."""
-        adapter = DataGoAdapter()
+        adapter = _served_datago()
 
         dataset = adapter.get_dataset(dataset_key)
 
@@ -425,7 +442,7 @@ class TestDataGoAdapterRealEstateDatasets:
 
         Raises:
             Exceptions propagated."""
-        adapter = DataGoAdapter()
+        adapter = _served_datago()
 
         dataset = adapter.get_dataset(dataset_key)
 
@@ -446,7 +463,7 @@ class TestDataGoAdapterRealEstateDatasets:
 
         Raises:
             Exceptions propagated."""
-        adapter = DataGoAdapter()
+        adapter = _served_datago()
 
         dataset = adapter.get_dataset(dataset_key)
 
@@ -464,7 +481,7 @@ class TestDataGoAdapterRealEstateDatasets:
 
         Raises:
             Exceptions propagated."""
-        adapter = DataGoAdapter()
+        adapter = _served_datago()
 
         results = adapter.search_datasets("실거래")
         result_keys = {dataset.dataset_key for dataset in results}
@@ -774,7 +791,7 @@ class TestDataGoAdapterQueryRecords:
             config=KPubDataConfig(provider_keys={"datago": "test-key"}),
             transport=cast(HttpTransport, cast(object, ForbiddenTransport())),
         )
-        dataset = adapter.get_dataset("metro_fare")
+        dataset = adapter.get_dataset("subway_passengers")
 
         with pytest.raises(AuthError) as excinfo:
             _ = adapter.query_records(dataset, Query())
@@ -1025,12 +1042,12 @@ class TestDataGoAdapterCatalogueOperations:
 
         Validates the scenario described by the test name.
         """
-        adapter = DataGoAdapter()
+        adapter = _served_datago()
 
         dataset = adapter.get_dataset("air_quality")
         params = dataset.raw_metadata.get("request_parameters")
-        assert isinstance(params, list)
-        by_name = {p["name"]: p for p in params if isinstance(p, dict)}
+        assert isinstance(params, tuple)
+        by_name = {p["api_name"]: p for p in params if isinstance(p, MappingProxyType)}
         assert "sidoName" in by_name
         assert by_name["sidoName"]["required"] is True
         assert by_name["sidoName"]["example"] == "서울"
@@ -1058,14 +1075,15 @@ class TestDataGoAdapterCatalogueOperations:
         assert "ver" not in by_name
         assert "returnType" not in by_name
 
-    def test_air_quality_declares_application_requirement(self) -> None:
-        """test_air_quality_declares_application_requirement
+    def test_airkorea_station_realtime_declares_application_requirement(self) -> None:
+        """The catalogue keeps the AirKorea application page for the dataset it serves.
 
-        Validates the scenario described by the test name.
+        ``air_quality`` carried the same declaration until #898 removed its catalogue
+        copy; the spec has served that id all along.
         """
         adapter = DataGoAdapter()
 
-        dataset = adapter.get_dataset("air_quality")
+        dataset = adapter.get_dataset("airkorea_station_realtime")
         application = dataset.raw_metadata.get("application")
         assert isinstance(application, dict)
         assert application["required"] is True
@@ -1078,19 +1096,14 @@ class TestDataGoAdapterCatalogueOperations:
         """
         adapter = DataGoAdapter()
 
-        # village_fcst was retired from the catalogue on main; ultra_srt_ncst is
-        # the surviving dataset on that endpoint.
-        for key in ("ultra_srt_ncst",):
-            assert adapter.get_dataset(key).raw_metadata["base_url"] == (
-                "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0"
-            )
-        for key in ("air_quality", "airkorea_station_realtime", "airkorea_forecast"):
+        # ultra_srt_ncst, air_quality and airkorea_forecast left the catalogue in #898:
+        # their specs serve those ids.
+        for key in ("airkorea_station_realtime",):
             assert adapter.get_dataset(key).raw_metadata["base_url"] == (
                 "https://apis.data.go.kr/B552584/ArpltnInforInqireSvc"
             )
 
         required_names = {
-            "ultra_srt_ncst": ["base_date", "base_time", "nx", "ny"],
             "mid_fcst": ["stnId", "tmFc"],
             "asos_daily": ["startDt", "endDt", "stnIds"],
             "asos_hourly": ["startDt", "startHh", "endDt", "endHh", "stnIds"],
@@ -1101,7 +1114,6 @@ class TestDataGoAdapterCatalogueOperations:
             assert {param["name"] for param in params} == set(names)
             assert all(param["required"] is True for param in params)
 
-        assert adapter.get_dataset("airkorea_forecast").raw_metadata["request_parameters"] == []
         hourly = adapter.get_dataset("asos_hourly")
         assert hourly.source_url == (
             "https://www.data.go.kr/tcs/dss/selectApiDataDetailView.do?publicDataPk=15057210"
@@ -1246,7 +1258,7 @@ class TestDataGoAdapterGetSchema:
         Raises:
             Exceptions propagated."""
         adapter = DataGoAdapter()
-        dataset = adapter.get_dataset("metro_fare")
+        dataset = adapter.get_dataset("subway_passengers")
         schema = adapter.get_schema(dataset)
         assert schema is None
 

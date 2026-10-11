@@ -210,13 +210,14 @@ examples:
 
 def test_catalogue_coexistence_is_notice_only(module, tmp_path: Path) -> None:
     """Catalogue coexistence is a NOTICE, not a failure (pilot coexistence design)."""
-    # Reuses a real golden spec: datago.apt_trade also exists in the catalogue.
-    golden = REPO_ROOT / "src" / "kpubdata" / "specs" / "datago"
-    report = module.validate_specs(golden, SCHEMA_PATH)
+    # Reuses a real spec: localdata.bakery is still in the localdata catalogue too
+    # (the datago duplicates were removed in #898).
+    specs = REPO_ROOT / "src" / "kpubdata" / "specs" / "localdata"
+    report = module.validate_specs(specs, SCHEMA_PATH)
     assert report.ok
-    apt_result = next(r for r in report.results if r.spec_id == "air_quality")
-    assert apt_result.passed
-    assert any("공존" in notice for notice in apt_result.notices)
+    bakery = next(r for r in report.results if r.spec_id == "bakery")
+    assert bakery.passed
+    assert any("공존" in notice for notice in bakery.notices)
 
 
 def test_zero_specs_reports_failure(module, tmp_path: Path) -> None:
