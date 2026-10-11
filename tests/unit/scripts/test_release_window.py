@@ -9,14 +9,18 @@ Thursdays, the seventh day.
 from __future__ import annotations
 
 import importlib.util
+import os
+import subprocess
 import sys
 from datetime import date, datetime, timezone
 from pathlib import Path
 
 import pytest
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "release_window.py"
+RELEASE = REPO_ROOT / ".github" / "workflows" / "release.yml"
 
 
 def _load_script():
@@ -185,3 +189,128 @@ def test_cli_prints_the_critical_issue(capsys: pytest.CaptureFixture[str]) -> No
 
 def test_cli_rejects_a_bad_date() -> None:
     assert rw.main(["--policy", "monthly", "--today", "30/09/2026"]) == 2
+
+
+# ------------------------------------------------- the real 0.9.0 -> 0.10.0 gap (#895)
+#
+# v0.9.0 was published at 2026-10-06T02:43:55Z and v0.10.0 at 2026-10-09T01:44:46Z,
+# three days apart. The gate did not miss it: the release pull request (#830) carried a
+# `Critical-Patch: #821` line, and the run logged "release allowed: critical patch for
+# #821, outside the on-demand rule". These tests hold both halves of that.
+
+V0_9_0_PUBLISHED = "2026-10-06T02:43:55Z"
+PR_830_TAIL = (
+    "This PR was generated with [Release Please](https://github.com/googleapis/release-please)."
+    "\r\n\r\nCritical-Patch: #821\r\n"
+)
+
+
+@pytest.mark.parametrize(
+    ("today", "allowed"),
+    [
+        (date(2026, 10, 9), False),  # the day v0.10.0 went out
+        (date(2026, 10, 12), False),  # six days
+        (date(2026, 10, 13), True),  # seven days
+    ],
+)
+def test_without_a_critical_patch_0_10_0_would_have_waited_for_the_seventh_day(
+    today: date, allowed: bool
+) -> None:
+    last = rw.to_kst_date(V0_9_0_PUBLISHED)
+    decision = rw.decide("on-demand", today, last_release=last)
+    assert decision.allowed is allowed, decision.reason
+    if not allowed:
+        assert "2026-10-13" in decision.reason
+
+
+def test_the_seventh_day_starts_at_midnight_in_seoul_not_in_utc() -> None:
+    last = rw.to_kst_date(V0_9_0_PUBLISHED)
+    # 2026-10-12 15:00 UTC is 2026-10-13 00:00 KST: six days on the UTC calendar, seven
+    # on Seoul's, and Seoul's is the one that counts.
+    today = rw.today_kst(datetime(2026, 10, 12, 15, 0, tzinfo=timezone.utc))
+    assert rw.decide("on-demand", today, last_release=last).allowed
+    today = rw.today_kst(datetime(2026, 10, 12, 14, 59, tzinfo=timezone.utc))
+    assert not rw.decide("on-demand", today, last_release=last).allowed
+
+
+def _release_steps(job: str) -> list[dict[str, object]]:
+    workflow = yaml.safe_load(RELEASE.read_text(encoding="utf-8"))
+    steps: list[dict[str, object]] = workflow["jobs"][job]["steps"]
+    return steps
+
+
+def _step_index(steps: list[dict[str, object]], name: str) -> int:
+    names = [step.get("name") for step in steps]
+    assert name in names, f"no step named {name!r}"
+    return names.index(name)
+
+
+@pytest.mark.parametrize(
+    ("job", "first_write"),
+    [("prepare", "Work out the new version"), ("release", "Tag and release")],
+)
+def test_both_release_paths_run_the_on_demand_window_before_they_write(
+    job: str, first_write: str
+) -> None:
+    steps = _release_steps(job)
+    window = steps[_step_index(steps, "Release window")]
+    assert window["uses"] == "./.github/actions/release-window"
+    assert isinstance(window["with"], dict)
+    assert window["with"]["policy"] == "on-demand"
+    assert window["with"].get("min_interval_days", "7") == "7"
+    assert _step_index(steps, "Release window") < _step_index(steps, first_write)
+
+
+def _read_critical_declaration(tmp_path: Path, body: str) -> dict[str, str]:
+    """Run release.yml's own `Read a critical-patch declaration` script on a merge event."""
+    steps = _release_steps("release")
+    script = steps[_step_index(steps, "Read a critical-patch declaration")]["run"]
+    assert isinstance(script, str)
+    output = tmp_path / "output"
+    output.write_text("", encoding="utf-8")
+    subprocess.run(
+        ["bash", "-eo", "pipefail", "-c", script],
+        env={
+            **os.environ,
+            "EVENT": "pull_request",
+            "PR_BODY": body,
+            "INPUT_PATCH": "",
+            "INPUT_ISSUE": "",
+            "GITHUB_OUTPUT": str(output),
+        },
+        check=True,
+    )
+    pairs = (line.split("=", 1) for line in output.read_text(encoding="utf-8").splitlines())
+    return dict(pairs)
+
+
+def test_the_0_10_0_pull_request_passed_as_a_declared_critical_patch(tmp_path: Path) -> None:
+    declared = _read_critical_declaration(tmp_path, PR_830_TAIL)
+    assert declared == {"patch": "true", "issue": "#821"}
+
+    decision = rw.decide(
+        "on-demand",
+        date(2026, 10, 9),
+        last_release=rw.to_kst_date(V0_9_0_PUBLISHED),
+        critical_patch=declared["patch"] == "true",
+        critical_issue=declared["issue"],
+    )
+    assert decision.allowed
+    assert decision.critical_issue == "#821"
+
+
+def test_a_release_pull_request_without_the_line_is_refused_inside_the_gap(
+    tmp_path: Path,
+) -> None:
+    body = PR_830_TAIL.replace("Critical-Patch: #821", "")
+    declared = _read_critical_declaration(tmp_path, body)
+    assert declared == {"patch": "false", "issue": ""}
+
+    decision = rw.decide(
+        "on-demand",
+        date(2026, 10, 9),
+        last_release=rw.to_kst_date(V0_9_0_PUBLISHED),
+        critical_patch=False,
+        critical_issue=declared["issue"],
+    )
+    assert not decision.allowed

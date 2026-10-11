@@ -47,7 +47,8 @@ The release workflow (`.github/workflows/release.yml`) enforces the ordering:
 
 ```
 0. window   → release-window gate (§5.1) — first step of prepare and release
-1. prepare  → opens a release PR (version bump + CHANGELOG date)
+1. prepare  → release-please opens a release PR from the commit titles (#819);
+               mode=prepare only for a pre-release or a critical patch
 2. review   → a human reviews and merges the PR
 3. release  → CI gates run on the merged commit, then tag + GitHub Release
 4. publish  → a person dispatches publish-pypi.yml with the tag (trusted publisher)
