@@ -43,6 +43,45 @@ def _catalogue_counts() -> dict[str, int]:
     return counts
 
 
+#: Levels that count as passing against the real API.
+PASSING_LEVELS = frozenset({"live_verified", "production"})
+
+#: Levels whose fixture and contract tests pass (live-verified ones included).
+FIXTURE_PASSING_VERIFICATIONS = frozenset({"fixture_verified", "live_verified", "production"})
+
+
+def _family_pass_rates() -> dict[str, dict[str, object]]:
+    """Pass rate per dataset family (provider), from ``dataset_metadata.json`` (#899).
+
+    ``pass_rate`` is the share of the family's datasets that pass against the real API
+    (``live_verified`` or ``production``); ``fixture_pass_rate`` is the share whose
+    fixture and contract tests pass, whatever else holds for them. Both are percentages
+    rounded to one decimal, so a report quotes the number rather than recomputing it.
+    """
+    metadata = json.loads(
+        (REPO_ROOT / "src/kpubdata/dataset_metadata.json").read_text(encoding="utf-8")
+    )
+    families: dict[str, dict[str, object]] = {}
+    for dataset_id, entry in sorted(metadata.items()):
+        family = dataset_id.split(".", 1)[0]
+        row = families.setdefault(
+            family, {"total": 0, "live_passing": 0, "fixture_passing": 0, "levels": {}}
+        )
+        level = entry["level"]
+        row["total"] += 1  # type: ignore[operator]
+        if level in PASSING_LEVELS:
+            row["live_passing"] += 1  # type: ignore[operator]
+        if entry.get("verification") in FIXTURE_PASSING_VERIFICATIONS:
+            row["fixture_passing"] += 1  # type: ignore[operator]
+        levels: dict[str, int] = row["levels"]  # type: ignore[assignment]
+        levels[level] = levels.get(level, 0) + 1
+    for row in families.values():
+        total = row["total"]
+        row["pass_rate"] = round(row["live_passing"] / total * 100, 1)  # type: ignore[operator]
+        row["fixture_pass_rate"] = round(row["fixture_passing"] / total * 100, 1)  # type: ignore[operator]
+    return families
+
+
 #: Days a verification counts as recent.
 RECENT_DAYS = 90
 
@@ -89,7 +128,25 @@ def build_status() -> dict[str, object]:
         },
         "catalogue_datasets": _catalogue_counts(),
         "supported_rows": _supported_summary(),
+        "family_pass_rate": _family_pass_rates(),
     }
+
+
+def _family_rows(families: dict[str, dict[str, object]]) -> list[str]:
+    """Table rows of the per-family pass rate, with an all-families total row."""
+    rows = [
+        f"| {name} | {f['total']} | {f['live_passing']} | {f['pass_rate']}% | "
+        f"{f['fixture_passing']} | {f['fixture_pass_rate']}% |"
+        for name, f in families.items()
+    ]
+    total = sum(f["total"] for f in families.values())  # type: ignore[misc]
+    live = sum(f["live_passing"] for f in families.values())  # type: ignore[misc]
+    fixture = sum(f["fixture_passing"] for f in families.values())  # type: ignore[misc]
+    rows.append(
+        f"| **전체** | {total} | {live} | {round(live / total * 100, 1)}% | "
+        f"{fixture} | {round(fixture / total * 100, 1)}% |"
+    )
+    return rows
 
 
 def render_md(status: dict[str, object]) -> str:
@@ -113,6 +170,15 @@ def render_md(status: dict[str, object]) -> str:
         + ")",  # type: ignore[union-attr]
         f"- SUPPORTED_DATA 행 분포: {supported} "  # type: ignore[str-format]
         f"(합계 {sum(supported.values())})",  # type: ignore[union-attr]
+        "",
+        "## 계열별 통과율",
+        "",
+        "통과율 = 실API 검증을 통과한 데이터셋 / 계열 전체. 테스트 통과율 = fixture·contract "
+        "테스트를 통과한 데이터셋 / 계열 전체. 원천은 `src/kpubdata/dataset_metadata.json`.",
+        "",
+        "| 계열 | 전체 | 실API 통과 | 통과율 | 테스트 통과 | 테스트 통과율 |",
+        "|---|---|---|---|---|---|",
+        *_family_rows(status["family_pass_rate"]),  # type: ignore[arg-type]
         "",
         "## spec 데이터셋별 최종 검증일",
         "",
