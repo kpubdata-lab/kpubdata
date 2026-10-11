@@ -209,6 +209,135 @@ class TestKeyNeverLeaks:
         assert SENTINEL[:4] not in redacted
 
 
+_CATALOGUE_DATASETS = [
+    pytest.param("datago.dur_usjnt_taboo", "DURPrdlstInfoService03", id="datago"),
+    pytest.param("semas.zone_one", "sdsc2", id="semas"),
+    pytest.param("localdata.hospital", "hospitals", id="localdata"),
+]
+
+
+def _forbidden(_request: httpx.Request) -> httpx.Response:
+    return httpx.Response(403, text="Forbidden")
+
+
+def _not_registered(_request: httpx.Request) -> httpx.Response:
+    return httpx.Response(
+        200,
+        json={
+            "response": {
+                "header": {"resultCode": "30", "resultMsg": "SERVICE_KEY_IS_NOT_REGISTERED"},
+                "body": {},
+            }
+        },
+    )
+
+
+class TestCatalogueDatasets:
+    """Datasets without a spec, classified through their data.go.kr adapter (#916)."""
+
+    @pytest.mark.parametrize(("dataset_id", "service_id"), _CATALOGUE_DATASETS)
+    def test_a_gateway_403_is_application_required(
+        self, dataset_id: str, service_id: str, install: Callable[[Handler], _Recorder]
+    ) -> None:
+        recorder = install(_forbidden)
+
+        result = Client(provider_keys={"datago": SENTINEL}, env_keys=False).probe(dataset_id)
+
+        assert result is not None
+        assert result.dataset_id == dataset_id
+        assert result.service_id == service_id
+        assert result.status == "application_required"
+        assert result.http_status == 403
+        assert result.detail.startswith("AuthError: ")
+        assert len(recorder.requests) == 1
+        assert recorder.transports[0]._client is None
+
+    @pytest.mark.parametrize(("dataset_id", "service_id"), _CATALOGUE_DATASETS)
+    def test_a_refused_key_code_is_application_required(
+        self, dataset_id: str, service_id: str, install: Callable[[Handler], _Recorder]
+    ) -> None:
+        install(_not_registered)
+
+        result = Client(provider_keys={"datago": SENTINEL}, env_keys=False).probe(dataset_id)
+
+        assert result is not None
+        assert result.status == "application_required"
+        assert result.result_code == "30"
+
+    @pytest.mark.parametrize(("dataset_id", "service_id"), _CATALOGUE_DATASETS)
+    def test_an_answer_is_available_from_one_one_record_call(
+        self, dataset_id: str, service_id: str, install: Callable[[Handler], _Recorder]
+    ) -> None:
+        recorder = install(lambda _request: _ok_body())
+
+        result = Client(provider_keys={"datago": SENTINEL}, env_keys=False).probe(dataset_id)
+
+        assert result is not None
+        assert result.status == "available"
+        assert result.http_status == 200
+        assert len(recorder.requests) == 1
+        assert recorder.requests[0].url.params["numOfRows"] == "1"
+
+    @pytest.mark.parametrize(("dataset_id", "service_id"), _CATALOGUE_DATASETS)
+    def test_no_key_means_no_call_and_auth_unknown(
+        self, dataset_id: str, service_id: str, install: Callable[[Handler], _Recorder]
+    ) -> None:
+        recorder = install(_unreachable)
+
+        result = Client(env_keys=False).probe(dataset_id)
+
+        assert result is not None
+        assert result.status == "auth_unknown"
+        assert result.service_id == service_id
+        assert recorder.requests == []
+
+    @pytest.mark.parametrize(("dataset_id", "service_id"), _CATALOGUE_DATASETS)
+    @pytest.mark.parametrize("handler", [_echo_key_403, _echo_key_500, _connect_error])
+    def test_the_key_is_never_logged_or_reported(
+        self,
+        dataset_id: str,
+        service_id: str,
+        handler: Handler,
+        install: Callable[[Handler], _Recorder],
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        recorder = install(handler)
+        caplog.set_level(logging.DEBUG)
+
+        result = Client(provider_keys={"datago": SENTINEL}, env_keys=False).probe(dataset_id)
+
+        assert result is not None
+        assert recorder.requests
+        assert result.status != "available"
+        assert SENTINEL not in result.detail
+        assert SENTINEL not in repr(result)
+        for record in caplog.records:
+            assert SENTINEL not in record.getMessage()
+            assert SENTINEL not in str(record.__dict__)
+
+    @pytest.mark.parametrize(
+        "dataset_id",
+        [
+            "datago.generic",  # raw-only: a list call would never reach a service
+            "semas.no_such_dataset",
+            "localdata.no_such_dataset",
+            "bok.base_rate",  # not a data.go.kr adapter: its codes are its own
+        ],
+    )
+    def test_what_cannot_be_classified_honestly_is_none(
+        self, dataset_id: str, install: Callable[[Handler], _Recorder]
+    ) -> None:
+        recorder = install(_unreachable)
+
+        result = Client(provider_keys={"datago": SENTINEL, "bok": SENTINEL}, env_keys=False).probe(
+            dataset_id
+        )
+
+        assert result is None
+        assert recorder.requests == []
+        assert all(transport._client is None for transport in recorder.transports)
+
+
 class TestCli:
     def test_probe_goes_through_the_client(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path

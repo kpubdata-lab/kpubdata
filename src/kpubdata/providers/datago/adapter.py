@@ -25,6 +25,7 @@ from kpubdata.exceptions import (
     TransportError,
 )
 from kpubdata.providers._common import (
+    DATAGO_403_HINT,
     build_schema_from_metadata,
     load_catalogue,
     reported_total,
@@ -42,12 +43,6 @@ _SUPERSEDED_BY = {
     # air_station spec, which accepts the same stationName/dataTerm filters.
     "airkorea_station_realtime": "air_station",
 }
-
-_DATAGO_403_HINT = (
-    "data.go.kr returned 403. This usually means the specific API has not been activated "
-    "(활용신청) for your key. Visit the dataset's page on https://www.data.go.kr and "
-    "click '활용신청'. Approval is usually automatic and becomes active within a few minutes."
-)
 
 
 def _is_allowed_datago_host(host: str) -> bool:
@@ -505,7 +500,7 @@ class DataGoAdapter:
         except TransportError as exc:
             if self._is_http_403(exc):
                 raise AuthError(
-                    _DATAGO_403_HINT,
+                    DATAGO_403_HINT,
                     provider="datago",
                     dataset_id=dataset_id or None,
                     status_code=403,

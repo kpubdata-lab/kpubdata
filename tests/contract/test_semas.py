@@ -16,6 +16,7 @@ import pytest
 from kpubdata.config import KPubDataConfig
 from kpubdata.core.models import DatasetRef, Query
 from kpubdata.core.protocol import ProviderAdapter
+from kpubdata.exceptions import AuthError, TransportError
 from kpubdata.transport.http import HttpTransport
 from tests.contract.provider_adapter import ProviderAdapterContract
 
@@ -298,3 +299,34 @@ class TestSemasAdapterContract(ProviderAdapterContract):
             can be raised as-is.
         """
         return ("storeOne", {"bizesId": "S001"})
+
+
+class _RefusingTransport:
+    """Raises what ``HttpTransport`` raises for a gateway 403, without a network."""
+
+    def request(self, method: str, url: str, **kwargs: object) -> _FakeResponse:
+        del kwargs
+        raise TransportError(f"HTTP status error 403 for {method} {url}", status_code=403) from None
+
+
+def test_a_refused_key_is_the_canonical_auth_error() -> None:
+    """A data.go.kr gateway 403 surfaces as ``AuthError``, as datago's does (#916)."""
+    adapter_class = cast(
+        _AdapterFactory, import_module("kpubdata.providers.semas.adapter").SemasAdapter
+    )
+    adapter = adapter_class(
+        config=KPubDataConfig(provider_keys={"datago": "test-key"}),
+        transport=cast(HttpTransport, cast(object, _RefusingTransport())),
+    )
+    dataset = adapter.get_dataset("store_one")
+
+    with pytest.raises(AuthError) as list_error:
+        adapter.query_records(dataset, Query(page_size=1))
+    with pytest.raises(AuthError) as raw_error:
+        adapter.call_raw(dataset, "", {})
+
+    for error in (list_error.value, raw_error.value):
+        assert error.status_code == 403
+        assert error.provider == "semas"
+        assert error.dataset_id == dataset.id
+        assert isinstance(error.__cause__, TransportError)

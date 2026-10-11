@@ -180,8 +180,12 @@ class Client:
         the verdict. ``status`` is one of ``PROBE_STATUSES`` (ADR 0005).
 
         When the dataset needs a key this client does not have, no call is
-        made and the status is ``auth_unknown``. Returns ``None`` when no spec
-        exists for ``dataset_id`` — only spec-defined datasets can be probed.
+        made and the status is ``auth_unknown``. A spec-defined dataset is
+        called through its spec; a catalogue dataset of the data.go.kr adapters
+        (``datago``, ``semas``, ``localdata``) through the adapter, with one
+        one-record ``list`` call. Returns ``None`` for any other dataset — an
+        unknown id, a raw-only dataset such as ``datago.generic``, or another
+        provider's catalogue dataset, whose error codes are not data.go.kr's.
         """
         logger.debug("Probing dataset", extra={"dataset_id": dataset_id})
         return _probe.probe_dataset(dataset_id, config=self._config)
