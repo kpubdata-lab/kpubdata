@@ -8,6 +8,9 @@ body:
         ## New Provider Adapter Request
 
         Use this template to propose adding a new Korean public data provider.
+        During the stabilization freeze, new provider implementations are deferred.
+        Search the existing provider issues first and append evidence there
+        instead of creating a duplicate. Discuss future expansion in Discussions.
 
   - type: input
     id: provider-name
