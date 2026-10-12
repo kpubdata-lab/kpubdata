@@ -118,6 +118,58 @@ def test_merging_the_release_please_branch_reaches_the_gated_release_job() -> No
     assert "startsWith(github.event.pull_request.head.ref, 'release/')" in release
 
 
+APP_TOKEN = "${{ steps.app.outputs.token || github.token }}"
+
+
+def _steps(workflow: str) -> list[str]:
+    """Each step of the one job, as text, split on the step's leading dash."""
+    body = workflow.split("\n    steps:\n", 1)[1]
+    return re.split(r"\n(?=      - )", body)
+
+
+def test_the_release_app_token_is_pinned_and_holds_two_permissions() -> None:
+    """The App token is the owner's choice for #895. It is minted with contents and pull
+    requests write and nothing else, from a pinned action."""
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    mint = next(step for step in _steps(workflow) if "create-github-app-token" in step)
+
+    assert re.search(r"uses: actions/create-github-app-token@[0-9a-f]{40}\s", mint)
+    assert "client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}" in mint
+    assert "private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}" in mint
+    assert sorted(re.findall(r"permission-[a-z-]+: \w+", mint)) == [
+        "permission-contents: write",
+        "permission-pull-requests: write",
+    ]
+    assert "secrets.RELEASE_PLEASE_TOKEN" not in workflow
+
+
+def test_the_app_token_reaches_only_release_please_and_the_branch_checkout() -> None:
+    """Used anywhere else — a `gh` call, an approval — it would act with the App's
+    identity. Two uses: release-please opens the pull request, checkout pushes to it."""
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    users = [step for step in _steps(workflow) if "steps.app.outputs.token" in step]
+
+    assert len(users) == 2
+    assert "googleapis/release-please-action@" in users[0]
+    assert "actions/checkout@" in users[1]
+    assert workflow.count("steps.app.outputs.token") == 2
+    assert workflow.count(APP_TOKEN) == 2
+    assert "GH_TOKEN" not in workflow
+
+
+def test_without_the_app_secrets_the_job_warns_and_falls_back() -> None:
+    """Releases must not stop on the day the App is not set up yet: no secrets is a
+    warning and GITHUB_TOKEN, as before. One secret without the other is an error."""
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    check = next(step for step in _steps(workflow) if "id: app-secrets" in step)
+    mint = next(step for step in _steps(workflow) if "create-github-app-token" in step)
+
+    assert "if: steps.app-secrets.outputs.use == 'true'" in mint
+    assert "::warning title=No release App token::" in check
+    assert "::error title=Release App half configured::" in check
+    assert re.search(r"::error[^\n]*\n\s+exit 1\n", check)
+
+
 @pytest.fixture
 def repo(tmp_path: Path) -> Path:
     (tmp_path / "pyproject.toml").write_text(

@@ -209,10 +209,59 @@ builder 의 릴리스를 받는다. builder 가 끝났고 studio 가 준비됐�
 함께 병합됐고, 창 검사는 "critical patch for #821" 로 통과했다(#895). 줄이 없었다면
 10/13 까지 태그되지 않았다. `tests/unit/scripts/test_release_window.py` 가 이 두 경우를
 `release.yml` 의 스크립트 그대로 돌려 확인한다. pre-release 는 release-please 가 하지
-않으므로 `mode=prepare` 로 낸다. `GITHUB_TOKEN` 으로 연 PR 은
-필수 체크가 돌지 않는다 — `RELEASE_PLEASE_TOKEN` secret 이 없으면 사람이 PR 을 닫았다
-다시 열어야 체크가 시작된다. builder·studio 는 아직 `mode=prepare` 를 쓴다 — 옮기는 일과
-두 버전이 어긋나면 실패하는 검사는 #895 에 남아 있다.
+않으므로 `mode=prepare` 로 낸다. builder·studio 는 아직 `mode=prepare` 를 쓴다 — 옮기는
+일과 두 버전이 어긋나면 실패하는 검사는 #895 에 남아 있다. Studio 는 release-please 로
+버전을 따로 계산하지 않고 지금처럼 Builder 의 버전 태그를 따른다(ADR 0004, 2026-10-12
+소유자 결정).
+
+<a id="release-app"></a>
+**release PR 의 체크는 최소 권한 GitHub App 토큰으로 돈다**(#895, 2026-10-12 소유자 결정).
+`GITHUB_TOKEN` 으로 연 PR 에서는 `pull_request` 워크플로가 시작되지 않아 필수 체크가
+보고되지 않는다. 그래서 `release-please.yml` 은 두 secret 으로
+`actions/create-github-app-token`(커밋 SHA 고정)에서 짧게 사는 설치 토큰을 받아
+release-please 와 release 브랜치 push 에 쓴다. 그 토큰이 연 PR 과 push 는 사람의 것처럼
+CI 를 시작한다.
+
+| Secret | 값 |
+|---|---|
+| `RELEASE_APP_CLIENT_ID` | App 의 Client ID (App 설정 화면 상단) |
+| `RELEASE_APP_PRIVATE_KEY` | App 에서 만든 private key — `.pem` 파일 전체 |
+
+App 에 주는 권한은 저장소 권한 두 가지뿐이다. 토큰도 같은 두 가지로만 발급하므로
+App 에 권한이 더 붙어도 토큰은 좁다.
+
+| 권한 | 수준 | 쓰는 곳 |
+|---|---|---|
+| Contents | Read and write | release 브랜치 push |
+| Pull requests | Read and write | release PR 열기·고치기 |
+| (Metadata) | Read-only | GitHub 가 모든 App 에 자동으로 붙인다 |
+
+그 밖의 권한(Actions, Workflows, Administration, Checks, Issues …)은 주지 않는다. 토큰은
+병합·승인에 쓰지 않는다 — `tests/unit/test_no_workflow_merges.py` 가 `.github/` 어디에서도
+병합·자동 병합·승인을 막고, `tests/unit/scripts/test_release_please.py` 가 토큰이
+release-please 와 체크아웃 두 곳에만 쓰이고 두 권한으로만 발급되는 것을 지킨다. 병합은
+여전히 사람이 한다.
+
+**secret 이 없을 때는 지금 방식으로 돈다.** 두 secret 이 모두 없으면 잡은 경고
+(`No release App token`)를 남기고 `GITHUB_TOKEN` 으로 PR 을 연다 — 사람이 PR 을 닫았다
+다시 열어야 체크가 시작된다. App 설정 전에도 릴리스가 멈추지 않게 하려는 것이다. 하나만
+있으면 설정이 깨진 것이므로 잡이 실패한다.
+
+**소유자가 할 일** (한 번):
+
+1. 조직 `kpubdata-lab` → Settings → Developer settings → GitHub Apps → New GitHub App.
+   Webhook 은 끈다(Active 해제). Repository permissions 에서 Contents 와 Pull requests 만
+   Read and write 로 둔다. "Only on this account" 로 만든다.
+2. App 을 세 저장소(`kpubdata`, `kpubdata-builder`, `kpubdata-studio`)에만 설치한다
+   ("Only select repositories").
+3. App 설정에서 Client ID 를 적어 두고 private key 를 만든다(.pem 다운로드).
+4. 각 저장소의 Settings → Secrets and variables → Actions 에 `RELEASE_APP_CLIENT_ID`,
+   `RELEASE_APP_PRIVATE_KEY` 를 넣는다. 조직 secret 으로 세 저장소에만 공유해도 된다.
+5. Actions → **Release please** → Run workflow 로 한 번 돌려, 경고가 사라지고 release PR 에
+   체크가 붙는 것을 본다.
+
+Builder·Studio 는 아직 `release-please.yml` 이 없으므로 secret 은 그 워크플로가 생길 때
+쓰인다.
 
 **워크플로는 PR 을 병합하지 않는다.** Dependabot PR 도 사람이 병합한다. 자동 병합
 워크플로는 필수 체크는 지키지만, `review:R3` 이 아닌 PR 에는 사람의 승인을 요구하는
