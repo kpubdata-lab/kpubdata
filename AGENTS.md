@@ -11,6 +11,23 @@
 This repository is built for agent-driven development. It is a Python 3.10+
 framework with a small, stable public API and one adapter per provider.
 
+
+## Stabilization-only scope
+
+The product-family [POLICY.md, section 1.3](docs/governance/POLICY.md)
+freezes net-new features and operational responsibilities until the maintainer
+explicitly lifts it. Do not add providers, dataset specs, API exports, new
+integration types or scheduled agents as routine work. Prioritize credential
+transport fixes, consistent provider responses, regression tests, existing
+dataset evidence, CI integrity and released-SDK compatibility instead.
+
+Before coding, tie the change to an existing user journey and a verified issue.
+A `feat` PR or added provider/spec/export/workflow is stopped by
+`scripts/check_stabilization_scope.py` unless an existing-flow exception is
+documented and approved by a non-author reviewer (POLICY 1.3). A `fix` title
+does not exempt an actual feature expansion; review the semantic diff.
+Do not broaden scope by creating a second issue for work already tracked.
+
 ## Read these first
 
 1. `VALIDATION.md`
