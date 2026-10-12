@@ -166,7 +166,7 @@ def _build_adapter_with_transport(
         config=KPubDataConfig(provider_keys={"datago": "test-key"}),
         transport=cast(HttpTransport, cast(object, transport)),
     )
-    dataset = adapter.get_dataset("general_restaurant")
+    dataset = adapter.get_dataset("hospital")
     return adapter, dataset, transport
 
 
@@ -214,7 +214,7 @@ def test_query_records_parses_success_fixture() -> None:
         Verify expected behavior described by test name is maintained
         without regression.
     """
-    payload = _load_fixture("general_restaurant_success.json")
+    payload = _load_fixture("hospital_success.json")
     adapter, dataset, transport = _build_adapter_with_transport([FakeResponse(payload)])
 
     batch = adapter.query_records(dataset, Query())
@@ -223,7 +223,7 @@ def test_query_records_parses_success_fixture() -> None:
     assert batch.total_count == 3
     assert batch.next_page is None
     assert batch.raw == payload
-    assert batch.items[0]["BPLC_NM"] == "한밥식당"
+    assert batch.items[0]["BPLC_NM"] == "중앙내과의원"
     assert len(transport.calls) == 1
 
 
@@ -337,7 +337,7 @@ def test_query_records_sets_next_page_with_total_count() -> None:
         Verify expected behavior described by test name is maintained
         without regression.
     """
-    payload = _load_fixture("general_restaurant_success.json")
+    payload = _load_fixture("hospital_success.json")
     adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(payload)])
 
     batch = adapter.query_records(dataset, Query(page=1, page_size=2))
@@ -363,7 +363,7 @@ def test_query_records_passes_local_code_filter() -> None:
         Verify expected behavior described by test name is maintained
         without regression.
     """
-    payload = _load_fixture("general_restaurant_success.json")
+    payload = _load_fixture("hospital_success.json")
     adapter, dataset, transport = _build_adapter_with_transport([FakeResponse(payload)])
 
     _ = adapter.query_records(dataset, Query(filters={"localCode": "41135"}))
@@ -376,10 +376,10 @@ def test_query_records_passes_local_code_filter() -> None:
     assert request_params["localCode"] == "41135"
 
 
-# Verifies scenario tested by test_rest_cafe_query_records_parses_success_fixture.
-def test_rest_cafe_query_records_parses_success_fixture() -> None:
+# Verifies scenario tested by test_clinic_query_records_parses_success_fixture.
+def test_clinic_query_records_parses_success_fixture() -> None:
     """
-    Verify test_rest_cafe_query_records_parses_success_fixture scenario.
+    Verify test_clinic_query_records_parses_success_fixture scenario.
 
     Returns:
         None: Computed result or return value from downstream calls.
@@ -392,15 +392,13 @@ def test_rest_cafe_query_records_parses_success_fixture() -> None:
         Verify expected behavior described by test name is maintained
         without regression.
     """
-    payload = _load_fixture("rest_cafe_success.json")
-    adapter, dataset, _ = _build_dataset_adapter_with_transport(
-        "rest_cafe", [FakeResponse(payload)]
-    )
+    payload = _load_fixture("clinic_success.json")
+    adapter, dataset, _ = _build_dataset_adapter_with_transport("clinic", [FakeResponse(payload)])
 
     batch = adapter.query_records(dataset, Query())
 
     assert len(batch.items) == 3
-    assert batch.items[0]["BPLC_NM"] == "카페모카"
+    assert batch.items[0]["BPLC_NM"] == "대흥가정의원"
 
 
 # Verifies scenario tested by test_adapter_lists_all_datasets.
@@ -423,11 +421,8 @@ def test_adapter_lists_all_datasets() -> None:
 
     datasets = adapter.list_datasets()
 
-    assert len(datasets) == 59
+    assert len(datasets) == 56
     assert [dataset.dataset_key for dataset in datasets] == [
-        "general_restaurant",
-        "rest_cafe",
-        "bakery",
         "hospital",
         "clinic",
         "pharmacy",
@@ -536,7 +531,6 @@ def test_build_request_url_missing_base_url_logs_debug(caplog: pytest.LogCapture
 
 
 _NEW_DATASETS = [
-    ("bakery", "bakery_success.json", "중앙베이커리"),
     ("hospital", "hospital_success.json", "중앙내과의원"),
     ("clinic", "clinic_success.json", "대흥가정의원"),
     ("pharmacy", "pharmacy_success.json", "중앙약국"),

@@ -110,29 +110,28 @@ def test_a_baseline_line_without_its_catalogue_entry_fails(repo: Path) -> None:
     assert "datago.asos_daily is no longer catalogue-only" in result.stderr
 
 
-def test_a_known_duplicate_that_is_resolved_must_leave_the_list() -> None:
-    module = _module()
-
-    problems = module.evaluate(
-        catalogue={"localdata.other"},
-        specs={"localdata.bakery"},
-        baseline={"localdata.other"},
-        known_duplicates=frozenset({"localdata.bakery"}),
-    )
-
-    assert problems == [
-        "localdata.bakery is no longer declared twice; remove it from KNOWN_DUPLICATES"
-    ]
-
-
-def test_a_known_duplicate_passes_while_it_lasts() -> None:
+def test_a_former_localdata_duplicate_is_rejected() -> None:
     module = _module()
 
     problems = module.evaluate(
         catalogue={"localdata.bakery", "localdata.other"},
         specs={"localdata.bakery"},
         baseline={"localdata.other"},
-        known_duplicates=frozenset({"localdata.bakery"}),
+    )
+
+    assert problems == [
+        "localdata.bakery is declared by both a catalogue and a spec; "
+        "the spec serves it, so remove the catalogue entry"
+    ]
+
+
+def test_a_spec_only_localdata_dataset_passes() -> None:
+    module = _module()
+
+    problems = module.evaluate(
+        catalogue={"localdata.other"},
+        specs={"localdata.bakery"},
+        baseline={"localdata.other"},
     )
 
     assert problems == []

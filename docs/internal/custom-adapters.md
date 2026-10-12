@@ -33,9 +33,9 @@ spec(`specs/<provider>/*.yaml`, spec 실행기가 처리) 가운데 **한 곳에
 
 catalogue 에만 있는 항목은 `scripts/catalogue_only_baseline.txt` 에 있고, 그 목록은 줄어들기만
 한다. `scripts/check_catalogue_baseline.py` 가 CI 에서 확인한다(목록에 없는 catalogue 항목,
-목록에 남은 지워진 항목, catalogue·spec 양쪽 선언이 있으면 실패). 지금 양쪽 선언으로 남은 것은
-`localdata.bakery`·`general_restaurant`·`rest_cafe` 셋뿐이며, 스크립트의 `KNOWN_DUPLICATES` 에
-적혀 있다.
+목록에 남은 지워진 항목, catalogue·spec 양쪽 선언이 있으면 실패). `localdata.bakery`,
+`localdata.general_restaurant`, `localdata.rest_cafe` 는 spec 에서 계속 제공하고 catalogue 의
+중복 선언을 제거했다.
 
 spec 실행기의 현재 한계: 응답 envelope 은 `datago_standard` 만 실행한다
 (`core/executor.py` 의 `_require_supported_envelope`). 스키마 enum 에 다른 envelope 이름이 있어도

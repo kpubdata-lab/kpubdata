@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-11T11:52:09+00:00",
+  "generated_at": "2026-10-12T03:39:19+00:00",
   "spec_datasets": {
     "total": 25,
     "verified": 24,
@@ -117,7 +117,7 @@
     "kosis": 2,
     "krx": 3,
     "law": 3,
-    "localdata": 59,
+    "localdata": 56,
     "lofin": 6,
     "neis": 2,
     "semas": 17,

@@ -224,9 +224,6 @@ class TestLocaldataAdapterContract(ProviderAdapterContract):
         """
         return _build_adapter(
             [
-                "general_restaurant_success.json",
-                "rest_cafe_success.json",
-                "bakery_success.json",
                 "hospital_success.json",
                 "clinic_success.json",
                 "pharmacy_success.json",
@@ -435,7 +432,7 @@ class TestLocaldataAdapterContract(ProviderAdapterContract):
             Exception from internal implementation or downstream dependencies
             can be raised as-is.
         """
-        return "general_restaurant"
+        return "hospital"
 
     @pytest.fixture()
     def invalid_dataset_key(self) -> str:
@@ -468,7 +465,7 @@ class TestLocaldataAdapterContract(ProviderAdapterContract):
             Exception from internal implementation or downstream dependencies
             can be raised as-is.
         """
-        return adapter.get_dataset("general_restaurant")
+        return adapter.get_dataset("hospital")
 
     @pytest.fixture()
     def sample_query(self) -> Query:
@@ -518,7 +515,7 @@ def test_a_refused_key_is_the_canonical_auth_error() -> None:
         config=KPubDataConfig(provider_keys={"datago": "test-key"}),
         transport=cast(HttpTransport, cast(object, _RefusingTransport())),
     )
-    dataset = adapter.get_dataset("general_restaurant")
+    dataset = adapter.get_dataset("hospital")
 
     with pytest.raises(AuthError) as list_error:
         adapter.query_records(dataset, Query(page_size=1))
