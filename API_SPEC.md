@@ -231,7 +231,23 @@ schema = dataset.schema()
 
 ```python
 raw = dataset.call_raw(operation="list", LAWD_CD="11680", DEAL_YMD="202503")
+batch = dataset.parse_raw(raw)  # spec-backed datasets only; no request
 ```
+
+`parse_raw(payload: Mapping[str, object]) -> RecordBatch` accepts a decoded
+mapping (for example, one saved from `call_raw`) on a spec-backed dataset. It
+uses the same response-code mapping and one-page field normalization, casting
+and validation as `list()`. Provider errors raise the same canonical exception
+(`AuthError`, `RateLimitError`, `ProviderResponseError`, etc.); a successful
+response with malformed items raises `ParseError`. Non-spec datasets raise
+`UnsupportedCapabilityError`. Empty results with an explicit zero count or
+no-data code return an empty batch.
+
+The returned batch contains `items`, `total_count`, `validation` and the input
+`raw` payload. A saved response contains no request page or transport context,
+so `next_page` is `None` and no provenance metadata is synthesized. To compute
+the next page, use `list()` or the provider's pagination fields. `call_raw`'s
+request options are unchanged.
 
 ## 4a. Reachability probe
 
@@ -340,6 +356,10 @@ Returns `SchemaDescriptor | None`.
 
 Returns provider-native payload / response object.
 
+### `parse_raw()`
+
+Parses a decoded spec response offline as described under **Raw** in section 4.
+
 ## 7. Public API promises
 
 KPubData promises stability for:
@@ -349,7 +369,7 @@ KPubData promises stability for:
 - `Client.probe()` / `Client.probe_all()`, `ProbeResult`, `PROBE_STATUSES`
 - dataset discovery methods
 - `find_spec()` / `discover_specs()` and the `SpecDefinition` they return (#913), limited to the attributes listed under *Spec definitions* below
-- `Dataset.list/list_all/schema/call_raw`
+- `Dataset.list/list_all/schema/call_raw/parse_raw`
 - canonical model classes
 - canonical error types, each error's `code` and the keys of `to_dict()`
 - `SENSITIVE_PARAM_KEYS`: the parameter and header names kpubdata masks as credentials (casefolded, matched exactly). Names are only added
@@ -371,7 +391,7 @@ does not change with the message, so map on it rather than on the text.
 | `InvalidRequestError` | `invalid_request` | a query the library or the provider refuses |
 | `DatasetNotFoundError` | `dataset_not_found` | an unknown dataset id, or a service that is gone |
 | `ProviderResponseError` | `provider_response_error` | a response that breaks the provider's contract |
-| `ParseError` | `parse_error` | a body that cannot be decoded |
+| `ParseError` | `parse_error` | a body that cannot be decoded, or a malformed saved payload passed to `parse_raw()` |
 | `ConfigError` | `config_error` | a missing key or invalid configuration |
 | `UnsupportedCapabilityError` | `unsupported_capability` | an operation the dataset does not have |
 | `ProviderNotRegisteredError` | `provider_not_registered` | a provider absent from the registry |

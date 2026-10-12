@@ -24,7 +24,7 @@ import json
 import logging
 import re
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from types import MappingProxyType
@@ -52,6 +52,7 @@ from kpubdata.exceptions import (
     DatasetNotFoundError,
     IncompleteListError,
     InvalidRequestError,
+    ParseError,
     ProviderResponseError,
     PublicDataError,
     RateLimitError,
@@ -1028,6 +1029,39 @@ class SpecExecutor:
             raw=payload,
         )
 
+    def parse_payload(
+        self, spec: SpecDefinition, dataset: DatasetRef, payload: Mapping[str, object]
+    ) -> RecordBatch:
+        """Normalize a decoded payload without transport or query context."""
+        self._require_supported_envelope(spec)
+        decoded = dict(payload)
+        code_path = _resolve_path(spec.response.error.code_path, spec)
+        code = result_code_text(_dot_get(decoded, code_path))
+        fallback_code = result_code_text(decoded.get("resultCode"))
+        if code is None and fallback_code is None and _gateway_rejection(decoded) is None:
+            msg = f"{spec.id}: malformed response code at {code_path!r}"
+            raise ParseError(msg, provider=spec.provider, dataset_id=spec.id)
+        self._check_error(spec, decoded)
+        total_count = self._extract_total_count(spec, decoded)
+        items_path = _resolve_path(spec.response.items_path, spec)
+        raw_items = _dot_get(decoded, items_path)
+        actual_code = code or fallback_code
+        is_empty = total_count == 0 or (actual_code is not None and is_no_data_code(actual_code))
+        valid_items = isinstance(raw_items, dict) or (
+            isinstance(raw_items, list) and all(isinstance(item, dict) for item in raw_items)
+        )
+        if not valid_items and not (raw_items is None and is_empty):
+            msg = f"{spec.id}: malformed items at {items_path!r}"
+            raise ParseError(msg, provider=spec.provider, dataset_id=spec.id)
+        items, validation = self._normalize_fields(spec, self._extract_items(spec, decoded))
+        return RecordBatch(
+            items=items,
+            dataset=dataset,
+            total_count=total_count,
+            validation=validation,
+            raw=decoded,
+        )
+
     def fetch(
         self,
         spec: SpecDefinition,
@@ -1371,6 +1405,14 @@ class SpecDatasetAdapter:
             msg = f"Unknown dataset key for spec adapter: {dataset.id}"
             raise DatasetNotFoundError(msg, provider=self._provider, dataset_id=dataset.id)
         return self._executor.query(spec, dataset, query)
+
+    def parse_raw(self, dataset: DatasetRef, payload: Mapping[str, object]) -> RecordBatch:
+        """Parse a saved decoded response using this dataset's spec."""
+        spec = self._specs.get(dataset.dataset_key)
+        if spec is None:
+            msg = f"Unknown dataset key for spec adapter: {dataset.id}"
+            raise DatasetNotFoundError(msg, provider=self._provider, dataset_id=dataset.id)
+        return self._executor.parse_payload(spec, dataset, payload)
 
     def query_records_all(
         self,

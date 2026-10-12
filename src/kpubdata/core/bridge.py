@@ -17,12 +17,13 @@ bridge remains.
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from typing import cast
 
 from kpubdata.core.executor import SpecDatasetAdapter
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
 from kpubdata.core.protocol import ProviderAdapter
+from kpubdata.exceptions import UnsupportedCapabilityError
 
 logger = logging.getLogger("kpubdata.core.bridge")
 
@@ -168,6 +169,13 @@ class CompositeProviderAdapter:
         if self._spec_owns(dataset.dataset_key):
             return self._spec.call_raw(dataset, operation, params)
         return self._inner.call_raw(dataset, operation, params)
+
+    def parse_raw(self, dataset: DatasetRef, payload: Mapping[str, object]) -> RecordBatch:
+        """Route offline parsing only to the spec that owns this dataset."""
+        if self._spec_owns(dataset.dataset_key):
+            return self._spec.parse_raw(dataset, payload)
+        msg = f"{dataset.id} does not support offline parsing"
+        raise UnsupportedCapabilityError(msg, provider=self.name, dataset_id=dataset.id)
 
     @property
     def inner(self) -> ProviderAdapter:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Protocol, runtime_checkable
 
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
@@ -54,4 +55,14 @@ class ProviderAdapter(Protocol):
         ...
 
 
-__all__ = ["ProviderAdapter"]
+@runtime_checkable
+class RawPayloadParser(Protocol):
+    """Optional offline parsing capability for spec-backed datasets."""
+
+    def parse_raw(self, dataset: DatasetRef, payload: Mapping[str, object]) -> RecordBatch:
+        """Normalize a decoded provider payload without a request."""
+
+        ...
+
+
+__all__ = ["ProviderAdapter", "RawPayloadParser"]

@@ -8,7 +8,7 @@ from typing import cast
 
 from kpubdata.core.capability import Operation
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
-from kpubdata.core.protocol import ProviderAdapter
+from kpubdata.core.protocol import ProviderAdapter, RawPayloadParser
 from kpubdata.exceptions import (
     IncompleteListError,
     InvalidRequestError,
@@ -424,6 +424,18 @@ class Dataset:
             },
         )
         return self._adapter.call_raw(self._ref, operation, payload)
+
+    def parse_raw(self, payload: Mapping[str, object]) -> RecordBatch:
+        """Parse a decoded spec response offline using the normal list rules.
+
+        No request is made. Unsupported adapters raise UnsupportedCapabilityError.
+        """
+        if not isinstance(self._adapter, RawPayloadParser):
+            msg = f"{self._ref.id} does not support offline parsing"
+            raise UnsupportedCapabilityError(
+                msg, provider=self._ref.provider, dataset_id=self._ref.id
+            )
+        return self._adapter.parse_raw(self._ref, payload)
 
     @override
     def __repr__(self) -> str:
