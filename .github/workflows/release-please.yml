@@ -18,11 +18,25 @@
 #   - No labels (`skip-labeling`): POLICY 2.1 lists every label, and the tag is what
 #     says a version is released.
 #
-# The token. A pull request opened with GITHUB_TOKEN starts no `pull_request`
-# workflows, so its required checks never report and it cannot be merged as it is.
-# With a `RELEASE_PLEASE_TOKEN` secret (a fine-grained PAT or an App token with
-# contents and pull-requests write) the checks run by themselves. Without it, close and
-# reopen the pull request by hand — that event is a person's, and the checks start.
+# The token (#895). A pull request opened with GITHUB_TOKEN starts no `pull_request`
+# workflows, so its required checks never report and it cannot be merged as it is. The
+# owner chose a least-privilege GitHub App: this job mints a short-lived installation
+# token from two secrets and gives it to release-please and to the push below, so the
+# pull request and its later pushes start CI like anyone else's.
+#
+#   RELEASE_APP_CLIENT_ID     the App's Client ID (Settings -> Developer settings)
+#   RELEASE_APP_PRIVATE_KEY   a private key generated for the App (the whole .pem)
+#
+# The App holds two repository permissions and nothing else: Contents read and write
+# (the release branch) and Pull requests read and write (open and edit the pull
+# request). The token is minted with the same two, so a wider App still yields a narrow
+# token. It is never used to merge or approve; the no-workflow-merges test and the
+# release-please tests (under tests/unit) hold that.
+#
+# Without the two secrets the job warns and falls back to GITHUB_TOKEN, as it worked
+# before: the pull request still opens, and a person closes and reopens it to start the
+# checks. Releases keep working on the day the App is not yet set up. With only one of
+# the two secrets the job fails — that is a broken setup, not a missing one.
 #
 # release.yml's `mode=prepare` is still there for what this cannot do: a pre-release,
 # and a critical patch inside the seven-day interval.
@@ -55,11 +69,38 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    env:
+      HAS_CLIENT_ID: ${{ secrets.RELEASE_APP_CLIENT_ID != '' }}
+      HAS_PRIVATE_KEY: ${{ secrets.RELEASE_APP_PRIVATE_KEY != '' }}
     steps:
+      - name: Check the release App secrets
+        id: app-secrets
+        run: |
+          if [ "${HAS_CLIENT_ID}" = "true" ] && [ "${HAS_PRIVATE_KEY}" = "true" ]; then
+            echo "use=true" >> "$GITHUB_OUTPUT"
+            echo "minting a release App token"
+          elif [ "${HAS_CLIENT_ID}" = "true" ] || [ "${HAS_PRIVATE_KEY}" = "true" ]; then
+            echo "::error title=Release App half configured::Set both RELEASE_APP_CLIENT_ID and RELEASE_APP_PRIVATE_KEY, or neither (docs/compatibility.md §5.1)."
+            exit 1
+          else
+            echo "use=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=No release App token::RELEASE_APP_CLIENT_ID and RELEASE_APP_PRIVATE_KEY are not set. Falling back to GITHUB_TOKEN: the release pull request opens, but its required checks do not start until a person closes and reopens it (docs/compatibility.md §5.1)."
+          fi
+
+      - name: Mint the release App token
+        id: app
+        if: steps.app-secrets.outputs.use == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1  # v3.2.0
+        with:
+          client-id: ${{ secrets.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
       - id: please
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7  # v5.0.0
         with:
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
+          token: ${{ steps.app.outputs.token || github.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
           skip-github-release: true
@@ -87,7 +128,7 @@ jobs:
         if: steps.please.outputs.pr
         with:
           ref: ${{ steps.branch.outputs.name }}
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
+          token: ${{ steps.app.outputs.token || github.token }}
 
       - name: Read the version release-please chose
         id: version

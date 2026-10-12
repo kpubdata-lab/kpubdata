@@ -54,6 +54,14 @@ The release workflow (`.github/workflows/release.yml`) enforces the ordering:
 4. publish  → a person dispatches publish-pypi.yml with the tag (trusted publisher)
 ```
 
+The release pull request that release-please opens gets its required checks through a
+least-privilege GitHub App token (#895): `release-please.yml` mints it from the
+`RELEASE_APP_CLIENT_ID` and `RELEASE_APP_PRIVATE_KEY` secrets with two repository
+permissions only — Contents read and write, Pull requests read and write. The token never
+merges or approves. Without the secrets the job warns and falls back to `GITHUB_TOKEN`
+(a person closes and reopens the pull request to start the checks). The owner's setup
+steps are in [compatibility §5.1](../compatibility.md#release-app).
+
 No tag exists before the gates pass (#586). A re-run after the tag was pushed but the
 GitHub Release was not created finishes the release (#687). A re-run after a
 `release-window` refusal does nothing — it replays the same event; release with
