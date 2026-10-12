@@ -14,8 +14,7 @@ Three things fail:
   dataset is written as a spec, not added to a catalogue;
 - a baseline line whose catalogue entry is gone -- the list only shrinks, so remove the
   line in the same change;
-- a key declared by both a catalogue and a spec, unless ``KNOWN_DUPLICATES`` lists it.
-  That list only shrinks too.
+- a key declared by both a catalogue and a spec.
 
 The spec id is read with a regex, as ``check_baseline_shrink.py`` does, so the gate
 needs nothing beyond Python itself.
@@ -36,17 +35,6 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 BASELINE = Path("scripts") / "catalogue_only_baseline.txt"
 PROVIDERS = Path("src") / "kpubdata" / "providers"
 SPECS = Path("src") / "kpubdata" / "specs"
-
-#: Keys still declared by both a catalogue and a spec. The three localdata entries
-#: belong to the 59-service catalogue the localdata adapter is built around and were
-#: left out of #898's datago clean-up. Remove a line here when its catalogue entry goes.
-KNOWN_DUPLICATES = frozenset(
-    {
-        "localdata.bakery",
-        "localdata.general_restaurant",
-        "localdata.rest_cafe",
-    }
-)
 
 _SPEC_ID = re.compile(r"^id:\s*['\"]?([\w.]+)['\"]?\s*$", re.MULTILINE)
 
@@ -81,19 +69,14 @@ def evaluate(
     catalogue: set[str],
     specs: set[str],
     baseline: set[str],
-    known_duplicates: frozenset[str] = KNOWN_DUPLICATES,
 ) -> list[str]:
     """Problems with the current catalogues; an empty list means the gate passes."""
     problems: list[str] = []
     duplicates = catalogue & specs
-    for dataset_id in sorted(duplicates - known_duplicates):
+    for dataset_id in sorted(duplicates):
         problems.append(
             f"{dataset_id} is declared by both a catalogue and a spec; the spec serves it, "
             "so remove the catalogue entry"
-        )
-    for dataset_id in sorted(known_duplicates - duplicates):
-        problems.append(
-            f"{dataset_id} is no longer declared twice; remove it from KNOWN_DUPLICATES"
         )
     catalogue_only = catalogue - specs
     for dataset_id in sorted(catalogue_only - baseline):

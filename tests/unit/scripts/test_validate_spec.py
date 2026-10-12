@@ -208,16 +208,23 @@ examples:
     assert any("examples[].name 중복" in err for err in report.results[0].errors)
 
 
-def test_catalogue_coexistence_is_notice_only(module, tmp_path: Path) -> None:
-    """Catalogue coexistence is a NOTICE, not a failure (pilot coexistence design)."""
-    # Reuses a real spec: localdata.bakery is still in the localdata catalogue too
-    # (the datago duplicates were removed in #898).
-    specs = REPO_ROOT / "src" / "kpubdata" / "specs" / "localdata"
+def test_catalogue_coexistence_is_notice_only(
+    module, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The spec validator reports overlap; the separate catalogue gate rejects it."""
+    catalogue = tmp_path / "providers" / "test"
+    catalogue.mkdir(parents=True)
+    (catalogue / "catalogue.json").write_text(
+        json.dumps([{"dataset_key": "sample"}]), encoding="utf-8"
+    )
+    monkeypatch.setattr(module, "PROVIDERS_DIR", tmp_path / "providers")
+    specs = tmp_path / "specs"
+    _write_spec(specs, "test", "sample.yaml", VALID_SPEC)
     report = module.validate_specs(specs, SCHEMA_PATH)
     assert report.ok
-    bakery = next(r for r in report.results if r.spec_id == "bakery")
-    assert bakery.passed
-    assert any("공존" in notice for notice in bakery.notices)
+    sample = report.results[0]
+    assert sample.passed
+    assert any("공존" in notice for notice in sample.notices)
 
 
 def test_zero_specs_reports_failure(module, tmp_path: Path) -> None:
