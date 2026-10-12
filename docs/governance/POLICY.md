@@ -920,6 +920,9 @@ Repo | Issue | Classification | Priority | Epic | Action
 # 13. Agent의 Issue 생성 제한
 
 Agent는 문제를 발견했다고 자동으로 Issue를 만들지 않는다.
+안정화 기간에는 1.3절의 Issue 접수·중복 제거 기준을 먼저 적용한다. 기존 문제의
+미완료 항목이나 단순 후속 조사 결과는 **원본 Issue/PR에 추가**한다. 독립적인 새
+버그·보안 위험의 기록은 허용하며, 긴급한 위험 대응을 지연하지 않는다.
 
 기본 동작:
 
