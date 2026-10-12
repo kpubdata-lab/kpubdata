@@ -1,4 +1,8 @@
-# 에이전트 기반 데이터셋 빌드 (dataset-request/drift 라벨 → 무인 처리)
+# Dataset agent — manual only during stabilization (POLICY 1.3).
+#
+# New dataset intake and unattended label-triggered runs are frozen. A maintainer
+# can still dispatch an existing request or drift investigation deliberately.
+# The hosted read-only gate and secret containment remain in place.
 #
 # 전제 조건 (활성화 체크리스트 — 미충족 시 조용히 스킵):
 #   1. 러너: 국내 self-hosted (labels: self-hosted, kr) — data.go.kr 실호출용
@@ -9,15 +13,12 @@
 # `gate` job runs on a GitHub-hosted runner with no secret and a read-only token, and
 # passes a request only when whoever started the run can push to the repository, the
 # issue is an open dataset-request/drift issue and it names a well-formed dataset id
-# (scripts/dataset_request_gate.py). A request filed through the issue template by
-# someone without write access is refused there; a maintainer starts it with
-# workflow_dispatch after reading it. This is not yet the protected environment and
+# (scripts/dataset_request_gate.py). Only a maintainer can start the workflow
+# manually after reviewing the issue. This is not yet the protected environment and
 # the separated jobs #521 asks for — the agent still shares the build job.
 name: Build Dataset (agent)
 
 on:
-  issues:
-    types: [labeled]
   workflow_dispatch:
     inputs:
       issue_number:
@@ -36,10 +37,7 @@ env:
 
 jobs:
   gate:
-    if: |
-      (github.event_name == 'workflow_dispatch') ||
-      (github.event.action == 'labeled' &&
-       (github.event.label.name == 'dataset-request' || github.event.label.name == 'drift'))
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
