@@ -358,8 +358,11 @@ type(scope)!: description
 type 은 틀린 버전이 된다. 병합 전에 제목을 고친다. 사람이 하는 것은 그 release PR 을 검토하고
 병합할지 정하는 것이다(14절 "Release 수행"). `release.yml` prepare 의 `bump` 입력은 release-please
 가 하지 않는 pre-release 와 critical patch 에만 쓴다. 릴리스 노트는 여전히 사람이 쓴 CHANGELOG
-절이 정한다 — release-please 는 CHANGELOG 를 쓰지 않는다. kpubdata-builder·kpubdata-studio 는
-아직 release-please 로 옮기지 않았으므로 prepare 의 `bump` 를 사람이 고른다(#895).
+절이 정한다 — release-please 는 CHANGELOG 를 쓰지 않는다. kpubdata-builder 는 아직
+release-please 로 옮기지 않았으므로 그 `release.yml` prepare 의 `bump` 를 사람이 고른다(#895).
+kpubdata-studio 의 prepare 에는 `bump` 입력이 없다 — Builder 의 최신 릴리스 태그를 읽어 같은
+버전을 쓴다. Studio 는 Builder 를 옮긴 뒤에도 release-please 로 버전을 따로 계산하지 않고
+Builder 의 태그를 따른다(같은 버전 정책 ADR 0004, 2026-10-12 소유자 결정, #895).
 
 **병합은 squash 하나뿐이다** (2026-09-29, 네 저장소 설정): merge commit·rebase merge 는 꺼져
 있고, squash 커밋 제목은 PR 제목, **본문은 PR 본문**이다 (2026-10-01 에 커밋 메시지 모음에서
