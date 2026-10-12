@@ -138,3 +138,91 @@ def test_the_project_name_comes_from_the_file_not_the_directory(script, tmp_path
 def test_a_directory_declaring_nothing_is_an_error(script, tmp_path: Path) -> None:
     with pytest.raises(script.VersionWriteError, match="no name is declared"):
         script.set_version(tmp_path, "0.4.0")
+
+
+ACTION = REPO_ROOT / ".github" / "actions" / "set-version" / "action.yml"
+
+
+def _run_the_action_as_another_repository(
+    tmp_path: Path, workspace: Path, version: str
+) -> tuple[int, str, Path]:
+    """Run the action's step the way a runner does for a remote reference (#927).
+
+    The runner downloads kpubdata under `_actions/<owner>/<repo>/<ref>` and sets
+    `github.action_path` inside it, while `GITHUB_WORKSPACE` is the caller's checkout.
+    The download here carries kpubdata's own `pyproject.toml` and `uv.lock`, so a
+    script that falls back to its own root has something to rewrite.
+
+    Returns the exit status, the combined output and the download's root.
+    """
+    import os
+    import shutil
+    import subprocess
+
+    import yaml
+
+    if shutil.which("bash") is None:
+        pytest.skip("the action's step needs bash")
+    download = tmp_path / "_actions" / "kpubdata-lab" / "kpubdata" / "0123abc"
+    action_dir = download / ".github" / "actions" / "set-version"
+    action_dir.mkdir(parents=True)
+    shutil.copy(ACTION, action_dir / "action.yml")
+    (download / "scripts").mkdir()
+    shutil.copy(SCRIPT_PATH, download / "scripts" / "set_version.py")
+    (download / "pyproject.toml").write_text(
+        '[project]\nname = "kpubdata"\nversion = "0.8.0"\n', encoding="utf-8"
+    )
+    (download / "uv.lock").write_text(
+        'version = 1\n\n[[package]]\nname = "kpubdata"\nversion = "0.8.0"\n'
+        'source = { editable = "." }\n',
+        encoding="utf-8",
+    )
+
+    steps = yaml.safe_load(ACTION.read_text(encoding="utf-8"))["runs"]["steps"]
+    assert len(steps) == 1
+    script = steps[0]["run"].replace("${{ github.action_path }}", str(action_dir))
+    assert "${{" not in script, "an expression this test does not fill in"
+
+    done = subprocess.run(  # noqa: S603 - the repository's own action step
+        ["bash", "-c", script],  # noqa: S607
+        env={**os.environ, "VERSION": version, "GITHUB_WORKSPACE": str(workspace)},
+        cwd=workspace,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return done.returncode, done.stdout + done.stderr, download
+
+
+def test_the_action_writes_the_callers_checkout_not_its_own_download(
+    tmp_path: Path,
+) -> None:
+    """Studio calls this action by reference. Without `--root` the script rewrote the
+    runner's download of kpubdata and left Studio's package.json as it was (#927)."""
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / "package.json").write_text(
+        json.dumps({"name": "kpubdata-studio", "version": "0.4.0"}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    status, output, download = _run_the_action_as_another_repository(tmp_path, workspace, "0.5.0")
+
+    assert status == 0, output
+    assert json.loads((workspace / "package.json").read_text())["version"] == "0.5.0"
+    assert 'version = "0.8.0"' in (download / "pyproject.toml").read_text()
+    assert 'name = "kpubdata"\nversion = "0.8.0"' in (download / "uv.lock").read_text()
+
+
+def test_the_action_fails_when_the_callers_checkout_declares_no_version(
+    tmp_path: Path,
+) -> None:
+    """A caller that forgot to check out must fail, not fall back to kpubdata's files."""
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+
+    status, output, download = _run_the_action_as_another_repository(tmp_path, workspace, "0.5.0")
+
+    assert status != 0
+    assert "error:" in output
+    assert 'version = "0.8.0"' in (download / "pyproject.toml").read_text()

@@ -15,7 +15,16 @@ runs:
     # `github.action_path` is where this action was checked out, which for a remote
     # reference is inside the whole of kpubdata. The script is found from there, so the
     # caller does not have to check this repository out itself.
+    #
+    # `--root` is the caller's checkout, not the script's. Without it the script's
+    # default root is the directory it sits in: for kpubdata that is the checkout, but
+    # for another repository it is the runner's download of kpubdata, so the action
+    # rewrote kpubdata's files, left the caller's untouched and reported success
+    # (#927). A workspace that declares no version fails the script rather than
+    # passing quietly.
     - shell: bash
       env:
         VERSION: ${{ inputs.version }}
-      run: python3 "${{ github.action_path }}/../../../scripts/set_version.py" "${VERSION}"
+      run: |
+        python3 "${{ github.action_path }}/../../../scripts/set_version.py" "${VERSION}" \
+          --root "${GITHUB_WORKSPACE:?GITHUB_WORKSPACE is not set}"

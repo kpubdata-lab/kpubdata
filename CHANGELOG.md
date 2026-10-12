@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The shared `set-version` action writes the version into the calling repository's checkout (#927). It ran `scripts/set_version.py` without `--root`, and the script's default root is the copy it sits in: for another repository calling the action by reference that is the runner's download of kpubdata, so it rewrote kpubdata's `pyproject.toml` and `uv.lock`, left the caller's files as they were and reported success. The action now passes `--root "${GITHUB_WORKSPACE}"`, which for kpubdata itself is the same directory, and a caller whose checkout declares no version fails. No change to the package.
 - The `R3 review` check runs the base branch's judge, not the pull request's (#861). `r3-review.yml` checked out the pull request's merge commit, so a pull request could edit `scripts/r3_review.py` or the action and be judged by its own edit. It now checks out `github.event.pull_request.base.sha`. The workflow file itself is still the pull request's copy; POLICY 14.1 says what that leaves open and why a required workflow is not available on the organisation's plan.
 
 ## [0.10.0] — 2026-10-09
