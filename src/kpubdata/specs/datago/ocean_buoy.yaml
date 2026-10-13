@@ -139,8 +139,11 @@ fields:
   description: 염분 (PSU)
 license:
   type: "공공누리_1유형"
+  commercial_use: true
+  attribution_required: true
+  modification_allowed: true
   redistribution: allowed
-  note: "Terms not yet confirmed — fill from provider page (#524)"
+  attribution: "공공누리 제1유형(출처표시) — 해양수산부 국립해양조사원 해양관측부이 최신 관측데이터"
 examples:
 - name: buoy_0089
   description: TW_0089 부이 최신 관측데이터
