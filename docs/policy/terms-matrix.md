@@ -61,11 +61,11 @@ data.go.kr datasets carry a KOGL type per service. The type determines everythin
 | `sh_rent` | 1 | allowed | yes | yes | 공공누리 제1유형 — 국토교통부 | [link](https://www.data.go.kr/data/15099149/openapi.do) | 2026-09-30 |
 | `sh_trade` | 1 | allowed | yes | yes | 공공누리 제1유형 — 국토교통부 | [link](https://www.data.go.kr/data/15099147/openapi.do) | 2026-09-30 |
 | `village_fcst` | 1 | allowed | yes | yes | 공공누리 제1유형(출처표시) — 기상청 | [link](https://www.data.go.kr/data/15084084/openapi.do) | 2026-09-30 |
-| `ultra_srt_fcst` | 1 | allowed | yes | yes | 공공누리 제1유형 — 기상청 | [link](https://www.data.go.kr/data/15084086/openapi.do) | 2026-09-30 |
-| `ultra_srt_ncst` | 1 | allowed | yes | yes | 공공누리 제1유형 — 기상청 | [link](https://www.data.go.kr/data/15084085/openapi.do) | 2026-09-30 |
-| `air_quality` | **3** | **forbidden** (변경금지) | yes | **no** | 공공누리 제3유형(변경금지) — 한국환경공단 | [link](https://www.data.go.kr/data/15073861/openapi.do) | 2026-09-30 |
-| `air_station` | 1 | allowed | yes | yes | 공공누리 제1유형 — 한국환경공단 | [link](https://www.data.go.kr/data/15073877/openapi.do) | 2026-09-30 |
-| `airkorea_forecast` | 1 | allowed | yes | yes | 공공누리 제1유형 — 한국환경공단 | [link](https://www.data.go.kr/data/15073892/openapi.do) | 2026-09-30 |
+| `ultra_srt_fcst` | 1 | allowed | yes | yes | 공공누리 제1유형(출처표시) — 기상청 | [link](https://www.data.go.kr/data/15084084/openapi.do) | 2026-10-13 |
+| `ultra_srt_ncst` | 1 | allowed | yes | yes | 공공누리 제1유형(출처표시) — 기상청 | [link](https://www.data.go.kr/data/15084084/openapi.do) | 2026-10-13 |
+| `air_quality` | **3** | **forbidden** (변경금지) | yes | **no** | 공공누리 제3유형(변경금지) — 한국환경공단 | [link](https://www.data.go.kr/data/15073861/openapi.do) | 2026-10-13 |
+| `air_station` | **3** | **forbidden** (변경금지) | yes | **no** | 공공누리 제3유형(변경금지) — 한국환경공단 | [link](https://www.data.go.kr/data/15073861/openapi.do) | 2026-10-13 |
+| `airkorea_forecast` | **3** | **forbidden** (변경금지) | yes | **no** | 공공누리 제3유형(변경금지) — 한국환경공단 | [link](https://www.data.go.kr/data/15073861/openapi.do) | 2026-10-13 |
 | `hospital_info` | 1 | allowed | yes | yes | 공공누리 제1유형 — 보건복지부 | [link](https://www.data.go.kr/data/15001671/openapi.do) | 2026-09-30 |
 | `metro_fare` | 1 | allowed | yes | yes | 공공누리 제1유형 — 국토교통부 | [link](https://www.data.go.kr/data/15093677/openapi.do) | 2026-09-30 |
 | `ocean_buoy` | 1 | allowed | yes | yes | 공공누리 제1유형 — 해양수산부 | [link](https://www.data.go.kr/data/15044873/openapi.do) | 2026-09-30 |

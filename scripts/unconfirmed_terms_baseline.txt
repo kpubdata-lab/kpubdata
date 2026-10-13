@@ -10,8 +10,6 @@
 # redistribution is set to unknown — the entry must then be removed here, or
 # the baseline check fails for staleness. A spec that is not listed may not
 # say `allowed` without attribution: unconfirmed terms are not redistributable.
-datago.air_station
-datago.airkorea_forecast
 datago.hospital_info
 datago.metro_fare
 datago.ocean_buoy
