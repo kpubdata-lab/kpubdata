@@ -980,7 +980,7 @@ class TestInsecureHttp:
 # baseline ratchets: shrink-only against the base branch (#766)
 # ----------------------------------------------------------------------
 
-_TERM_ENTRIES = ["datago.hospital_info", "datago.metro_fare"]
+_TERM_ENTRIES = ["datago.ultra_srt_fcst", "datago.ultra_srt_ncst"]
 _HTTP_ENTRIES = ["datago.apt_trade", "datago.village_fcst"]
 
 

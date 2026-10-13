@@ -3,7 +3,7 @@ provider: datago
 title: 단독/다가구 전월세 실거래자료 (Single House Rent)
 description: MOLIT single house rent real transaction data
 source:
-  url: https://www.data.go.kr
+  url: https://www.data.go.kr/data/15126472/openapi.do
 endpoint:
   base_url: http://apis.data.go.kr/1613000/RTMSDataSvcSHRent
   operation: getRTMSDataSvcSHRent
@@ -112,9 +112,12 @@ fields:
   title: 갱신요구권 사용 여부
   semantic_kind: code
 license:
-  type: "공공누리_1유형"
+  type: "이용허락범위_제한없음"
+  commercial_use: true
+  modification_allowed: true
   redistribution: allowed
-  note: "Terms not yet confirmed — fill from provider page (#524)"
+  attribution: "이용허락범위 제한 없음 — 국토교통부 단독/다가구 전월세 실거래가 자료"
+  note: "data.go.kr page 15126472 states 이용허락범위 제한 없음 (no KOGL type), checked 2026-10-13 (#933)"
 examples:
 - name: seoul_gangnam
   description: 서울 강남구 2024-01

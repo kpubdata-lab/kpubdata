@@ -10,17 +10,5 @@
 # redistribution is set to unknown — the entry must then be removed here, or
 # the baseline check fails for staleness. A spec that is not listed may not
 # say `allowed` without attribution: unconfirmed terms are not redistributable.
-datago.hospital_info
-datago.metro_fare
-datago.ocean_buoy
-datago.offi_rent
-datago.offi_trade
-datago.rh_rent
-datago.sh_rent
-datago.sh_trade
-datago.tour_kor_area
-datago.tour_kor_festival
-datago.tour_kor_keyword
-datago.tour_kor_location
 datago.ultra_srt_fcst
 datago.ultra_srt_ncst

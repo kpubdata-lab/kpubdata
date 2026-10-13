@@ -165,9 +165,12 @@ fields:
   title: 우편번호
   semantic_kind: code
 license:
-  type: "공공누리_1유형"
+  type: "이용허락범위_제한없음"
+  commercial_use: true
+  modification_allowed: true
   redistribution: allowed
-  note: "Terms not yet confirmed — fill from provider page (#524)"
+  attribution: "이용허락범위 제한 없음 — 한국관광공사 국문 관광정보 서비스_GW"
+  note: "data.go.kr page 15101578 states 이용허락범위 제한 없음 (no KOGL type), checked 2026-10-13 (#933)"
 examples:
 - name: gangnam_keyword
   description: 키워드 강남 음식점

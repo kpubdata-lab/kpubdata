@@ -3,7 +3,7 @@ provider: datago
 title: 서울교통공사 실시간 운임정보 (Seoul Metro Real-time Fare)
 description: Seoul Metro real-time fare information by station pair
 source:
-  url: https://www.data.go.kr
+  url: https://www.data.go.kr/data/15143846/openapi.do
 endpoint:
   base_url: http://apis.data.go.kr/B553766/fare2
   operation: getRltmFare2
@@ -143,9 +143,12 @@ fields:
   unit: 원
   semantic_kind: measure
 license:
-  type: "공공누리_1유형"
+  type: "이용허락범위_제한없음"
+  commercial_use: true
+  modification_allowed: true
   redistribution: allowed
-  note: "Terms not yet confirmed — fill from provider page (#524)"
+  attribution: "이용허락범위 제한 없음 — 서울교통공사 실시간운임정보"
+  note: "data.go.kr page 15143846 states 이용허락범위 제한 없음 (no KOGL type), checked 2026-10-13 (#933)"
 examples:
 - name: default
   description: 필터 없음 첫 페이지

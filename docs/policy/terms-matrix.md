@@ -48,34 +48,47 @@ data.go.kr datasets carry a KOGL type per service. The type determines everythin
 | 제2유형 (Type 2) | allowed | non-commercial | yes | 출처표시 |
 | 제3유형 (Type 3) | allowed | yes | **no** | 출처표시 + 변경금지 표시 |
 | 제4유형 (Type 4) | allowed | non-commercial | **no** | 출처표시 + 변경금지 표시 |
+| 이용허락범위 제한 없음 (no KOGL type) | allowed | yes | yes | none stated on the page |
 
 ### Per-dataset breakdown (spec-backed)
 
 | Dataset | KOGL | Redistribution | Commercial | Modification | Attribution Format | Source URL | Checked |
 |---|---|---|---|---|---|---|---|
-| `apt_trade` | 1 | allowed | yes | yes | 공공누리 제1유형(출처표시) — 국토교통부 | [link](https://www.data.go.kr/data/15098249/openapi.do) | 2026-09-30 |
-| `apt_rent` | 1 | allowed | yes | yes | 공공누리 제1유형(출처표시) — 국토교통부 | [link](https://www.data.go.kr/data/15098191/openapi.do) | 2026-09-30 |
-| `offi_trade` | 1 | allowed | yes | yes | 공공누리 제1유형 — 국토교통부 | [link](https://www.data.go.kr/data/15098530/openapi.do) | 2026-09-30 |
-| `offi_rent` | 1 | allowed | yes | yes | 공공누리 제1유형 — 국토교통부 | [link](https://www.data.go.kr/data/15098527/openapi.do) | 2026-09-30 |
-| `rh_rent` | 1 | allowed | yes | yes | 공공누리 제1유형 — 국토교통부 | [link](https://www.data.go.kr/data/15099144/openapi.do) | 2026-09-30 |
-| `sh_rent` | 1 | allowed | yes | yes | 공공누리 제1유형 — 국토교통부 | [link](https://www.data.go.kr/data/15099149/openapi.do) | 2026-09-30 |
-| `sh_trade` | 1 | allowed | yes | yes | 공공누리 제1유형 — 국토교통부 | [link](https://www.data.go.kr/data/15099147/openapi.do) | 2026-09-30 |
+| `apt_trade` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 국토교통부 | [link](https://www.data.go.kr/data/15126468/openapi.do) | 2026-10-13 |
+| `apt_rent` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 국토교통부 | [link](https://www.data.go.kr/data/15126474/openapi.do) | 2026-10-13 |
+| `offi_trade` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 국토교통부 | [link](https://www.data.go.kr/data/15126464/openapi.do) | 2026-10-13 |
+| `offi_rent` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 국토교통부 | [link](https://www.data.go.kr/data/15126475/openapi.do) | 2026-10-13 |
+| `rh_rent` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 국토교통부 | [link](https://www.data.go.kr/data/15126473/openapi.do) | 2026-10-13 |
+| `sh_rent` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 국토교통부 | [link](https://www.data.go.kr/data/15126472/openapi.do) | 2026-10-13 |
+| `sh_trade` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 국토교통부 | [link](https://www.data.go.kr/data/15126465/openapi.do) | 2026-10-13 |
 | `village_fcst` | 1 | allowed | yes | yes | 공공누리 제1유형(출처표시) — 기상청 | [link](https://www.data.go.kr/data/15084084/openapi.do) | 2026-09-30 |
 | `ultra_srt_fcst` | 1 | allowed | yes | yes | 공공누리 제1유형(출처표시) — 기상청 | [link](https://www.data.go.kr/data/15084084/openapi.do) | 2026-10-13 |
 | `ultra_srt_ncst` | 1 | allowed | yes | yes | 공공누리 제1유형(출처표시) — 기상청 | [link](https://www.data.go.kr/data/15084084/openapi.do) | 2026-10-13 |
 | `air_quality` | **3** | **forbidden** (변경금지) | yes | **no** | 공공누리 제3유형(변경금지) — 한국환경공단 | [link](https://www.data.go.kr/data/15073861/openapi.do) | 2026-10-13 |
 | `air_station` | **3** | **forbidden** (변경금지) | yes | **no** | 공공누리 제3유형(변경금지) — 한국환경공단 | [link](https://www.data.go.kr/data/15073861/openapi.do) | 2026-10-13 |
 | `airkorea_forecast` | **3** | **forbidden** (변경금지) | yes | **no** | 공공누리 제3유형(변경금지) — 한국환경공단 | [link](https://www.data.go.kr/data/15073861/openapi.do) | 2026-10-13 |
-| `hospital_info` | 1 | allowed | yes | yes | 공공누리 제1유형 — 보건복지부 | [link](https://www.data.go.kr/data/15001671/openapi.do) | 2026-09-30 |
-| `metro_fare` | 1 | allowed | yes | yes | 공공누리 제1유형 — 국토교통부 | [link](https://www.data.go.kr/data/15093677/openapi.do) | 2026-09-30 |
-| `ocean_buoy` | 1 | allowed | yes | yes | 공공누리 제1유형 — 해양수산부 | [link](https://www.data.go.kr/data/15044873/openapi.do) | 2026-09-30 |
-| `tour_kor_area` | 1 | allowed | yes | yes | 공공누리 제1유형 — 문화체육관광부 | [link](https://www.data.go.kr/data/15004575/openapi.do) | 2026-09-30 |
-| `tour_kor_festival` | 1 | allowed | yes | yes | 공공누리 제1유형 — 문화체육관광부 | [link](https://www.data.go.kr/data/15044652/openapi.do) | 2026-09-30 |
-| `tour_kor_keyword` | 1 | allowed | yes | yes | 공공누리 제1유형 — 문화체육관광부 | [link](https://www.data.go.kr/data/15044653/openapi.do) | 2026-09-30 |
-| `tour_kor_location` | 1 | allowed | yes | yes | 공공누리 제1유형 — 문화체육관광부 | [link](https://www.data.go.kr/data/15044654/openapi.do) | 2026-09-30 |
-| `localdata.bakery` | 1 | allowed | yes | yes | 공공누리 제1유형 — 행정안전부 | [link](https://www.data.go.kr/data/15044750/openapi.do) | 2026-09-30 |
-| `localdata.general_restaurant` | 1 | allowed | yes | yes | 공공누리 제1유형 — 행정안전부 | [link](https://www.data.go.kr/data/15044750/openapi.do) | 2026-09-30 |
-| `localdata.rest_cafe` | 1 | allowed | yes | yes | 공공누리 제1유형 — 행정안전부 | [link](https://www.data.go.kr/data/15044750/openapi.do) | 2026-09-30 |
+| `hospital_info` | 1 | allowed | yes | yes | 공공누리 제1유형(출처표시) — 건강보험심사평가원 | [link](https://www.data.go.kr/data/15001698/openapi.do) | 2026-10-13 |
+| `metro_fare` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 서울교통공사 | [link](https://www.data.go.kr/data/15143846/openapi.do) | 2026-10-13 |
+| `ocean_buoy` | 1 | allowed | yes | yes | 공공누리 제1유형(출처표시) — 해양수산부 국립해양조사원 | [link](https://www.data.go.kr/data/15155516/openapi.do) | 2026-10-13 |
+| `tour_kor_area` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 한국관광공사 | [link](https://www.data.go.kr/data/15101578/openapi.do) | 2026-10-13 |
+| `tour_kor_festival` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 한국관광공사 | [link](https://www.data.go.kr/data/15101578/openapi.do) | 2026-10-13 |
+| `tour_kor_keyword` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 한국관광공사 | [link](https://www.data.go.kr/data/15101578/openapi.do) | 2026-10-13 |
+| `tour_kor_location` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 한국관광공사 | [link](https://www.data.go.kr/data/15101578/openapi.do) | 2026-10-13 |
+| `localdata.bakery` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 행정안전부 | [link](https://www.data.go.kr/data/15155252/openapi.do) | 2026-10-13 |
+| `localdata.general_restaurant` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 행정안전부 | [link](https://www.data.go.kr/data/15154916/openapi.do) | 2026-10-13 |
+| `localdata.rest_cafe` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 행정안전부 | [link](https://www.data.go.kr/data/15154921/openapi.do) | 2026-10-13 |
+
+Rows checked 2026-10-13 were read from the page of the service the spec's
+`endpoint.base_url` calls, without a key (#933). "제한 없음" is the page's own
+이용허락범위 text: such a service carries no KOGL type. Where a spec still differs from
+its row:
+
+- `apt_trade`, `apt_rent` declare `공공누리_1유형` (with attribution); the page states
+  제한 없음. Redistribution reads `allowed` either way.
+- `localdata.bakery`, `general_restaurant` and `rest_cafe` carry two `license:` keys; the
+  second (only `pii_columns`) replaces the first, so they declare no redistribution.
+- `ultra_srt_fcst`, `ultra_srt_ncst` remain unconfirmed in their specs: their recorded
+  fixtures are bound to the spec digest, so the licence lands with a re-recording.
 
 ### Call quota (data.go.kr family)
 
