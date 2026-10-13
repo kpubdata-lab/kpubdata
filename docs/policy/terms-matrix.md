@@ -63,7 +63,7 @@ data.go.kr datasets carry a KOGL type per service. The type determines everythin
 | `village_fcst` | 1 | allowed | yes | yes | 공공누리 제1유형(출처표시) — 기상청 | [link](https://www.data.go.kr/data/15084084/openapi.do) | 2026-09-30 |
 | `ultra_srt_fcst` | 1 | allowed | yes | yes | 공공누리 제1유형 — 기상청 | [link](https://www.data.go.kr/data/15084086/openapi.do) | 2026-09-30 |
 | `ultra_srt_ncst` | 1 | allowed | yes | yes | 공공누리 제1유형 — 기상청 | [link](https://www.data.go.kr/data/15084085/openapi.do) | 2026-09-30 |
-| `air_quality` | **3** | **forbidden** (변경금지) | yes | **no** | 공공누리 제3유형(변경금지) — 한국환경공단 | [link](https://www.data.go.kr/data/15000581/openapi.do) | 2026-09-30 |
+| `air_quality` | **3** | **forbidden** (변경금지) | yes | **no** | 공공누리 제3유형(변경금지) — 한국환경공단 | [link](https://www.data.go.kr/data/15073861/openapi.do) | 2026-09-30 |
 | `air_station` | 1 | allowed | yes | yes | 공공누리 제1유형 — 한국환경공단 | [link](https://www.data.go.kr/data/15073877/openapi.do) | 2026-09-30 |
 | `airkorea_forecast` | 1 | allowed | yes | yes | 공공누리 제1유형 — 한국환경공단 | [link](https://www.data.go.kr/data/15073892/openapi.do) | 2026-09-30 |
 | `hospital_info` | 1 | allowed | yes | yes | 공공누리 제1유형 — 보건복지부 | [link](https://www.data.go.kr/data/15001671/openapi.do) | 2026-09-30 |

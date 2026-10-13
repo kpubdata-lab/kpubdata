@@ -4,7 +4,7 @@ title: 측정소별 실시간 대기측정정보
 description: 한국환경공단 대기오염정보 서비스. 특정 측정소의 실시간/일평균 측정값(PM10, PM2.5, O3, NO2, CO, SO2,
   통합대기지수)을 조회한다.
 source:
-  url: https://www.data.go.kr/data/15000581/openapi.do
+  url: https://www.data.go.kr/data/15073861/openapi.do
   verified_at: '2026-09-09'
 endpoint:
   base_url: http://apis.data.go.kr/B552584/ArpltnInforInqireSvc
