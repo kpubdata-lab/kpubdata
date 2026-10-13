@@ -3,7 +3,7 @@ provider: datago
 title: 에어코리아 대기질 예보통보 (AirKorea Forecast)
 description: Daily air quality forecast dispatch (PM10/PM25/O3) with regional grades
 source:
-  url: https://www.data.go.kr
+  url: https://www.data.go.kr/data/15073861/openapi.do
 endpoint:
   base_url: http://apis.data.go.kr/B552584/ArpltnInforInqireSvc
   operation: getMinuDustFrcstDspth
@@ -37,9 +37,12 @@ pagination:
   max_size: 1000
 fields: []
 license:
-  type: "공공누리_1유형"
-  redistribution: allowed
-  note: "Terms not yet confirmed — fill from provider page (#524)"
+  type: "공공누리_3유형"
+  commercial_use: true
+  attribution_required: true
+  modification_allowed: false
+  redistribution: forbidden
+  attribution: "공공누리 제3유형(출처표시, 변경금지) — 한국환경공단 에어코리아 대기오염정보"
 examples:
 - name: default
   description: 필터 없음 첫 페이지
