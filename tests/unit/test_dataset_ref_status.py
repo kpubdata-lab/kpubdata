@@ -20,6 +20,7 @@ from typing import Any
 import pytest
 
 from kpubdata import ApplicationRequirement, Client, DatasetStatus, VerificationLevel
+from kpubdata.core import status
 from kpubdata.core.spec import discover_specs
 from kpubdata.core.status import (
     SUPPORTED_DATA_LEVELS,
@@ -98,6 +99,13 @@ class TestThePackagedMapMatchesTheMetadata:
         )
 
 
+def _forget_application(monkeypatch: pytest.MonkeyPatch, dataset_id: str) -> None:
+    """Make the packaged metadata record ``application: null`` for ``dataset_id``."""
+    metadata = {key: dict(value) for key, value in status._packaged_metadata().items()}
+    metadata[dataset_id]["application"] = None
+    monkeypatch.setattr(status, "_packaged_metadata", lambda: metadata)
+
+
 @pytest.fixture(scope="module")
 def client() -> Client:
     return Client(provider_keys={}, env_keys=False)
@@ -130,7 +138,11 @@ class TestVerificationAndApplicationAreSeparateAxes:
         assert ref.verification is VerificationLevel.FIXTURE_VERIFIED
         assert ref.application_requirement is ApplicationRequirement.REQUIRED
 
-    def test_a_live_verified_dataset_says_nothing_it_does_not_know(self, client: Client) -> None:
+    def test_a_live_verified_dataset_says_nothing_it_does_not_know(
+        self, client: Client, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Every spec dataset now records an answer (#920), so take one away.
+        _forget_application(monkeypatch, "datago.apt_trade")
         ref = client.dataset("datago.apt_trade").ref
 
         assert ref.verification is VerificationLevel.LIVE_VERIFIED
@@ -164,7 +176,10 @@ class TestVerificationAndApplicationAreSeparateAxes:
             is ApplicationRequirement.NOT_REQUIRED
         )
 
-    def test_a_declaration_without_the_flag_decides_nothing(self) -> None:
+    def test_a_declaration_without_the_flag_decides_nothing(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _forget_application(monkeypatch, "datago.apt_trade")
         for declared in (None, {}, {"required": "yes"}, {"url": "https://x"}, "required"):
             assert (
                 application_requirement("datago.apt_trade", declared)
@@ -264,7 +279,10 @@ class TestSpecDatasetsRecordTheApplicationQuestion:
         assert ref.application_requirement is ApplicationRequirement.REQUIRED
         assert ref.to_dict()["application"] == {"required": True, "url": url}
 
-    def test_a_spec_dataset_with_nothing_recorded_stays_unknown(self, client: Client) -> None:
+    def test_a_spec_dataset_with_nothing_recorded_stays_unknown(
+        self, client: Client, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _forget_application(monkeypatch, "datago.apt_rent")
         ref = client.dataset("datago.apt_rent").ref
 
         assert recorded_application("datago.apt_rent") is None

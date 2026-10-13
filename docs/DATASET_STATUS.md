@@ -121,6 +121,8 @@ Labels: `type:bug`, `epic:trust`, plus `severity:major` for `broken`, `severity:
   `application`(`{"required": true, "url": ...}`)에 적고, 기록이 없으면 `null` 로 적는다 — 키가
   빠진 spec 데이터셋은 테스트가 실패한다(#902). `null` 은 `unknown` 으로 읽힌다.
   `sync_supported_data.py` 는 이 값을 사람의 판단으로 보고 그대로 둔다.
+  현재 spec 데이터셋 25개 모두 `required: true` 와 data.go.kr 서비스 페이지 URL 이 적혀 있다(#920).
+  data.go.kr 의 자동승인도 서비스별 활용신청을 거친다 — 승인 방식은 신청 필요 여부가 아니다.
   `unknown` 은 "신청 불필요" 가 아니다 — 대부분의 데이터셋은 이 질문이 적힌 적이 없다.
 - 두 축 모두 라이선스·출처·재배포 조건을 말하지 않는다. 그것은 spec 의 `license` 이고(#609, #785),
   선언이 없으면 `None`(알 수 없음)으로 남는다. "실API 검증" 은 "재배포 가능" 이 아니다.
