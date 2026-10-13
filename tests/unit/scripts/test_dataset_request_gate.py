@@ -188,6 +188,14 @@ def _jobs() -> dict[str, dict[str, Any]]:
     return jobs
 
 
+def test_stabilization_freeze_keeps_dataset_agent_manual_only() -> None:
+    trigger = _workflow().get("on", _workflow().get(True))
+
+    assert set(trigger) == {"workflow_dispatch"}
+    assert "issue_number" in trigger["workflow_dispatch"]["inputs"]
+    assert _jobs()["gate"]["if"] == "github.event_name == 'workflow_dispatch'"
+
+
 def test_the_self_hosted_job_waits_for_the_hosted_gate() -> None:
     jobs = _jobs()
 
