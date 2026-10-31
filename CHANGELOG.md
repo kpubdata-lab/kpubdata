@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-10-31
+
 ### Added
 
 - `SpecDefinition`, the type `find_spec()` and `discover_specs()` return, is exported from `kpubdata` (#913). A typed caller had to import it from `kpubdata.core.spec`, which is private. `API_SPEC.md` lists the attributes the compatibility promise covers (`id`, `provider`, `dataset_key`, `examples`, `pagination.type`, `endpoint.base_url`, `auth.type`); every other attribute is not covered. No behaviour change.
