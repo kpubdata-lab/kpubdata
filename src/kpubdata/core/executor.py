@@ -300,6 +300,8 @@ def _next_page(
     ``build_params`` caps the request, so the decision is made with the size
     that was actually asked for (#614).
     """
+    if spec.pagination.type == "none":
+        return None
     page = query.page or 1
     page_size = query.page_size or _DEFAULT_PAGE_SIZE
     if spec.pagination.max_size is not None:
@@ -1433,10 +1435,13 @@ class SpecDatasetAdapter:
         decision = _CastingDecision(spec)
         spool = _PageSpool()
         failure: PublicDataError | None = None
+        safety_error: InvalidRequestError | None = None
         try:
             total_count: int | None = None
             page_query = query
             next_page: int | None = None
+            previous_staged: list[dict[str, object]] | None = None
+            consecutive_empty_pages = 0
 
             while True:
                 try:
@@ -1457,6 +1462,34 @@ class SpecDatasetAdapter:
                 if total_count is None:
                     total_count = page_count
                 next_page = _next_page(spec, page_query, page_count, len(staged))
+
+                # Match the legacy paging guard (#837) before either observing or
+                # spooling the offending page. Retain only the previous page's rows.
+                if staged and previous_staged == staged:
+                    safety_error = InvalidRequestError(
+                        "Detected repeated page: the provider may ignore the page parameter.",
+                        provider=self._provider,
+                        dataset_id=dataset.id,
+                    )
+                elif not staged:
+                    consecutive_empty_pages += 1
+                    if consecutive_empty_pages >= 3:
+                        safety_error = InvalidRequestError(
+                            "Received 3 consecutive empty pages while paginating.",
+                            provider=self._provider,
+                            dataset_id=dataset.id,
+                        )
+                else:
+                    consecutive_empty_pages = 0
+
+                if safety_error is not None:
+                    if not partial:
+                        raise safety_error
+                    # With partial=True, yield only the safe, already staged pages
+                    # before raising the integrity error (not IncompleteListError).
+                    break
+
+                previous_staged = staged
                 # The evidence stays; the rows go to disk (#789).
                 decision.observe(staged)
                 spool.append(_FetchedPage(staged, payload, provenance, next_page))
@@ -1498,6 +1531,8 @@ class SpecDatasetAdapter:
             raise IncompleteListError(
                 failure, pages=len(spool), provider=dataset.provider, dataset_id=dataset.id
             ) from failure
+        if safety_error is not None:
+            raise safety_error
         if next_page is not None:
             raise InvalidRequestError(
                 f"Pagination limit exceeded: reached {effective_max + 1} pages "
