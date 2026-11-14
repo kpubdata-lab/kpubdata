@@ -36,9 +36,7 @@ def test_none_pagination_stops_after_one_full_page() -> None:
     """A complete first page never implies another call for a non-paged API."""
     base = _golden_spec("apt_trade")
     spec = replace(base, pagination=replace(base.pagination, type="none"))
-    adapter, transport = _adapter(
-        spec, [_standard_envelope(_rows(0, 2), total_count=500)]
-    )
+    adapter, transport = _adapter(spec, [_standard_envelope(_rows(0, 2), total_count=500)])
     batches = list(Dataset(_ref(spec), adapter).list_all(page_size=2))
 
     assert len(batches) == 1
@@ -51,9 +49,7 @@ def test_single_query_none_pagination_has_no_next_page() -> None:
     """The single-page public query uses the same paging policy as list_all."""
     base = _golden_spec("apt_trade")
     spec = replace(base, pagination=replace(base.pagination, type="none"))
-    adapter, transport = _adapter(
-        spec, [_standard_envelope(_rows(0, 2), total_count=500)]
-    )
+    adapter, transport = _adapter(spec, [_standard_envelope(_rows(0, 2), total_count=500)])
 
     result = adapter.query_records(_ref(spec), Query(page_size=2))
     assert result.next_page is None
