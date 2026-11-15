@@ -139,6 +139,11 @@ PyPI trusted publisher 가 **시작된 워크플로 이름**(`publish-pypi.yml`)
 
 #### 배포 전 체크리스트
 
+릴리스 노트는 [단일 CHANGELOG 정본과 간결한 공개 요약 규칙](docs/release-notes.md)을 따릅니다. 상세 변경 이력은 버전별 CHANGELOG에 보존하고, GitHub Release에는 검증된 Highlights·Upgrade notes·Known limitations와 설치·상세 링크만 생성합니다.
+
+- [ ] 현재 릴리스 버전의 CHANGELOG에 세 요약 절이 있으며 실제 코드·보안 상태와 일치함
+- [ ] `scripts/release_notes.py extract vX.Y.Z --public` 로 공개용 본문을 사전 검토함
+
 - [ ] 릴리스에 들어갈 PR 이 모두 `main` 에 병합됨
 - [ ] `CHANGELOG.md` `## [Unreleased]` 에 사용자에게 보이는 변경이 모두 적힘
 - [ ] `SUPPORTED_DATA.md` 최신 상태 (`scripts/sync_supported_data.py --check`)
