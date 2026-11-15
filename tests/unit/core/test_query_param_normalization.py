@@ -57,9 +57,7 @@ def test_nonfinite_numbers_are_rejected(value: object) -> None:
 
 
 @pytest.mark.parametrize(("value", "expected"), [(True, "true"), (False, "false")])
-def test_boolean_is_serialized_only_when_explicitly_declared(
-    value: bool, expected: str
-) -> None:
+def test_boolean_is_serialized_only_when_explicitly_declared(value: bool, expected: str) -> None:
     assert scalar_filter_value("includeClosed", value, allow_bool=True) == expected
 
 
@@ -85,17 +83,13 @@ def test_spec_rejects_explicitly_none_required_filter() -> None:
 
 def test_spec_boolean_needs_a_boolean_parameter_declaration() -> None:
     base = _golden_spec("apt_trade")
-    spec = replace(
-        base, params=(*base.params, ParamSpec(name="includeClosed", type="boolean"))
-    )
+    spec = replace(base, params=(*base.params, ParamSpec(name="includeClosed", type="boolean")))
     params = _make_executor(FakeTransport()).build_params(
         spec, Query(filters={"includeClosed": True})
     )
     assert params["includeClosed"] == "true"
     with pytest.raises(InvalidRequestError, match="boolean"):
-        _make_executor(FakeTransport()).build_params(
-            base, Query(filters={"includeClosed": True})
-        )
+        _make_executor(FakeTransport()).build_params(base, Query(filters={"includeClosed": True}))
 
 
 def test_spec_rejects_list_and_raw_list_without_transport_calls() -> None:
@@ -134,6 +128,7 @@ def test_legacy_adapters_reject_unsupported_filters_before_transport(provider: s
             catalogue=[dataset],
         )
     else:
+
         class Localdata(DataGoFamilyAdapter):
             provider_name = "localdata"
             catalogue_package = "kpubdata.providers.localdata"
@@ -162,6 +157,7 @@ def test_legacy_none_filter_does_not_go_on_wire(provider: str) -> None:
             catalogue=[dataset],
         )
     else:
+
         class Localdata(DataGoFamilyAdapter):
             provider_name = "localdata"
             catalogue_package = "kpubdata.providers.localdata"
