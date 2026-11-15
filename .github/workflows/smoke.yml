@@ -1,19 +1,14 @@
-# 데이터셋 실API 스모크 (일 1회, 국내 self-hosted 러너)
-#
-# 왜 국내 러너인가: data.go.kr 등 한국 공공 API는 해외 IP의 인증 호출을 드롭한다
-# (호스티드 러너에서 전량 타임아웃, 국내에서 통과 — 실증: #383).
-# 러너 라벨 `kr` 은 국내 VM/devbox의 self-hosted runner(kr-runner-01)를 가리킨다.
-# Phase 2의 `LIVE=1 make verify` 체계가 완성되면 이 워크플로우는 그 위로 재편성된다 (#382).
+# Live API smoke for an approved domestic self-hosted runner.
+# During MVP, live checks are run manually on a trusted Korean workstation.
+# Do not dispatch this workflow without an approved, isolated "self-hosted, kr"
+# runner, authorised API credentials and the HTTPS preconditions in
+# docs/manual-live-smoke.md (#887, #893). No recurring runner is required now.
 name: Smoke (live)
 
 on:
+  # Manual dispatch is retained for a future, separately approved domestic runner.
+  # No schedule or automatic push trigger during the MVP manual-only phase.
   workflow_dispatch:
-  schedule:
-    - cron: "0 1 * * *" # 10:00 KST — 국내 API 새벽 점검 시간대 회피
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/smoke.yml"
 
 permissions:
   contents: read
@@ -55,13 +50,14 @@ jobs:
           # 카운트를 읽는 결함이 오래 남았고, 실패한 실행에 smoke=PASS 를
           # 찍었다 (#516). 스크립트에는 테스트가 붙어 있다.
           #
-          # 이 단계는 실패해도 job 결과를 바꾸지 않는다 — pytest 종료 코드가
-          # 이미 그 역할을 한다. 다만 요약이 거짓말하지는 않는다.
+          # A report with no passing test is not evidence of a real API check.
+          # Fail if the report is missing or every selected test was skipped.
           if [ -f smoke-datago.xml ]; then
-            python3 scripts/junit_summary.py smoke-datago.xml --label "datago live" || true
+            python3 scripts/junit_summary.py smoke-datago.xml --label "datago live" --require-passed
           else
             echo "datago live: no report produced"
             echo "smoke=FAIL"
+            exit 1
           fi
 
   drift-report:
