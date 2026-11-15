@@ -137,7 +137,7 @@ def _build_adapter_with_transport(
     """
     transport = FakeTransport(responses)
     adapter = LofinAdapter(
-        config=KPubDataConfig(provider_keys={"datago": "test-key"}),
+        config=KPubDataConfig(provider_keys={"lofin": "test-key"}),
         transport=cast(HttpTransport, cast(object, transport)),
     )
     dataset = adapter.get_dataset("expenditure_budget")
