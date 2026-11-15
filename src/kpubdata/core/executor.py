@@ -458,12 +458,6 @@ def _apply_transform(value: object, transform: str) -> object:
     return value
 
 
-def _cast_field(value: object, field_type: str) -> object:
-    """Cast to declared type (preserve original if cast fails)."""
-    _, coerced = _try_cast_field(value, field_type)
-    return coerced
-
-
 #: The envelope returned by data.go.kr gateway when it rejects before reaching
 #: the service. Instead of the service's <response>, this shape arrives when
 #: rejected (unregistered key, expired activation request, disallowed IP, quota exceeded).
@@ -893,10 +887,6 @@ class SpecExecutor:
                 "아직 spec 실행기가 지원하지 않습니다."
             )
             raise NotImplementedError(msg)
-
-    def _raise_for_code(self, spec: SpecDefinition, code: str, message: str) -> None:
-        """Delegate to module function — if same rule exists twice, they must diverge."""
-        raise_for_code(spec, code, message)
 
     def _check_error(self, spec: SpecDefinition, payload: dict[str, object]) -> None:
         """Delegate to module function.
