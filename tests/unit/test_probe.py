@@ -131,7 +131,7 @@ class TestReportFile:
     ) -> None:
         """A wheel install must never redirect the report into site-packages."""
         monkeypatch.chdir(tmp_path)
-        assert DEFAULT_REPORT_PATH == Path("key-scope.json")
+        assert Path("key-scope.json") == DEFAULT_REPORT_PATH
         assert not DEFAULT_REPORT_PATH.is_absolute()
 
         write_report([_result("datago.x", "XSvc", "available")])
