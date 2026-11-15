@@ -297,9 +297,7 @@ def test_lofin_rejects_unrelated_datago_key_before_transport(
     monkeypatch.delenv("LOFIN_API_KEY", raising=False)
     transport = FakeTransport([])
     adapter = LofinAdapter(
-        config=KPubDataConfig(
-            provider_keys={"datago": "unrelated-portal-key"}, env_fallback=False
-        ),
+        config=KPubDataConfig(provider_keys={"datago": "unrelated-portal-key"}, env_fallback=False),
         transport=cast(HttpTransport, cast(object, transport)),
     )
     dataset = adapter.get_dataset("expenditure_budget")
