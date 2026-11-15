@@ -53,8 +53,9 @@ from kpubdata.exceptions import (
 )
 from kpubdata.transport.http import HttpTransport, TransportConfig
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_REPORT_PATH = REPO_ROOT / "docs" / "status" / "key-scope.json"
+# Keep the default relative to the caller's working directory, not to
+# site-packages when the SDK is installed from a wheel (#966).
+DEFAULT_REPORT_PATH = Path("key-scope.json")
 
 #: Probe transport settings. Failure is a normal result here, so give up fast.
 PROBE_TIMEOUT_SECONDS = 15
