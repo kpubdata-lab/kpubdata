@@ -98,7 +98,7 @@ def decode_xml(data: str | bytes) -> dict[str, object]:
             # those with Python's codec registry and remove only the declaration
             # before parsing Unicode text. The response itself is unchanged.
             declared = re.search(
-                rb"""^\\s*<\\?xml\\b[^>]{0,180}\\bencoding\\s*=\\s*['\"]([A-Za-z0-9._-]{1,40})['\"]""",
+                rb"""^\s*<\?xml\b[^>]{0,180}\bencoding\s*=\s*['"]([A-Za-z0-9._-]{1,40})['"]""",
                 data[:256],
                 flags=re.IGNORECASE,
             )
@@ -114,7 +114,7 @@ def decode_xml(data: str | bytes) -> dict[str, object]:
                     "us-ascii",
                 }:
                     payload = re.sub(
-                        r"^\\s*<\\?xml[^>]*\\?>",
+                        r"^\s*<\?xml[^>]*\?>",
                         "",
                         data.decode(encoding),
                         count=1,
