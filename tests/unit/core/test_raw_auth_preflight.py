@@ -54,7 +54,7 @@ def test_raw_path_segment_key_is_in_url_not_query_params() -> None:
     assert len(transport.calls) == 1
     sent = transport.calls[0]
     assert "test-key-datago" in str(sent["url"])
-    assert sent["params"] == {"district": "11000"}
+    assert sent["params"] == {"district": "11000", "resultType": "json"}
     assert "__path_key__" not in str(sent["params"])
 
 
