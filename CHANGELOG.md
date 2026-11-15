@@ -7,11 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Highlights
+
+- Data fields have Korean display labels and, where verified, units and meanings (#877).
+- Dataset application requirements and redistribution terms are recorded more accurately for supported public-data services (#902, #920, #933).
+- Data.go.kr provider error handling now gives clearer credential-activation failures, and catalogue/spec ownership checks reduce duplicate declarations (#916, #898).
+
+### Upgrade notes
+
+- For a refused key returning HTTP 403 from `semas` or `localdata`, catch `AuthError` (or `PublicDataError`) instead of `TransportError` (#916).
+- Call datasets through `Client` rather than constructing `DataGoAdapter` directly to access the 14 spec-owned dataset identifiers removed from its legacy catalogue (#898).
+
+### Known limitations
+
+- Twenty-two bundled specs still have plain HTTP endpoints, which can expose service keys until HTTPS migration is verified (#893).
+- The scheduled real-API smoke workflow still requires an available Korean self-hosted runner; passing fixture checks alone is not a live availability guarantee (#887).
+
 ### Added
 
 - `SpecDefinition`, the type `find_spec()` and `discover_specs()` return, is exported from `kpubdata` (#913). A typed caller had to import it from `kpubdata.core.spec`, which is private. `API_SPEC.md` lists the attributes the compatibility promise covers (`id`, `provider`, `dataset_key`, `examples`, `pagination.type`, `endpoint.base_url`, `auth.type`); every other attribute is not covered. No behaviour change.
 - Every field of the bundled specs has a Korean display name, and a unit and a meaning where they are known (#877). No spec set `title` or `unit`, so a consumer showed provider field names and bare numbers — `dealAmount` read `101300` with no 만원. All 417 fields of the 22 specs that declare fields now have `title` (`FieldDescriptor.title`); 85 have `unit` (만원, ㎡, ㎍/㎥, ppm, 원, 분, °C …) and 222 have `semantic_kind`. A meaning is set only where the field's storage type allows it (ADR 0006): seven codes stored as integers (`areacode`, `sigungucode` of three tour specs, `fcstTime` of `ultra_srt_fcst`) and the year/month/day integers are left without one, since changing a type changes what is returned. No schema key is new.
-- A CI gate keeps each dataset declared in one place (#898). `scripts/check_catalogue_baseline.py` fails when a provider catalogue gains an entry that `scripts/catalogue_only_baseline.txt` does not list (131 entries; the list may only shrink), when a listed entry is gone, or when a catalogue and a spec declare the same key. The three `localdata` keys still declared twice are named in the script. `docs/internal/custom-adapters.md` says why each remaining catalogue adapter stays and how a move to a spec is checked for parity.
+- A CI gate keeps each dataset declared in one place (#898). `scripts/check_catalogue_baseline.py` fails when a provider catalogue gains an entry that `scripts/catalogue_only_baseline.txt` does not list (131 entries; the list may only shrink), when a listed entry is gone, or when a catalogue and a spec declare the same key. The three `localdata` keys previously declared twice were removed from the catalogue, leaving the specs as their sole definitions. `docs/internal/custom-adapters.md` says why each remaining catalogue adapter stays and how a move to a spec is checked for parity.
 
 ### Changed
 
