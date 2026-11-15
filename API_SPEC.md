@@ -140,6 +140,17 @@ result = dataset.list(LAWD_CD="11680", DEAL_YMD="202503")
 `list()` returns exactly one page of results. When another page is available,
 the returned `RecordBatch.next_page` is set.
 
+Filter values are transmitted only as explicitly supported scalars: strings,
+integers, finite numbers and Decimal values. Optional `None` filters are
+omitted rather than transmitting the literal string `"None"`; an explicitly
+provided `None` for a required spec filter is an error. Boolean values are
+accepted only for spec parameters declared with `type: boolean` (serialized as
+lowercase `true`/`false`). Lists, mappings, datetime objects and other
+unsupported objects raise `InvalidRequestError` **before an HTTP request**.
+Date/period formats are provider-specific: pass the required format as a
+string, rather than relying on an implicit conversion. Existing text and
+numeric filter strings are not reformatted (#968).
+
 ### List all pages
 
 ```python
