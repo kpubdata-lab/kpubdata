@@ -195,8 +195,19 @@ def live_client() -> Client:
     if not any(
         config.get_provider_key(provider)
         for provider in (
-            "datago", "bok", "kosis", "lofin", "localdata", "seoul",
-            "semas", "sgis", "neis", "fds", "law", "kipris", "korean",
+            "datago",
+            "bok",
+            "kosis",
+            "lofin",
+            "localdata",
+            "seoul",
+            "semas",
+            "sgis",
+            "neis",
+            "fds",
+            "law",
+            "kipris",
+            "korean",
         )
     ):
         pytest.skip("No provider credentials configured")
