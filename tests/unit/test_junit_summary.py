@@ -43,11 +43,11 @@ _ZERO_TESTS = """<?xml version="1.0" encoding="utf-8"?>
 """
 
 
-def _run(tmp_path: Path, xml: str) -> subprocess.CompletedProcess[str]:
+def _run(tmp_path: Path, xml: str, *extra_args: str) -> subprocess.CompletedProcess[str]:
     report = tmp_path / "report.xml"
     report.write_text(xml, encoding="utf-8")
     return subprocess.run(
-        [sys.executable, str(_SCRIPT), str(report), "--label", "datago live"],
+        [sys.executable, str(_SCRIPT), str(report), "--label", "datago live", *extra_args],
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -122,3 +122,22 @@ def test_a_missing_attribute_defaults_to_zero(tmp_path: Path, missing: str) -> N
     rendered = " ".join(f'{k}="{v}"' for k, v in attrs.items())
     xml = f'<?xml version="1.0"?><testsuites><testsuite name="a" {rendered}/></testsuites>'
     assert _run(tmp_path, xml).returncode in (0, 1)
+
+
+class TestRequirePassed:
+    def test_all_skipped_is_unverified(self, tmp_path: Path) -> None:
+        xml = '<testsuites><testsuite tests="3" failures="0" errors="0" skipped="3"/></testsuites>'
+        result = _run(tmp_path, xml, "--require-passed")
+        assert result.returncode == 1
+        assert "smoke=FAIL" in result.stdout
+        assert "no tests passed" in result.stderr
+
+    def test_passing_and_skipped_is_verified(self, tmp_path: Path) -> None:
+        result = _run(tmp_path, _BARE_SUITE, "--require-passed")
+        assert result.returncode == 0
+        assert "smoke=PASS" in result.stdout
+
+    def test_all_skipped_is_still_accepted_without_live_guard(self, tmp_path: Path) -> None:
+        xml = '<testsuites><testsuite tests="2" failures="0" errors="0" skipped="2"/></testsuites>'
+        result = _run(tmp_path, xml)
+        assert result.returncode == 0
