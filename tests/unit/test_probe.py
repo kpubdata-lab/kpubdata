@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 
 from kpubdata._probe import (
+    DEFAULT_REPORT_PATH,
     PROBE_STATUSES,
     ProbeResult,
     classify,
@@ -125,6 +126,22 @@ class TestApplyReport:
 
 
 class TestReportFile:
+    def test_default_output_is_relative_to_the_callers_working_directory(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A wheel install must never redirect the report into site-packages."""
+        monkeypatch.chdir(tmp_path)
+        assert DEFAULT_REPORT_PATH == Path("key-scope.json")
+        assert not DEFAULT_REPORT_PATH.is_absolute()
+
+        write_report([_result("datago.x", "XSvc", "available")])
+
+        report = tmp_path / "key-scope.json"
+        assert report.is_file()
+        assert json.loads(report.read_text(encoding="utf-8"))["results"][0]["dataset_id"] == (
+            "datago.x"
+        )
+
     def test_it_writes_the_documented_shape(self, tmp_path: Path) -> None:
         out = tmp_path / "key-scope.json"
 
