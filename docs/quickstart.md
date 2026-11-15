@@ -62,6 +62,8 @@ python -c "import os; print('설정됨' if os.getenv('KPUBDATA_BOK_API_KEY') els
 # 설정됨  ← 키 값은 출력하지 않습니다
 ```
 
+환경변수 전체 목록과 제공기관별 인증키는 [환경변수 안내](environment-variables.md)에서 확인할 수 있습니다. 키 값을 화면에 표시하거나 저장소에 올리지 마세요.
+
 ## 5단계: 첫 번째 데이터 조회
 Python 파일을 하나 만들겠습니다.
 
