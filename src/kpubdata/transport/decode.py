@@ -29,7 +29,7 @@ def detect_content_type(response: httpx.Response) -> str:
 
     raw_body = getattr(response, "content", None)
     if isinstance(raw_body, bytes):
-        prefix = raw_body[:256].lstrip(b" \\t\\r\\n\\xef\\xbb\\xbf")
+        prefix = raw_body[:256].lstrip(b" \t\r\n\xef\xbb\xbf")
         lowered = prefix.lower()
         if prefix.startswith((b"{", b"[")):
             return "json"
