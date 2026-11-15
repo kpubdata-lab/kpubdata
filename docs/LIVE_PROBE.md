@@ -106,7 +106,8 @@ it. Keys never appear in `ProbeResult.detail` or in log records.
 
 | Secret | Provider | Notes |
 |---|---|---|
-| `KPUBDATA_DATAGO_API_KEY` | data.go.kr family | Shared with localdata and semas. LOFIN currently reads this key, but its separate issuer is unresolved (#986); do not assume credential interchangeability. |
+| `KPUBDATA_DATAGO_API_KEY` | data.go.kr family | Shared with localdata and semas only; not LOFIN365. |
+| `KPUBDATA_LOFIN_API_KEY` | 지방재정365 LOFIN | Separate LOFIN365-issued key (no data.go.kr fallback). |
 | `KPUBDATA_NEIS_API_KEY` | 나이스 교육정보 개방포털 | Own key — the adapter reads `neis` with no fallback |
 | `KPUBDATA_FDS_API_KEY` | 식품안전나라 | Own key — the adapter reads `fds` with no fallback |
 | `KPUBDATA_BOK_API_KEY` | 한국은행 ECOS | |
