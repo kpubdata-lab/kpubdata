@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from importlib import import_module
 
 import httpx
@@ -39,7 +40,10 @@ def detect_content_type(response: httpx.Response) -> str:
             (b"<response", b"<openapi_serviceresponse", b"<result")
         ):
             return "xml"
-    logger.debug("Unrecognized response content type", extra={"content_type": content_type})
+    logger.debug(
+        "Unrecognized content-type, defaulting to 'other'",
+        extra={"content_type": content_type},
+    )
     return "other"
 
 
@@ -87,8 +91,36 @@ def decode_xml(data: str | bytes) -> dict[str, object]:
         raise ImportError(msg) from exc
 
     try:
-        # XML parsing honors its declared encoding only when given original bytes.
-        parsed: object = xmltodict.parse(data)
+        payload: str | bytes = data
+        if isinstance(data, bytes):
+            # Expat accepts UTF-8/UTF-16 directly but cannot decode all declared
+            # multi-byte encodings (such as EUC-KR) on every platform. Decode
+            # those with Python's codec registry and remove only the declaration
+            # before parsing Unicode text. The response itself is unchanged.
+            declared = re.search(
+                rb"""^\\s*<\\?xml\\b[^>]{0,180}\\bencoding\\s*=\\s*['\"]([A-Za-z0-9._-]{1,40})['\"]""",
+                data[:256],
+                flags=re.IGNORECASE,
+            )
+            if declared is not None:
+                encoding = declared.group(1).decode("ascii")
+                if encoding.casefold().replace("_", "-") not in {
+                    "utf-8",
+                    "utf8",
+                    "utf-16",
+                    "utf-16le",
+                    "utf-16be",
+                    "iso-8859-1",
+                    "us-ascii",
+                }:
+                    payload = re.sub(
+                        r"^\\s*<\\?xml[^>]*\\?>",
+                        "",
+                        data.decode(encoding),
+                        count=1,
+                        flags=re.IGNORECASE,
+                    )
+        parsed: object = xmltodict.parse(payload)
     except Exception as exc:  # noqa: BLE001
         logger.debug(
             "XML parse failed",
