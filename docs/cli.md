@@ -150,7 +150,7 @@ kpubdata --log-level debug fetch bok.base_rate -p start_date=202401 -p end_date=
 
 ## 환경 변수와의 관계
 
-CLI도 `Client.from_env()`와 동일한 환경 변수 규칙을 따릅니다.
+CLI도 `Client.from_env()`와 동일한 환경 변수 규칙을 따릅니다. 인증키 발급처, 공통 키 범위 및 설정 우선순위는 [환경변수 안내](./environment-variables.md)를 참고하세요.
 
 | 환경 변수 | 설명 |
 | :--- | :--- |
