@@ -7,7 +7,7 @@
 
 - **가입 URL**: [https://www.data.go.kr](https://www.data.go.kr)
 - **절차**: 회원가입 → 소상공인시장진흥공단 상가(상권)정보 Open API 활용신청 → 승인 후 인증키 확인
-- **환경 변수**: `KPUBDATA_SEMAS_API_KEY`
+- **환경 변수**: 기본은 공공데이터포털 공통 키 `KPUBDATA_DATAGO_API_KEY`; 별도 키로 덮어쓸 때만 `KPUBDATA_SEMAS_API_KEY`
 
 ## 환경 변수
 
