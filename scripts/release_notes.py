@@ -217,7 +217,7 @@ def render_public_notes(text: str, version: str) -> str:
             "### " + name + "\n\n" + "\n".join(groups[name])
             for name in _PUBLIC_HEADINGS
         ],
-        '### Install\n\n`pip install -U "kpubdata==' + version + '"`',
+        f'### Install\n\n`pip install -U "kpubdata=={version}"`',
         "**Detailed changes**: "
         f"https://github.com/kpubdata-lab/kpubdata/blob/v{version}/CHANGELOG.md",
     ]
