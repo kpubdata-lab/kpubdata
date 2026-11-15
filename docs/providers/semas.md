@@ -12,7 +12,9 @@
 ## 환경 변수
 
 ```bash
-export KPUBDATA_SEMAS_API_KEY="발급받은키"
+export KPUBDATA_DATAGO_API_KEY="공공데이터포털-인증키"
+# 선택 사항: semas만 다른 키를 쓸 때
+# export KPUBDATA_SEMAS_API_KEY="별도-인증키"
 ```
 
 ## 지원 데이터셋
