@@ -213,10 +213,7 @@ def render_public_notes(text: str, version: str) -> str:
 
     sections = [
         f"## KPubData SDK v{version}",
-        *[
-            "### " + name + "\n\n" + "\n".join(groups[name])
-            for name in _PUBLIC_HEADINGS
-        ],
+        *["### " + name + "\n\n" + "\n".join(groups[name]) for name in _PUBLIC_HEADINGS],
         f'### Install\n\n`pip install -U "kpubdata=={version}"`',
         "**Detailed changes**: "
         f"https://github.com/kpubdata-lab/kpubdata/blob/v{version}/CHANGELOG.md",
@@ -231,9 +228,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("version", help="the version being released, with or without v")
     parser.add_argument("--changelog", type=Path, default=Path("CHANGELOG.md"))
     parser.add_argument("--compare-url", help="appended to the extracted notes")
-    parser.add_argument(
-        "--public", action="store_true", help="render concise GitHub Release notes"
-    )
+    parser.add_argument("--public", action="store_true", help="render concise GitHub Release notes")
     parser.add_argument("--output", type=Path, help="write extracted notes here")
     args = parser.parse_args(argv)
     version = args.version.removeprefix("v")
