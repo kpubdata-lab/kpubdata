@@ -33,6 +33,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from kpubdata._hosts import extra_hosts_env_var, host_is_allowed
 from kpubdata.config import KPubDataConfig
+from kpubdata.core._params import scalar_filter_value
 from kpubdata.core._result_code import is_no_data_code, result_code_text
 from kpubdata.core.capability import Operation, PaginationMode, QuerySupport
 from kpubdata.core.models import (
@@ -740,13 +741,27 @@ class SpecExecutor:
             raise NotImplementedError(msg)
 
         reserved = {key.lower() for key in params}
-        alias_map = {param.exposed_name: param.name for param in spec.params}
+        declared = {param.exposed_name: param for param in spec.params}
         for key, raw_value in query.filters.items():
             # Auth, format, pagination params already filled; don't override with user filters.
             if key.lower() in reserved:
                 continue
-            provider_name = alias_map.get(key, key)
-            params[provider_name] = str(raw_value)
+            param_spec = declared.get(key)
+            provider_name = param_spec.name if param_spec is not None else key
+            encoded = scalar_filter_value(
+                provider_name,
+                raw_value,
+                allow_bool=param_spec is not None and param_spec.type == "boolean",
+            )
+            if encoded is None:
+                if param_spec is not None and param_spec.required:
+                    raise InvalidRequestError(
+                        f"Required filter {provider_name!r} cannot be None",
+                        provider=spec.provider,
+                        dataset_id=spec.id,
+                    )
+                continue
+            params[provider_name] = encoded
 
         return params
 
@@ -1054,7 +1069,17 @@ class SpecExecutor:
         format_hint: str | None = None,
     ) -> dict[str, object]:
         """Return the decoded raw payload without envelope interpretation (raw escape hatch)."""
-        string_params: dict[str, str] = {key: str(value) for key, value in params.items()}
+        declared = {param.name: param for param in spec.params}
+        string_params: dict[str, str] = {}
+        for key, value in params.items():
+            param_spec = declared.get(key)
+            encoded = scalar_filter_value(
+                key,
+                value,
+                allow_bool=param_spec is not None and param_spec.type == "boolean",
+            )
+            if encoded is not None:
+                string_params[key] = encoded
         if spec.auth.type == "query_param" and spec.auth.param_name:
             provider_key = spec.auth.provider_key or spec.provider
             string_params.setdefault(
