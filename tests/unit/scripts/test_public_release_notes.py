@@ -103,7 +103,7 @@ def test_public_cli_writes_summary_and_compare_link(script, tmp_path: Path) -> N
     changelog = tmp_path / "CHANGELOG.md"
     output = tmp_path / "release.md"
     changelog.write_text(text, encoding="utf-8")
-    assert script.main(
+    result = script.main(
         [
             "extract",
             "0.11.0",
@@ -115,7 +115,8 @@ def test_public_cli_writes_summary_and_compare_link(script, tmp_path: Path) -> N
             "--output",
             str(output),
         ]
-    ) == 0
+    )
+    assert result == 0
     rendered = output.read_text(encoding="utf-8")
     assert rendered.count("### Highlights") == 1
     assert rendered.count("**Full changelog**") == 1
