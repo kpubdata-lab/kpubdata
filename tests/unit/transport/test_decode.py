@@ -83,9 +83,11 @@ class TestDecodeJson:
     def test_parse_errors_never_log_response_payload(self, caplog: pytest.LogCaptureFixture) -> None:
         """Upstream bodies may include echoed credentials; never log previews."""
         secret = "SECRET_SENTINEL_970"
-        with caplog.at_level(logging.DEBUG, logger="kpubdata.transport.decode"):
-            with pytest.raises(ParseError):
-                decode_json('{"serviceKey": "' + secret + '"')
+        with (
+            caplog.at_level(logging.DEBUG, logger="kpubdata.transport.decode"),
+            pytest.raises(ParseError),
+        ):
+            decode_json('{"serviceKey": "' + secret + '"')
         assert secret not in caplog.text
 
 
@@ -157,7 +159,9 @@ class TestDecodeXml:
 
     def test_parse_errors_never_log_xml_payload(self, caplog: pytest.LogCaptureFixture) -> None:
         secret = "SECRET_SENTINEL_970"
-        with caplog.at_level(logging.DEBUG, logger="kpubdata.transport.decode"):
-            with pytest.raises(ParseError):
-                decode_xml("<root><serviceKey>" + secret + "</serviceKey>")
+        with (
+            caplog.at_level(logging.DEBUG, logger="kpubdata.transport.decode"),
+            pytest.raises(ParseError),
+        ):
+            decode_xml("<root><serviceKey>" + secret + "</serviceKey>")
         assert secret not in caplog.text
