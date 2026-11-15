@@ -84,6 +84,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("report", type=Path)
     parser.add_argument("--label", default="tests")
+    parser.add_argument(
+        "--require-passed",
+        action="store_true",
+        help="Fail when no selected test passed (including all-skipped live runs)",
+    )
     args = parser.parse_args()
 
     try:
@@ -101,6 +106,10 @@ def main() -> int:
         # as PASS, which is how a failing smoke run looked healthy in the log.
         print("smoke=FAIL")
         print("error: the report declares zero tests", file=sys.stderr)
+        return 1
+    if args.require_passed and counts.passed == 0:
+        print("smoke=FAIL")
+        print("error: no tests passed; live API verification is unverified", file=sys.stderr)
         return 1
     print(f"smoke={'FAIL' if counts.failed else 'PASS'}")
     return 1 if counts.failed else 0
