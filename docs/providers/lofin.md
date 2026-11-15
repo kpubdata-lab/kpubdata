@@ -21,6 +21,8 @@
 export KPUBDATA_LOFIN_API_KEY="발급받은키"
 ```
 
+> **현재 구현 주의:** 이 문서의 LOFIN 발급 안내와 달리 SDK의 `LofinAdapter._require_api_key()`는 현재 `datago` 키를 조회합니다. 따라서 위 환경변수만 설정하면 지금 버전의 해당 어댑터가 키를 사용한다고 보장할 수 없습니다. 이 불일치는 [#986](https://github.com/kpubdata-lab/kpubdata/issues/986)에서 발급기관과 실제 인증 방식을 검증한 뒤 수정할 예정입니다. 다른 기관의 인증키를 임의로 LOFIN 서버에 전송하거나 실API 성공을 가정하지 마세요.
+
 ## 지원 데이터셋
 
 [SUPPORTED_DATA.md](https://github.com/kpubdata-lab/kpubdata/blob/main/SUPPORTED_DATA.md) 의 `lofin` 행을 본다 — 상태·검증
