@@ -76,11 +76,11 @@ class TestDecodeJson:
 
     def test_utf8_bom_bytes_are_accepted(self) -> None:
         """A provider's UTF-8 BOM is not part of the JSON syntax."""
-        assert decode_json(b'\xef\xbb\xbf{"response": {"code": 0}}') == {
-            "response": {"code": 0}
-        }
+        assert decode_json(b'\xef\xbb\xbf{"response": {"code": 0}}') == {"response": {"code": 0}}
 
-    def test_parse_errors_never_log_response_payload(self, caplog: pytest.LogCaptureFixture) -> None:
+    def test_parse_errors_never_log_response_payload(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
         """Upstream bodies may include echoed credentials; never log previews."""
         secret = "SECRET_SENTINEL_970"
         with (
