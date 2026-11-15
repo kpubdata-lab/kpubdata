@@ -15,6 +15,7 @@ not proof the dataset is authorized or verified**.
 | --- | --- | --- |
 | `datago` | `KPUBDATA_DATAGO_API_KEY` | [Public Data Portal](https://www.data.go.kr); dataset-specific activation may be required |
 | `localdata`, `semas` | `KPUBDATA_DATAGO_API_KEY` (shared default) | These adapters first honor their own `KPUBDATA_LOCALDATA_API_KEY` / `KPUBDATA_SEMAS_API_KEY` override, then fall back to the data.go.kr key |
+| `lofin` | `KPUBDATA_LOFIN_API_KEY` | [LOFIN365](https://www.lofin365.go.kr/portal/LF9220200.do); independently issued credential, never a data.go.kr fallback |
 | `neis` | `KPUBDATA_NEIS_API_KEY` | [NEIS Open API](https://open.neis.go.kr/portal/guide/apiGuidePage.do); **not** a data.go.kr shared-key fallback |
 | `fds` | `KPUBDATA_FDS_API_KEY` | [Food Safety Korea Open API](https://www.foodsafetykorea.go.kr/api/howToUseApi.do); **not** a data.go.kr shared-key fallback |
 | `bok` | `KPUBDATA_BOK_API_KEY` | [Bank of Korea ECOS](https://ecos.bok.or.kr/api/) |
