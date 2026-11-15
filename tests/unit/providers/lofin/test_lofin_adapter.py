@@ -17,7 +17,7 @@ import pytest
 
 from kpubdata.config import KPubDataConfig
 from kpubdata.core.models import DatasetRef, Query
-from kpubdata.exceptions import ProviderResponseError
+from kpubdata.exceptions import ConfigError, ProviderResponseError
 from kpubdata.providers.lofin.adapter import LofinAdapter
 from kpubdata.transport.http import HttpTransport
 
@@ -287,3 +287,46 @@ class TestLofinVerifiesCertificates:
 
         # Legacy cipher only negotiated at SECLEVEL=1.
         assert "AES256-SHA256" in ciphers
+
+
+def test_lofin_rejects_unrelated_datago_key_before_transport(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An unrelated portal credential must never be sent to LOFIN365."""
+    monkeypatch.delenv("KPUBDATA_LOFIN_API_KEY", raising=False)
+    monkeypatch.delenv("LOFIN_API_KEY", raising=False)
+    transport = FakeTransport([])
+    adapter = LofinAdapter(
+        config=KPubDataConfig(
+            provider_keys={"datago": "unrelated-portal-key"}, env_fallback=False
+        ),
+        transport=cast(HttpTransport, cast(object, transport)),
+    )
+    dataset = adapter.get_dataset("expenditure_budget")
+
+    with pytest.raises(ConfigError, match="lofin") as failure:
+        adapter.query_records(dataset, Query(page=1, page_size=1))
+
+    assert "unrelated-portal-key" not in str(failure.value)
+    assert transport.calls == []
+
+
+def test_lofin_uses_its_own_credential_when_an_unrelated_one_is_present() -> None:
+    """Even an explicitly configured data.go.kr key cannot override LOFIN's key."""
+    transport = FakeTransport([FakeResponse(_success_payload(items=[{"id": 1}], total_count=1))])
+    adapter = LofinAdapter(
+        config=KPubDataConfig(
+            provider_keys={"lofin": "issued-lofin-key", "datago": "unrelated-portal-key"},
+            env_fallback=False,
+        ),
+        transport=cast(HttpTransport, cast(object, transport)),
+    )
+    dataset = adapter.get_dataset("expenditure_budget")
+
+    batch = adapter.query_records(dataset, Query(page=1, page_size=1))
+
+    assert batch.items == [{"id": 1}]
+    assert len(transport.calls) == 1
+    url = str(transport.calls[0]["url"])
+    assert "Key=issued-lofin-key" in url
+    assert "unrelated-portal-key" not in url
