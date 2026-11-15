@@ -219,9 +219,8 @@ class DataGoFamilyAdapter:
     def _require_api_key(self) -> str:
         """Read data.go.kr API key; raise on missing.
 
-        localdata, semas, and lofin adapters all share the data.go.kr
-        authentication system, managed by a single provider key ("datago")
-        by design.
+        localdata and semas share data.go.kr authentication, with a shared
+        provider key ("datago") accepted after their own overrides.
         """
         # Check own name first. This family uses data.go.kr credentials,
         # but requiring "datago" immediately would silently ignore the
