@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
+import httpx
 import pytest
 
 from kpubdata.exceptions import ParseError
@@ -33,6 +35,28 @@ class TestDetectContentType:
         """Other content types are reported."""
         assert detect_content_type(FakeResponse("text/plain")) == "other"
 
+    def test_bounded_sniff_recognizes_gateway_xml_without_xml_content_type(self) -> None:
+        response = httpx.Response(
+            200,
+            headers={"content-type": "text/plain"},
+            content=b"  <?xml version='1.0'?><OpenAPI_ServiceResponse/>",
+        )
+        assert detect_content_type(response) == "xml"
+
+    def test_mislabeled_json_is_identified_by_its_prefix(self) -> None:
+        response = httpx.Response(
+            200, headers={"content-type": "text/plain"}, content=b'{"result": "ok"}'
+        )
+        assert detect_content_type(response) == "json"
+
+    def test_html_document_is_not_guessed_as_xml(self) -> None:
+        response = httpx.Response(
+            200,
+            headers={"content-type": "text/html"},
+            content=b"<!doctype html><html><body>service unavailable</body></html>",
+        )
+        assert detect_content_type(response) == "other"
+
 
 class TestDecodeJson:
     """Test JSON decoding."""
@@ -49,6 +73,20 @@ class TestDecodeJson:
         """Invalid JSON raises ParseError."""
         with pytest.raises(ParseError, match="decode JSON"):
             decode_json("not json")
+
+    def test_utf8_bom_bytes_are_accepted(self) -> None:
+        """A provider's UTF-8 BOM is not part of the JSON syntax."""
+        assert decode_json(b'\xef\xbb\xbf{"response": {"code": 0}}') == {
+            "response": {"code": 0}
+        }
+
+    def test_parse_errors_never_log_response_payload(self, caplog: pytest.LogCaptureFixture) -> None:
+        """Upstream bodies may include echoed credentials; never log previews."""
+        secret = "SECRET_SENTINEL_970"
+        with caplog.at_level(logging.DEBUG, logger="kpubdata.transport.decode"):
+            with pytest.raises(ParseError):
+                decode_json('{"serviceKey": "' + secret + '"')
+        assert secret not in caplog.text
 
 
 class TestDecodeXml:
@@ -106,8 +144,20 @@ class TestDecodeXml:
         with pytest.raises(ImportError, match="kpubdata\\[xml\\]"):
             decode_xml("<root/>")
 
-    def test_bytes_utf8_decode_error(self) -> None:
-        """Invalid UTF-8 bytes raise ParseError."""
+    def test_declared_euc_kr_encoding_is_honored(self) -> None:
+        """XML bytes are parsed using the encoding in the XML declaration."""
+        xml = '<?xml version="1.0" encoding="euc-kr"?><root><city>서울</city></root>'
+        assert decode_xml(xml.encode("euc-kr"))["root"]["city"] == "서울"
+
+    def test_invalid_xml_bytes_are_a_parse_error(self) -> None:
+        """Corrupt bytes are rejected without an assumed UTF-8-only policy."""
         bad_bytes = b"\xff\xfe<root/>"
-        with pytest.raises(ParseError, match="UTF-8"):
+        with pytest.raises(ParseError, match="Failed to decode XML"):
             decode_xml(bad_bytes)
+
+    def test_parse_errors_never_log_xml_payload(self, caplog: pytest.LogCaptureFixture) -> None:
+        secret = "SECRET_SENTINEL_970"
+        with caplog.at_level(logging.DEBUG, logger="kpubdata.transport.decode"):
+            with pytest.raises(ParseError):
+                decode_xml("<root><serviceKey>" + secret + "</serviceKey>")
+        assert secret not in caplog.text
