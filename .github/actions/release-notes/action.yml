@@ -65,7 +65,7 @@ runs:
         else
           compare="https://github.com/${REPO}/commits/${tag}"
         fi
-        python3 "${script}" extract "${VERSION}" --changelog "${CHANGELOG}" \
+        python3 "${script}" extract "${VERSION}" --public --changelog "${CHANGELOG}" \
           --compare-url "${compare}" --output "${OUTPUT}"
         echo "file=${OUTPUT}" >> "$GITHUB_OUTPUT"
         echo "notes for ${tag}:"
