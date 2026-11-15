@@ -25,12 +25,11 @@ not proof the dataset is authorized or verified**.
 | `law`, `kipris`, `korean` | `KPUBDATA_LAW_API_KEY`, `KPUBDATA_KIPRIS_API_KEY`, `KPUBDATA_KOREAN_API_KEY` | Each provider's own credential issuer |
 | `krx` | None | This optional backend does not require an SDK API key |
 
-**LOFIN exception:** `docs/providers/lofin.md` describes an independently
-issued `KPUBDATA_LOFIN_API_KEY`, but the current
-`LofinAdapter._require_api_key()` reads the `datago` key instead. These
-credentials must **not** be assumed interchangeable. [Issue #986](https://github.com/kpubdata-lab/kpubdata/issues/986)
-tracks verification and correction. Do not run a credentialed LOFIN live test
-until the issuer, endpoint, and adapter behavior have been reconciled.
+**LOFIN credential boundary:** LOFIN365 issues its own API key; the SDK now
+requires its own `lofin` credential rather than sending an unrelated
+data.go.kr key to the LOFIN365 host. Previously configured users must set
+`KPUBDATA_LOFIN_API_KEY` before calling LOFIN. This is an intentional change
+in authentication behavior. Live provider verification remains separate.
 
 ### Lookup order
 
