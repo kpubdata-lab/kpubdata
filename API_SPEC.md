@@ -295,6 +295,19 @@ schema = dataset.schema()
 raw = dataset.call_raw(operation="list", LAWD_CD="11680", DEAL_YMD="202503")
 ```
 
+For **spec-backed** datasets, the raw escape hatch uses the same provider
+credential and host allowlist rules as normalized queries. Credentials come
+from `Client(provider_keys=...)` or the permitted SDK environment fallback,
+not from a raw filter that happens to be named `serviceKey`. For
+`path_segment` authentication, the key is inserted into the URL path and
+is not forwarded as a query parameter. Both the spec base host and the
+resolved path-template host are checked before reading a credential; the
+actual URL is checked once more before transmission (#972). Provider-specific
+custom adapter behavior is unchanged.
+Configured-key precedence applies to the exact declared authentication parameter
+name. Additional raw parameter names keep their existing case-sensitive spelling;
+this does not certify how every provider interprets differently cased duplicates.
+
 ## 4a. Reachability probe
 
 ```python
