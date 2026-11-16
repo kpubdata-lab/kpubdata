@@ -608,8 +608,8 @@
       "basis": "installed",
       "status": "recorded"
     },
-    "ruff==0.16.10": {
-      "version": "0.16.10",
+    "ruff==0.17.5": {
+      "version": "0.17.5",
       "scope": "dev",
       "license": "MIT",
       "source": "https://github.com/astral-sh/ruff",

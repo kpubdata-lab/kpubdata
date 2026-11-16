@@ -110,7 +110,7 @@ optional extra; `dev` only for development and documentation.
 | referencing | 0.37.0 | extra:mcp | MIT | recorded | https://github.com/python-jsonschema/referencing |
 | requests | 2.33.1 | extra:docs | Apache-2.0 | recorded | https://github.com/psf/requests |
 | rpds-py | 0.30.0 | extra:mcp | MIT | recorded | https://github.com/crate-py/rpds |
-| ruff | 0.16.10 | dev | MIT | recorded | https://github.com/astral-sh/ruff |
+| ruff | 0.17.5 | dev | MIT | recorded | https://github.com/astral-sh/ruff |
 | six | 1.17.0 | extra:docs | MIT | recorded | https://github.com/benjaminp/six |
 | sse-starlette | 3.3.4 | extra:mcp | BSD-3-Clause | recorded | https://github.com/sysid/sse-starlette |
 | starlette | 1.7.0 | extra:mcp | BSD-3-Clause | recorded | https://github.com/Kludex/starlette |
