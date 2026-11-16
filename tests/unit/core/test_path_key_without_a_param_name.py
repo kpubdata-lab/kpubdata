@@ -43,7 +43,11 @@ def _spec(param_name: str | None) -> SpecDefinition:
     return replace(
         base,
         auth=AuthSpec(type="path_segment", param_name=param_name, provider_key="datago"),
-        endpoint=replace(base.endpoint, path_template="{base_url}/{key}/{operation}"),
+        endpoint=replace(
+            base.endpoint,
+            base_url=base.endpoint.base_url.replace("http://", "https://", 1),
+            path_template="{base_url}/{key}/{operation}",
+        ),
     )
 
 

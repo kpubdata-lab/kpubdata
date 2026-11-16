@@ -32,9 +32,10 @@ jobs:
           # 조회할 수 없다 (#523).
           fetch-depth: 0
 
-      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78  # v7.6.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
         with:
           enable-cache: true
+          prune-cache: true
           cache-dependency-glob: "uv.lock"
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
@@ -204,13 +205,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
-      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78  # v7.6.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
         with:
           enable-cache: true
+          prune-cache: true
           cache-dependency-glob: "uv.lock"
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
@@ -233,6 +235,12 @@ jobs:
         if: matrix.python-version == '3.12'
         run: uv run pytest -ra --cov --cov-report=term-missing
 
+      - name: Install all declared extras after the baseline tests
+        run: uv sync --frozen --all-extras
+
+      - name: Exercise the installed optional integrations without network calls
+        run: uv run --frozen --all-extras python scripts/smoke_installed_extras.py
+
   build:
     name: Build Package
     # Building reads nothing the lint or the tests produce, so it does not wait for them.
@@ -241,9 +249,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
-      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78  # v7.6.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
         with:
           enable-cache: true
+          prune-cache: true
           cache-dependency-glob: "uv.lock"
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
@@ -269,23 +278,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
-      # 모든 다른 잡이 --extra dev 로 설치한다. dev 는 pandas 와
-      # typing_extensions 를 끌어오므로, "optional 이라고 선언했지만 실제로는
-      # 필수"인 의존성이 CI 어디에도 걸리지 않았다. krx 어댑터의 pandas 와
-      # typing_extensions 가 각각 그렇게 배포까지 나갔다.
+      # Extra-enabled jobs can hide undeclared imports. Keep this install clean
+      # to catch mandatory pandas or typing_extensions imports before release.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install the package with no extras
-        run: pip install .
+      - name: Build and install the actual wheel with no extras
+        run: |
+          python -m pip wheel --no-deps --wheel-dir "${RUNNER_TEMP}/sdk-wheel" .
+          python -m pip install "${RUNNER_TEMP}"/sdk-wheel/*.whl
 
       - name: The package imports
-        run: python -c "import kpubdata; print(kpubdata.__version__)"
+        working-directory: ${{ runner.temp }}
+        run: |
+          python -I -c "import importlib.metadata as m, pathlib, sys, kpubdata; assert m.metadata('kpubdata')['Requires-Python'] == '>=3.11'; assert pathlib.Path(kpubdata.__file__).resolve().is_relative_to(pathlib.Path(sys.prefix).resolve()); print(kpubdata.__version__)"
 
       - name: The CLI runs and the catalog materializes every provider
         working-directory: ${{ runner.temp }}
@@ -300,9 +311,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
-      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78  # v7.6.0
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
         with:
           enable-cache: true
+          prune-cache: true
           cache-dependency-glob: "uv.lock"
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0

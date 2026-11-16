@@ -9,13 +9,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.11.0] — 2026-11-16
 
+### Highlights
+
+- The SDK runs on Python 3.11–3.14, including verified CPython 3.14.10, with patched locked dependencies (#981, #976).
+- Credential-bearing HTTP requests fail before sending, while anonymous HTTP and historical offline replay remain available (#893).
+- LOFIN365 uses its own issued credential, with provider key instructions and safe configuration examples aligned across the SDK (#986).
+- Data fields expose Korean display labels and, where verified, units and meanings (#877).
+- SGIS token expiry values and provider-specific TLS, retry and redirect preferences are handled consistently (#967, #971).
+
+### Upgrade notes
+
+- Upgrade Python 3.10 installations to Python 3.11 or later before installing; package metadata now requires Python >=3.11 (#981).
+- Configure a LOFIN365-issued `KPUBDATA_LOFIN_API_KEY` or `provider_keys={"lofin": ...}` for LOFIN; an unrelated data.go.kr key is no longer used (#986).
+- Credentialed HTTP dataset calls now fail; use fixture/replay until the specific HTTPS endpoint and trusted recordings are reviewed (#893).
+- Provider-specific transports now honor explicit TLS and redirect preferences previously lost during construction; review any insecure opt-ins (#971).
+- For a refused key returning HTTP 403 from `semas` or `localdata`, catch `AuthError` (or `PublicDataError`) instead of `TransportError` (#916).
+- Call datasets through `Client` rather than constructing `DataGoAdapter` directly to access spec-owned identifiers removed from its legacy catalogue (#898).
+
+### Known limitations
+
+- This is a GitHub source release; `kpubdata==0.11.0` is not yet published to PyPI. The PyPI install command below becomes valid only after separate publication. Meanwhile install the tagged source with `pip install "kpubdata @ https://github.com/kpubdata-lab/kpubdata/archive/refs/tags/v0.11.0.tar.gz"`.
+- Some bundled specs still use HTTP and require reviewed HTTPS migration and trusted re-recording before credentialed live use (#893).
+- Plaintext proxy-hop authentication and inherited late-client cache/cross-HTTPS redirect policy are outside the origin-request containment guarantee (#893).
+- Real-provider smoke is manual-only during the MVP; offline fixtures, replay and caches do not certify current provider availability or approved access (#887).
+- Dependency audit results apply to the reviewed frozen lock; arbitrary downstream version constraints can resolve a different closure (#976).
+
 ### Added
 
 - `SpecDefinition`, the type `find_spec()` and `discover_specs()` return, is exported from `kpubdata` (#913). A typed caller had to import it from `kpubdata.core.spec`, which is private. `API_SPEC.md` lists the attributes the compatibility promise covers (`id`, `provider`, `dataset_key`, `examples`, `pagination.type`, `endpoint.base_url`, `auth.type`); every other attribute is not covered. No behaviour change.
 - Every field of the bundled specs has a Korean display name, and a unit and a meaning where they are known (#877). No spec set `title` or `unit`, so a consumer showed provider field names and bare numbers — `dealAmount` read `101300` with no 만원. All 417 fields of the 22 specs that declare fields now have `title` (`FieldDescriptor.title`); 85 have `unit` (만원, ㎡, ㎍/㎥, ppm, 원, 분, °C …) and 222 have `semantic_kind`. A meaning is set only where the field's storage type allows it (ADR 0006): seven codes stored as integers (`areacode`, `sigungucode` of three tour specs, `fcstTime` of `ultra_srt_fcst`) and the year/month/day integers are left without one, since changing a type changes what is returned. No schema key is new.
-- A CI gate keeps each dataset declared in one place (#898). `scripts/check_catalogue_baseline.py` fails when a provider catalogue gains an entry that `scripts/catalogue_only_baseline.txt` does not list (131 entries; the list may only shrink), when a listed entry is gone, or when a catalogue and a spec declare the same key. The three `localdata` keys still declared twice are named in the script. `docs/internal/custom-adapters.md` says why each remaining catalogue adapter stays and how a move to a spec is checked for parity.
+- A CI gate keeps each dataset declared in one place (#898). `scripts/check_catalogue_baseline.py` fails when a provider catalogue gains an entry that `scripts/catalogue_only_baseline.txt` does not list (131 entries; the list may only shrink), when a listed entry is gone, or when a catalogue and a spec declare the same key. The three `localdata` keys previously declared twice were removed from the catalogue, leaving the specs as their sole definitions. `docs/internal/custom-adapters.md` says why each remaining catalogue adapter stays and how a move to a spec is checked for parity.
 
 ### Changed
+
+- Provider-specific transports preserve caller TLS, retry-delay and credentialed-redirect settings instead of silently resetting them while merging headers (#971). Existing configuration precedence is retained; explicitly selected insecure TLS or redirect preferences now take effect as configured. The existing constructor cache-TTL sentinel is unchanged.
+
+- Live smoke runs are manual-only during the MVP (#887). The manual protocol disables replay/cache shortcuts and requires consistent JUnit testcase evidence with a nonzero pass count. This change does not claim any new real-provider verification.
+
+- SGIS token expiry accepts documented second epochs and defensively normalizes the millisecond epochs shown in the official authentication example (#967). Invalid or out-of-range values raise `ProviderResponseError`; cached tokens refresh with 60 seconds or less remaining. This offline-tested correction does not certify a current authenticated provider response.
+
+- **LOFIN365 now requires its own issued API key** (`KPUBDATA_LOFIN_API_KEY` or `provider_keys={"lofin": ...}`) (#986). Previously the LOFIN adapter used the `datago` credential, sending a data.go.kr key to another issuer's host and ignoring the LOFIN-specific variable documented for its users. This is an intentional authentication behavior change: supply a LOFIN365-issued key before using `lofin.*`. Other providers and existing environment-variable names are unchanged.
+- Spec-backed `Dataset.call_raw()` now uses the configured provider credential for the exact declared authentication parameter and supports path-segment keys through the same preflight as normalized queries (#972). The declared and resolved hosts are checked before credential lookup, and the final URL is checked before sending. Raw response envelopes, additional parameters and explicit format selection remain raw; differently cased extra parameter names retain their existing case-sensitive treatment. Custom adapter behavior is unchanged.
+- **Breaking:** require Python 3.11 or later and test the SDK on Python 3.11–3.14 (#981). Python 3.10 installations are rejected by package metadata; upgrade the interpreter before installing this version. Python 3.11 retains its required `typing-extensions` compatibility dependency. This support change does not itself release a new package.
+
+- Concurrent request-hook repair retains the HTTPS credential guard throughout and uses one client for preparation and sending (#893). SDK-managed clients keep anonymous HTTP stateless by rejecting HTTP response cookies from their shared jar; raw response cookies remain available and HTTPS/preloaded credential cookies still cannot go over HTTP. Prepared-request failures retain safe provider/dataset context. Proxy-transport authentication is a separate, unguarded hop; this change does not certify authenticated plaintext proxy configurations or resolve inherited late-client cache/cross-HTTPS redirect policy.
+
+- HTTP requests with credentials visible in request arguments, transport config or provider requirements now fail with `TransportError` before cache reads or client initialization (#893). A final prepared-request check blocks late-merged client headers/query/authentication, URL userinfo and cookies from plaintext HTTP sends, including HTTPS-to-HTTP redirects even when credentialed redirect following is explicitly enabled. An existing anonymous HTTP cache hit can still return without the prepared-send check, with no credentials transmitted; inherited cache isolation for underlying HTTPX-client credentials, including on HTTPS, is outside this change. Unauthenticated HTTP/raw and exact historical offline replay remain available. Existing HTTP-only credentialed datasets require reviewed HTTPS migration and trusted re-recording before live use; this containment does not complete that evidence work.
 
 - `datago.air_station`'s source link points at data.go.kr page 15073861 (#931). `DatasetRef.source_url` (the spec's `source.url`) gave page 15000581, which now answers "page not found". The `SUPPORTED_DATA.md` links for `air_station` and `ultra_srt_fcst` were fixed too.
 - **Twelve datago specs declare the licence their own data.go.kr page states** (#933). `hospital_info` (15001698) and `ocean_buoy` (15155516) state 공공저작물 : 출처표시 (제 1유형); `metro_fare` (15143846), `offi_rent`, `offi_trade`, `rh_rent`, `sh_rent`, `sh_trade` (15126475, 15126464, 15126473, 15126472, 15126465) and the four `tour_kor_*` (KorService2, 15101578) state 이용허락범위 제한 없음, which is no KOGL type: they now declare `type: 이용허락범위_제한없음`, `commercial_use: true`, `modification_allowed: true`. All twelve keep `redistribution: allowed` and gain the `attribution` text, so **`DatasetRef.license.redistribution` reads `allowed` where it read `unknown`** and Builder can publish them publicly; they leave `scripts/unconfirmed_terms_baseline.txt` (14 entries to 2). Their specs had said 제1유형 without confirmation. `docs/policy/terms-matrix.md` links 17 rows to the page of the service each spec calls (16 linked to missing pages, `offi_trade` to a bus service) and records each page's 이용허락범위 as stated, checked 2026-10-13. No fixture or recorded spec digest changes: none of the twelve has a digest-bound fixture.

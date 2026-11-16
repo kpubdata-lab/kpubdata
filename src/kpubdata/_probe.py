@@ -30,7 +30,7 @@ import time
 import warnings
 from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -302,7 +302,7 @@ def new_probe_transport() -> HttpTransport:
 
 
 def _now() -> str:
-    return datetime.now(tz=timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(tz=UTC).isoformat(timespec="seconds")
 
 
 def _missing_credential(spec: SpecDefinition, config: KPubDataConfig) -> str | None:

@@ -49,9 +49,10 @@ def scope_indicators(repository: str, title: str, name_status: str, patch: str) 
         elif repository.endswith("/kpubdata-builder"):
             if re.fullmatch(r"src/kpubdata_builder/(?:service/routes|exporters)/[^/]+\.py", path):
                 reasons.append(f"new route or exporter module: {path}")
-        elif repository.endswith("/kpubdata-studio"):
-            if re.fullmatch(r"src/pages/[^/]+\.(?:ts|tsx)", path):
-                reasons.append(f"new page: {path}")
+        elif repository.endswith("/kpubdata-studio") and re.fullmatch(
+            r"src/pages/[^/]+\.(?:ts|tsx)", path
+        ):
+            reasons.append(f"new page: {path}")
 
     path = ""
     for line in patch.splitlines():

@@ -7,7 +7,7 @@ name = "kpubdata"
 version = "0.11.0"
 description = "Dialect-inspired Python access framework for Korean public data"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [
   { name = "Yeongseon Choe" }
@@ -25,10 +25,10 @@ classifiers = [
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Typing :: Typed",
 ]
 dependencies = [
@@ -83,7 +83,7 @@ packages = ["src/kpubdata"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
@@ -94,18 +94,18 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 "tests/**" = ["E501"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 strict = true
 warn_unused_configs = true
 mypy_path = ["src"]
 
-# 커버리지 게이트 (#456). 목적은 새 커버리지를 강제하는 게 아니라 이미 도달한
-# 수준(실측 91%)이 조용히 내려가지 않게 잠그는 것이다. 하한은 실측보다 2%p 낮게
-# 두어 정상 변동으로 CI 가 붉어지지 않게 한다.
+# The Python 3.12 --extra dev suite measured 93.84% after this support change.
+# Raise the floor from 89% to 91% to retain regression sensitivity (#456).
+# All-extras smoke runs afterward and does not change the measured profile.
 #
-# `--cov` 를 기본 addopts 에 넣지 않는다: 테스트 잡이 4개(py3.10~3.13)라 전부에
-# 계측을 걸면 같은 정보를 4배 비용으로 사고, 로컬 `pytest` 도 함께 느려진다.
-# CI 의 Python 3.12 테스트 레그 하나만 `--cov` 로 실행해 게이트를 담당한다.
+# Keep --cov out of addopts: instrumenting every Python 3.11–3.14 job
+# repeats the same measurement and slows local pytest. Only the Python 3.12
+# test leg measures coverage and enforces the configured floor.
 #
 # 수치는 기본 마커 조합(`-m 'not integration'`) 기준이다 — integration 은 실 API
 # 키가 필요해 CI 에서 항상 deselect 되므로, 게이트가 보는 값과 개발자가 로컬에서
@@ -114,7 +114,7 @@ mypy_path = ["src"]
 source = ["src/kpubdata"]
 
 [tool.coverage.report]
-fail_under = 89
+fail_under = 91
 show_missing = true
 
 [tool.pytest.ini_options]

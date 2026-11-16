@@ -26,7 +26,7 @@ import re
 import tempfile
 from collections.abc import Iterator
 from dataclasses import dataclass, replace
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import MappingProxyType
 from typing import cast
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -555,9 +555,9 @@ def _build_provenance(
     # originally fetched, not when it was read back from disk.
     cached_at = extensions.get(CACHED_AT_EXTENSION)
     if cached and isinstance(cached_at, int | float) and not isinstance(cached_at, bool):
-        fetched = datetime.fromtimestamp(float(cached_at), tz=timezone.utc)
+        fetched = datetime.fromtimestamp(float(cached_at), tz=UTC)
     else:
-        fetched = datetime.now(tz=timezone.utc)
+        fetched = datetime.now(tz=UTC)
     provenance["fetched_at"] = fetched.isoformat(timespec="seconds")
 
     # content_sha256 — hash of the raw response bytes
@@ -652,6 +652,42 @@ class SpecExecutor:
         )
         raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id)
 
+    def _add_auth_params(self, spec: SpecDefinition, params: dict[str, str]) -> None:
+        """Share credential preflight and injection across query and raw requests.
+
+        Check both the declared base URL and the resolved path-template host
+        *before* accessing credentials. The final actual URL is checked again
+        in _request, after interpolation, as a second security boundary.
+        """
+        if spec.auth.type == "none":
+            return
+
+        self._require_allowed_host(spec, spec.endpoint.base_url)
+        self._require_allowed_host(spec, self.build_url(spec, api_key=""))
+
+        if spec.auth.type == "query_param":
+            if not spec.auth.param_name:
+                msg = f"{spec.id}: auth.query_param 방식은 param_name 선언이 필요합니다."
+                raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id)
+            provider_key = spec.auth.provider_key or spec.provider
+            # Ignore raw caller overrides: the configured key is the credential
+            # for the chosen provider, never a user filter (#972).
+            params[spec.auth.param_name] = self._config.require_provider_key(provider_key)
+        elif spec.auth.type == "path_segment":
+            template = spec.endpoint.path_template or ""
+            if "{key}" not in template:
+                msg = f"{spec.id}: path_segment 인증은 path_template의 {{key}}가 필요합니다."
+                raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id)
+            params[_path_key_slot(spec)] = self._config.require_provider_key(
+                spec.auth.provider_key or spec.provider
+            )
+        else:
+            msg = (
+                f"{spec.id}: auth.type={spec.auth.type!r}은(는) 아직 spec 실행기가 "
+                "지원하지 않습니다."
+            )
+            raise NotImplementedError(msg)
+
     def build_params(
         self, spec: SpecDefinition, query: Query, format_hint: str | None = None
     ) -> dict[str, str]:
@@ -666,34 +702,7 @@ class SpecExecutor:
             InvalidRequestError: If pagination mode lacks required param name.
         """
         params: dict[str, str] = {}
-
-        if spec.auth.type != "none":
-            # Before any credential is read. ``path_template`` can name a host
-            # of its own without going through ``base_url``, so the resolved URL
-            # is checked again in ``_request``.
-            self._require_allowed_host(spec, spec.endpoint.base_url)
-
-        if spec.auth.type == "query_param":
-            if not spec.auth.param_name:
-                msg = f"{spec.id}: auth.query_param 방식은 param_name 선언이 필요합니다."
-                raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id)
-            provider_key = spec.auth.provider_key or spec.provider
-            params[spec.auth.param_name] = self._config.require_provider_key(provider_key)
-        elif spec.auth.type == "path_segment":
-            # Key is placed in URL path (path_template {key}) — removed from query.
-            template = spec.endpoint.path_template or ""
-            if "{key}" not in template:
-                msg = f"{spec.id}: path_segment 인증은 path_template의 {{key}}가 필요합니다."
-                raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id)
-            params[_path_key_slot(spec)] = self._config.require_provider_key(
-                spec.auth.provider_key or spec.provider
-            )
-        elif spec.auth.type != "none":
-            msg = (
-                f"{spec.id}: auth.type={spec.auth.type!r}은(는) 아직 spec 실행기가 "
-                "지원하지 않습니다."
-            )
-            raise NotImplementedError(msg)
+        self._add_auth_params(spec, params)
 
         format_value = self._resolve_format_value(spec, format_hint)
         format_param = spec.endpoint.format_param
@@ -1070,11 +1079,7 @@ class SpecExecutor:
             )
             if encoded is not None:
                 string_params[key] = encoded
-        if spec.auth.type == "query_param" and spec.auth.param_name:
-            provider_key = spec.auth.provider_key or spec.provider
-            string_params.setdefault(
-                spec.auth.param_name, self._config.require_provider_key(provider_key)
-            )
+        self._add_auth_params(spec, string_params)
         format_value = self._resolve_format_value(spec, format_hint)
         format_param = spec.endpoint.format_param
         if format_param is not None and format_param.name and format_value is not None:

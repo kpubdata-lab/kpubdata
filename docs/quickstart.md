@@ -3,14 +3,14 @@
 이 문서를 따라하면 KPubData를 설치하고, API 키를 설정하고, 실제 공공데이터를 조회하는 것까지 한 번에 완료할 수 있습니다.
 
 ## 필요한 것
-- Python 3.10 이상 (확인: `python --version`)
+- Python 3.11 이상 (확인: `python --version`)
 - 인터넷 연결
 - 공공데이터 API 키 (아래에서 발급 방법 안내)
 
 ## 1단계: Python 설치 확인
 ```bash
 python --version
-# Python 3.10.x 이상이면 정상
+# Python 3.11.x 이상이면 정상
 # 설치 안 되어 있다면: https://www.python.org/downloads/
 ```
 
@@ -58,9 +58,11 @@ set KPUBDATA_BOK_API_KEY=여기에-발급받은-키-붙여넣기
 
 설정 확인:
 ```bash
-python -c "import os; print(os.environ.get('KPUBDATA_BOK_API_KEY', '설정 안됨'))"
-# ABCD1234EFGH5678  ← 이런 식으로 키가 출력되면 OK
+python -c "import os; print('설정됨' if os.getenv('KPUBDATA_BOK_API_KEY') else '설정 안됨')"
+# 설정됨  ← 키 값은 출력하지 않습니다
 ```
+
+환경변수 전체 목록과 제공기관별 인증키는 [환경변수 안내](environment-variables.md)에서 확인할 수 있습니다. 키 값을 화면에 표시하거나 저장소에 올리지 마세요.
 
 ## 5단계: 첫 번째 데이터 조회
 Python 파일을 하나 만들겠습니다.
@@ -190,3 +192,5 @@ print(df)
 - 각 Provider별 상세 사용법: [공공데이터포털](providers/datago.md) · [서울](providers/seoul.md) · [KOSIS](providers/kosis.md) · [BOK](providers/bok.md)
 - 프로젝트에 기여하기: [CONTRIBUTING.md](contributing.md)
 - 전체 API 명세: [API_SPEC.md](https://github.com/kpubdata-lab/kpubdata/blob/main/API_SPEC.md)
+
+Python 3.10 환경에서는 먼저 Python 3.11 이상으로 업그레이드하세요. SDK의 검증 대상은 Python 3.11–3.14이며, 패키지 메타데이터가 Python 3.10 설치를 거부합니다.

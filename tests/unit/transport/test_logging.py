@@ -483,7 +483,7 @@ class TestPathSegmentSecretMasking:
         response = httpx.Response(
             200,
             text='{"ok": true}',
-            request=httpx.Request("GET", "http://openapi.seoul.go.kr:8088/REAL-KEY-9/json/x/1/5"),
+            request=httpx.Request("GET", "https://openapi.seoul.go.kr:8088/REAL-KEY-9/json/x/1/5"),
         )
         with (
             patch("kpubdata.transport.http.httpx.Client.send", return_value=response),
@@ -491,7 +491,7 @@ class TestPathSegmentSecretMasking:
         ):
             transport.request(
                 "GET",
-                "http://openapi.seoul.go.kr:8088/REAL-KEY-9/json/x/1/5",
+                "https://openapi.seoul.go.kr:8088/REAL-KEY-9/json/x/1/5",
                 secret_values=("REAL-KEY-9",),
             )
 
