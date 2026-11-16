@@ -19,7 +19,7 @@ import weakref
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager, suppress
 from contextvars import ContextVar
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from http.cookiejar import Cookie, CookieJar, DefaultCookiePolicy
@@ -256,14 +256,9 @@ class HttpTransport:
     ) -> HttpTransport:
         """Build a new HttpTransport merging base config with provider requirements."""
         return cls(
-            config=TransportConfig(
-                timeout=config.timeout,
-                max_retries=config.max_retries,
-                retry_backoff_factor=config.retry_backoff_factor,
+            config=replace(
+                config,
                 headers=_merge_headers(config.headers, requirements.headers),
-                cache=config.cache,
-                cache_ttl_seconds=config.cache_ttl_seconds,
-                max_response_bytes=config.max_response_bytes,
             ),
             requirements=requirements,
         )

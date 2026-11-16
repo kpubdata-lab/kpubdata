@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Provider-specific transports preserve caller TLS, retry-delay and credentialed-redirect settings instead of silently resetting them while merging headers (#971). Existing configuration precedence is retained; explicitly selected insecure TLS or redirect preferences now take effect as configured. The existing constructor cache-TTL sentinel is unchanged.
+
 - Live smoke runs are manual-only during the MVP (#887). The manual protocol disables replay/cache shortcuts and requires consistent JUnit testcase evidence with a nonzero pass count. This change does not claim any new real-provider verification.
 
 - SGIS token expiry accepts documented second epochs and defensively normalizes the millisecond epochs shown in the official authentication example (#967). Invalid or out-of-range values raise `ProviderResponseError`; cached tokens refresh with 60 seconds or less remaining. This offline-tested correction does not certify a current authenticated provider response.
