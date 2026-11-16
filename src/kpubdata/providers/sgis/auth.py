@@ -12,7 +12,7 @@ import os
 import threading
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import NoReturn, cast
 
 from kpubdata.config import KPubDataConfig
@@ -23,6 +23,7 @@ from kpubdata.transport.http import HttpTransport
 _AUTH_ENDPOINT = "https://sgisapi.kostat.go.kr/OpenAPI3/auth/authentication.json"
 _SGIS_PROVIDER = "sgis"
 _SECRET_ENV = "KPUBDATA_SGIS_CONSUMER_SECRET"
+_TOKEN_REFRESH_SKEW = timedelta(seconds=60)
 
 
 @dataclass(slots=True)
@@ -116,7 +117,13 @@ class SgisAuthClient:
                 provider=_SGIS_PROVIDER,
             )
 
-        expires_at = datetime.fromtimestamp(expires_epoch, tz=UTC)
+        try:
+            expires_at = datetime.fromtimestamp(expires_epoch, tz=UTC)
+        except (OverflowError, OSError, ValueError) as exc:
+            raise ProviderResponseError(
+                "SGIS auth response has invalid accessTimeout",
+                provider=_SGIS_PROVIDER,
+            ) from exc
         return _TokenState(value=token_obj, expires_at=expires_at)
 
     def _resolve_credentials(self) -> tuple[str, str]:
@@ -145,7 +152,7 @@ class SgisAuthClient:
     def _is_expired(self, state: _TokenState) -> bool:
         """Return whether token is expired."""
         now = datetime.now(tz=UTC)
-        return now >= state.expires_at
+        return now + _TOKEN_REFRESH_SKEW >= state.expires_at
 
     def _raise_for_err_code(self, payload: dict[str, object]) -> None:
         """Raise exception for error code."""
@@ -183,15 +190,27 @@ def _extract_err_code(payload: Mapping[str, object]) -> int | None:
 
 
 def _coerce_epoch(value: object) -> int | None:
-    """Coerce value to epoch representation."""
+    """Parse seconds or millisecond Unix epoch values from SGIS.
+
+    The published API reference describes seconds but illustrates a 13-digit
+    millisecond value. Convert 13-digit modern millisecond timestamps to
+    seconds without exposing the token or accepting non-integer values.
+    """
+    if isinstance(value, bool):
+        return None
     if isinstance(value, int):
-        return value
-    if isinstance(value, str):
+        epoch = value
+    elif isinstance(value, str) and value.isascii() and value.isdigit():
         try:
-            return int(value)
+            epoch = int(value)
         except ValueError:
             return None
-    return None
+    else:
+        return None
+
+    if epoch <= 0:
+        return None
+    return epoch // 1000 if epoch >= 1_000_000_000_000 else epoch
 
 
 __all__ = ["SgisAuthClient", "_extract_err_code"]

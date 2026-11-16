@@ -182,7 +182,7 @@ def _build_adapter(fixture_names: list[str]) -> ProviderAdapter:
         can be raised as-is.
     """
     transport = _FixtureTransport(fixture_names)
-    config = KPubDataConfig(provider_keys={"datago": "test-key"})
+    config = KPubDataConfig(provider_keys={"lofin": "test-key"})
     adapter_module = import_module("kpubdata.providers.lofin.adapter")
     adapter_class_obj = cast(object, adapter_module.LofinAdapter)
     if not isinstance(adapter_class_obj, type):
@@ -320,7 +320,7 @@ class TestLofinAdapterContract(ProviderAdapterContract):
             maintained without regression.
         """
         transport = _FixtureTransport(["success_single_page.json"])
-        config = KPubDataConfig(provider_keys={"datago": "test-key"})
+        config = KPubDataConfig(provider_keys={"lofin": "test-key"})
         adapter_module = import_module("kpubdata.providers.lofin.adapter")
         adapter_class_obj = cast(object, adapter_module.LofinAdapter)
         if not isinstance(adapter_class_obj, type):
@@ -356,7 +356,7 @@ class TestLofinAdapterContract(ProviderAdapterContract):
             maintained without regression.
         """
         transport = _FixtureTransport(["error_auth.json"])
-        config = KPubDataConfig(provider_keys={"datago": "invalid-key"})
+        config = KPubDataConfig(provider_keys={"lofin": "invalid-key"})
         adapter_module = import_module("kpubdata.providers.lofin.adapter")
         adapter_class_obj = cast(object, adapter_module.LofinAdapter)
         if not isinstance(adapter_class_obj, type):
@@ -391,7 +391,7 @@ class TestLofinAdapterContract(ProviderAdapterContract):
             maintained without regression.
         """
         transport = _FixtureTransport(["success_fiacrv.json"])
-        config = KPubDataConfig(provider_keys={"datago": "test-key"})
+        config = KPubDataConfig(provider_keys={"lofin": "test-key"})
         adapter_module = import_module("kpubdata.providers.lofin.adapter")
         adapter_class_obj = cast(object, adapter_module.LofinAdapter)
         if not isinstance(adapter_class_obj, type):

@@ -24,7 +24,8 @@ dataset evidence, CI integrity and released-SDK compatibility instead.
 Before coding, tie the change to an existing user journey and a verified issue.
 A `feat` PR or added provider/spec/export/workflow is stopped by
 `scripts/check_stabilization_scope.py` unless an existing-flow exception is
-documented and approved by a non-author reviewer (POLICY 1.3). A `fix` title
+documented, authorized for the existing flow, and independently risk-reviewed
+(POLICY 1.3 and the SDK-only review exception in 14.1). A `fix` title
 does not exempt an actual feature expansion; review the semantic diff.
 Do not broaden scope by creating a second issue for work already tracked.
 
@@ -164,10 +165,12 @@ What is specific to agents:
   evidence is a wrong rating.
 - Do not prefix a title with `GOV-01:` or `WH-03:`. Those are serial numbers from
   a backlog document, not the issue's name. The type is the only prefix.
-- A pull request labelled `review:R3` cannot merge until someone other than its
-  author, with write access, approves it: the required `R3 review` check fails until
-  then (POLICY 14.1). The author's own approval, a bot's, and one followed by a
-  request for changes do not count. Ask for the review; do not remove the label.
+- SDK-only owner decision (2026-11-16): `review:R3` and the archived `R3 review`
+  workflow are not mandatory SDK merge requirements (POLICY 14.1 exception).
+  Keep actual-head tests and independent risk review for substantive changes;
+  `CI gate` and `PR title` must pass. No human attestation or synthetic APPROVED
+  review is needed. This does not change other repositories' review checks or
+  authorize releases, publication, secret access or deployment.
 - Write a review or verification level meaning first, code in parentheses:
   "unit tests (V1)", "replay and contract tests (V2)", "an approval from someone
   other than the author (R3)" — never a bare code. The glossary is
