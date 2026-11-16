@@ -206,13 +206,12 @@ class LofinAdapter:
         return payload
 
     def _require_api_key(self) -> str:
-        """Read public data portal (data.go.kr) API key or raise exception.
+        """Require the credential issued by LOFIN365, never another portal's key.
 
-        localdata, semas, and lofin adapters all share the data.go.kr
-        authentication system and are intentionally managed under a single
-        provider_key ("datago").
+        LOFIN365 has its own Open API key issuance. Reusing a data.go.kr key
+        would send an unrelated credential to the LOFIN365 host.
         """
-        return self._config.require_provider_key("datago")
+        return self._config.require_provider_key("lofin")
 
     def _build_request_url(
         self,
