@@ -65,7 +65,7 @@ API 키 발급과 환경 변수 설정은 [빠른 시작](docs/quickstart.md), �
 | | |
 |---|---|
 | 제공기관 | `datago` `bok` `kosis` `krx` `law` `localdata` `lofin` `semas` `seoul` `sgis` `kipris` `korean` `neis` `fds` |
-| Python | 3.10 이상 |
+| Python | 3.11 이상 (검증 대상: 3.11–3.14) |
 | 데이터셋별 상태·검증 수준 | [SUPPORTED_DATA.md](./SUPPORTED_DATA.md) |
 
 ## 문서

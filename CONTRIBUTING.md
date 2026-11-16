@@ -51,7 +51,7 @@ Python 코드를 수정하고 테스트하기 위한 환경을 만들어 봅시�
 
 **Step 1: 필수 도구 설치**
 *   **Git 설치**: [git-scm.com](https://git-scm.com)에서 설치하세요. — 설치 확인: `git --version`
-*   **Python 3.10+ 설치**: [Python 공식 홈페이지](https://www.python.org/downloads/)에서 설치하세요. — 설치 확인: `python --version`
+*   **Python 3.11+ 설치**: [Python 공식 홈페이지](https://www.python.org/downloads/)에서 설치하세요. — 설치 확인: `python --version`
 *   **uv 설치**: `uv`는 Python 패키지를 아주 빠르게 관리해 주는 도구입니다. — 설치 확인: `uv --version`
     ```bash
     curl -LsSf https://astral.sh/uv/install.sh | sh

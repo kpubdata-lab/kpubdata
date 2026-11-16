@@ -8,8 +8,8 @@
 
 ## Purpose
 
-This repository is built for agent-driven development. It is a Python 3.10+
-framework with a small, stable public API and one adapter per provider.
+This repository is built for agent-driven development. It is a Python 3.11+
+framework, tested on Python 3.11–3.14, with a small, stable public API and one adapter per provider.
 
 
 ## Stabilization-only scope
