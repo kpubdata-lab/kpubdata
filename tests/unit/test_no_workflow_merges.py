@@ -1,9 +1,9 @@
 """No workflow merges a pull request on its own (#895).
 
 A Dependabot auto-merge workflow was proposed. Required checks and branch protection
-still apply to a merge a workflow makes, but a workflow that merges skips the person:
-`R3 review` only asks for an approval on pull requests labelled `review:R3`, and the
-branch requires no approving review otherwise. So the repository holds that nothing in
+still apply to a merge a workflow makes. The SDK owner retired mandatory human
+review, while the choice to introduce automated workflow merges remains separate.
+The repository still holds that nothing in
 `.github/` merges, enables auto-merge or approves a pull request. Adding one is a
 decision for a person, made by changing this test in the same pull request.
 """

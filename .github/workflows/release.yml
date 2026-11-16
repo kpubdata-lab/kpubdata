@@ -325,6 +325,7 @@ jobs:
         with:
           command: extract
           version: ${{ steps.tag.outputs.tag }}
+          public: "true"
 
       - name: Install dependencies
         run: uv sync --frozen --extra dev
