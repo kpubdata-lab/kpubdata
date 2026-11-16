@@ -37,6 +37,12 @@ The rule, decided by the owner on 2026-10-01:
   the next time the check runs. Losing access is not an event the check runs on, so
   until a push, a label change or a review re-runs it, the earlier result stands.
 
+For SDK-only solo maintenance, the action may explicitly opt in to maintainer-
+attested independent agent review. It must be a COMMENTED pull-request review
+authored by a human account with current write access, bearing structured evidence
+for the exact head commit. The agent is not represented as a GitHub APPROVED review.
+Other repositories retain the original human-approval policy by default.
+
 The script reads the pull request, its reviews and the approvers' permissions as JSON
 and makes no network call, so every branch of the rule is a unit test. The action
 fetches them, in two steps: ``--candidates`` prints the accounts whose permission is
@@ -143,6 +149,72 @@ def current_approvers(
     )
 
 
+_AGENT_FIXED_FIELDS = {
+    "Agent-Review": "PASS",
+    "Independent": "YES",
+    "Owner-Decision": "ACCEPT",
+}
+_AGENT_TEXT_FIELDS = ("Agent", "Findings", "Verification")
+
+
+def _is_valid_agent_attestation(review: Mapping[str, Any], head_sha: str) -> bool:
+    """A maintainer's structured COMMENTED review about an independent agent.
+
+    Never trust a PR body or a bot; the review author must separately have write
+    access. GitHub's `commit_id` pins the attestation to the current PR head.
+    """
+    if review.get("state") != "COMMENTED" or review.get("commit_id") != head_sha:
+        return False
+    user = review.get("user")
+    if not isinstance(user, Mapping) or user.get("type") != "User":
+        return False
+    if review.get("author_association") not in _TRUSTED_ASSOCIATIONS:
+        return False
+    body = review.get("body")
+    if not isinstance(body, str):
+        return False
+
+    fields: dict[str, str] = {}
+    expected = set(_AGENT_FIXED_FIELDS) | set(_AGENT_TEXT_FIELDS)
+    for line in body.splitlines():
+        name, sep, value = line.partition(":")
+        if sep and name.strip() in expected:
+            name = name.strip()
+            if name in fields:
+                return False  # reject contradictory duplicated attestations
+            fields[name] = value.strip()
+
+    if any(fields.get(name) != value for name, value in _AGENT_FIXED_FIELDS.items()):
+        return False
+    return all(
+        fields.get(name, "").casefold() not in ("", "tbd", "pending", "n/a")
+        for name in _AGENT_TEXT_FIELDS
+    )
+
+
+def agent_review_candidates(
+    pull: Mapping[str, Any], reviews: Iterable[Mapping[str, Any]]
+) -> tuple[str, ...]:
+    """Accounts that attested an independent agent review of this exact PR head.
+
+    This is evidence accepted by a *person*, not a GitHub APPROVED review.
+    The caller must check each candidate's current write access.
+    """
+    head = pull.get("head")
+    if not isinstance(head, Mapping):
+        return ()
+    head_sha = head.get("sha")
+    if not isinstance(head_sha, str) or len(head_sha) != 40:
+        return ()
+    candidates: set[str] = set()
+    for review in reviews:
+        if _is_valid_agent_attestation(review, head_sha):
+            login = _login(review.get("user"))
+            if login:
+                candidates.add(login)
+    return tuple(sorted(candidates, key=str.casefold))
+
+
 def _is_labelled(pull: Mapping[str, Any], label: str) -> bool:
     labels = {item.get("name") for item in pull.get("labels") or [] if isinstance(item, Mapping)}
     return label in labels
@@ -152,6 +224,8 @@ def candidates_to_look_up(
     pull: Mapping[str, Any],
     reviews: Iterable[Mapping[str, Any]],
     label: str = R3_LABEL,
+    *,
+    allow_agent_review: bool = False,
 ) -> tuple[str, ...]:
     """The accounts whose permission ``evaluate`` will need — none when the pull request
     does not carry the label or its author cannot be read, since nothing is then asked."""
@@ -160,7 +234,10 @@ def candidates_to_look_up(
     author = _login(pull.get("user"))
     if author is None:
         return ()
-    return approval_candidates(reviews, author)
+    candidates = set(approval_candidates(reviews, author))
+    if allow_agent_review:
+        candidates.update(agent_review_candidates(pull, reviews))
+    return tuple(sorted(candidates, key=str.casefold))
 
 
 def evaluate(
@@ -168,6 +245,8 @@ def evaluate(
     reviews: Iterable[Mapping[str, Any]],
     permissions: Mapping[str, Any],
     label: str = R3_LABEL,
+    *,
+    allow_agent_review: bool = False,
 ) -> Decision:
     """Decide one pull request. ``pull`` is the REST ``pulls/{n}`` object and
     ``permissions`` maps each candidate's login to their repository permission."""
@@ -185,6 +264,19 @@ def evaluate(
         return Decision(
             True, f"#{number} is {label} and approved by {', '.join(approvers)}", approvers
         )
+    if allow_agent_review:
+        agent_attesters = tuple(
+            login
+            for login in agent_review_candidates(pull, reviews)
+            if can_write(permissions, login)
+        )
+        if agent_attesters:
+            return Decision(
+                True,
+                f"#{number} is {label}: independent agent review of the current head "
+                f"accepted by maintainer {', '.join(agent_attesters)}; "
+                "this is not a GitHub APPROVED review",
+            )
     without_write = [
         login for login in approval_candidates(reviews, author) if not can_write(permissions, login)
     ]
@@ -244,6 +336,11 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Print the logins whose permission is needed, one per line, and decide nothing",
     )
+    parser.add_argument(
+        "--allow-agent-review",
+        action="store_true",
+        help="SDK-only opt-in: accept maintainer-attested independent agent reviews",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -265,11 +362,15 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     if args.candidates:
-        for login in candidates_to_look_up(pull, reviews, args.label):
+        for login in candidates_to_look_up(
+            pull, reviews, args.label, allow_agent_review=args.allow_agent_review
+        ):
             print(login)
         return 0
 
-    decision = evaluate(pull, reviews, permissions, args.label)
+    decision = evaluate(
+        pull, reviews, permissions, args.label, allow_agent_review=args.allow_agent_review
+    )
     print(f"passed={'true' if decision.passed else 'false'}")
     print(f"reason={decision.reason}")
     print(f"approvers={','.join(decision.approvers)}")
