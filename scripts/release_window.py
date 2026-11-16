@@ -37,7 +37,7 @@ import calendar
 import re
 import sys
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 
 KST = timezone(timedelta(hours=9), name="KST")
 THURSDAY = 3
@@ -53,7 +53,7 @@ class Decision:
 
 def today_kst(now: datetime | None = None) -> date:
     """The calendar date in Seoul at ``now`` (default: the current instant)."""
-    moment = now if now is not None else datetime.now(timezone.utc)
+    moment = now if now is not None else datetime.now(UTC)
     return moment.astimezone(KST).date()
 
 

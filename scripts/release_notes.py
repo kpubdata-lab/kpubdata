@@ -201,6 +201,10 @@ def render_public_notes(text: str, version: str) -> str:
                 raise ChangelogError(
                     f"{name} must contain one-line Markdown bullets in CHANGELOG.md"
                 )
+            if "- None." in lines and len(lines) != 1:
+                raise ChangelogError(
+                    f"{name} cannot mix None with other bullets; curate the summary"
+                )
             groups[name] = lines
     missing = [name for name in _PUBLIC_HEADINGS if name not in groups]
     if missing:

@@ -26,6 +26,18 @@ the classification table disagrees with the code.
             changes file one immediately (DATASET_STATUS.md).
 ```
 
+## Probe report output
+
+For local CLI use, `kpubdata probe` writes `./key-scope.json` relative to
+**the current working directory**, regardless of where the Python package is
+installed. To keep an existing report for a CI, docs or automation consumer,
+pass its path explicitly with `--output`. The existing `live-probe.yml`
+workflow already uses `--output docs/status/probe-result.json` and is
+unchanged; the CLI's local default does not alter CI artifact paths.
+
+Reports contain classified outcomes, not credential values. A missing key
+or unverified service approval is not a successful authenticated live check.
+
 ## Python API
 
 The probe is public on `Client` (#694). `kpubdata probe` is a thin wrapper
@@ -106,7 +118,8 @@ it. Keys never appear in `ProbeResult.detail` or in log records.
 
 | Secret | Provider | Notes |
 |---|---|---|
-| `KPUBDATA_DATAGO_API_KEY` | data.go.kr family | Shared: datago, localdata, lofin, semas |
+| `KPUBDATA_DATAGO_API_KEY` | data.go.kr family | Shared with localdata and semas only; not LOFIN365. |
+| `KPUBDATA_LOFIN_API_KEY` | 지방재정365 LOFIN | Separate LOFIN365-issued key (no data.go.kr fallback). |
 | `KPUBDATA_NEIS_API_KEY` | 나이스 교육정보 개방포털 | Own key — the adapter reads `neis` with no fallback |
 | `KPUBDATA_FDS_API_KEY` | 식품안전나라 | Own key — the adapter reads `fds` with no fallback |
 | `KPUBDATA_BOK_API_KEY` | 한국은행 ECOS | |

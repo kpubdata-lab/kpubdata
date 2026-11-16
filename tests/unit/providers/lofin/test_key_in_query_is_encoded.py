@@ -64,9 +64,7 @@ def network(monkeypatch: pytest.MonkeyPatch) -> _Network:
 
 def _call(key: str, filters: dict[str, str] | None = None) -> None:
     transport = HttpTransport(TransportConfig(max_retries=0))
-    adapter = LofinAdapter(
-        config=KPubDataConfig(provider_keys={"datago": key}), transport=transport
-    )
+    adapter = LofinAdapter(config=KPubDataConfig(provider_keys={"lofin": key}), transport=transport)
     try:
         adapter.query_records(
             adapter.get_dataset("expenditure_budget"), Query(filters=dict(filters or {}))

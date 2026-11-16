@@ -17,7 +17,7 @@ The public release should present only the three curated sections, the exact rel
 ### Release-time checks
 
 - Confirm the tag, package version, CHANGELOG date, tested commit and actual release artifact match.
-- Check each summary statement against the actual code/tests and correct stale metadata or dataset counts before tagging.
+- Check each summary statement against the actual code/tests and correct stale metadata or dataset counts before tagging. After folding prerelease history into a final release, recurate the summary; `- None.` mixed with other advice or limitations is rejected.
 - Keep pre-release history and breaking-change migration instructions accurate.
 - If any curated section is missing or empty, **fail before publishing/tagging**, not fall back silently to a 20,000-character change list.
 - Apply changes to future releases only. Preserve historical release notes and changelog sections unless a separate, clearly documented factual correction is approved.
@@ -45,6 +45,6 @@ The public release should present only the three curated sections, the exact rel
 
 ## SDK-specific operation
 
-The existing `scripts/release_notes.py` stays the single release-note extraction implementation. `promote` dates the existing CHANGELOG section; `extract` retains the full-body interface for internal uses; the release action requests the concise public form. The complete published release remains browseable at `https://github.com/kpubdata-lab/kpubdata/blob/vX.Y.Z/CHANGELOG.md`.
+The existing `scripts/release_notes.py` stays the single release-note extraction implementation. `promote` dates the existing CHANGELOG section; `extract` retains the full-body interface for internal uses; the shared action retains full-body extraction by default; only the SDK release caller opts into the concise public form with `public: "true"`. Other repositories keep their existing default behavior. The complete published release remains browseable at `https://github.com/kpubdata-lab/kpubdata/blob/vX.Y.Z/CHANGELOG.md`.
 
-The next SDK release is **not yet published**. Review the prepared v0.11.0 release PR and its dated changelog against main before merging; refresh the release branch if the reviewed CHANGELOG summary has changed. The release control gate and independent approval remain required. See #982.
+The next SDK release is **not yet published**. Review the prepared v0.11.0 release PR and its dated changelog against main before merging; refresh the release branch if the reviewed CHANGELOG summary has changed. Existing release-window and artifact checks and maintainer publication authorization remain required. The SDK mandatory merge-review retirement does not authorize a release. See #982.

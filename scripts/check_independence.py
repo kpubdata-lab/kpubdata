@@ -15,8 +15,7 @@ Two things are checked:
 - every quoted string in `pyproject.toml` whose requirement name normalises to
   `kpubdata-builder`, `kpubdata-studio` or `kpubdata-watch` fails, as does a bare TOML key with that
   name (as `[tool.uv.sources]` would use). The file is scanned as text rather than
-  parsed, because `tomllib` does not exist on Python 3.10 and one code path on
-  every supported version is easier to trust than two.
+  parsed, so the same pattern checks both quoted requirements and bare keys.
 
 Usage:
     python scripts/check_independence.py [--root PATH]

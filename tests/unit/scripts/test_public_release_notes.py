@@ -132,3 +132,63 @@ def test_upcoming_sdk_changelog_has_a_verified_summary(script) -> None:
     assert "### Upgrade notes" in summary
     assert "### Known limitations" in summary
     assert "### Added" not in summary
+
+
+def test_public_summary_rejects_none_mixed_with_required_action(script) -> None:
+    """Final-release promotion cannot silently publish contradictory advice."""
+    text = FULL_CHANGELOG.replace(
+        "## [0.10.0]",
+        "## [0.11.0rc1] — 2026-11-01\n\n### Highlights\n\n- Earlier fix.\n\n### Upgrade notes\n\n- None.\n\n### Known limitations\n\n- None.\n\n## [0.10.0]",
+    )
+    promoted = script.promote(text, "0.11.0", dt.date(2026, 11, 16))
+    assert "- None." in script.extract(promoted, "0.11.0")
+    with pytest.raises(script.ChangelogError, match="None"):
+        script.render_public_notes(promoted, "0.11.0")
+
+
+@pytest.mark.parametrize("public", [False, True])
+def test_shared_action_public_mode_is_explicit(script, tmp_path: Path, public: bool) -> None:
+    """Run the actual shared shell against a non-SDK legacy release section."""
+    import os
+    import subprocess
+
+    import yaml
+
+    action_dir = ROOT / ".github" / "actions" / "release-notes"
+    action = yaml.safe_load((action_dir / "action.yml").read_text())
+    command = action["runs"]["steps"][0]["run"].replace(
+        "${{ github.action_path }}", str(action_dir)
+    )
+    changelog = tmp_path / "CHANGELOG.md"
+    changelog.write_text(
+        script.promote(FULL_CHANGELOG, "1.0.0", dt.date(2026, 11, 16))
+        if public
+        else "## [1.0.0] — 2026-11-16\n\n### Fixed\n\n- Other product fix.\n"
+    )
+    output = tmp_path / "notes.md"
+    env = {
+        **os.environ,
+        "COMMAND": "extract",
+        "VERSION": "1.0.0",
+        "CHANGELOG": str(changelog),
+        "OUTPUT": str(output),
+        "REPO": "kpubdata-lab/kpubdata" if public else "kpubdata-lab/kpubdata-watch",
+        "GITHUB_OUTPUT": str(tmp_path / "outputs"),
+        "RUNNER_TEMP": str(tmp_path),
+        "PUBLIC": "true"
+        if public
+        else action.get("inputs", {}).get("public", {}).get("default", "false"),
+    }
+    result = subprocess.run(
+        ["bash", "-e", "-c", command], cwd=tmp_path, env=env, capture_output=True, text=True
+    )
+    assert result.returncode == 0, result.stderr
+    notes = output.read_text()
+    if public:
+        assert 'pip install -U "kpubdata==1.0.0"' in notes
+        assert "### Highlights" in notes
+        assert "internal implementation paragraph" not in notes
+    else:
+        assert "Other product fix." in notes
+        assert "https://github.com/kpubdata-lab/kpubdata-watch/commits/v1.0.0" in notes
+        assert "pip install" not in notes
