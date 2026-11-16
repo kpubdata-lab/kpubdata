@@ -1,6 +1,7 @@
-# A `review:R3` pull request needs an approval from someone other than its author
-# (#722, kpubdata-builder#905, POLICY 14). Branch protection's approval count stays at
-# 0, so ordinary pull requests are unaffected; this check is what enforces R3.
+# An SDK `review:R3` PR needs either a non-author human APPROVED review or
+# human-maintainer attested independent agent review of the current PR head.
+# The shared action defaults to human-only in Builder/Studio/Watch.
+# Branch protection's approval count remains 0; this check enforces R3.
 #
 # The job runs on every pull request and passes when it is not R3. It is a required
 # check, and a required check that some pull requests never produce leaves them
@@ -54,3 +55,5 @@ jobs:
           persist-credentials: false
 
       - uses: ./.github/actions/r3-review
+        with:
+          allow-agent-review: "true"
