@@ -22,6 +22,7 @@ from collections.abc import Mapping, Sequence
 from typing import ClassVar, NoReturn, cast
 
 from kpubdata.config import KPubDataConfig
+from kpubdata.core._params import scalar_filter_value
 from kpubdata.core._result_code import is_no_data_code, result_code_text
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
 from kpubdata.exceptions import (
@@ -155,8 +156,9 @@ class DataGoFamilyAdapter:
         reserved.update({"pageno", "numofrows"})
         for key, raw_value in query.filters.items():
             if key.lower() not in reserved:
-                value: object = raw_value
-                params[key] = str(value)
+                value = scalar_filter_value(key, raw_value)
+                if value is not None:
+                    params[key] = value
 
         payload = self._request_and_decode(url, params, dataset.id)
 
@@ -210,7 +212,9 @@ class DataGoFamilyAdapter:
         service_key_param = str(dataset.raw_metadata.get("service_key_param", "serviceKey"))
         for key, value in params.items():
             if key != service_key_param:
-                request_params[key] = str(value)
+                encoded = scalar_filter_value(key, value)
+                if encoded is not None:
+                    request_params[key] = encoded
 
         payload = self._request_and_decode(url, request_params, dataset.id)
         _ = self._validate_envelope(payload, dataset.id)
@@ -219,9 +223,8 @@ class DataGoFamilyAdapter:
     def _require_api_key(self) -> str:
         """Read data.go.kr API key; raise on missing.
 
-        localdata, semas, and lofin adapters all share the data.go.kr
-        authentication system, managed by a single provider key ("datago")
-        by design.
+        localdata and semas share data.go.kr authentication, with a shared
+        provider key ("datago") accepted after their own overrides.
         """
         # Check own name first. This family uses data.go.kr credentials,
         # but requiring "datago" immediately would silently ignore the
