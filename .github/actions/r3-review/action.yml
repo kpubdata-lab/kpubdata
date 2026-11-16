@@ -1,8 +1,11 @@
 name: R3 review
 description: >
   Fail a pull request labelled `review:R3` until a person other than its author, with
-  write access, currently approves it (#722, kpubdata-builder#905, POLICY 14). Passes
-  every other pull request, so the check can be required without leaving any pull
+  write access, currently approves it (#722, kpubdata-builder#905, POLICY 14).
+  Optional SDK-only opt-in allows a human maintainer's structured independent
+  agent review record on the current PR head. Default remains human-only for
+  other repositories. Passes every other pull request, so the check can be
+  required without leaving any pull
   request waiting for it. Wraps scripts/r3_review.py so the four repositories run one
   rule. Needs only `pull-requests: read`, so it works on fork pull requests too.
   Each approver's repository permission is looked up when the check runs (#860): an
@@ -18,6 +21,10 @@ inputs:
     description: "The label that requires a non-author approval"
     required: false
     default: "review:R3"
+  allow-agent-review:
+    description: "SDK-only opt-in to human-attested independent agent reviews"
+    required: false
+    default: "false"
 
 outputs:
   passed:
@@ -40,6 +47,7 @@ runs:
         REPO: ${{ github.repository }}
         NUMBER: ${{ inputs.pr-number }}
         LABEL: ${{ inputs.label }}
+        ALLOW_AGENT_REVIEW: ${{ inputs.allow-agent-review }}
       run: |
         set -euo pipefail
         if ! [[ "${NUMBER}" =~ ^[0-9]+$ ]]; then
@@ -52,6 +60,10 @@ runs:
         gh api --paginate "repos/${REPO}/pulls/${NUMBER}/reviews?per_page=100" --jq '.[]' \
           > "${dir}/reviews.jsonl"
         script="${{ github.action_path }}/../../../scripts/r3_review.py"
+        agent_flag=()
+        if [[ "${ALLOW_AGENT_REVIEW}" == "true" ]]; then
+          agent_flag=(--allow-agent-review)
+        fi
 
         # Whose approval would count, if they can write (#860). The list is empty for a
         # pull request without the label, so no lookup is made for it. An account whose
@@ -59,7 +71,7 @@ runs:
         # decision goes on: one failed lookup must not hide another approver's review,
         # and must never read as "may write".
         python3 "${script}" --pull "${dir}/pull.json" --reviews "${dir}/reviews.jsonl" \
-          --label "${LABEL}" --candidates > "${dir}/candidates"
+          --label "${LABEL}" "${agent_flag[@]}" --candidates > "${dir}/candidates"
         echo '{}' > "${dir}/permissions.json"
         while IFS= read -r login; do
           [ -n "${login}" ] || continue
@@ -84,7 +96,7 @@ runs:
         status=0
         python3 "${script}" \
           --pull "${dir}/pull.json" --reviews "${dir}/reviews.jsonl" --label "${LABEL}" \
-          --permissions "${dir}/permissions.json" \
+          --permissions "${dir}/permissions.json" "${agent_flag[@]}" \
           > "${dir}/out" || status=$?
         cat "${dir}/out" >> "$GITHUB_OUTPUT"
         sed -n 's/^reason=//p' "${dir}/out" >> "$GITHUB_STEP_SUMMARY"
