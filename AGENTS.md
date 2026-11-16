@@ -24,7 +24,8 @@ dataset evidence, CI integrity and released-SDK compatibility instead.
 Before coding, tie the change to an existing user journey and a verified issue.
 A `feat` PR or added provider/spec/export/workflow is stopped by
 `scripts/check_stabilization_scope.py` unless an existing-flow exception is
-documented and approved by a non-author reviewer (POLICY 1.3). A `fix` title
+documented, authorized for the existing flow, and independently risk-reviewed
+(POLICY 1.3 and the SDK-only review exception in 14.1). A `fix` title
 does not exempt an actual feature expansion; review the semantic diff.
 Do not broaden scope by creating a second issue for work already tracked.
 

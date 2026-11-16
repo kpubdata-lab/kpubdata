@@ -26,7 +26,8 @@ Existing flow or risk:
 Scope exception: NO
 <!-- scope gate가 감지한 범위 확장이 "기존 사용자 여정의 필수 안전 수정"일 때만
 NO를 YES로 바꾸고 위 Existing flow or risk에 구체적인 위험·최소 수정·대안을 적습니다.
-"Refs #N" / "Closes #N"과 review:R3 및 작성자가 아닌 사람의 승인이 필요합니다.
+"Refs #N" / "Closes #N", 기존 scope-exception marker 및 별도 소유자 범위 승인이 필요합니다.
+SDK의 필수 사람 리뷰는 해제됐으며 독립 위험 검토와 POLICY 14.1 SDK 예외를 따릅니다.
 예외 선언은 그 자체로 승인이 아닙니다. -->
 
 ## 문제
