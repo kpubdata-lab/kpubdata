@@ -30,18 +30,15 @@ without a recorded licence fails the gate.
 from __future__ import annotations
 
 import argparse
-import importlib
 import json
 import re
 import subprocess
 import sys
+import tomllib
 from collections.abc import Iterable
 from importlib import metadata
 from pathlib import Path
 from typing import Any
-
-# tomllib is 3.11+; on 3.10 the dev lock carries tomli.
-tomllib = importlib.import_module("tomllib" if sys.version_info >= (3, 11) else "tomli")
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCK = ROOT / "uv.lock"

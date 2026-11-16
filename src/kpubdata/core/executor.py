@@ -26,7 +26,7 @@ import re
 import tempfile
 from collections.abc import Iterator
 from dataclasses import dataclass, replace
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import MappingProxyType
 from typing import cast
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -555,9 +555,9 @@ def _build_provenance(
     # originally fetched, not when it was read back from disk.
     cached_at = extensions.get(CACHED_AT_EXTENSION)
     if cached and isinstance(cached_at, int | float) and not isinstance(cached_at, bool):
-        fetched = datetime.fromtimestamp(float(cached_at), tz=timezone.utc)
+        fetched = datetime.fromtimestamp(float(cached_at), tz=UTC)
     else:
-        fetched = datetime.now(tz=timezone.utc)
+        fetched = datetime.now(tz=UTC)
     provenance["fetched_at"] = fetched.isoformat(timespec="seconds")
 
     # content_sha256 — hash of the raw response bytes

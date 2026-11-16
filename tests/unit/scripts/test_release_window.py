@@ -12,7 +12,7 @@ import importlib.util
 import os
 import subprocess
 import sys
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
@@ -142,7 +142,7 @@ def test_a_critical_patch_without_an_issue_is_refused(issue: str) -> None:
 
 def test_dates_are_korean_standard_time() -> None:
     # 2026-10-25 16:00 UTC is 2026-10-26 01:00 in Seoul: already Monday of the window.
-    assert rw.today_kst(datetime(2026, 10, 25, 16, 0, tzinfo=timezone.utc)) == date(2026, 10, 26)
+    assert rw.today_kst(datetime(2026, 10, 25, 16, 0, tzinfo=UTC)) == date(2026, 10, 26)
     # 0.8.0 was published at 10:10 UTC on 9-30, which is still 9-30 in Seoul.
     assert rw.to_kst_date("2026-09-30T10:10:43Z") == date(2026, 9, 30)
     assert rw.to_kst_date("2026-09-30T20:00:00Z") == date(2026, 10, 1)
@@ -227,9 +227,9 @@ def test_the_seventh_day_starts_at_midnight_in_seoul_not_in_utc() -> None:
     last = rw.to_kst_date(V0_9_0_PUBLISHED)
     # 2026-10-12 15:00 UTC is 2026-10-13 00:00 KST: six days on the UTC calendar, seven
     # on Seoul's, and Seoul's is the one that counts.
-    today = rw.today_kst(datetime(2026, 10, 12, 15, 0, tzinfo=timezone.utc))
+    today = rw.today_kst(datetime(2026, 10, 12, 15, 0, tzinfo=UTC))
     assert rw.decide("on-demand", today, last_release=last).allowed
-    today = rw.today_kst(datetime(2026, 10, 12, 14, 59, tzinfo=timezone.utc))
+    today = rw.today_kst(datetime(2026, 10, 12, 14, 59, tzinfo=UTC))
     assert not rw.decide("on-demand", today, last_release=last).allowed
 
 

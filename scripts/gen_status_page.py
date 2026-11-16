@@ -22,7 +22,7 @@ import argparse
 import json
 import re
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from kpubdata.core.spec import discover_specs
@@ -112,7 +112,7 @@ def build_status() -> dict[str, object]:
     cutoff = reference - timedelta(days=RECENT_DAYS) if reference else None
     fresh = [s for s in verified if cutoff and s.last_verified and s.last_verified >= cutoff]
     return {
-        "generated_at": datetime.now(tz=timezone.utc).isoformat(timespec="seconds"),
+        "generated_at": datetime.now(tz=UTC).isoformat(timespec="seconds"),
         "spec_datasets": {
             "total": len(specs),
             "verified": len(verified),

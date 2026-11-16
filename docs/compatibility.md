@@ -5,7 +5,7 @@ KPubData Product Family는 세 저장소가 독립적으로 릴리스되지만, 
 
 | 저장소 (제품명) | 역할 | Python | 의존 관계 |
 | :--- | :--- | :--- | :--- |
-| [kpubdata](https://github.com/kpubdata-lab/kpubdata) (KPubData) | 한국 공공데이터 접근을 위한 독립 Python SDK | 3.10+ | (없음) |
+| [kpubdata](https://github.com/kpubdata-lab/kpubdata) (KPubData) | 한국 공공데이터 접근을 위한 독립 Python SDK | 3.11–3.14 | (없음) |
 | [kpubdata-builder](https://github.com/kpubdata-lab/kpubdata-builder) (KPubData Builder) | KPubData 로 재현 가능한 데이터셋·테이블을 만들고 관리 | 3.10+ | `kpubdata` 공개 API, **릴리스된 버전만** |
 | [kpubdata-studio](https://github.com/kpubdata-lab/kpubdata-studio) (KPubData Studio) | KPubData Builder 의 시각적 작업공간 | Node **22+** | Builder HTTP/OpenAPI 계약만 (kpubdata 를 직접 쓰지 않는다) |
 

@@ -19,7 +19,7 @@ from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from typing import cast
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -950,9 +950,9 @@ def _parse_retry_after(header_value: str) -> float | None:
         return None
 
     if retry_at.tzinfo is None:
-        retry_at = retry_at.replace(tzinfo=timezone.utc)
+        retry_at = retry_at.replace(tzinfo=UTC)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return max((retry_at - now).total_seconds(), 0.0)
 
 
