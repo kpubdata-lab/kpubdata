@@ -230,9 +230,7 @@ def _agent_attestation(
 def test_independent_agent_review_passes_only_with_sdk_opt_in() -> None:
     review = _agent_attestation()
     assert not _evaluate(_pull("review:R3"), [review]).passed
-    decision = r3.evaluate(
-        _pull("review:R3"), [review], {AUTHOR: "write"}, allow_agent_review=True
-    )
+    decision = r3.evaluate(_pull("review:R3"), [review], {AUTHOR: "write"}, allow_agent_review=True)
     assert decision.passed
     assert "independent agent review" in decision.reason
     assert decision.approvers == ()  # do not fabricate a GitHub APPROVED review
@@ -243,9 +241,15 @@ def test_independent_agent_review_passes_only_with_sdk_opt_in() -> None:
     [
         {"head": "b" * 40},
         {"body": "Agent-Review: PASS"},
-        {"body": "Agent-Review: PASS\nIndependent: NO\nAgent: x\nFindings: none\nVerification: test\nOwner-Decision: ACCEPT"},
-        {"body": "Agent-Review: PASS\nIndependent: YES\nAgent: x\nFindings: TBD\nVerification: test\nOwner-Decision: ACCEPT"},
-        {"body": "Agent-Review: PASS\nIndependent: YES\nAgent: x\nFindings: none\nVerification: test\nOwner-Decision: PENDING"},
+        {
+            "body": "Agent-Review: PASS\nIndependent: NO\nAgent: x\nFindings: none\nVerification: test\nOwner-Decision: ACCEPT"
+        },
+        {
+            "body": "Agent-Review: PASS\nIndependent: YES\nAgent: x\nFindings: TBD\nVerification: test\nOwner-Decision: ACCEPT"
+        },
+        {
+            "body": "Agent-Review: PASS\nIndependent: YES\nAgent: x\nFindings: none\nVerification: test\nOwner-Decision: PENDING"
+        },
         {"kind": "Bot"},
         {"association": "CONTRIBUTOR"},
     ],
@@ -268,9 +272,9 @@ def test_agent_attester_must_have_verified_write_access() -> None:
 def test_agent_review_permission_is_considered_only_with_opt_in() -> None:
     review = _agent_attestation()
     assert r3.candidates_to_look_up(_pull("review:R3"), [review]) == ()
-    assert r3.candidates_to_look_up(
-        _pull("review:R3"), [review], allow_agent_review=True
-    ) == (AUTHOR,)
+    assert r3.candidates_to_look_up(_pull("review:R3"), [review], allow_agent_review=True) == (
+        AUTHOR,
+    )
 
 
 # --- command line -----------------------------------------------------------------
@@ -580,6 +584,8 @@ def _run_the_action_step(
     pull: dict[str, Any],
     reviews: list[dict[str, Any]],
     permissions: dict[str, str],
+    *,
+    allow_agent_review: bool = False,
 ) -> tuple[int, dict[str, str], list[str]]:
     """Run the action's step. Returns its exit status, its outputs and the ``gh`` calls.
 
@@ -623,6 +629,7 @@ def _run_the_action_step(
         "REPO": "kpubdata-lab/kpubdata",
         "NUMBER": str(pull["number"]),
         "LABEL": "review:R3",
+        "ALLOW_AGENT_REVIEW": "true" if allow_agent_review else "false",
     }
     done = subprocess.run(  # noqa: S603 - the repository's own action step
         ["bash", "-c", script],  # noqa: S607
@@ -638,6 +645,20 @@ def _run_the_action_step(
     )
     calls = (fake / "calls").read_text(encoding="utf-8").splitlines()
     return done.returncode, {**outputs, "stdout": done.stdout, "stderr": done.stderr}, calls
+
+
+def test_action_accepts_maintainer_attestation_only_when_opted_in(tmp_path: Path) -> None:
+    status, outputs, _ = _run_the_action_step(
+        tmp_path,
+        _pull("review:R3"),
+        [_agent_attestation()],
+        {AUTHOR: "write"},
+        allow_agent_review=True,
+    )
+    assert status == 0
+    assert outputs["passed"] == "true"
+    assert "independent agent review" in outputs["reason"]
+    assert outputs["approvers"] == ""
 
 
 def _lookups(calls: list[str]) -> list[str]:
