@@ -250,9 +250,7 @@ def test_get_access_token_requires_secret_when_env_missing(monkeypatch: pytest.M
 
 def _token_response(token: str, timeout: object) -> _FakeResponse:
     """Provide a sanitized SGIS auth result for offline expiry tests."""
-    return _FakeResponse(
-        {"errCd": 0, "result": {"accessToken": token, "accessTimeout": timeout}}
-    )
+    return _FakeResponse({"errCd": 0, "result": {"accessToken": token, "accessTimeout": timeout}})
 
 
 @pytest.mark.parametrize("timeout", [4102444800, "4102444800"])
