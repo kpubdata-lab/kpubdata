@@ -100,7 +100,7 @@ optional extra; `dev` only for development and documentation.
 | pyparsing | 3.3.2 | extra:krx | MIT | recorded | https://github.com/pyparsing/pyparsing/ |
 | pyproject-hooks | 1.2.0 | dev | MIT License | recorded | https://github.com/pypa/pyproject-hooks |
 | pytest-cov | 7.1.0 | dev | MIT | recorded | https://pypi.org/project/pytest-cov/ |
-| pytest | 9.1.1 | dev | MIT | recorded | https://docs.pytest.org/en/latest/ |
+| pytest | 9.2.0 | dev | MIT | recorded | https://docs.pytest.org/en/latest/ |
 | python-dateutil | 2.9.0.post0 | extra:docs | Dual License | needs review | https://github.com/dateutil/dateutil |
 | python-multipart | 0.0.32 | extra:mcp | Apache-2.0 | recorded | https://github.com/Kludex/python-multipart |
 | pytz | 2026.1.post1 | extra:krx | MIT | recorded | http://pythonhosted.org/pytz |
