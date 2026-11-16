@@ -253,6 +253,9 @@ is not forwarded as a query parameter. Both the spec base host and the
 resolved path-template host are checked before reading a credential; the
 actual URL is checked once more before transmission (#972). Provider-specific
 custom adapter behavior is unchanged.
+Configured-key precedence applies to the exact declared authentication parameter
+name. Additional raw parameter names keep their existing case-sensitive spelling;
+this does not certify how every provider interprets differently cased duplicates.
 
 ## 4a. Reachability probe
 
