@@ -496,8 +496,8 @@
       "basis": "installed",
       "status": "recorded"
     },
-    "pymdown-extensions==12.1": {
-      "version": "12.1",
+    "pymdown-extensions==12.3": {
+      "version": "12.3",
       "scope": "extra:docs",
       "license": "MIT",
       "source": "https://github.com/facelessuser/pymdown-extensions",

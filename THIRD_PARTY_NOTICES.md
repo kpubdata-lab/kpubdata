@@ -96,7 +96,7 @@ optional extra; `dev` only for development and documentation.
 | pygments | 2.20.0 | extra:docs | BSD-2-Clause | recorded | https://pygments.org |
 | pyjwt | 2.15.1 | extra:mcp | MIT | recorded | https://github.com/jpadilla/pyjwt |
 | pykrx | 1.2.9 | extra:krx | MIT | recorded | https://github.com/sharebook-kr/pykrx/ |
-| pymdown-extensions | 12.1 | extra:docs | MIT | recorded | https://github.com/facelessuser/pymdown-extensions |
+| pymdown-extensions | 12.3 | extra:docs | MIT | recorded | https://github.com/facelessuser/pymdown-extensions |
 | pyparsing | 3.3.2 | extra:krx | MIT | recorded | https://github.com/pyparsing/pyparsing/ |
 | pyproject-hooks | 1.2.0 | dev | MIT License | recorded | https://github.com/pypa/pyproject-hooks |
 | pytest-cov | 7.1.0 | dev | MIT | recorded | https://pypi.org/project/pytest-cov/ |
