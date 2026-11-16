@@ -15,7 +15,7 @@ import pytest
 from kpubdata.exceptions import TransportError
 from kpubdata.transport.http import HttpTransport, TransportConfig
 
-_URL = "http://apis.data.go.kr/service/rest/data"
+_URL = "https://apis.data.go.kr/service/rest/data"
 _CANARY = "canary-value-for-redirect-test"
 _SEND = "kpubdata.transport.http.httpx.Client.send"
 
@@ -74,7 +74,9 @@ def test_a_key_passed_by_value_counts_as_a_credential() -> None:
         pytest.raises(TransportError),
     ):
         transport.request(
-            "GET", f"http://openapi.seoul.go.kr:8088/{_CANARY}/json/x/1/5", secret_values=(_CANARY,)
+            "GET",
+            f"https://openapi.seoul.go.kr:8088/{_CANARY}/json/x/1/5",
+            secret_values=(_CANARY,),
         )
 
     assert _followed(send) is False

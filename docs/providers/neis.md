@@ -9,18 +9,17 @@
 
 ## API 키 발급 방법
 
-나이스 API는 data.go.kr과 동일한 서비스 키를 사용합니다.
+NEIS Open API 인증키는 **나이스 교육정보 개방포털**에서 발급받습니다. 공공데이터포털(data.go.kr)의 공통 서비스 키가 자동으로 사용되는 것은 아닙니다.
 
-1. [공공데이터포털](https://www.data.go.kr)에 접속하여 회원가입합니다.
-2. "교육부_급식식단정보" 또는 "교육부_학교기본정보" Open API를 검색합니다.
-3. "활용신청" 후 마이페이지에서 인증키를 확인합니다.
-4. 환경변수에 설정합니다.
+1. [나이스 Open API 이용 안내](https://open.neis.go.kr/portal/guide/apiGuidePage.do)에서 인증키 발급 절차를 확인합니다.
+2. 사용할 서비스의 이용 조건과 승인 여부를 확인합니다.
+3. 발급받은 NEIS 인증키를 다음 환경변수에 설정합니다.
 
 ```bash
-export KPUBDATA_DATAGO_API_KEY="your-service-key"
+export KPUBDATA_NEIS_API_KEY="your-neis-key"
 ```
 
-> `neis`는 `datago` 키를 공유합니다. 별도 키가 필요하지 않습니다.
+SDK는 `require_provider_key("neis")`를 호출하므로 `KPUBDATA_DATAGO_API_KEY`만 설정해서는 NEIS 인증키를 대신할 수 없습니다. 인증키가 존재한다는 사실과 서비스 호출 권한이 승인됐다는 사실은 별개입니다.
 
 ## 지원 데이터셋
 

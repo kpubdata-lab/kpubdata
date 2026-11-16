@@ -51,6 +51,12 @@ def test_the_spec_executor_masks_a_key_under_an_unlisted_parameter_name(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     spec = _golden_spec("apt_trade")
+    spec = dataclasses.replace(
+        spec,
+        endpoint=dataclasses.replace(
+            spec.endpoint, base_url=spec.endpoint.base_url.replace("http://", "https://", 1)
+        ),
+    )
     spec = dataclasses.replace(spec, auth=dataclasses.replace(spec.auth, param_name=_UNLISTED))
     transport = HttpTransport(TransportConfig(max_retries=0))
     config = KPubDataConfig(provider_keys={"datago": _CANARY})

@@ -148,9 +148,21 @@ kpubdata --log-level debug fetch bok.base_rate -p start_date=202401 -p end_date=
 
 기본 동작은 캐시 비활성화 + `warning` 로그 레벨입니다.
 
+## probe — 실제 API 도달 가능성 확인
+
+```bash
+# 현재 작업 디렉터리에 key-scope.json을 저장합니다.
+kpubdata probe --provider datago
+
+# 자동화·기존 상태 문서에는 출력 경로를 명시하세요.
+kpubdata probe --provider datago --output docs/status/key-scope.json
+```
+
+기본 경로는 패키지 설치 위치가 아닌 **실행한 현재 작업 디렉터리의 `key-scope.json`**입니다. 기관 API 신청과 안전한 HTTPS 호출이 선행되어야 하며, 키가 없으면 결과가 `auth_unknown`일 수 있습니다. [실API 검사 안내](LIVE_PROBE.md)를 참고하세요.
+
 ## 환경 변수와의 관계
 
-CLI도 `Client.from_env()`와 동일한 환경 변수 규칙을 따릅니다.
+CLI도 `Client.from_env()`와 동일한 환경 변수 규칙을 따릅니다. 인증키 발급처, 공통 키 범위 및 설정 우선순위는 [환경변수 안내](./environment-variables.md)를 참고하세요.
 
 | 환경 변수 | 설명 |
 | :--- | :--- |

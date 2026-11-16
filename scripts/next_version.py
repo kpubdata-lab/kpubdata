@@ -46,9 +46,9 @@ class VersionError(Exception):
 def declared_version(path: Path) -> str:
     """The version declared in ``path``.
 
-    A regular expression rather than a parser, in both formats. A TOML parser is 3.11+
-    and this project supports 3.10, and a JSON round-trip would reformat the whole of
-    `package.json` for a one-field change — a diff nobody can review.
+    A regular expression rather than a parser preserves formatting in both formats.
+    A JSON round-trip would reformat the whole of `package.json` for a one-field
+    change — a diff nobody can review.
     """
     text = path.read_text(encoding="utf-8")
     pattern = _JSON_VERSION if path.suffix == ".json" else _TOML_VERSION
