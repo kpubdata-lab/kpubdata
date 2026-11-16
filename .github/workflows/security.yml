@@ -40,11 +40,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The lock resolves differently on each side of `python_full_version < '3.12'`
-        # (anyio, typing-extensions), and `uv export` keeps the markers, which pip-audit
-        # evaluates against the interpreter it runs on. Auditing on 3.10 and 3.12 covers
-        # both sides.
-        python: ["3.10", "3.12"]
+        # Audit every supported interpreter: marker-selected closures can differ.
+        python: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4  # v10.1.0
@@ -68,7 +65,7 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-      - uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2  # v4.38.2
+      - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370  # v4.39.1
         with:
           languages: python
           build-mode: none

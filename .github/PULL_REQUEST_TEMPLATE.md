@@ -26,7 +26,8 @@ Existing flow or risk:
 Scope exception: NO
 <!-- scope gate가 감지한 범위 확장이 "기존 사용자 여정의 필수 안전 수정"일 때만
 NO를 YES로 바꾸고 위 Existing flow or risk에 구체적인 위험·최소 수정·대안을 적습니다.
-"Refs #N" / "Closes #N"과 review:R3 및 작성자가 아닌 사람의 승인이 필요합니다.
+"Refs #N" / "Closes #N", 기존 scope-exception marker 및 별도 소유자 범위 승인이 필요합니다.
+SDK의 필수 사람 리뷰는 해제됐으며 독립 위험 검토와 POLICY 14.1 SDK 예외를 따릅니다.
 예외 선언은 그 자체로 승인이 아닙니다. -->
 
 ## 문제
@@ -38,3 +39,11 @@ NO를 YES로 바꾸고 위 Existing flow or risk에 구체적인 위험·최소 
 ## 검증
 <!-- 돌린 게이트·테스트와 결과. ruff·mypy·pytest·docs strict 는 CI가 같은 걸 다시 돌리므로, 여기에는 로컬에서만 볼 수 있는 것(실측·재현·스크린샷)을 적는다. -->
 <!-- 검증 수준은 뜻을 먼저, 코드는 괄호로: 예 "단위 테스트(V1)", "replay·계약 테스트(V2)". 리뷰 수준도 같다: 예 "작성자가 아닌 사람의 승인이 필요(R3)". 용어표: docs/governance/POLICY.md#codes (POLICY 0.2) -->
+
+## SDK review evidence
+
+<!-- SDK owner decision: mandatory `review:R3` human approval is retired. CI gate and
+PR title still apply; do not fabricate human APPROVED reviews or test results. -->
+- Reviewed head / independent reviewer:
+- Findings, resolutions and verification gaps:
+<!-- Merge authority does not authorize release, publication or deployment. -->

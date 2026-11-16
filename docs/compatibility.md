@@ -5,11 +5,17 @@ KPubData Product Family는 세 저장소가 독립적으로 릴리스되지만, 
 
 | 저장소 (제품명) | 역할 | Python | 의존 관계 |
 | :--- | :--- | :--- | :--- |
-| [kpubdata](https://github.com/kpubdata-lab/kpubdata) (KPubData) | 한국 공공데이터 접근을 위한 독립 Python SDK | 3.10+ | (없음) |
+| [kpubdata](https://github.com/kpubdata-lab/kpubdata) (KPubData) | 한국 공공데이터 접근을 위한 독립 Python SDK | 3.11+ (검증: CPython 3.11–3.14) | (없음) |
 | [kpubdata-builder](https://github.com/kpubdata-lab/kpubdata-builder) (KPubData Builder) | KPubData 로 재현 가능한 데이터셋·테이블을 만들고 관리 | 3.10+ | `kpubdata` 공개 API, **릴리스된 버전만** |
 | [kpubdata-studio](https://github.com/kpubdata-lab/kpubdata-studio) (KPubData Studio) | KPubData Builder 의 시각적 작업공간 | Node **22+** | Builder HTTP/OpenAPI 계약만 (kpubdata 를 직접 쓰지 않는다) |
 
 전체 아키텍처 관계는 [Product Family 아키텍처](product-family-architecture.md) 문서를 참고한다.
+
+SDK의 설치 메타데이터는 `>=3.11`이며 상한을 두지 않습니다. 검증된 범위가 향후
+인터프리터의 동작 보장이라는 뜻은 아닙니다. Builder의 위 Python 행은 현재 릴리스된
+SDK 핀 기준입니다. Python 3.10 환경의 Builder는 이 변경이 포함된 SDK 릴리스로
+핀을 올리기 전에 자체 Python 하한을 별도로 올리고 검증해야 합니다. 이 SDK PR이
+Builder의 지원 정책이나 코드를 자동으로 바꾸지는 않습니다.
 
 ## 1. 호환성 매트릭스
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import Enum
 
 
-class Representation(str, Enum):
+class Representation(str, Enum):  # noqa: UP042 - preserve public enum string formatting
     """Describe how a dataset is provided based on source form, not access method."""
 
     API_JSON = "api_json"

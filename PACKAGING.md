@@ -3,7 +3,7 @@
 ## 1. Packaging goals
 
 - modern Python packaging
-- Python 3.10+
+- Python 3.11+
 - minimal core dependencies
 - optional extras for heavier integrations
 - reproducible local development for human and agentic workflows
@@ -32,8 +32,8 @@ This keeps packaging standards-based while making developer workflows fast.
 
 ## 3. Python support policy
 
-- minimum: Python 3.10
-- tested: 3.10, 3.11, 3.12, 3.13
+- minimum: Python 3.11
+- tested: 3.11, 3.12, 3.13, 3.14
 
 ## 4. Dependency policy
 
@@ -138,6 +138,11 @@ PyPI trusted publisher 가 **시작된 워크플로 이름**(`publish-pypi.yml`)
 | 3단계 (PyPI) | 태그·Release, 패키지 없음 (v0.7.0 에서 실제로 일어남) | `gh workflow run publish-pypi.yml -f ref=vX.Y.Z` 재실행 |
 
 #### 배포 전 체크리스트
+
+릴리스 노트는 [단일 CHANGELOG 정본과 간결한 공개 요약 규칙](docs/release-notes.md)을 따릅니다. 상세 변경 이력은 버전별 CHANGELOG에 보존하고, GitHub Release에는 검증된 Highlights·Upgrade notes·Known limitations와 설치·상세 링크만 생성합니다.
+
+- [ ] 현재 릴리스 버전의 CHANGELOG에 세 요약 절이 있으며 실제 코드·보안 상태와 일치함
+- [ ] `scripts/release_notes.py extract vX.Y.Z --public` 로 공개용 본문을 사전 검토함
 
 - [ ] 릴리스에 들어갈 PR 이 모두 `main` 에 병합됨
 - [ ] `CHANGELOG.md` `## [Unreleased]` 에 사용자에게 보이는 변경이 모두 적힘
