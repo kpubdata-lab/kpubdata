@@ -6,7 +6,7 @@ For regression prevention and public contract validation verify core flows, exce
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 from kpubdata.transport.http import HttpTransport, TransportConfig, TransportRequirements
 
@@ -67,6 +67,8 @@ def test_with_requirements_merges_headers_without_mutating_base_config() -> None
             "X-Test": "1",
         },
         follow_redirects=True,
+        event_hooks={"request": [ANY]},
+        cookies=ANY,
         verify=True,
     )
     assert config.headers == {"User-Agent": "kpubdata", "Accept": "application/json"}
@@ -100,6 +102,8 @@ def test_build_client_calls_ssl_context_factory_when_provided() -> None:
         timeout=30.0,
         headers={},
         follow_redirects=True,
+        event_hooks={"request": [ANY]},
+        cookies=ANY,
         verify=ssl_context,
     )
 
@@ -127,5 +131,7 @@ def test_build_client_passes_verify_false_when_ssl_verification_disabled() -> No
         timeout=30.0,
         headers={},
         follow_redirects=True,
+        event_hooks={"request": [ANY]},
+        cookies=ANY,
         verify=False,
     )
