@@ -16,6 +16,10 @@ inputs:
     description: "Path to the CHANGELOG"
     required: false
     default: CHANGELOG.md
+  public:
+    description: "Render the SDK curated public summary (SDK callers only; shared default keeps full history)"
+    required: false
+    default: "false"
   output:
     description: "Where extract writes the notes (default: the runner's temp directory)"
     required: false
@@ -42,6 +46,7 @@ runs:
         VERSION: ${{ inputs.version }}
         CHANGELOG: ${{ inputs.changelog }}
         OUTPUT: ${{ inputs.output }}
+        PUBLIC: ${{ inputs.public }}
         REPO: ${{ github.repository }}
       run: |
         script="${{ github.action_path }}/../../../scripts/release_notes.py"
@@ -65,7 +70,11 @@ runs:
         else
           compare="https://github.com/${REPO}/commits/${tag}"
         fi
-        python3 "${script}" extract "${VERSION}" --changelog "${CHANGELOG}" \
+        public_args=()
+        if [ "${PUBLIC}" = "true" ]; then
+          public_args=(--public)
+        fi
+        python3 "${script}" extract "${VERSION}" "${public_args[@]}" --changelog "${CHANGELOG}" \
           --compare-url "${compare}" --output "${OUTPUT}"
         echo "file=${OUTPUT}" >> "$GITHUB_OUTPUT"
         echo "notes for ${tag}:"

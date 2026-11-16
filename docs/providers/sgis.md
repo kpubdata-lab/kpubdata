@@ -16,8 +16,24 @@
 ## 환경 변수
 
 ```bash
-export KPUBDATA_SGIS_API_KEY="발급받은키"
+export KPUBDATA_SGIS_API_KEY="발급받은-consumer-key"
+export KPUBDATA_SGIS_CONSUMER_SECRET="발급받은-consumer-secret"
 ```
+
+## Access token expiry
+
+SGIS documents `accessTimeout` as a Unix epoch in **seconds**, but its
+[published authentication example](https://sgis.kostat.go.kr/developer/upload/doc/DataAPI-definition.pdf)
+contains the 13-digit value `1663231271880`, representing **milliseconds**.
+To accommodate this documented discrepancy, the SDK accepts positive integer
+seconds and converts values of at least `10^12` from milliseconds to seconds.
+Invalid or out-of-range timestamps raise a provider response error rather than
+a raw Python datetime exception.
+
+Cached access tokens are refreshed when **60 seconds or less** remain before
+expiry. Very short-lived tokens may require a new token on each request.
+This parsing behavior is covered by offline tests only; it does **not**
+constitute a successful authenticated live SGIS verification.
 
 ## 지원 데이터셋
 

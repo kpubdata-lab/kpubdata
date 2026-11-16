@@ -9,7 +9,7 @@ which datasets need applications upfront.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -38,7 +38,7 @@ from kpubdata.exceptions import (
     TransportTimeoutError,
 )
 
-_NOW = datetime.now(tz=timezone.utc).isoformat(timespec="seconds")
+_NOW = datetime.now(tz=UTC).isoformat(timespec="seconds")
 
 
 def _result(dataset_id: str, service_id: str, status: str) -> ProbeResult:

@@ -13,9 +13,9 @@ Two commands, both used by `.github/actions/release-notes`:
     promote VERSION   rename the `[Unreleased]` section to VERSION, dated, and open a
                       fresh empty `[Unreleased]` above it. Run by the prepare job, so
                       the release pull request carries its own CHANGELOG change.
-    extract VERSION   print VERSION's section as a release body. Run by the release
-                      job before any gate, so a missing or empty section stops the
-                      release before a tag exists.
+    extract VERSION   print VERSION's complete CHANGELOG section. With --public,
+                      render only the curated reader-first summary for GitHub Release.
+                      The release job fails before a tag when that summary is absent.
 
 A third, `prerelease VERSION`, prints `true` or `false` so the release is marked as a
 pre-release on GitHub.
@@ -176,6 +176,55 @@ def promote(text: str, version: str, date: dt.date) -> str:
     return text[: unreleased.start()] + heading + "\n\n" + body + ("\n\n" + tail if tail else "\n")
 
 
+_PUBLIC_HEADINGS = ("Highlights", "Upgrade notes", "Known limitations")
+
+
+def render_public_notes(text: str, version: str) -> str:
+    """Render a short, version-correct GitHub Release from the full CHANGELOG.
+
+    The full history remains in the versioned CHANGELOG; only its curated
+    summary sections appear in the GitHub Release body. No headings or
+    highlights are guessed from raw commit/PR logs.
+    """
+    body = extract(text, version)
+    headings = list(re.finditer(r"^### ([^\n]+)$", body, re.MULTILINE))
+    groups: dict[str, list[str]] = {}
+    for index, match in enumerate(headings):
+        name = match.group(1).strip()
+        end = headings[index + 1].start() if index + 1 < len(headings) else len(body)
+        if name in _PUBLIC_HEADINGS:
+            if name in groups:
+                raise ChangelogError(f"Repeated public release heading: {name}")
+            raw_lines = body[match.end() : end].strip().splitlines()
+            lines = [line.strip() for line in raw_lines if line.strip()]
+            if not lines or any(not line.startswith("- ") for line in lines):
+                raise ChangelogError(
+                    f"{name} must contain one-line Markdown bullets in CHANGELOG.md"
+                )
+            if "- None." in lines and len(lines) != 1:
+                raise ChangelogError(
+                    f"{name} cannot mix None with other bullets; curate the summary"
+                )
+            groups[name] = lines
+    missing = [name for name in _PUBLIC_HEADINGS if name not in groups]
+    if missing:
+        raise ChangelogError(
+            "Public release notes require CHANGELOG headings: " + ", ".join(missing)
+        )
+    highlights = groups["Highlights"]
+    if not 1 <= len(highlights) <= 5 or any(line == "- None." for line in highlights):
+        raise ChangelogError("Highlights must have 1 to 5 real, verified bullets")
+
+    sections = [
+        f"## KPubData SDK v{version}",
+        *["### " + name + "\n\n" + "\n".join(groups[name]) for name in _PUBLIC_HEADINGS],
+        f'### Install\n\n`pip install -U "kpubdata=={version}"`',
+        "**Detailed changes**: "
+        f"https://github.com/kpubdata-lab/kpubdata/blob/v{version}/CHANGELOG.md",
+    ]
+    return "\n\n".join(sections)
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run a command. Returns 0 on success, 1 when the CHANGELOG cannot serve."""
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
@@ -183,6 +232,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("version", help="the version being released, with or without v")
     parser.add_argument("--changelog", type=Path, default=Path("CHANGELOG.md"))
     parser.add_argument("--compare-url", help="appended to the extracted notes")
+    parser.add_argument("--public", action="store_true", help="render concise GitHub Release notes")
     parser.add_argument("--output", type=Path, help="write extracted notes here")
     args = parser.parse_args(argv)
     version = args.version.removeprefix("v")
@@ -204,7 +254,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             print(f"CHANGELOG.md: section for {version} is in place")
             return 0
-        notes = extract(text, version)
+        notes = render_public_notes(text, version) if args.public else extract(text, version)
     except (ChangelogError, OSError) as exc:
         print(f"::error::{exc}", file=sys.stderr)
         return 1

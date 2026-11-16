@@ -1,4 +1,4 @@
-"""KPubData — a Python 3.10+ framework for accessing Korean public data."""
+"""KPubData — a Python 3.11+ framework for accessing Korean public data."""
 
 from __future__ import annotations
 

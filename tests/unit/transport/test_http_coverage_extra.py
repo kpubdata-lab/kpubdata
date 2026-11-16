@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import cast
 from unittest.mock import PropertyMock, patch
 
@@ -62,7 +62,7 @@ def test_parse_retry_after_naive_datetime_treated_as_utc() -> None:
     """
     parse_retry_after = cast(Callable[[str], float | None], http_module._parse_retry_after)
 
-    future = datetime.now(timezone.utc) + timedelta(seconds=10)
+    future = datetime.now(UTC) + timedelta(seconds=10)
     naive_date_str = future.strftime("%a, %d %b %Y %H:%M:%S") + " GMT"
 
     with patch.object(

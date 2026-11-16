@@ -63,7 +63,7 @@ def _suites(root: ET.Element) -> list[ET.Element]:
     return list(root.iter("testsuite"))
 
 
-def summarise(path: Path) -> Counts:
+def summarise(path: Path, *, validate_testcases: bool = False) -> Counts:
     """Sum the counts across every ``testsuite`` in the report.
 
     Raises:
@@ -74,9 +74,29 @@ def summarise(path: Path) -> Counts:
         raise NoTestsuite(str(path))
     total = failed = skipped = 0
     for suite in suites:
-        total += int(suite.attrib.get("tests", 0))
-        failed += int(suite.attrib.get("failures", 0)) + int(suite.attrib.get("errors", 0))
-        skipped += int(suite.attrib.get("skipped", 0))
+        suite_total = int(suite.attrib.get("tests", 0))
+        suite_failures = int(suite.attrib.get("failures", 0))
+        suite_errors = int(suite.attrib.get("errors", 0))
+        suite_skipped = int(suite.attrib.get("skipped", 0))
+        if validate_testcases:
+            counters = (suite_total, suite_failures, suite_errors, suite_skipped)
+            if any(count < 0 for count in counters) or sum(counters[1:]) > suite_total:
+                raise ValueError("invalid testsuite counters")
+            cases = suite.findall("testcase")
+            observed = (
+                len(cases),
+                sum(len(case.findall("failure")) for case in cases),
+                sum(len(case.findall("error")) for case in cases),
+                sum(len(case.findall("skipped")) for case in cases),
+            )
+            if observed != counters or any(
+                len(case.findall("failure") + case.findall("error") + case.findall("skipped")) > 1
+                for case in cases
+            ):
+                raise ValueError("testcase outcomes do not match testsuite counters")
+        total += suite_total
+        failed += suite_failures + suite_errors
+        skipped += suite_skipped
     return Counts(total=total, failed=failed, skipped=skipped)
 
 
@@ -84,11 +104,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("report", type=Path)
     parser.add_argument("--label", default="tests")
+    parser.add_argument(
+        "--require-passed",
+        action="store_true",
+        help="Fail when no selected test passed (including all-skipped live runs)",
+    )
     args = parser.parse_args()
 
     try:
-        counts = summarise(args.report)
-    except (OSError, ET.ParseError) as exc:
+        counts = summarise(args.report, validate_testcases=args.require_passed)
+    except (OSError, ET.ParseError, ValueError) as exc:
         print(f"error: cannot read {args.report}: {exc}", file=sys.stderr)
         return 2
     except NoTestsuite:
@@ -101,6 +126,10 @@ def main() -> int:
         # as PASS, which is how a failing smoke run looked healthy in the log.
         print("smoke=FAIL")
         print("error: the report declares zero tests", file=sys.stderr)
+        return 1
+    if args.require_passed and counts.passed <= 0:
+        print("smoke=FAIL")
+        print("error: no tests passed; live API verification is unverified", file=sys.stderr)
         return 1
     print(f"smoke={'FAIL' if counts.failed else 'PASS'}")
     return 1 if counts.failed else 0
