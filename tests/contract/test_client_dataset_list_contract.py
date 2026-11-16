@@ -13,9 +13,12 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import httpx
+import pytest
 
 from kpubdata import Client
 from kpubdata.core.models import RecordBatch
+
+pytestmark = pytest.mark.usefixtures("https_mock_endpoints")
 
 
 def _fixture_path(name: str) -> Path:

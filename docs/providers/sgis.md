@@ -16,7 +16,8 @@
 ## 환경 변수
 
 ```bash
-export KPUBDATA_SGIS_API_KEY="발급받은키"
+export KPUBDATA_SGIS_API_KEY="발급받은-consumer-key"
+export KPUBDATA_SGIS_CONSUMER_SECRET="발급받은-consumer-secret"
 ```
 
 ## Access token expiry

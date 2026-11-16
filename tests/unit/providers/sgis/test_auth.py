@@ -9,7 +9,7 @@ prevention and public contract validation.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import cast
 
@@ -296,7 +296,7 @@ def test_access_timeout_rejects_invalid_values(timeout: object) -> None:
 
 def test_access_token_refreshes_with_60_seconds_remaining() -> None:
     """A near-expiring token is proactively refreshed rather than reused."""
-    now = datetime.now(tz=timezone.utc)
+    now = datetime.now(tz=UTC)
     auth_client, transport = _build_auth_client(
         [
             _token_response("nearly-expired", str(int((now + timedelta(seconds=30)).timestamp()))),
@@ -312,7 +312,7 @@ def test_access_token_refreshes_with_60_seconds_remaining() -> None:
 
 
 def test_access_token_is_cached_beyond_60_second_window() -> None:
-    now = datetime.now(tz=timezone.utc)
+    now = datetime.now(tz=UTC)
     auth_client, transport = _build_auth_client(
         [_token_response("still-valid", str(int((now + timedelta(seconds=120)).timestamp())))],
         provider_key="consumer-key:consumer-secret",

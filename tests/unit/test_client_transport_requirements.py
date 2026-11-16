@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 import pytest
 
@@ -381,6 +381,8 @@ def test_builtin_provider_with_transport_requirements_builds_custom_transport(
         timeout=12.0,
         headers={"X-Provider": "dummy"},
         follow_redirects=True,
+        event_hooks={"request": [ANY]},
+        cookies=ANY,
         verify=False,
     )
 

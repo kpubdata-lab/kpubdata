@@ -6,7 +6,7 @@ For regression prevention and public contract validation verify core flows, exce
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from email.utils import format_datetime
 from unittest.mock import patch
 
@@ -91,7 +91,7 @@ def test_429_with_retry_after_http_date_uses_computed_delay(
     """
     import kpubdata.transport.http as http_module
 
-    fixed_now = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    fixed_now = datetime(2026, 1, 1, tzinfo=UTC)
     retry_at = fixed_now + timedelta(seconds=4)
     retry_after_header = format_datetime(retry_at, usegmt=True)
 

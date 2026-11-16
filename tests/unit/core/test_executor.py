@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 from collections.abc import MutableMapping
 from dataclasses import replace
+from datetime import UTC
 from pathlib import Path
 from typing import cast
 
@@ -944,7 +945,7 @@ def test_provenance_reports_cache_hit_with_original_fetch_time(tmp_path: Path) -
     Before the fix nothing marked a cached response, so provenance always said
     ``cached=False`` and stamped ``fetched_at`` with the time of the cache read.
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
     from unittest.mock import patch
 
     import httpx
@@ -980,7 +981,7 @@ def test_provenance_reports_cache_hit_with_original_fetch_time(tmp_path: Path) -
 
     provenance = _build_provenance(second, params, spec)
     assert provenance["cached"] is True
-    expected = datetime.fromtimestamp(original_fetch, tz=timezone.utc)
+    expected = datetime.fromtimestamp(original_fetch, tz=UTC)
     assert provenance["fetched_at"] == expected.isoformat(timespec="seconds")
     assert provenance["fetched_at"] == "2023-11-14T22:13:20+00:00"
 

@@ -142,10 +142,9 @@ class TestTheCredentialNeverReachesAnUnlistedHost:
             executor.build_params(_spec(base_url="https://attacker.example/api"), Query())
 
     def test_a_path_template_cannot_smuggle_its_own_host(self) -> None:
-        """``base_url`` passes the gate but the template names somewhere else.
+        """The template's host must be refused before credentials are resolved.
 
-        ``build_params`` only sees ``base_url``, so this is the case the second
-        check in ``_request`` exists for.
+        The final actual URL is checked again in _request as a second guard.
         """
         spec = _spec(
             base_url="https://apis.data.go.kr",
@@ -153,9 +152,8 @@ class TestTheCredentialNeverReachesAnUnlistedHost:
             path_template="https://attacker.example/{key}/{operation}",
         )
         executor = _executor()
-        params = executor.build_params(spec, Query())
         with pytest.raises(InvalidRequestError, match="allowlist"):
-            executor._request(spec, params)
+            executor.build_params(spec, Query())
 
     def test_a_lookalike_domain_is_refused(self) -> None:
         with pytest.raises(InvalidRequestError):

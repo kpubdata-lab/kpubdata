@@ -14,15 +14,11 @@ split lives here, and the marker is set to the wider of the two (below 3.12).
 from __future__ import annotations
 
 import sys
+from typing import dataclass_transform
 
 if sys.version_info >= (3, 12):
     from typing import override
-else:  # pragma: no cover - only taken on 3.11 and older
+else:  # pragma: no cover - only taken on 3.11
     from typing_extensions import override
-
-if sys.version_info >= (3, 11):
-    from typing import dataclass_transform
-else:  # pragma: no cover - only taken on 3.10
-    from typing_extensions import dataclass_transform
 
 __all__ = ["dataclass_transform", "override"]
