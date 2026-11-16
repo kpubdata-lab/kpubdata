@@ -32,12 +32,14 @@ def _load_script():
 r3 = _load_script()
 
 AUTHOR = "agent-account"
+HEAD = "a" * 40
 
 
 def _pull(*labels: str, author: str = AUTHOR) -> dict[str, Any]:
     return {
         "number": 42,
         "user": {"login": author, "type": "User"},
+        "head": {"sha": HEAD},
         "labels": [{"name": name} for name in labels],
     }
 
@@ -200,6 +202,75 @@ def test_an_unreadable_author_fails_closed() -> None:
     pull = _pull("review:R3")
     pull["user"] = None
     assert not _evaluate(pull, [_review("reviewer", "APPROVED")]).passed
+
+
+# --- independent agent attestation (SDK opt-in only) -------------------------------
+
+
+def _agent_attestation(
+    *,
+    login: str = AUTHOR,
+    head: str = HEAD,
+    body: str | None = None,
+    kind: str = "User",
+    association: str = "OWNER",
+) -> dict[str, Any]:
+    return _review(login, "COMMENTED", association=association, kind=kind, commit=head) | {
+        "body": body
+        or (
+            "Agent-Review: PASS\nIndependent: YES\n"
+            "Agent: GPT-6 independent review session\n"
+            "Findings: No blocking findings\n"
+            "Verification: Reviewed diff and unit tests\n"
+            "Owner-Decision: ACCEPT\n"
+        )
+    }
+
+
+def test_independent_agent_review_passes_only_with_sdk_opt_in() -> None:
+    review = _agent_attestation()
+    assert not _evaluate(_pull("review:R3"), [review]).passed
+    decision = r3.evaluate(
+        _pull("review:R3"), [review], {AUTHOR: "write"}, allow_agent_review=True
+    )
+    assert decision.passed
+    assert "independent agent review" in decision.reason
+    assert decision.approvers == ()  # do not fabricate a GitHub APPROVED review
+
+
+@pytest.mark.parametrize(
+    "invalid",
+    [
+        {"head": "b" * 40},
+        {"body": "Agent-Review: PASS"},
+        {"body": "Agent-Review: PASS\nIndependent: NO\nAgent: x\nFindings: none\nVerification: test\nOwner-Decision: ACCEPT"},
+        {"body": "Agent-Review: PASS\nIndependent: YES\nAgent: x\nFindings: TBD\nVerification: test\nOwner-Decision: ACCEPT"},
+        {"body": "Agent-Review: PASS\nIndependent: YES\nAgent: x\nFindings: none\nVerification: test\nOwner-Decision: PENDING"},
+        {"kind": "Bot"},
+        {"association": "CONTRIBUTOR"},
+    ],
+)
+def test_invalid_agent_attestations_are_not_accepted(invalid: dict[str, str]) -> None:
+    review = _agent_attestation(**invalid)
+    assert not r3.evaluate(
+        _pull("review:R3"), [review], {AUTHOR: "write"}, allow_agent_review=True
+    ).passed
+
+
+def test_agent_attester_must_have_verified_write_access() -> None:
+    review = _agent_attestation()
+    for permissions in ({}, {AUTHOR: None}, {AUTHOR: "read"}):
+        assert not r3.evaluate(
+            _pull("review:R3"), [review], permissions, allow_agent_review=True
+        ).passed
+
+
+def test_agent_review_permission_is_considered_only_with_opt_in() -> None:
+    review = _agent_attestation()
+    assert r3.candidates_to_look_up(_pull("review:R3"), [review]) == ()
+    assert r3.candidates_to_look_up(
+        _pull("review:R3"), [review], allow_agent_review=True
+    ) == (AUTHOR,)
 
 
 # --- command line -----------------------------------------------------------------
