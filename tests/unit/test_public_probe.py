@@ -21,6 +21,8 @@ from kpubdata import PROBE_STATUSES, Client, KPubDataConfig, ProbeResult, _probe
 from kpubdata.core.status import ProbeStatus
 from kpubdata.transport.http import HttpTransport
 
+pytestmark = pytest.mark.usefixtures("https_mock_endpoints")
+
 _REAL_FACTORY = _probe.new_probe_transport
 SENTINEL = "sentinel-key"
 ENV_KEY = "env-operator-key"

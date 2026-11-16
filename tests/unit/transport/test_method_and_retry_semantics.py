@@ -144,6 +144,12 @@ def _adapter(spec: SpecDefinition) -> tuple[SpecDatasetAdapter, HttpTransport]:
 
 def test_a_get_spec_is_sent_as_a_get(network: _Network) -> None:
     spec = _golden_spec("apt_trade")
+    spec = replace(
+        spec,
+        endpoint=replace(
+            spec.endpoint, base_url=spec.endpoint.base_url.replace("http://", "https://", 1)
+        ),
+    )
     adapter, transport = _adapter(spec)
     try:
         with pytest.raises(PublicDataError):
