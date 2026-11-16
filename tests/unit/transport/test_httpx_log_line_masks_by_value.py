@@ -24,6 +24,8 @@ from kpubdata.transport import http as transport_module
 from kpubdata.transport._sensitive import SENSITIVE_PARAM_KEYS, _secret_forms
 from kpubdata.transport.http import HttpTransport, TransportConfig
 
+pytestmark = pytest.mark.usefixtures("https_mock_endpoints")
+
 #: A stand-in value with the characters a data.go.kr key has, which a URL encodes.
 _CANARY = "canary-value+for/masking=test"
 _UNLISTED = "accessCode"

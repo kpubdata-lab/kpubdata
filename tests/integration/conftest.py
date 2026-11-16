@@ -40,12 +40,9 @@ def require_datago_key() -> str:
         str: API key from environment or raises skip if not set.
 
     Raises:
-        pytest.skip: If KPUBDATA_DATAGO_API_KEY is not set.
+        pytest.skip: If no datago key is configured through SDK lookup.
     """
-    key = os.getenv("KPUBDATA_DATAGO_API_KEY", "")
-    if not key:
-        pytest.skip("KPUBDATA_DATAGO_API_KEY not set")
-    return key
+    return _require_provider_key("datago")
 
 
 @pytest.fixture
@@ -76,12 +73,9 @@ def require_bok_key() -> str:
         str: API key from environment or raises skip if not set.
 
     Raises:
-        pytest.skip: If KPUBDATA_BOK_API_KEY is not set.
+        pytest.skip: If no bok key is configured through SDK lookup.
     """
-    key = os.getenv("KPUBDATA_BOK_API_KEY", "")
-    if not key:
-        pytest.skip("KPUBDATA_BOK_API_KEY not set")
-    return key
+    return _require_provider_key("bok")
 
 
 @pytest.fixture(scope="session")
@@ -93,12 +87,9 @@ def require_kosis_key() -> str:
         str: API key from environment or raises skip if not set.
 
     Raises:
-        pytest.skip: If KPUBDATA_KOSIS_API_KEY is not set.
+        pytest.skip: If no kosis key is configured through SDK lookup.
     """
-    key = os.getenv("KPUBDATA_KOSIS_API_KEY", "")
-    if not key:
-        pytest.skip("KPUBDATA_KOSIS_API_KEY not set")
-    return key
+    return _require_provider_key("kosis")
 
 
 @pytest.fixture(scope="session")
@@ -110,12 +101,9 @@ def require_lofin_key() -> str:
         str: API key from environment or raises skip if not set.
 
     Raises:
-        pytest.skip: If KPUBDATA_LOFIN_API_KEY is not set.
+        pytest.skip: If no lofin key is configured through SDK lookup.
     """
-    key = os.getenv("KPUBDATA_LOFIN_API_KEY", "")
-    if not key:
-        pytest.skip("KPUBDATA_LOFIN_API_KEY not set")
-    return key
+    return _require_provider_key("lofin")
 
 
 @pytest.fixture(scope="session")
@@ -127,7 +115,7 @@ def require_localdata_key() -> str:
         str: API key from environment or raises skip if not set.
 
     Raises:
-        pytest.skip: If KPUBDATA_LOCALDATA_API_KEY is not set.
+        pytest.skip: If neither a localdata nor shared datago key is configured.
     """
     return _require_provider_key("localdata", fallback_to="datago")
 
@@ -141,12 +129,9 @@ def require_seoul_key() -> str:
         str: API key from environment or raises skip if not set.
 
     Raises:
-        pytest.skip: If KPUBDATA_SEOUL_API_KEY is not set.
+        pytest.skip: If no seoul key is configured through SDK lookup.
     """
-    key = os.getenv("KPUBDATA_SEOUL_API_KEY", "")
-    if not key:
-        pytest.skip("KPUBDATA_SEOUL_API_KEY not set")
-    return key
+    return _require_provider_key("seoul")
 
 
 @pytest.fixture(scope="session")
@@ -158,7 +143,7 @@ def require_semas_key() -> str:
         str: API key from environment or raises skip if not set.
 
     Raises:
-        pytest.skip: If KPUBDATA_SEMAS_API_KEY is not set.
+        pytest.skip: If neither a semas nor shared datago key is configured.
     """
     return _require_provider_key("semas", fallback_to="datago")
 
@@ -172,12 +157,9 @@ def require_sgis_key() -> str:
         str: API key from environment or raises skip if not set.
 
     Raises:
-        pytest.skip: If KPUBDATA_SGIS_API_KEY is not set.
+        pytest.skip: If no sgis key is configured through SDK lookup.
     """
-    key = os.getenv("KPUBDATA_SGIS_API_KEY", "")
-    if not key:
-        pytest.skip("KPUBDATA_SGIS_API_KEY not set")
-    return key
+    return _require_provider_key("sgis")
 
 
 @pytest.fixture(scope="session")

@@ -10,7 +10,7 @@ from tests.integration.conftest import _require_provider_key
 @pytest.fixture(autouse=True)
 def _remove_ambient_test_keys(monkeypatch: pytest.MonkeyPatch) -> None:
     """Keep local credentials from leaking into fixture-gating tests."""
-    for provider in ("DATAGO", "LOCALDATA", "SEMAS", "NEIS", "FDS"):
+    for provider in ("DATAGO", "LOCALDATA", "SEMAS", "NEIS", "FDS", "LOFIN"):
         monkeypatch.delenv(f"KPUBDATA_{provider}_API_KEY", raising=False)
         monkeypatch.delenv(f"{provider}_API_KEY", raising=False)
 
@@ -66,3 +66,17 @@ def test_missing_shared_key_skips_without_disclosing_a_value() -> None:
     message = str(captured.value)
     assert "KPUBDATA_LOCALDATA_API_KEY" in message
     assert "KPUBDATA_DATAGO_API_KEY" in message
+
+
+def test_lofin_live_fixture_accepts_legacy_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A runtime-supported LOFIN credential must not silently skip live checks."""
+    from tests.integration.conftest import require_lofin_key
+
+    monkeypatch.setenv("LOFIN_API_KEY", "lofin-placeholder")
+    monkeypatch.setenv("KPUBDATA_DATAGO_API_KEY", "unrelated-placeholder")
+
+    try:
+        key = require_lofin_key.__wrapped__()
+    except pytest.skip.Exception as exc:
+        pytest.fail(f"Runtime-supported key incorrectly skipped: {exc}")
+    assert key == "lofin-placeholder"

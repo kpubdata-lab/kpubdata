@@ -6,6 +6,57 @@
 from kpubdata import Client
 ```
 
+## Credential transport safety
+
+Recognized credentials in requests to an API origin must not be sent over
+plaintext HTTP (#893), including through raw calls. Credentials visible in query
+or header arguments, transport config or provider requirements are refused with
+`TransportError` before cache reads or
+client initialization. This includes named query/header credentials and
+adapter-declared secret values such as path keys. Adapters must declare values
+sent under unlisted names or inside request bodies.
+Stateless unauthenticated HTTP/raw requests remain available; endpoints are never silently
+upgraded. Exact historical HTTP fixture replay remains offline and does not prove
+HTTPS/live-provider verification. A replay miss cannot bypass the live guard.
+
+The remaining HTTP specs cannot be used live until their HTTPS endpoints and
+trusted recordings are migrated under #893. This guard does not complete that
+migration or certify catalogue credential issuers. A final prepared-request check
+also covers client-default headers/query parameters, authentication, URL userinfo
+and cookies, including cookies set by earlier HTTPS responses. That check runs
+only when a prepared request is about to be sent: an existing anonymous HTTP
+cache hit can return without it, with no credentials transmitted. This containment
+does not redesign cache keys or resolve inherited cache isolation for credentials
+added through the underlying HTTPX client, including on HTTPS.
+Followed redirects
+cannot send recognized or adapter-declared credentials over HTTP, even with
+`follow_credentialed_redirects=True`. This tightens HTTP downgrade handling;
+that option still does not establish safety for credential forwarding to another
+HTTPS origin.
+
+The SDK's default cookie jar does not accept cookies from HTTP responses. This
+prevents anonymous routing cookies from turning later HTTP calls
+into credentialed requests, including during redirects or concurrent requests.
+The raw response headers and `response.cookies` remain available. Explicit or
+preloaded cookies and cookies retained from HTTPS responses still require HTTPS.
+Stateful cookie-based HTTP sessions are not supported by this containment.
+Late prepared-request errors retain the supplied provider/dataset context without
+including raw credentials or attaching them to request extensions.
+The returned HTTPX client's hooks and transports must not be rewritten while
+requests are in flight; caller-supplied code is not an untrusted-code sandbox.
+Changing its cookie jar/policy opts out of the default jar's cookie-preservation
+guarantee. Cleanup for a substituted ordinary HTTPX jar can discard HTTP cookies
+but cannot reconstruct HTTPS state that its own policy already allowed HTTP to
+overwrite. The prepared-request credential check remains enforced.
+
+Proxy authentication is a separate hop: HTTPX may add credentials from a proxy URL
+inside its proxy transport, after request hooks run. The origin-request guard does
+not inspect or certify that configuration. Authenticated plaintext proxies can
+expose their proxy credentials even for HTTPS destination URLs; use a protected
+proxy hop or omit proxy credentials. Explicit `Proxy-Authorization` headers on an
+origin HTTP request are still refused. Inherited late-client credential cache
+isolation and cross-HTTPS-origin redirect policy also remain outside this patch.
+
 ## 2. Client construction
 
 ### Explicit construction
@@ -140,6 +191,17 @@ result = dataset.list(LAWD_CD="11680", DEAL_YMD="202503")
 `list()` returns exactly one page of results. When another page is available,
 the returned `RecordBatch.next_page` is set.
 
+Filter values are transmitted only as explicitly supported scalars: strings,
+integers, finite numbers and Decimal values. Optional `None` filters are
+omitted rather than transmitting the literal string `"None"`; an explicitly
+provided `None` for a required spec filter is an error. Boolean values are
+accepted only for spec parameters declared with `type: boolean` (serialized as
+lowercase `true`/`false`). Lists, mappings, datetime objects and other
+unsupported objects raise `InvalidRequestError` **before an HTTP request**.
+Date/period formats are provider-specific: pass the required format as a
+string, rather than relying on an implicit conversion. Existing text and
+numeric filter strings are not reformatted (#968).
+
 ### List all pages
 
 ```python
@@ -232,6 +294,19 @@ schema = dataset.schema()
 ```python
 raw = dataset.call_raw(operation="list", LAWD_CD="11680", DEAL_YMD="202503")
 ```
+
+For **spec-backed** datasets, the raw escape hatch uses the same provider
+credential and host allowlist rules as normalized queries. Credentials come
+from `Client(provider_keys=...)` or the permitted SDK environment fallback,
+not from a raw filter that happens to be named `serviceKey`. For
+`path_segment` authentication, the key is inserted into the URL path and
+is not forwarded as a query parameter. Both the spec base host and the
+resolved path-template host are checked before reading a credential; the
+actual URL is checked once more before transmission (#972). Provider-specific
+custom adapter behavior is unchanged.
+Configured-key precedence applies to the exact declared authentication parameter
+name. Additional raw parameter names keep their existing case-sensitive spelling;
+this does not certify how every provider interprets differently cased duplicates.
 
 ## 4a. Reachability probe
 

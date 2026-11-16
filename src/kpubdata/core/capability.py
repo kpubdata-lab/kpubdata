@@ -27,7 +27,7 @@ def _dataclass(
     return _decorate
 
 
-class Operation(str, Enum):
+class Operation(str, Enum):  # noqa: UP042 - preserve public enum string formatting
     """The main operations a dataset can support."""
 
     LIST = "list"
@@ -37,7 +37,7 @@ class Operation(str, Enum):
     DOWNLOAD = "download"
 
 
-class PaginationMode(str, Enum):
+class PaginationMode(str, Enum):  # noqa: UP042 - preserve public enum string formatting
     """How a dataset paginates."""
 
     OFFSET = "offset"

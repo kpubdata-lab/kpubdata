@@ -63,6 +63,17 @@ The API constructor has corresponding explicit arguments such as
 `KPUBDATA_CACHE_TTL` name for compatibility. See
 [cache usage](caching.md) and [CLI options](cli.md).
 
+The existing `KPUBDATA_<PROVIDER>_EXTRA_HOSTS` setting extends that provider's
+credential destination allowlist. Its value is a comma- or whitespace-separated
+list of exact hostnames (case-insensitive); it does not accept wildcard or suffix
+matches. Leave it unset unless a reviewed destination needs access to that
+provider's credentials. It does not permit sending credentials over HTTP.
+See [host allowlists](host-allowlist.md).
+
+`XDG_CACHE_HOME` sets the root for the default cache directory:
+`$XDG_CACHE_HOME/kpubdata/responses`. Without it, the default is
+`~/.cache/kpubdata/responses`. An explicit cache directory takes precedence.
+
 ## Verification-only variables
 
 - `KPUBDATA_DATAGO_REALESTATE_ENABLED=1` is an **integration-test opt-in**
@@ -71,6 +82,18 @@ The API constructor has corresponding explicit arguments such as
 - `KPUBDATA_MODE=replay` is used by the recorded-response examples and
   verification tooling; it is not a switch that guarantees every ordinary
   `Client` call is offline.
+- `KPUBDATA_REPLAY_DIR` overrides the recorded-response fixture root used by
+  replay mode. Its value is a directory path; the default is `tests/fixtures`
+  relative to the current working directory. This does not enable replay by itself.
+- `KPUBDATA_KRX_INTEGRATION=1` opts in to the KRX integration tests; installing
+  its optional backend does not establish live verification.
+- `KPUBDATA_BASELINE_BASE` identifies the Git ref used for baseline comparisons
+  by `make verify` (its default is `origin/main`). `LIVE=1` enables the verifier's
+  explicit live stage; ordinary offline verification does not grant permission
+  to send credentials or create trusted recordings.
+- Recorder-only `KPUBDATA_RECORDER`, `KPUBDATA_RECORD_COMMIT` and
+  `KPUBDATA_RECORD_RUN` describe evidence provenance. They are not SDK credential
+  settings, and setting them does not certify the recording's authorship.
 - CI secrets and GitHub Actions settings are operational controls, not extra
   required SDK user configuration. See
   [live-provider verification](LIVE_PROBE.md) for their distinct scope.

@@ -51,7 +51,7 @@ Python 코드를 수정하고 테스트하기 위한 환경을 만들어 봅시�
 
 **Step 1: 필수 도구 설치**
 *   **Git 설치**: [git-scm.com](https://git-scm.com)에서 설치하세요. — 설치 확인: `git --version`
-*   **Python 3.10+ 설치**: [Python 공식 홈페이지](https://www.python.org/downloads/)에서 설치하세요. — 설치 확인: `python --version`
+*   **Python 3.11+ 설치**: [Python 공식 홈페이지](https://www.python.org/downloads/)에서 설치하세요. — 설치 확인: `python --version`
 *   **uv 설치**: `uv`는 Python 패키지를 아주 빠르게 관리해 주는 도구입니다. — 설치 확인: `uv --version`
     ```bash
     curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -555,3 +555,13 @@ PR이 올라가면 **다른 에이전트 또는 다른 사람**이 리뷰합니�
 | :--- | :--- | :--- |
 | [kpubdata-builder](https://github.com/kpubdata-lab/kpubdata-builder) | [CONTRIBUTING.md](https://github.com/kpubdata-lab/kpubdata-builder/blob/main/CONTRIBUTING.md) | Builder 기여 가이드 |
 | [kpubdata-studio](https://github.com/kpubdata-lab/kpubdata-studio) | [CONTRIBUTING.md](https://github.com/kpubdata-lab/kpubdata-studio/blob/main/CONTRIBUTING.md) | Studio 기여 가이드 |
+
+## SDK merge verification
+
+The owner's 2026-11-16 decision removes the SDK's mandatory `review:R3` human
+approval and `R3 review` check. Required `CI gate` and `PR title` remain. Record
+actual-head tests, independent review findings and limitations for substantive
+changes. No human attestation or fabricated GitHub APPROVED review is required.
+The POLICY 14.1 SDK exception takes precedence over inherited approval references.
+Other product repositories, scope control and separate release/deployment authority
+retain their existing rules.

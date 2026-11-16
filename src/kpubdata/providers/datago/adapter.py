@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 from kpubdata._hosts import host_is_allowed
 from kpubdata.config import KPubDataConfig
+from kpubdata.core._params import scalar_filter_value
 from kpubdata.core.models import (
     DatasetRef,
     Query,
@@ -189,8 +190,9 @@ class DataGoAdapter:
             # The auth key, format and page parameters are already filled —
             # user filters must not overwrite them.
             if key.lower() not in reserved:
-                value: object = raw_value
-                params[key] = str(value)
+                value = scalar_filter_value(key, raw_value)
+                if value is not None:
+                    params[key] = value
         self._apply_default_filters(params, dataset)
         payload = self._request_and_decode(url, params, dataset.id)
         if is_odcloud:
@@ -354,7 +356,9 @@ class DataGoAdapter:
             for key, value in params.items():
                 if key in magic_keys or key == service_key_param:
                     continue
-                request_params[key] = str(value)
+                encoded = scalar_filter_value(key, value)
+                if encoded is not None:
+                    request_params[key] = encoded
 
             payload = self._request_and_decode(url, request_params, dataset.id)
             if validate_envelope:
@@ -367,7 +371,9 @@ class DataGoAdapter:
         service_key_param = str(dataset.raw_metadata.get("service_key_param", "serviceKey"))
         for key, value in params.items():
             if key != service_key_param:
-                request_params[key] = str(value)
+                encoded = scalar_filter_value(key, value)
+                if encoded is not None:
+                    request_params[key] = encoded
         self._apply_default_filters(request_params, dataset)
 
         payload = self._request_and_decode(url, request_params, dataset.id)
