@@ -164,10 +164,14 @@ What is specific to agents:
   evidence is a wrong rating.
 - Do not prefix a title with `GOV-01:` or `WH-03:`. Those are serial numbers from
   a backlog document, not the issue's name. The type is the only prefix.
-- A pull request labelled `review:R3` cannot merge until someone other than its
-  author, with write access, approves it: the required `R3 review` check fails until
-  then (POLICY 14.1). The author's own approval, a bot's, and one followed by a
-  request for changes do not count. Ask for the review; do not remove the label.
+- A pull request labelled `review:R3` needs independent review. A non-author
+  human with write access may APPROVE it; for this SDK only, an independent AI
+  agent review explicitly accepted by a human maintainer on the current PR head
+  is the planned alternative (POLICY 14.1.1), **not active until the SDK review
+  gate implementation merges**. Do not pretend the agent is a GitHub APPROVED
+  reviewer: use a structured COMMENTED review for attestation. The required
+  `R3 review` check still enforces evidence and account permissions. Keep the
+  label, all required CI checks and any actual branch-required human approvals.
 - Write a review or verification level meaning first, code in parentheses:
   "unit tests (V1)", "replay and contract tests (V2)", "an approval from someone
   other than the author (R3)" — never a bare code. The glossary is
