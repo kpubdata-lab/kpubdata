@@ -12,7 +12,7 @@ import os
 import threading
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import NoReturn, cast
 
 from kpubdata.config import KPubDataConfig
@@ -116,7 +116,7 @@ class SgisAuthClient:
                 provider=_SGIS_PROVIDER,
             )
 
-        expires_at = datetime.fromtimestamp(expires_epoch, tz=timezone.utc)
+        expires_at = datetime.fromtimestamp(expires_epoch, tz=UTC)
         return _TokenState(value=token_obj, expires_at=expires_at)
 
     def _resolve_credentials(self) -> tuple[str, str]:
@@ -144,7 +144,7 @@ class SgisAuthClient:
 
     def _is_expired(self, state: _TokenState) -> bool:
         """Return whether token is expired."""
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         return now >= state.expires_at
 
     def _raise_for_err_code(self, payload: dict[str, object]) -> None:

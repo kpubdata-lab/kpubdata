@@ -71,7 +71,7 @@ translating their names loses what they refer to.
 | | |
 |---|---|
 | Providers | `datago` `bok` `kosis` `krx` `law` `localdata` `lofin` `semas` `seoul` `sgis` `kipris` `korean` `neis` `fds` |
-| Python | 3.10 and later |
+| Python | 3.11 and later (tested: 3.11–3.14) |
 | Per-dataset status and verification | [SUPPORTED_DATA.md](./SUPPORTED_DATA.md) |
 
 ## 문서
