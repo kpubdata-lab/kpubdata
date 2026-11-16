@@ -91,8 +91,8 @@ optional extra; `dev` only for development and documentation.
 | platformdirs | 4.9.6 | extra:docs | MIT | recorded | https://github.com/tox-dev/platformdirs |
 | pluggy | 1.6.0 | dev | MIT | recorded | https://pypi.org/project/pluggy/ |
 | pycparser | 3.0 | dev | BSD-3-Clause | recorded | https://github.com/eliben/pycparser |
-| pydantic-core | 2.46.5 | extra:mcp | MIT | recorded | https://github.com/pydantic |
-| pydantic | 2.13.5 | extra:mcp | MIT | recorded | https://github.com/pydantic/pydantic |
+| pydantic-core | 2.50.4 | extra:mcp | MIT | recorded | https://github.com/pydantic |
+| pydantic | 2.14.3 | extra:mcp | MIT | recorded | https://github.com/pydantic/pydantic |
 | pygments | 2.20.0 | extra:docs | BSD-2-Clause | recorded | https://pygments.org |
 | pyjwt | 2.15.1 | extra:mcp | MIT | recorded | https://github.com/jpadilla/pyjwt |
 | pykrx | 1.2.9 | extra:krx | MIT | recorded | https://github.com/sharebook-kr/pykrx/ |
@@ -119,7 +119,7 @@ optional extra; `dev` only for development and documentation.
 | types-pytz | 2026.1.1.20260408 | dev | Apache-2.0 | recorded | https://github.com/python/typeshed |
 | types-pyyaml | 6.0.12.20260906 | dev | Apache-2.0 | recorded | https://github.com/python/typeshed |
 | typing-extensions | 4.16.0 | runtime | PSF-2.0 | recorded | https://github.com/python/typing_extensions |
-| typing-inspection | 0.4.2 | extra:mcp | MIT | recorded | https://github.com/pydantic/typing-inspection |
+| typing-inspection | 0.4.5 | extra:mcp | MIT | recorded | https://github.com/pydantic/typing-inspection |
 | tzdata | 2025.3 | extra:krx | Apache-2.0 | recorded | https://github.com/python/tzdata |
 | urllib3 | 2.8.0 | extra:docs | MIT | recorded | https://pypi.org/project/urllib3/ |
 | uvicorn | 0.42.0 | extra:mcp | BSD-3-Clause | recorded | https://uvicorn.dev/ |
