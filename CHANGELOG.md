@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-11-16
+
 ### Highlights
 
 - The SDK runs on Python 3.11–3.14, including verified CPython 3.14.10, with patched locked dependencies (#981, #976).
@@ -26,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Known limitations
 
+- This is a GitHub source release; `kpubdata==0.11.0` is not yet published to PyPI. The PyPI install command below becomes valid only after separate publication. Meanwhile install the tagged source with `pip install "kpubdata @ https://github.com/kpubdata-lab/kpubdata/archive/refs/tags/v0.11.0.tar.gz"`.
 - Some bundled specs still use HTTP and require reviewed HTTPS migration and trusted re-recording before credentialed live use (#893).
 - Plaintext proxy-hop authentication and inherited late-client cache/cross-HTTPS redirect policy are outside the origin-request containment guarantee (#893).
 - Real-provider smoke is manual-only during the MVP; offline fixtures, replay and caches do not certify current provider availability or approved access (#887).
