@@ -7,11 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Highlights
+
+- The SDK runs on Python 3.11–3.14, including verified CPython 3.14.10, with patched locked dependencies (#981, #976).
+- Credential-bearing HTTP requests fail before sending, while anonymous HTTP and historical offline replay remain available (#893).
+- LOFIN365 uses its own issued credential, with provider key instructions and safe configuration examples aligned across the SDK (#986).
+- Data fields expose Korean display labels and, where verified, units and meanings (#877).
+- SGIS token expiry values and provider-specific TLS, retry and redirect preferences are handled consistently (#967, #971).
+
+### Upgrade notes
+
+- Upgrade Python 3.10 installations to Python 3.11 or later before installing; package metadata now requires Python >=3.11 (#981).
+- Configure a LOFIN365-issued `KPUBDATA_LOFIN_API_KEY` or `provider_keys={"lofin": ...}` for LOFIN; an unrelated data.go.kr key is no longer used (#986).
+- Credentialed HTTP dataset calls now fail; use fixture/replay until the specific HTTPS endpoint and trusted recordings are reviewed (#893).
+- Provider-specific transports now honor explicit TLS and redirect preferences previously lost during construction; review any insecure opt-ins (#971).
+- For a refused key returning HTTP 403 from `semas` or `localdata`, catch `AuthError` (or `PublicDataError`) instead of `TransportError` (#916).
+- Call datasets through `Client` rather than constructing `DataGoAdapter` directly to access spec-owned identifiers removed from its legacy catalogue (#898).
+
+### Known limitations
+
+- Some bundled specs still use HTTP and require reviewed HTTPS migration and trusted re-recording before credentialed live use (#893).
+- Plaintext proxy-hop authentication and inherited late-client cache/cross-HTTPS redirect policy are outside the origin-request containment guarantee (#893).
+- Real-provider smoke is manual-only during the MVP; offline fixtures, replay and caches do not certify current provider availability or approved access (#887).
+- Dependency audit results apply to the reviewed frozen lock; arbitrary downstream version constraints can resolve a different closure (#976).
+
 ### Added
 
 - `SpecDefinition`, the type `find_spec()` and `discover_specs()` return, is exported from `kpubdata` (#913). A typed caller had to import it from `kpubdata.core.spec`, which is private. `API_SPEC.md` lists the attributes the compatibility promise covers (`id`, `provider`, `dataset_key`, `examples`, `pagination.type`, `endpoint.base_url`, `auth.type`); every other attribute is not covered. No behaviour change.
 - Every field of the bundled specs has a Korean display name, and a unit and a meaning where they are known (#877). No spec set `title` or `unit`, so a consumer showed provider field names and bare numbers — `dealAmount` read `101300` with no 만원. All 417 fields of the 22 specs that declare fields now have `title` (`FieldDescriptor.title`); 85 have `unit` (만원, ㎡, ㎍/㎥, ppm, 원, 분, °C …) and 222 have `semantic_kind`. A meaning is set only where the field's storage type allows it (ADR 0006): seven codes stored as integers (`areacode`, `sigungucode` of three tour specs, `fcstTime` of `ultra_srt_fcst`) and the year/month/day integers are left without one, since changing a type changes what is returned. No schema key is new.
-- A CI gate keeps each dataset declared in one place (#898). `scripts/check_catalogue_baseline.py` fails when a provider catalogue gains an entry that `scripts/catalogue_only_baseline.txt` does not list (131 entries; the list may only shrink), when a listed entry is gone, or when a catalogue and a spec declare the same key. The three `localdata` keys still declared twice are named in the script. `docs/internal/custom-adapters.md` says why each remaining catalogue adapter stays and how a move to a spec is checked for parity.
+- A CI gate keeps each dataset declared in one place (#898). `scripts/check_catalogue_baseline.py` fails when a provider catalogue gains an entry that `scripts/catalogue_only_baseline.txt` does not list (131 entries; the list may only shrink), when a listed entry is gone, or when a catalogue and a spec declare the same key. The three `localdata` keys previously declared twice were removed from the catalogue, leaving the specs as their sole definitions. `docs/internal/custom-adapters.md` says why each remaining catalogue adapter stays and how a move to a spec is checked for parity.
 
 ### Changed
 
