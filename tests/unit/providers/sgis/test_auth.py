@@ -9,13 +9,14 @@ prevention and public contract validation.
 from __future__ import annotations
 
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import cast
 
 import pytest
 
 from kpubdata.config import KPubDataConfig
-from kpubdata.exceptions import AuthError, ConfigError
+from kpubdata.exceptions import AuthError, ConfigError, ProviderResponseError
 from kpubdata.providers.sgis.auth import SgisAuthClient
 from kpubdata.transport.http import HttpTransport
 
@@ -245,3 +246,80 @@ def test_get_access_token_requires_secret_when_env_missing(monkeypatch: pytest.M
 
     with pytest.raises(ConfigError):
         _ = auth_client.get_access_token()
+
+
+def _token_response(token: str, timeout: object) -> _FakeResponse:
+    """Provide a sanitized SGIS auth result for offline expiry tests."""
+    return _FakeResponse(
+        {"errCd": 0, "result": {"accessToken": token, "accessTimeout": timeout}}
+    )
+
+
+@pytest.mark.parametrize("timeout", [4102444800, "4102444800"])
+def test_access_timeout_accepts_epoch_seconds(timeout: object) -> None:
+    """Official SGIS documentation describes accessTimeout in seconds."""
+    auth_client, transport = _build_auth_client(
+        [_token_response("seconds-token", timeout)],
+        provider_key="consumer-key:consumer-secret",
+    )
+
+    assert auth_client.get_access_token() == "seconds-token"
+    assert auth_client.get_access_token() == "seconds-token"
+    assert len(transport.calls) == 1
+
+
+@pytest.mark.parametrize("timeout", [4102444800000, "4102444800000"])
+def test_access_timeout_accepts_epoch_milliseconds(timeout: object) -> None:
+    """The SGIS published authentication example uses a 13-digit timestamp."""
+    auth_client, transport = _build_auth_client(
+        [_token_response("milliseconds-token", timeout)],
+        provider_key="consumer-key:consumer-secret",
+    )
+
+    assert auth_client.get_access_token() == "milliseconds-token"
+    assert auth_client.get_access_token() == "milliseconds-token"
+    assert len(transport.calls) == 1
+
+
+@pytest.mark.parametrize(
+    "timeout",
+    [None, True, 0, -1, 1.5, "", "nan", "not-an-epoch", "4102444800.0", 10**50],
+)
+def test_access_timeout_rejects_invalid_values(timeout: object) -> None:
+    """Malformed dates must use the SDK's provider error contract."""
+    auth_client, _ = _build_auth_client(
+        [_token_response("never-cached", timeout)],
+        provider_key="consumer-key:consumer-secret",
+    )
+
+    with pytest.raises(ProviderResponseError, match="invalid accessTimeout"):
+        auth_client.get_access_token()
+
+
+def test_access_token_refreshes_with_60_seconds_remaining() -> None:
+    """A near-expiring token is proactively refreshed rather than reused."""
+    now = datetime.now(tz=timezone.utc)
+    auth_client, transport = _build_auth_client(
+        [
+            _token_response("nearly-expired", str(int((now + timedelta(seconds=30)).timestamp()))),
+            _token_response("fresh-token", str(int((now + timedelta(hours=2)).timestamp()))),
+        ],
+        provider_key="consumer-key:consumer-secret",
+    )
+
+    assert auth_client.get_access_token() == "nearly-expired"
+    assert auth_client.get_access_token() == "fresh-token"
+    assert auth_client.get_access_token() == "fresh-token"
+    assert len(transport.calls) == 2
+
+
+def test_access_token_is_cached_beyond_60_second_window() -> None:
+    now = datetime.now(tz=timezone.utc)
+    auth_client, transport = _build_auth_client(
+        [_token_response("still-valid", str(int((now + timedelta(seconds=120)).timestamp())))],
+        provider_key="consumer-key:consumer-secret",
+    )
+
+    assert auth_client.get_access_token() == "still-valid"
+    assert auth_client.get_access_token() == "still-valid"
+    assert len(transport.calls) == 1
