@@ -38,3 +38,14 @@ NO를 YES로 바꾸고 위 Existing flow or risk에 구체적인 위험·최소 
 ## 검증
 <!-- 돌린 게이트·테스트와 결과. ruff·mypy·pytest·docs strict 는 CI가 같은 걸 다시 돌리므로, 여기에는 로컬에서만 볼 수 있는 것(실측·재현·스크린샷)을 적는다. -->
 <!-- 검증 수준은 뜻을 먼저, 코드는 괄호로: 예 "단위 테스트(V1)", "replay·계약 테스트(V2)". 리뷰 수준도 같다: 예 "작성자가 아닌 사람의 승인이 필요(R3)". 용어표: docs/governance/POLICY.md#codes (POLICY 0.2) -->
+
+## 독립 검토 / 병합 판단
+
+<!-- 중요 변경(review:R3): 현재는 다른 사람의 APPROVED 리뷰가 필요합니다.
+     독립 에이전트 + 사람 수락 COMMENTED 방식은 후속 검증 로직 PR이 병합되면
+     SDK에서만 인정됩니다 (POLICY 14.1.1). PR 본문만으로 리뷰가 승인되지는 않습니다. -->
+- Review route: pending / human cross-review / independent agent
+- Reviewed head SHA / reviewer or agent:
+- Findings, resolution and verification gaps:
+- Maintainer decision: pending / accepted after review
+<!-- 실제 GitHub 필수 검사와 승인 모두 통과한 뒤 병합한다. -->
