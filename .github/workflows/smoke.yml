@@ -32,7 +32,7 @@ jobs:
 
       - name: Run datago live integration tests
         run: |
-          uv run pytest -m integration tests/integration/test_datago_live.py \
+          KPUBDATA_MODE= KPUBDATA_CACHE=0 uv run pytest -o addopts= -m integration tests/integration/test_datago_live.py \
             -rf --durations=10 --junitxml=smoke-datago.xml
 
       - name: Upload results

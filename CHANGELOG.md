@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Live smoke runs are manual-only during the MVP (#887). The manual protocol disables replay/cache shortcuts and requires consistent JUnit testcase evidence with a nonzero pass count. This change does not claim any new real-provider verification.
+
+- SGIS token expiry accepts documented second epochs and defensively normalizes the millisecond epochs shown in the official authentication example (#967). Invalid or out-of-range values raise `ProviderResponseError`; cached tokens refresh with 60 seconds or less remaining. This offline-tested correction does not certify a current authenticated provider response.
+
 - **LOFIN365 now requires its own issued API key** (`KPUBDATA_LOFIN_API_KEY` or `provider_keys={"lofin": ...}`) (#986). Previously the LOFIN adapter used the `datago` credential, sending a data.go.kr key to another issuer's host and ignoring the LOFIN-specific variable documented for its users. This is an intentional authentication behavior change: supply a LOFIN365-issued key before using `lofin.*`. Other providers and existing environment-variable names are unchanged.
 - Spec-backed `Dataset.call_raw()` now uses the configured provider credential for the exact declared authentication parameter and supports path-segment keys through the same preflight as normalized queries (#972). The declared and resolved hosts are checked before credential lookup, and the final URL is checked before sending. Raw response envelopes, additional parameters and explicit format selection remain raw; differently cased extra parameter names retain their existing case-sensitive treatment. Custom adapter behavior is unchanged.
 - **Breaking:** require Python 3.11 or later and test the SDK on Python 3.11–3.14 (#981). Python 3.10 installations are rejected by package metadata; upgrade the interpreter before installing this version. Python 3.11 retains its required `typing-extensions` compatibility dependency. This support change does not itself release a new package.

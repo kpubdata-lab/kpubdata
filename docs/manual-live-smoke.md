@@ -41,15 +41,20 @@ printf '\n'
 export KPUBDATA_DATAGO_API_KEY
 
 # Replace the test name only after checking its entire request path is HTTPS.
-uv run pytest -o addopts= -m integration tests/integration/test_datago_live.py \
+KPUBDATA_MODE= KPUBDATA_CACHE=0 uv run pytest -o addopts= -m integration tests/integration/test_datago_live.py \
   -k 'REPLACE_WITH_VERIFIED_HTTPS_TEST_NAME' -ra --junitxml=smoke-datago.xml
 
-# Must show at least one passing test; 100% skipped is NOT verified.
+# Must contain consistent testcase outcomes and at least one pass.
 uv run python scripts/junit_summary.py smoke-datago.xml \
   --label "datago live" --require-passed
 
 unset KPUBDATA_DATAGO_API_KEY
 ```
+
+The command explicitly disables replay and response caching. The shared live
+client also refuses replay mode and disables ambient caching: a replay or cached
+result cannot stand in for current provider traffic. The strict JUnit check
+rejects missing or contradictory testcase records as well as all-skipped runs.
 
 Set `KPUBDATA_DATAGO_REALESTATE_ENABLED=1` only when the relevant real-estate
 API has been approved. Never commit credentials, raw authenticated HTTP logs,
@@ -61,6 +66,10 @@ Capture only a concise evidence record in the existing issue: date/time (KST),
 commit, executed test names, approved dataset IDs, count of passed/failed/skipped,
 the command, and any sanitized error classification. Do not claim full dataset
 coverage from one selected smoke test.
+
+This issue record does not satisfy trusted fixture-recorder authorship checks
+and does not promote dataset support or verification status. Those require the
+existing reviewed recording and metadata workflow.
 
 ## After the MVP
 
