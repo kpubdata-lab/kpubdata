@@ -382,6 +382,7 @@ def test_builtin_provider_with_transport_requirements_builds_custom_transport(
         headers={"X-Provider": "dummy"},
         follow_redirects=True,
         event_hooks={"request": [ANY]},
+        cookies=ANY,
         verify=False,
     )
 

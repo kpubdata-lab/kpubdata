@@ -68,6 +68,7 @@ def test_with_requirements_merges_headers_without_mutating_base_config() -> None
         },
         follow_redirects=True,
         event_hooks={"request": [ANY]},
+        cookies=ANY,
         verify=True,
     )
     assert config.headers == {"User-Agent": "kpubdata", "Accept": "application/json"}
@@ -102,6 +103,7 @@ def test_build_client_calls_ssl_context_factory_when_provided() -> None:
         headers={},
         follow_redirects=True,
         event_hooks={"request": [ANY]},
+        cookies=ANY,
         verify=ssl_context,
     )
 
@@ -130,5 +132,6 @@ def test_build_client_passes_verify_false_when_ssl_verification_disabled() -> No
         headers={},
         follow_redirects=True,
         event_hooks={"request": [ANY]},
+        cookies=ANY,
         verify=False,
     )
