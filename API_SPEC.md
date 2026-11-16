@@ -6,6 +6,33 @@
 from kpubdata import Client
 ```
 
+## Credential transport safety
+
+Recognized credentials must not be sent over plaintext HTTP (#893), including
+through raw calls. Credentials visible in request arguments, transport config or
+provider requirements are refused with `TransportError` before cache reads or
+client initialization. This includes named query/header credentials and
+adapter-declared secret values such as path keys. Adapters must declare values
+sent under unlisted names.
+Unauthenticated HTTP/raw requests remain available; endpoints are never silently
+upgraded. Exact historical HTTP fixture replay remains offline and does not prove
+HTTPS/live-provider verification. A replay miss cannot bypass the live guard.
+
+The remaining HTTP specs cannot be used live until their HTTPS endpoints and
+trusted recordings are migrated under #893. This guard does not complete that
+migration or certify catalogue credential issuers. A final prepared-request check
+also covers client-default headers/query parameters, authentication, URL userinfo
+and cookies, including cookies set by earlier HTTPS responses. That check runs
+only when a prepared request is about to be sent: an existing anonymous HTTP
+cache hit can return without it, with no credentials transmitted. This containment
+does not redesign cache keys or resolve inherited cache isolation for credentials
+added through the underlying HTTPX client, including on HTTPS.
+Followed redirects
+cannot send recognized or adapter-declared credentials over HTTP, even with
+`follow_credentialed_redirects=True`. This tightens HTTP downgrade handling;
+that option still does not establish safety for credential forwarding to another
+HTTPS origin.
+
 ## 2. Client construction
 
 ### Explicit construction

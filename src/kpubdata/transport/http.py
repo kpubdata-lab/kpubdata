@@ -105,6 +105,27 @@ def _install_httpx_redaction() -> None:
         httpx_logger.addFilter(_HttpxUrlRedactingFilter())
 
 
+def _require_https_credentials(request: httpx.Request) -> None:
+    """Reject plaintext credentials after HTTPX merges defaults, auth and cookies.
+
+    HTTPX runs request hooks after auth preparation and for every followed
+    redirect. Per-call declared path/unlisted values use the existing scoped
+    context; no credential is attached to request extensions or stored in a hook.
+    """
+    if request.url.scheme == "https":
+        return
+    credential_bearing = (
+        bool(_in_flight_secrets.get())
+        or bool(request.url.userinfo)
+        or _contains_sensitive_params(dict(request.url.params))
+        or _contains_sensitive_headers(request.headers)
+    )
+    if credential_bearing:
+        error = TransportError("Credential-bearing live requests require HTTPS")
+        _mark_credential_bearing(error, True)
+        raise error
+
+
 _DEFAULT_MAX_RESPONSE_BYTES = 50 * 1024 * 1024
 
 
@@ -223,6 +244,7 @@ class HttpTransport:
             )
             or {},
             follow_redirects=True,
+            event_hooks={"request": [_require_https_credentials]},
             verify=self._resolve_verify(effective_requirements),
         )
 
@@ -399,7 +421,23 @@ class HttpTransport:
             or bool(secret_values)
             or _contains_sensitive_params(params)
             or _contains_sensitive_headers(headers)
+            or _contains_sensitive_headers(self._config.headers)
+            or _contains_sensitive_headers(
+                None if self._requirements is None else self._requirements.headers
+            )
         )
+        # Historical HTTP recordings can still replay above, but must never become
+        # a live request carrying a key (#893). Do not guess an HTTPS replacement:
+        # each provider endpoint needs its own verification and trusted recording.
+        if credential_in_request and urlsplit(url).scheme.casefold() != "https":
+            insecure_error = TransportError(
+                "Credential-bearing live requests require HTTPS; "
+                "this endpoint must be verified and migrated before use",
+                provider=provider,
+                dataset_id=dataset_id,
+            )
+            _mark_credential_bearing(insecure_error, True)
+            raise insecure_error
         if cache_key is not None and self._cache is not None:
             cached = self._cache.get_entry(cache_key)
             if cached is not None:
@@ -474,6 +512,16 @@ class HttpTransport:
                 follow_redirects = (
                     not credential_in_request or self._config.follow_credentialed_redirects
                 )
+                # The public client can be replaced or have defaults/auth/cookies
+                # added. Inspect each fully prepared auth/redirect request too.
+                client = self.client
+                with self._client_lock:
+                    hooks = client.event_hooks["request"]
+                    if not hooks or hooks[-1] is not _require_https_credentials:
+                        hooks[:] = [
+                            hook for hook in hooks if hook is not _require_https_credentials
+                        ]
+                        hooks.append(_require_https_credentials)
                 # httpx logs the request line inside this call; the filter on its logger
                 # masks by these values as well as by name (#821).
                 with _sending(secret_values):
@@ -829,6 +877,10 @@ def _mask_url(url: str, *, secret_values: tuple[str, ...] = ()) -> str:
         parts = urlsplit(url)
     except ValueError:
         return "[invalid url]"
+    if "@" in parts.netloc:
+        # URL userinfo is an authentication channel too; never put it in logs.
+        parts = parts._replace(netloc=parts.netloc.rsplit("@", 1)[-1])
+        url = urlunsplit(parts)
     if secret_values and parts.path:
         # A segment holds the key as sent or percent-encoded (httpx encodes ``+``, ``/``
         # and ``=`` in a path), so every form is matched.
@@ -872,11 +924,15 @@ def _cache_headers_subset(headers: dict[str, str] | None) -> dict[str, str]:
     return dict(headers)
 
 
-def _contains_sensitive_headers(headers: dict[str, str] | None) -> bool:
+def _contains_sensitive_headers(headers: Mapping[str, str] | None) -> bool:
     """Check if headers contain any sensitive keys."""
     if headers is None:
         return False
-    return any(key.casefold() in SENSITIVE_PARAM_KEYS for key in headers)
+    return any(
+        key.casefold() in SENSITIVE_PARAM_KEYS
+        or key.casefold() in {"cookie", "proxy-authorization"}
+        for key in headers
+    )
 
 
 #: The typed error a terminal HTTP status raises; any other status is a plain

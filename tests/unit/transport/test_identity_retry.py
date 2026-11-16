@@ -6,6 +6,8 @@ retry once with identity encoding to recover response. goes through actual HttpT
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import httpx
 import pytest
 
@@ -19,6 +21,7 @@ class FakeGzipBrokenClient:
     def __init__(self, *, always_broken: bool = False) -> None:
         self.sent_accept_encodings: list[str | None] = []
         self.always_broken = always_broken
+        self.event_hooks: dict[str, list[Callable[[httpx.Request], None]]] = {"request": []}
 
     def build_request(
         self,
@@ -36,6 +39,8 @@ class FakeGzipBrokenClient:
     def send(
         self, request: httpx.Request, stream: bool = True, follow_redirects: bool = True
     ) -> httpx.Response:
+        for hook in self.event_hooks["request"]:
+            hook(request)
         accept = request.headers.get("accept-encoding")
         if accept == "identity" and not self.always_broken:
             return httpx.Response(200, content=b'{"ok": true}', request=request)
