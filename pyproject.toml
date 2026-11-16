@@ -99,9 +99,9 @@ strict = true
 warn_unused_configs = true
 mypy_path = ["src"]
 
-# 커버리지 게이트 (#456). 목적은 새 커버리지를 강제하는 게 아니라 이미 도달한
-# 수준(실측 91%)이 조용히 내려가지 않게 잠그는 것이다. 하한은 실측보다 2%p 낮게
-# 두어 정상 변동으로 CI 가 붉어지지 않게 한다.
+# The Python 3.12 --extra dev suite measured 93.84% after this support change.
+# Raise the floor from 89% to 91% to retain regression sensitivity (#456).
+# All-extras smoke runs afterward and does not change the measured profile.
 #
 # Keep --cov out of addopts: instrumenting every Python 3.11–3.14 job
 # repeats the same measurement and slows local pytest. Only the Python 3.12
@@ -114,7 +114,7 @@ mypy_path = ["src"]
 source = ["src/kpubdata"]
 
 [tool.coverage.report]
-fail_under = 89
+fail_under = 91
 show_missing = true
 
 [tool.pytest.ini_options]
