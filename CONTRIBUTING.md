@@ -373,14 +373,6 @@ PR을 보낼 때 제목은 `[#이슈번호] 간단한 설명` 형식을 지켜�
 
 최근 개발 환경에서는 **AI 코딩 에이전트**(GitHub Copilot, Cursor, Windsurf, OpenCode 등)를 활용하여 이슈 분석부터 코드 작성, 리뷰, PR까지 전 과정을 진행할 수 있습니다. "사람이 방향을 잡고, 에이전트가 실행하고, 사람이 검증한다"는 흐름입니다.
 
-**1인 개발자 검토·병합 기준:** 일반 변경은 필수 CI와 독립 검토 후 유지보수자가
-병합합니다. 중요 변경(`review:R3`)은 (1) 다른 사람의 유효한 GitHub 승인,
-또는 (2) 코드 작성과 분리된 에이전트가 **실제 PR diff·현재 head를 검토**하고
-유지보수자가 결과를 수락한 `COMMENTED` 리뷰 중 하나로 검토 게이트를 통과할 수
-있도록 **변경할 계획**입니다. 후자의 필수 기록 형식은 [POLICY 14.1.1](docs/governance/POLICY.md)에
-있습니다. **후속 CI 구현 PR이 병합되기 전에는 기존 사람 승인 규칙이 유효합니다.** 필수 CI나 플랫폼의 사람 승인 설정을 건너뛰지는 않으며, 보안·개인정보·
-인증·릴리스 변경은 검증 근거를 강화합니다. 최종 병합은 유지보수자가 결정합니다.
-
 ### 전체 흐름 한눈에 보기
 
 ```mermaid
@@ -563,3 +555,13 @@ PR이 올라가면 **다른 에이전트 또는 다른 사람**이 리뷰합니�
 | :--- | :--- | :--- |
 | [kpubdata-builder](https://github.com/kpubdata-lab/kpubdata-builder) | [CONTRIBUTING.md](https://github.com/kpubdata-lab/kpubdata-builder/blob/main/CONTRIBUTING.md) | Builder 기여 가이드 |
 | [kpubdata-studio](https://github.com/kpubdata-lab/kpubdata-studio) | [CONTRIBUTING.md](https://github.com/kpubdata-lab/kpubdata-studio/blob/main/CONTRIBUTING.md) | Studio 기여 가이드 |
+
+## SDK merge verification
+
+The owner's 2026-11-16 decision removes the SDK's mandatory `review:R3` human
+approval and `R3 review` check. Required `CI gate` and `PR title` remain. Record
+actual-head tests, independent review findings and limitations for substantive
+changes. No human attestation or fabricated GitHub APPROVED review is required.
+The POLICY 14.1 SDK exception takes precedence over inherited approval references.
+Other product repositories, scope control and separate release/deployment authority
+retain their existing rules.
