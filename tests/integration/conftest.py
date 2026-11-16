@@ -173,6 +173,8 @@ def live_client() -> Client:
     Raises:
         pytest.skip: If no API keys are set.
     """
+    if os.environ.get("KPUBDATA_MODE") == "replay":
+        pytest.fail("Live provider verification cannot run in replay mode")
     config = KPubDataConfig()
     if not any(
         config.get_provider_key(provider)
@@ -193,4 +195,4 @@ def live_client() -> Client:
         )
     ):
         pytest.skip("No provider credentials configured")
-    return Client.from_env()
+    return Client.from_env(cache=False)

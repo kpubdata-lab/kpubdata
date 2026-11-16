@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from tests.integration.conftest import _require_provider_key
@@ -80,3 +82,28 @@ def test_lofin_live_fixture_accepts_legacy_key(monkeypatch: pytest.MonkeyPatch) 
     except pytest.skip.Exception as exc:
         pytest.fail(f"Runtime-supported key incorrectly skipped: {exc}")
     assert key == "lofin-placeholder"
+
+
+def test_live_client_refuses_replay_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A replay result must never be accepted as provider verification."""
+    from tests.integration.conftest import live_client
+
+    monkeypatch.setenv("KPUBDATA_DATAGO_API_KEY", "placeholder")
+    monkeypatch.setenv("KPUBDATA_MODE", "replay")
+    with pytest.raises(pytest.fail.Exception, match="replay"):
+        client = live_client.__wrapped__()
+        client.close()
+
+
+def test_live_client_disables_ambient_cache(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A configured local response cache cannot stand in for provider traffic."""
+    from tests.integration.conftest import live_client
+
+    monkeypatch.delenv("KPUBDATA_MODE", raising=False)
+    monkeypatch.setenv("KPUBDATA_DATAGO_API_KEY", "placeholder")
+    monkeypatch.setenv("KPUBDATA_CACHE", "1")
+    monkeypatch.setenv("KPUBDATA_CACHE_DIR", str(tmp_path))
+    with live_client.__wrapped__() as client:
+        assert client._transport._cache is None
