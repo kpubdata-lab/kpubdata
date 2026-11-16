@@ -4,7 +4,7 @@
 
 - Product name: `KPubData`
 - Product type: Python data access framework / SDK
-- Target runtime: Python 3.10+
+- Target runtime: Python 3.11+
 - Primary users: Python developers, backend developers, data engineers, agent/MCP developers
 - Product stage: active development — current release `v0.9.0` (see §2-current status)
 
@@ -252,7 +252,7 @@ Acceptance:
 
 ### NFR-1. Python quality bar
 
-- Python 3.10+
+- Python 3.11+
 - type hints throughout public API
 - `pyproject.toml` packaging
 - `src/` layout

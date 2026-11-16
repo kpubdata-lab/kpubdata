@@ -26,7 +26,7 @@ flowchart TD
 | 준비물 | 설명 | 확인 방법 |
 |:---|:---|:---|
 | Git | 코드 버전 관리 도구 | `git --version` |
-| Python 3.10+ | 이 프로젝트의 언어 | `python --version` |
+| Python 3.11+ | 이 프로젝트의 언어 | `python --version` |
 | uv | 빠른 Python 패키지 관리 도구 | `uv --version` |
 | AI 코딩 도구 | GitHub Copilot, Cursor, Windsurf 중 하나 | 에디터에서 설치 확인 |
 | GitHub 계정 | 코드 기여를 위해 필수 | [github.com](https://github.com) |

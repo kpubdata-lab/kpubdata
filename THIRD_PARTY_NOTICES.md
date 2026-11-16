@@ -13,18 +13,14 @@ every dependency is clear.
 
 ## Needs review
 
-- `certifi` 2026.2.25: declared `MPL-2.0`
-- `exceptiongroup` 1.3.1: declared `(none)`
+- `certifi` 2026.10.19: declared `MPL-2.0`
 - `httpx2-jsfetch` 1.0: declared `(none)`
-- `importlib-metadata` 9.0.0: declared `(none)`
 - `mergedeep` 1.3.4: declared `UNKNOWN`
-- `numpy` 2.2.6: declared `BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0`
 - `numpy` 2.4.4: declared `BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0`
 - `pathspec` 1.0.4: declared `Mozilla Public License 2.0 (MPL 2.0)`
 - `python-dateutil` 2.9.0.post0: declared `Dual License`
 - `pywin32` 311: declared `(none)`
 - `tomli` 2.4.1: declared `(none)`
-- `zipp` 3.23.0: declared `(none)`
 
 ## Packages (from `uv.lock`)
 
@@ -46,18 +42,16 @@ optional extra; `dev` only for development and documentation.
 | babel | 2.18.0 | extra:docs | BSD-3-Clause | recorded | https://github.com/python-babel/babel |
 | backrefs | 7.0 | extra:docs | MIT | recorded | https://github.com/facelessuser/backrefs |
 | build | 1.6.1 | dev | MIT | recorded | https://build.pypa.io |
-| certifi | 2026.2.25 | runtime | MPL-2.0 | needs review | https://github.com/certifi/python-certifi |
+| certifi | 2026.10.19 | runtime | MPL-2.0 | needs review | https://github.com/certifi/python-certifi |
 | cffi | 2.0.0 | dev | MIT | recorded | https://pypi.org/project/cffi/ |
 | charset-normalizer | 3.4.7 | extra:docs | MIT | recorded | https://pypi.org/project/charset-normalizer/ |
 | click | 8.5.0 | extra:docs | BSD-3-Clause | recorded | https://github.com/pallets/click/ |
 | colorama | 0.4.6 | extra:docs | BSD License | recorded | https://github.com/tartley/colorama |
-| contourpy | 1.3.2 | extra:krx | BSD License | recorded | https://github.com/contourpy/contourpy |
 | contourpy | 1.3.3 | extra:krx | BSD License | recorded | https://github.com/contourpy/contourpy |
 | coverage | 7.13.5 | dev | Apache-2.0 | recorded | https://github.com/coveragepy/coveragepy |
 | cryptography | 50.0.1 | dev | Apache-2.0 OR BSD-3-Clause | recorded | https://github.com/pyca/cryptography |
 | cycler | 0.12.1 | extra:krx | BSD License | recorded | https://matplotlib.org/cycler/ |
 | deprecated | 1.3.1 | extra:krx | MIT | recorded | https://github.com/laurent-laporte-pro/deprecated |
-| exceptiongroup | 1.3.1 | runtime | (none) | needs review | https://pypi.org/project/exceptiongroup/ |
 | fonttools | 4.62.1 | extra:krx | MIT | recorded | http://github.com/fonttools/fonttools |
 | ghp-import | 2.1.0 | extra:docs | Apache Software License | recorded | https://github.com/c-w/ghp-import |
 | h11 | 0.16.0 | runtime | MIT | recorded | https://github.com/python-hyper/h11 |
@@ -67,7 +61,6 @@ optional extra; `dev` only for development and documentation.
 | httpx2 | 2.13.1 | extra:mcp | BSD-3-Clause | recorded | https://github.com/pydantic/httpx2 |
 | httpx | 0.28.1 | runtime | BSD-3-Clause | recorded | https://github.com/encode/httpx |
 | idna | 3.20 | runtime | BSD-3-Clause | recorded | https://github.com/kjd/idna |
-| importlib-metadata | 9.0.0 | dev | (none) | needs review | https://pypi.org/project/importlib-metadata/ |
 | iniconfig | 2.3.0 | dev | MIT | recorded | https://github.com/pytest-dev/iniconfig |
 | jinja2 | 3.1.6 | extra:docs | BSD License | recorded | https://github.com/pallets/jinja/ |
 | jsonschema-specifications | 2025.9.1 | extra:mcp | MIT | recorded | https://github.com/python-jsonschema/jsonschema-specifications |
@@ -87,15 +80,14 @@ optional extra; `dev` only for development and documentation.
 | multipledispatch | 1.0.0 | extra:krx | BSD | recorded | http://github.com/mrocklin/multipledispatch/ |
 | mypy-extensions | 1.1.0 | dev | MIT | recorded | https://github.com/python/mypy_extensions |
 | mypy | 2.4.0 | dev | MIT | recorded | https://www.mypy-lang.org/ |
-| numpy | 2.2.6 | extra:krx | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | needs review | https://numpy.org |
 | numpy | 2.4.4 | extra:krx | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | needs review | https://numpy.org |
-| opentelemetry-api | 1.45.0 | extra:mcp | Apache-2.0 | recorded | https://github.com/open-telemetry/opentelemetry-python/tree/main/opentelemetry-api |
+| opentelemetry-api | 1.45.2 | extra:mcp | Apache-2.0 | recorded | https://github.com/open-telemetry/opentelemetry-python/tree/main/opentelemetry-api |
 | packaging | 26.0 | extra:docs | Apache-2.0 OR BSD-2-Clause | recorded | https://github.com/pypa/packaging |
 | paginate | 0.5.7 | extra:docs | MIT | recorded | https://github.com/Signum/paginate |
 | pandas-stubs | 2.3.3.260113 | dev | BSD-3-Clause | recorded | https://github.com/pandas-dev/pandas-stubs |
 | pandas | 2.3.3 | extra:krx | BSD License | recorded | https://pandas.pydata.org |
 | pathspec | 1.0.4 | extra:docs | Mozilla Public License 2.0 (MPL 2.0) | needs review | https://pypi.org/project/pathspec/ |
-| pillow | 12.3.0 | extra:krx | MIT-CMU | recorded | https://python-pillow.github.io |
+| pillow | 13.0.0 | extra:krx | MIT-CMU | recorded | https://python-pillow.org |
 | platformdirs | 4.9.6 | extra:docs | MIT | recorded | https://github.com/tox-dev/platformdirs |
 | pluggy | 1.6.0 | dev | MIT | recorded | https://pypi.org/project/pluggy/ |
 | pycparser | 3.0 | dev | BSD-3-Clause | recorded | https://github.com/eliben/pycparser |
@@ -126,7 +118,6 @@ optional extra; `dev` only for development and documentation.
 | truststore | 0.10.4 | extra:mcp | MIT | recorded | https://github.com/sethmlarson/truststore |
 | types-pytz | 2026.1.1.20260408 | dev | Apache-2.0 | recorded | https://github.com/python/typeshed |
 | types-pyyaml | 6.0.12.20260906 | dev | Apache-2.0 | recorded | https://github.com/python/typeshed |
-| typing-extensions | 4.15.0 | runtime | PSF-2.0 | recorded | https://github.com/python/typing_extensions |
 | typing-extensions | 4.16.0 | runtime | PSF-2.0 | recorded | https://github.com/python/typing_extensions |
 | typing-inspection | 0.4.2 | extra:mcp | MIT | recorded | https://github.com/pydantic/typing-inspection |
 | tzdata | 2025.3 | extra:krx | Apache-2.0 | recorded | https://github.com/python/tzdata |
@@ -135,7 +126,6 @@ optional extra; `dev` only for development and documentation.
 | watchdog | 6.0.0 | extra:docs | Apache-2.0 | recorded | https://github.com/gorakhargosh/watchdog/ |
 | wrapt | 2.1.2 | extra:krx | BSD-2-Clause | recorded | https://github.com/GrahamDumpleton/wrapt |
 | xmltodict | 1.0.4 | extra:xml | MIT | recorded | https://github.com/martinblech/xmltodict |
-| zipp | 3.23.0 | dev | (none) | needs review | https://pypi.org/project/zipp/ |
 
 ## Bundled assets
 

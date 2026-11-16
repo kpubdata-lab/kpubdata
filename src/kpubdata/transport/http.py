@@ -15,14 +15,17 @@ import re
 import ssl
 import threading
 import time
+import weakref
 from collections.abc import Callable, Iterator, Mapping
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from contextvars import ContextVar
 from dataclasses import dataclass, replace
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
+from http.cookiejar import Cookie, CookieJar, DefaultCookiePolicy
 from typing import cast
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.request import Request as CookieRequest
 
 import httpx
 
@@ -86,16 +89,26 @@ def _is_url(arg: object) -> bool:
 _in_flight_secrets: ContextVar[tuple[str, ...]] = ContextVar(
     "kpubdata_in_flight_secrets", default=()
 )
+_in_flight_context: ContextVar[tuple[str | None, str | None]] = ContextVar(
+    "kpubdata_in_flight_context", default=(None, None)
+)
 
 
 @contextmanager
-def _sending(secret_values: tuple[str, ...]) -> Iterator[None]:
+def _sending(
+    secret_values: tuple[str, ...],
+    *,
+    provider: str | None = None,
+    dataset_id: str | None = None,
+) -> Iterator[None]:
     """Make ``secret_values`` known to the httpx log filter until the block ends."""
     token = _in_flight_secrets.set(secret_values)
+    context_token = _in_flight_context.set((provider, dataset_id))
     try:
         yield
     finally:
         _in_flight_secrets.reset(token)
+        _in_flight_context.reset(context_token)
 
 
 def _install_httpx_redaction() -> None:
@@ -103,6 +116,71 @@ def _install_httpx_redaction() -> None:
     httpx_logger = logging.getLogger("httpx")
     if not any(isinstance(f, _HttpxUrlRedactingFilter) for f in httpx_logger.filters):
         httpx_logger.addFilter(_HttpxUrlRedactingFilter())
+
+
+def _require_https_credentials(request: httpx.Request) -> None:
+    """Reject plaintext credentials after HTTPX merges defaults, auth and cookies.
+
+    HTTPX runs request hooks after auth preparation and for every followed
+    redirect. Per-call declared path/unlisted values use the existing scoped
+    context; no credential is attached to request extensions or stored in a hook.
+    """
+    if request.url.scheme == "https":
+        return
+    credential_bearing = (
+        bool(_in_flight_secrets.get())
+        or bool(request.url.userinfo)
+        or _contains_sensitive_params(dict(request.url.params))
+        or _contains_sensitive_headers(request.headers)
+    )
+    if credential_bearing:
+        provider, dataset_id = _in_flight_context.get()
+        error = TransportError(
+            "Credential-bearing live requests require HTTPS",
+            provider=provider,
+            dataset_id=dataset_id,
+        )
+        _mark_credential_bearing(error, True)
+        raise error
+
+
+class _HttpsResponseCookiePolicy(DefaultCookiePolicy):
+    """Do not introduce plaintext session state into a managed client's shared jar."""
+
+    def set_ok(self, cookie: Cookie, request: CookieRequest) -> bool:
+        return urlsplit(request.get_full_url()).scheme == "https" and super().set_ok(
+            cookie, request
+        )
+
+
+class _HttpsResponseCookieJar(CookieJar):
+    """Identify the SDK jar whose HTTP response cookies were never accepted."""
+
+    def __init__(self) -> None:
+        super().__init__(policy=_HttpsResponseCookiePolicy())
+
+
+class _DropPlaintextResponseCookies:
+    """Keep anonymous HTTP stateless without retaining client credentials in a hook."""
+
+    def __init__(self, client: httpx.Client) -> None:
+        self._client = weakref.ref(client)
+
+    def owns(self, client: httpx.Client) -> bool:
+        return self._client() is client
+
+    def __call__(self, response: httpx.Response) -> None:
+        client = self._client()
+        if (
+            client is not None
+            and not isinstance(client.cookies.jar, _HttpsResponseCookieJar)
+            and response.request.url.scheme == "http"
+        ):
+            for cookie in response.cookies.jar:
+                # A managed/custom policy or another response may already have
+                # rejected or removed the cookie. Preserve the raw response.
+                with suppress(KeyError):
+                    client.cookies.delete(cookie.name, domain=cookie.domain, path=cookie.path)
 
 
 _DEFAULT_MAX_RESPONSE_BYTES = 50 * 1024 * 1024
@@ -209,7 +287,7 @@ class HttpTransport:
     def _build_client(self, requirements: TransportRequirements | None = None) -> httpx.Client:
         """Create an httpx.Client reflecting current config and requirements."""
         effective_requirements = requirements or self._requirements
-        return httpx.Client(
+        client = httpx.Client(
             timeout=self._config.timeout,
             headers=_merge_headers(
                 self._config.headers,
@@ -218,8 +296,11 @@ class HttpTransport:
             )
             or {},
             follow_redirects=True,
+            cookies=_HttpsResponseCookieJar(),
+            event_hooks={"request": [_require_https_credentials]},
             verify=self._resolve_verify(effective_requirements),
         )
+        return client
 
     def _resolve_verify(self, requirements: TransportRequirements | None) -> bool | ssl.SSLContext:
         """Determine final SSL verification setting and SSLContext."""
@@ -394,7 +475,23 @@ class HttpTransport:
             or bool(secret_values)
             or _contains_sensitive_params(params)
             or _contains_sensitive_headers(headers)
+            or _contains_sensitive_headers(self._config.headers)
+            or _contains_sensitive_headers(
+                None if self._requirements is None else self._requirements.headers
+            )
         )
+        # Historical HTTP recordings can still replay above, but must never become
+        # a live request carrying a key (#893). Do not guess an HTTPS replacement:
+        # each provider endpoint needs its own verification and trusted recording.
+        if credential_in_request and urlsplit(url).scheme.casefold() != "https":
+            insecure_error = TransportError(
+                "Credential-bearing live requests require HTTPS; "
+                "this endpoint must be verified and migrated before use",
+                provider=provider,
+                dataset_id=dataset_id,
+            )
+            _mark_credential_bearing(insecure_error, True)
+            raise insecure_error
         if cache_key is not None and self._cache is not None:
             cached = self._cache.get_entry(cache_key)
             if cached is not None:
@@ -458,7 +555,25 @@ class HttpTransport:
                         },
                     )
 
-                request = self.client.build_request(
+                # Pin one client through preparation and send; replacing/closing
+                # the shared client cannot select an unchecked second instance.
+                client = self.client
+                with self._client_lock:
+                    hooks = client.event_hooks.setdefault("request", [])
+                    if not hooks or hooks[-1] is not _require_https_credentials:
+                        # HTTPX readers do not take this lock. Publish the whole
+                        # replacement at once, retaining the guard throughout.
+                        hooks[:] = [
+                            *(hook for hook in hooks if hook is not _require_https_credentials),
+                            _require_https_credentials,
+                        ]
+                    response_hooks = client.event_hooks.setdefault("response", [])
+                    if not isinstance(client.cookies.jar, _HttpsResponseCookieJar) and not any(
+                        isinstance(hook, _DropPlaintextResponseCookies) and hook.owns(client)
+                        for hook in response_hooks
+                    ):
+                        response_hooks.append(_DropPlaintextResponseCookies(client))
+                request = client.build_request(
                     method=method,
                     url=url,
                     params=params,
@@ -471,10 +586,8 @@ class HttpTransport:
                 )
                 # httpx logs the request line inside this call; the filter on its logger
                 # masks by these values as well as by name (#821).
-                with _sending(secret_values):
-                    response = self.client.send(
-                        request, stream=True, follow_redirects=follow_redirects
-                    )
+                with _sending(secret_values, provider=provider, dataset_id=dataset_id):
+                    response = client.send(request, stream=True, follow_redirects=follow_redirects)
                 if response.is_redirect and not follow_redirects:
                     # Not followed: the key would go to wherever the answer points (#812).
                     # Only the host is named; the location may itself carry the key.
@@ -824,6 +937,10 @@ def _mask_url(url: str, *, secret_values: tuple[str, ...] = ()) -> str:
         parts = urlsplit(url)
     except ValueError:
         return "[invalid url]"
+    if "@" in parts.netloc:
+        # URL userinfo is an authentication channel too; never put it in logs.
+        parts = parts._replace(netloc=parts.netloc.rsplit("@", 1)[-1])
+        url = urlunsplit(parts)
     if secret_values and parts.path:
         # A segment holds the key as sent or percent-encoded (httpx encodes ``+``, ``/``
         # and ``=`` in a path), so every form is matched.
@@ -867,11 +984,15 @@ def _cache_headers_subset(headers: dict[str, str] | None) -> dict[str, str]:
     return dict(headers)
 
 
-def _contains_sensitive_headers(headers: dict[str, str] | None) -> bool:
+def _contains_sensitive_headers(headers: Mapping[str, str] | None) -> bool:
     """Check if headers contain any sensitive keys."""
     if headers is None:
         return False
-    return any(key.casefold() in SENSITIVE_PARAM_KEYS for key in headers)
+    return any(
+        key.casefold() in SENSITIVE_PARAM_KEYS
+        or key.casefold() in {"cookie", "proxy-authorization"}
+        for key in headers
+    )
 
 
 #: The typed error a terminal HTTP status raises; any other status is a plain
@@ -945,9 +1066,9 @@ def _parse_retry_after(header_value: str) -> float | None:
         return None
 
     if retry_at.tzinfo is None:
-        retry_at = retry_at.replace(tzinfo=timezone.utc)
+        retry_at = retry_at.replace(tzinfo=UTC)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return max((retry_at - now).total_seconds(), 0.0)
 
 

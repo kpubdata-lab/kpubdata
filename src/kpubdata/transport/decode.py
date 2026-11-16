@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from importlib import import_module
 
 import httpx
@@ -14,13 +15,31 @@ logger = logging.getLogger("kpubdata.transport.decode")
 
 
 def detect_content_type(response: httpx.Response) -> str:
-    """Classify the response as JSON, XML or other, from the content-type header."""
+    """Classify JSON/XML, sniffing a bounded prefix for ambiguous headers.
+
+    Gateways sometimes return XML errors with text/plain or text/html headers.
+    Do not blindly interpret an HTML document as XML, and never log a body
+    preview: provider errors can echo credentials (#970).
+    """
     header_value_obj = response.headers.get("content-type", "")
     content_type = str(header_value_obj).lower()
     if "json" in content_type:
         return "json"
     if "xml" in content_type:
         return "xml"
+
+    raw_body = getattr(response, "content", None)
+    if isinstance(raw_body, bytes):
+        prefix = raw_body[:256].lstrip(b" \t\r\n\xef\xbb\xbf")
+        lowered = prefix.lower()
+        if prefix.startswith((b"{", b"[")):
+            return "json"
+        if lowered.startswith((b"<!doctype html", b"<html", b"<head", b"<body", b"<script")):
+            return "other"
+        if prefix.startswith(b"<?xml") or lowered.startswith(
+            (b"<response", b"<openapi_serviceresponse", b"<result")
+        ):
+            return "xml"
     logger.debug(
         "Unrecognized content-type, defaulting to 'other'",
         extra={"content_type": content_type},
@@ -31,7 +50,7 @@ def detect_content_type(response: httpx.Response) -> str:
 def decode_json(data: str | bytes) -> object:
     """Decode JSON, raising a clear error when it fails."""
     try:
-        payload = data.decode("utf-8") if isinstance(data, bytes) else data
+        payload = data.decode("utf-8-sig") if isinstance(data, bytes) else data
     except UnicodeDecodeError as exc:
         logger.debug(
             "JSON UTF-8 decode failed",
@@ -47,7 +66,6 @@ def decode_json(data: str | bytes) -> object:
             "JSON parse failed",
             extra={
                 "char_length": len(payload),
-                "preview": payload[:200],
                 "line": exc.lineno,
                 "column": exc.colno,
             },
@@ -73,23 +91,41 @@ def decode_xml(data: str | bytes) -> dict[str, object]:
         raise ImportError(msg) from exc
 
     try:
-        payload = data.decode("utf-8") if isinstance(data, bytes) else data
-    except UnicodeDecodeError as exc:
-        logger.debug(
-            "XML UTF-8 decode failed",
-            extra={"byte_length": len(data) if isinstance(data, bytes) else None},
-        )
-        msg = "Failed to decode XML bytes as UTF-8"
-        raise ParseError(msg) from exc
-
-    try:
+        payload: str | bytes = data
+        if isinstance(data, bytes):
+            # Expat accepts UTF-8/UTF-16 directly but cannot decode all declared
+            # multi-byte encodings (such as EUC-KR) on every platform. Decode
+            # those with Python's codec registry and remove only the declaration
+            # before parsing Unicode text. The response itself is unchanged.
+            declared = re.search(
+                rb"""^\s*<\?xml\b[^>]{0,180}\bencoding\s*=\s*['"]([A-Za-z0-9._-]{1,40})['"]""",
+                data[:256],
+                flags=re.IGNORECASE,
+            )
+            if declared is not None:
+                encoding = declared.group(1).decode("ascii")
+                if encoding.casefold().replace("_", "-") not in {
+                    "utf-8",
+                    "utf8",
+                    "utf-16",
+                    "utf-16le",
+                    "utf-16be",
+                    "iso-8859-1",
+                    "us-ascii",
+                }:
+                    payload = re.sub(
+                        r"^\s*<\?xml[^>]*\?>",
+                        "",
+                        data.decode(encoding),
+                        count=1,
+                        flags=re.IGNORECASE,
+                    )
         parsed: object = xmltodict.parse(payload)
     except Exception as exc:  # noqa: BLE001
         logger.debug(
             "XML parse failed",
             extra={
-                "char_length": len(payload),
-                "preview": payload[:200],
+                "payload_length": len(data),
                 "exception_type": type(exc).__name__,
             },
         )

@@ -53,6 +53,8 @@ client = Client.from_env()
 
 ## 환경 변수
 
+이름과 단위는 [공통 환경변수 안내](environment-variables.md)를 따릅니다. 기존 변수는 호환성을 위해 유지합니다.
+
 | 변수 | 의미 | 기본값 |
 | :--- | :--- | :--- |
 | `KPUBDATA_CACHE` | `1`이면 캐시 활성화 | 비활성화 |

@@ -61,7 +61,7 @@
 | R0 | 리뷰 수준 0 — 오타·링크·포맷·생성 파일. 가장 가벼운 확인 | 18.1절 |
 | R1 | 리뷰 수준 1 — 일반 버그 수정·작은 기능 | 18.1절 |
 | R2 | 리뷰 수준 2 — public API·spec·데이터 변환을 바꾸는 변경 | 18.1절 |
-| R3 | 리뷰 수준 3 — BYOK·인증·캐시 격리, 게시 정책·개인정보, 워크플로·CI 근거, 릴리스. **작성자가 아닌 사람의 승인이 있어야 머지된다** | 18.1절, 14.1절 |
+| R3 | 리뷰 수준 3 — BYOK·인증·캐시 격리, 게시 정책·개인정보, 워크플로·CI 근거, 릴리스. **기본은 작성자 외 사람 승인; SDK는 14.1절의 필수 리뷰 제외 적용** | 18.1절, 14.1절 |
 | V0 | 정적 검사 — lint, 타입 검사, 스키마 검증 | 18절 |
 | V1 | 단위 테스트 | 18절 |
 | V2 | replay·계약 테스트 — 녹화한 fixture 로 돌린다 | 18절 |
@@ -159,11 +159,14 @@ Builder를 깨뜨린다면 제품 관점에서는 완료가 아니다.
 2. 예외 PR에는 정확히 `Scope exception: YES`, 구체적인 한 줄
    `Existing flow or risk: ...`, `Refs #N` 또는 `Closes #N`을 적고
    `review:R3` 라벨을 단다. **PR 작성자 외에 쓰기 권한을 가진 사람이 승인**해야 한다.
-   PR 본문의 자기 선언은 승인이 아니다. 없는 승인이나 실행 결과를 만들어 적지 않는다.
+   SDK는 14.1절 예외에 따라 필수 사람 리뷰를 요구하지 않으며, 이 라벨은
+   범위 예외 marker다. 별도 소유자 범위 승인과 독립 위험 검토는 유지한다.
+   PR 본문의 자기 선언은 범위 승인이 아니다. 없는 승인이나 실행 결과를 만들지 않는다.
 3. 세 저장소의 `scripts/check_stabilization_scope.py`는 `feat` PR 및 새
    Spec/Provider, HTTP 경로, 화면, 워크플로·예약 실행처럼 기계적으로 인지 가능한
    확장을 **기본 거부**한다. `review:R3`와 위 PR 필드가 없으면 CI가 실패하며,
-   중요 변경에 대한 기존 `R3 review` 필수 검사는 독립 승인을 강제한다.
+   SDK 외 저장소의 기존 `R3 review` 필수 검사는 독립 승인을 강제한다.
+   SDK는 범위 예외 marker와 근거를 유지하되 필수 사람 리뷰는 14.1절 예외를 따른다.
    스크립트와 그 실행 경로를 바꾸는 PR도 작성자가 아닌 사람의 검토가 필요하다.
 4. **한계:** CI가 새 기능의 의미를 완벽하게 이해하지는 못한다. 새 의존성, 새
    데이터 전송 및 숨은 운영 책임은 PR 작성자와 리뷰어가 변경 전후를 직접 비교해
@@ -974,6 +977,31 @@ Agent는 다음을 단독으로 결정하지 않는다.
 - Review Level 하향
 
 ## 14.1 무거운 변경(R3)은 작성자가 아닌 사람의 승인이 있어야 머지된다 — 2026-10-01 개정
+
+### SDK-only exception — owner decision, 2026-11-16
+
+For **`kpubdata` only**, the owner explicitly removed mandatory important-change
+human approval (`review:R3`) and the `R3 review` required check. The SDK requires
+`CI gate` and `PR title`; an old `review:R3` label is historical metadata, not a
+merge blocker. No human attestation, replacement review gate or fabricated GitHub
+APPROVED review is needed. Record actual-head test and independent risk-review
+evidence for substantive changes, then merge under the owner's task authorization.
+
+This exception takes precedence over references elsewhere in this document to
+mandatory approval from another person for SDK changes. The SDK's archived
+workflow is inactive. **The shared `scripts/r3_review.py` and composite action are
+unchanged** and still enforce the existing rules when called by Builder, Studio
+or Watch. Their branch protections and release rules are not changed by the SDK
+owner decision. Engine has independent governance.
+
+The stabilization freeze, explicit approval of new product scope, source terms,
+privacy/credential safeguards, required CI/title checks and separate release,
+publication, secret-access and deployment authorization remain effective.
+Removing this SDK gate does not authorize a release or lift the scope freeze.
+
+The remainder of this section describes the still-enforced non-SDK family gate
+and its historical implementation. It must not be read as an active SDK gate.
+
 
 `review:R3` 라벨이 붙은 PR 은 **작성자가 아닌 사람의 승인(APPROVED)이 하나 이상**
 있어야 머지된다. 오너 결정(kpubdata-builder#905, 2026-10-01)이고, 강제 장치는

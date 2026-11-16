@@ -26,7 +26,7 @@ from importlib import resources
 from types import MappingProxyType
 
 
-class DatasetStatus(str, Enum):
+class DatasetStatus(str, Enum):  # noqa: UP042 - preserve public enum string formatting
     """Canonical dataset status. Ordered from least to most verified, then faults."""
 
     PLANNED = "planned"
@@ -40,7 +40,7 @@ class DatasetStatus(str, Enum):
     RETIRED = "retired"
 
 
-class VerificationLevel(str, Enum):
+class VerificationLevel(str, Enum):  # noqa: UP042 - preserve public enum string formatting
     """How far a dataset has been checked, whatever else is true of it (#842).
 
     ``DatasetStatus`` answers with one name, so ``application_required`` hid whether
@@ -55,7 +55,7 @@ class VerificationLevel(str, Enum):
     PRODUCTION = "production"
 
 
-class ApplicationRequirement(str, Enum):
+class ApplicationRequirement(str, Enum):  # noqa: UP042 - preserve public enum string formatting
     """Whether the provider asks for a per-dataset application before it answers (#842).
 
     ``UNKNOWN`` is the answer wherever nothing recorded says either way. It is not
@@ -67,7 +67,7 @@ class ApplicationRequirement(str, Enum):
     UNKNOWN = "unknown"
 
 
-class SpecStatus(str, Enum):
+class SpecStatus(str, Enum):  # noqa: UP042 - preserve public enum string formatting
     """Values of a spec's ``status:`` field. Kept in sync with ``specs/schema.json``."""
 
     ACTIVE = "active"
@@ -76,7 +76,7 @@ class SpecStatus(str, Enum):
     UNSTABLE = "unstable"
 
 
-class ProbeStatus(str, Enum):
+class ProbeStatus(str, Enum):  # noqa: UP042 - preserve public enum string formatting
     """Outcome of one reachability probe call (#514). See ``kpubdata._probe``."""
 
     AVAILABLE = "available"
@@ -90,7 +90,7 @@ class ProbeStatus(str, Enum):
     RETIRED = "retired"
 
 
-class DriftClassification(str, Enum):
+class DriftClassification(str, Enum):  # noqa: UP042 - preserve public enum string formatting
     """Signal the drift state machine consumes (docs/DATASET_STATUS.md)."""
 
     HEALTHY = "HEALTHY"

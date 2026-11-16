@@ -23,7 +23,7 @@ import json
 import os
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from redact import redact_mapping
@@ -143,7 +143,7 @@ def record_dataset(
         meta = {
             "dataset_id": spec.id,
             "example": example.name,
-            "recorded_at": datetime.now(tz=timezone.utc).isoformat(timespec="seconds"),
+            "recorded_at": datetime.now(tz=UTC).isoformat(timespec="seconds"),
             "endpoint": f"{spec.endpoint.base_url.rstrip('/')}/{spec.endpoint.operation}",
             "params": safe_params,
             "format": example.format or spec.response.format,
@@ -174,7 +174,7 @@ def record_dataset(
     #    no longer holds.
     if _is_live_transport(resolved_transport) and spec_path.is_file():
         text = spec_path.read_text(encoding="utf-8")
-        today = datetime.now(tz=timezone.utc).date().isoformat()
+        today = datetime.now(tz=UTC).date().isoformat()
         if re.search(r"^last_verified:", text, re.MULTILINE):
             text = re.sub(
                 r"^last_verified:.*$", f'last_verified: "{today}"', text, flags=re.MULTILINE

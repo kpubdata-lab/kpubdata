@@ -3,7 +3,7 @@
 ## 1. Packaging goals
 
 - modern Python packaging
-- Python 3.10+
+- Python 3.11+
 - minimal core dependencies
 - optional extras for heavier integrations
 - reproducible local development for human and agentic workflows
@@ -32,8 +32,8 @@ This keeps packaging standards-based while making developer workflows fast.
 
 ## 3. Python support policy
 
-- minimum: Python 3.10
-- tested: 3.10, 3.11, 3.12, 3.13
+- minimum: Python 3.11
+- tested: 3.11, 3.12, 3.13, 3.14
 
 ## 4. Dependency policy
 
