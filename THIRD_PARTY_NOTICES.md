@@ -100,7 +100,7 @@ optional extra; `dev` only for development and documentation.
 | pyparsing | 3.3.2 | extra:krx | MIT | recorded | https://github.com/pyparsing/pyparsing/ |
 | pyproject-hooks | 1.2.0 | dev | MIT License | recorded | https://github.com/pypa/pyproject-hooks |
 | pytest-cov | 7.1.0 | dev | MIT | recorded | https://pypi.org/project/pytest-cov/ |
-| pytest | 9.1.1 | dev | MIT | recorded | https://docs.pytest.org/en/latest/ |
+| pytest | 9.2.0 | dev | MIT | recorded | https://docs.pytest.org/en/latest/ |
 | python-dateutil | 2.9.0.post0 | extra:docs | Dual License | needs review | https://github.com/dateutil/dateutil |
 | python-multipart | 0.0.32 | extra:mcp | Apache-2.0 | recorded | https://github.com/Kludex/python-multipart |
 | pytz | 2026.1.post1 | extra:krx | MIT | recorded | http://pythonhosted.org/pytz |
@@ -110,7 +110,7 @@ optional extra; `dev` only for development and documentation.
 | referencing | 0.37.0 | extra:mcp | MIT | recorded | https://github.com/python-jsonschema/referencing |
 | requests | 2.33.1 | extra:docs | Apache-2.0 | recorded | https://github.com/psf/requests |
 | rpds-py | 0.30.0 | extra:mcp | MIT | recorded | https://github.com/crate-py/rpds |
-| ruff | 0.16.10 | dev | MIT | recorded | https://github.com/astral-sh/ruff |
+| ruff | 0.17.5 | dev | MIT | recorded | https://github.com/astral-sh/ruff |
 | six | 1.17.0 | extra:docs | MIT | recorded | https://github.com/benjaminp/six |
 | sse-starlette | 3.3.4 | extra:mcp | BSD-3-Clause | recorded | https://github.com/sysid/sse-starlette |
 | starlette | 1.7.0 | extra:mcp | BSD-3-Clause | recorded | https://github.com/Kludex/starlette |

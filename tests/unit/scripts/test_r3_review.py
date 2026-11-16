@@ -259,18 +259,26 @@ def test_cli_rejects_unreadable_input(tmp_path: Path) -> None:
 
 # --- the workflow -----------------------------------------------------------------
 
-WORKFLOW = REPO_ROOT / ".github" / "workflows" / "r3-review.yml"
+WORKFLOW = REPO_ROOT / ".github" / "legacy-workflows" / "r3-review.yml"
 
 
-def test_the_workflow_produces_the_context_branch_protection_requires() -> None:
-    """The required context is ``R3 review``; a rename or a matrix suffix would orphan it."""
+def test_sdk_retires_only_its_workflow_and_preserves_actual_required_contexts() -> None:
+    """The retired SDK workflow is not a synthetic passing or skipped check."""
     checks = importlib.util.spec_from_file_location(
         "check_required_checks", REPO_ROOT / "scripts" / "check_required_checks.py"
     )
     assert checks is not None and checks.loader is not None
     module = importlib.util.module_from_spec(checks)
     checks.loader.exec_module(module)
-    assert "R3 review" in module.produced_contexts(WORKFLOW.parent)
+    active = REPO_ROOT / ".github" / "workflows"
+    contexts = module.produced_contexts(active)
+    assert "R3 review" not in contexts
+    assert {"CI gate", "PR title"} <= contexts
+    assert not (active / "r3-review.yml").exists()
+    assert WORKFLOW.exists()
+    assert (REPO_ROOT / ".github/actions/r3-review/action.yml").exists()
+    refresh = (active / "required-check-refresh.yml").read_text(encoding="utf-8")
+    assert 'workflows: ["Titles"]' in refresh
 
 
 def test_the_workflow_re_evaluates_on_every_event_that_changes_the_answer() -> None:
