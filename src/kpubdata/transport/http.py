@@ -153,6 +153,13 @@ class _HttpsResponseCookiePolicy(DefaultCookiePolicy):
         )
 
 
+class _HttpsResponseCookieJar(CookieJar):
+    """Identify the SDK jar whose HTTP response cookies were never accepted."""
+
+    def __init__(self) -> None:
+        super().__init__(policy=_HttpsResponseCookiePolicy())
+
+
 class _DropPlaintextResponseCookies:
     """Keep anonymous HTTP stateless without retaining client credentials in a hook."""
 
@@ -164,7 +171,11 @@ class _DropPlaintextResponseCookies:
 
     def __call__(self, response: httpx.Response) -> None:
         client = self._client()
-        if client is not None and response.request.url.scheme == "http":
+        if (
+            client is not None
+            and not isinstance(client.cookies.jar, _HttpsResponseCookieJar)
+            and response.request.url.scheme == "http"
+        ):
             for cookie in response.cookies.jar:
                 # A managed/custom policy or another response may already have
                 # rejected or removed the cookie. Preserve the raw response.
@@ -290,11 +301,10 @@ class HttpTransport:
             )
             or {},
             follow_redirects=True,
-            cookies=CookieJar(policy=_HttpsResponseCookiePolicy()),
+            cookies=_HttpsResponseCookieJar(),
             event_hooks={"request": [_require_https_credentials]},
             verify=self._resolve_verify(effective_requirements),
         )
-        client.event_hooks["response"].append(_DropPlaintextResponseCookies(client))
         return client
 
     def _resolve_verify(self, requirements: TransportRequirements | None) -> bool | ssl.SSLContext:
@@ -563,7 +573,7 @@ class HttpTransport:
                             _require_https_credentials,
                         ]
                     response_hooks = client.event_hooks.setdefault("response", [])
-                    if not any(
+                    if not isinstance(client.cookies.jar, _HttpsResponseCookieJar) and not any(
                         isinstance(hook, _DropPlaintextResponseCookies) and hook.owns(client)
                         for hook in response_hooks
                     ):

@@ -21,6 +21,7 @@ class FakeGzipBrokenClient:
     def __init__(self, *, always_broken: bool = False) -> None:
         self.sent_accept_encodings: list[str | None] = []
         self.always_broken = always_broken
+        self.cookies = httpx.Cookies()
         self.event_hooks: dict[str, list[Callable[[httpx.Request], None]]] = {"request": []}
 
     def build_request(

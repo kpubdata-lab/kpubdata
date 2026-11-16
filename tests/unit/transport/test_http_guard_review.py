@@ -199,3 +199,33 @@ def test_explicit_proxy_authorization_header_is_still_refused() -> None:
         assert transport._client is None
     finally:
         transport.close()
+
+
+def test_plaintext_response_cannot_delete_a_managed_secure_https_cookie(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    real_client = httpx.Client
+    sent: list[dict[str, str]] = []
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        sent.append(dict(request.headers))
+        cookie = (
+            "session=synthetic-secure-session; Secure; Path=/"
+            if request.url.scheme == "https"
+            else "session=synthetic-routing-cookie; Path=/"
+        )
+        return httpx.Response(200, headers={"Set-Cookie": cookie})
+
+    def factory(**kwargs) -> httpx.Client:
+        return real_client(**kwargs, transport=httpx.MockTransport(handle))
+
+    monkeypatch.setattr("kpubdata.transport.http.httpx.Client", factory)
+    with HttpTransport() as transport:
+        transport.request("GET", _URL.replace("http:", "https:"))
+        assert transport.client.cookies["session"] == "synthetic-secure-session"
+        response = transport.request("GET", _URL)
+        assert response.cookies["session"] == "synthetic-routing-cookie"
+        assert transport.client.cookies["session"] == "synthetic-secure-session"
+        transport.request("GET", _URL.replace("http:", "https:"))
+    assert "cookie" not in sent[0] and "cookie" not in sent[1]
+    assert sent[2]["cookie"] == "session=synthetic-secure-session"

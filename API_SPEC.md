@@ -44,6 +44,10 @@ Late prepared-request errors retain the supplied provider/dataset context withou
 including raw credentials or attaching them to request extensions.
 The returned HTTPX client's hooks and transports must not be rewritten while
 requests are in flight; caller-supplied code is not an untrusted-code sandbox.
+Changing its cookie jar/policy opts out of the default jar's cookie-preservation
+guarantee. Cleanup for a substituted ordinary HTTPX jar can discard HTTP cookies
+but cannot reconstruct HTTPS state that its own policy already allowed HTTP to
+overwrite. The prepared-request credential check remains enforced.
 
 Proxy authentication is a separate hop: HTTPX may add credentials from a proxy URL
 inside its proxy transport, after request hooks run. The origin-request guard does
