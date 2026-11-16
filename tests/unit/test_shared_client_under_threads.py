@@ -9,7 +9,7 @@ from __future__ import annotations
 import threading
 import time
 from collections.abc import Callable
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import cast
 
 import httpx
@@ -92,7 +92,7 @@ def _slow_tokens(monkeypatch: pytest.MonkeyPatch, requested: list[str]) -> None:
         time.sleep(0.05)
         requested.append(f"token-{len(requested) + 1}")
         return sgis_auth._TokenState(
-            value=requested[-1], expires_at=datetime.now(timezone.utc) + timedelta(hours=1)
+            value=requested[-1], expires_at=datetime.now(UTC) + timedelta(hours=1)
         )
 
     monkeypatch.setattr(SgisAuthClient, "_request_access_token", request)

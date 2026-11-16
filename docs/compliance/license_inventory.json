@@ -64,8 +64,8 @@
       "basis": "installed",
       "status": "recorded"
     },
-    "certifi==2026.2.25": {
-      "version": "2026.2.25",
+    "certifi==2026.10.19": {
+      "version": "2026.10.19",
       "scope": "runtime",
       "license": "MPL-2.0",
       "source": "https://github.com/certifi/python-certifi",
@@ -102,14 +102,6 @@
       "license": "BSD License",
       "source": "https://github.com/tartley/colorama",
       "basis": "installed",
-      "status": "recorded"
-    },
-    "contourpy==1.3.2": {
-      "version": "1.3.2",
-      "scope": "extra:krx",
-      "license": "BSD License",
-      "source": "https://github.com/contourpy/contourpy",
-      "basis": "other-version",
       "status": "recorded"
     },
     "contourpy==1.3.3": {
@@ -151,14 +143,6 @@
       "source": "https://github.com/laurent-laporte-pro/deprecated",
       "basis": "installed",
       "status": "recorded"
-    },
-    "exceptiongroup==1.3.1": {
-      "version": "1.3.1",
-      "scope": "runtime",
-      "license": "",
-      "source": "https://pypi.org/project/exceptiongroup/",
-      "basis": "none",
-      "status": "needs review"
     },
     "fonttools==4.62.1": {
       "version": "4.62.1",
@@ -231,14 +215,6 @@
       "source": "https://github.com/kjd/idna",
       "basis": "installed",
       "status": "recorded"
-    },
-    "importlib-metadata==9.0.0": {
-      "version": "9.0.0",
-      "scope": "dev",
-      "license": "",
-      "source": "https://pypi.org/project/importlib-metadata/",
-      "basis": "none",
-      "status": "needs review"
     },
     "iniconfig==2.3.0": {
       "version": "2.3.0",
@@ -392,14 +368,6 @@
       "basis": "installed",
       "status": "recorded"
     },
-    "numpy==2.2.6": {
-      "version": "2.2.6",
-      "scope": "extra:krx",
-      "license": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0",
-      "source": "https://numpy.org",
-      "basis": "other-version",
-      "status": "needs review"
-    },
     "numpy==2.4.4": {
       "version": "2.4.4",
       "scope": "extra:krx",
@@ -408,8 +376,8 @@
       "basis": "installed",
       "status": "needs review"
     },
-    "opentelemetry-api==1.45.0": {
-      "version": "1.45.0",
+    "opentelemetry-api==1.45.2": {
+      "version": "1.45.2",
       "scope": "extra:mcp",
       "license": "Apache-2.0",
       "source": "https://github.com/open-telemetry/opentelemetry-python/tree/main/opentelemetry-api",
@@ -456,11 +424,11 @@
       "basis": "installed",
       "status": "needs review"
     },
-    "pillow==12.3.0": {
-      "version": "12.3.0",
+    "pillow==13.0.0": {
+      "version": "13.0.0",
       "scope": "extra:krx",
       "license": "MIT-CMU",
-      "source": "https://python-pillow.github.io",
+      "source": "https://python-pillow.org",
       "basis": "installed",
       "status": "recorded"
     },
@@ -640,8 +608,8 @@
       "basis": "installed",
       "status": "recorded"
     },
-    "ruff==0.16.10": {
-      "version": "0.16.10",
+    "ruff==0.17.5": {
+      "version": "0.17.5",
       "scope": "dev",
       "license": "MIT",
       "source": "https://github.com/astral-sh/ruff",
@@ -702,14 +670,6 @@
       "license": "Apache-2.0",
       "source": "https://github.com/python/typeshed",
       "basis": "installed",
-      "status": "recorded"
-    },
-    "typing-extensions==4.15.0": {
-      "version": "4.15.0",
-      "scope": "runtime",
-      "license": "PSF-2.0",
-      "source": "https://github.com/python/typing_extensions",
-      "basis": "other-version",
       "status": "recorded"
     },
     "typing-extensions==4.16.0": {
@@ -775,14 +735,6 @@
       "source": "https://github.com/martinblech/xmltodict",
       "basis": "installed",
       "status": "recorded"
-    },
-    "zipp==3.23.0": {
-      "version": "3.23.0",
-      "scope": "dev",
-      "license": "",
-      "source": "https://pypi.org/project/zipp/",
-      "basis": "none",
-      "status": "needs review"
     }
   },
   "assets": [

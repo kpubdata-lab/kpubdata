@@ -26,13 +26,14 @@ import re
 import tempfile
 from collections.abc import Iterator
 from dataclasses import dataclass, replace
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import MappingProxyType
 from typing import cast
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from kpubdata._hosts import extra_hosts_env_var, host_is_allowed
 from kpubdata.config import KPubDataConfig
+from kpubdata.core._params import scalar_filter_value
 from kpubdata.core._result_code import is_no_data_code, result_code_text
 from kpubdata.core.capability import Operation, PaginationMode, QuerySupport
 from kpubdata.core.models import (
@@ -300,6 +301,8 @@ def _next_page(
     ``build_params`` caps the request, so the decision is made with the size
     that was actually asked for (#614).
     """
+    if spec.pagination.type == "none":
+        return None
     page = query.page or 1
     page_size = query.page_size or _DEFAULT_PAGE_SIZE
     if spec.pagination.max_size is not None:
@@ -455,12 +458,6 @@ def _apply_transform(value: object, transform: str) -> object:
     return value
 
 
-def _cast_field(value: object, field_type: str) -> object:
-    """Cast to declared type (preserve original if cast fails)."""
-    _, coerced = _try_cast_field(value, field_type)
-    return coerced
-
-
 #: The envelope returned by data.go.kr gateway when it rejects before reaching
 #: the service. Instead of the service's <response>, this shape arrives when
 #: rejected (unregistered key, expired activation request, disallowed IP, quota exceeded).
@@ -558,9 +555,9 @@ def _build_provenance(
     # originally fetched, not when it was read back from disk.
     cached_at = extensions.get(CACHED_AT_EXTENSION)
     if cached and isinstance(cached_at, int | float) and not isinstance(cached_at, bool):
-        fetched = datetime.fromtimestamp(float(cached_at), tz=timezone.utc)
+        fetched = datetime.fromtimestamp(float(cached_at), tz=UTC)
     else:
-        fetched = datetime.now(tz=timezone.utc)
+        fetched = datetime.now(tz=UTC)
     provenance["fetched_at"] = fetched.isoformat(timespec="seconds")
 
     # content_sha256 — hash of the raw response bytes
@@ -655,6 +652,42 @@ class SpecExecutor:
         )
         raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id)
 
+    def _add_auth_params(self, spec: SpecDefinition, params: dict[str, str]) -> None:
+        """Share credential preflight and injection across query and raw requests.
+
+        Check both the declared base URL and the resolved path-template host
+        *before* accessing credentials. The final actual URL is checked again
+        in _request, after interpolation, as a second security boundary.
+        """
+        if spec.auth.type == "none":
+            return
+
+        self._require_allowed_host(spec, spec.endpoint.base_url)
+        self._require_allowed_host(spec, self.build_url(spec, api_key=""))
+
+        if spec.auth.type == "query_param":
+            if not spec.auth.param_name:
+                msg = f"{spec.id}: auth.query_param 방식은 param_name 선언이 필요합니다."
+                raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id)
+            provider_key = spec.auth.provider_key or spec.provider
+            # Ignore raw caller overrides: the configured key is the credential
+            # for the chosen provider, never a user filter (#972).
+            params[spec.auth.param_name] = self._config.require_provider_key(provider_key)
+        elif spec.auth.type == "path_segment":
+            template = spec.endpoint.path_template or ""
+            if "{key}" not in template:
+                msg = f"{spec.id}: path_segment 인증은 path_template의 {{key}}가 필요합니다."
+                raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id)
+            params[_path_key_slot(spec)] = self._config.require_provider_key(
+                spec.auth.provider_key or spec.provider
+            )
+        else:
+            msg = (
+                f"{spec.id}: auth.type={spec.auth.type!r}은(는) 아직 spec 실행기가 "
+                "지원하지 않습니다."
+            )
+            raise NotImplementedError(msg)
+
     def build_params(
         self, spec: SpecDefinition, query: Query, format_hint: str | None = None
     ) -> dict[str, str]:
@@ -669,34 +702,7 @@ class SpecExecutor:
             InvalidRequestError: If pagination mode lacks required param name.
         """
         params: dict[str, str] = {}
-
-        if spec.auth.type != "none":
-            # Before any credential is read. ``path_template`` can name a host
-            # of its own without going through ``base_url``, so the resolved URL
-            # is checked again in ``_request``.
-            self._require_allowed_host(spec, spec.endpoint.base_url)
-
-        if spec.auth.type == "query_param":
-            if not spec.auth.param_name:
-                msg = f"{spec.id}: auth.query_param 방식은 param_name 선언이 필요합니다."
-                raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id)
-            provider_key = spec.auth.provider_key or spec.provider
-            params[spec.auth.param_name] = self._config.require_provider_key(provider_key)
-        elif spec.auth.type == "path_segment":
-            # Key is placed in URL path (path_template {key}) — removed from query.
-            template = spec.endpoint.path_template or ""
-            if "{key}" not in template:
-                msg = f"{spec.id}: path_segment 인증은 path_template의 {{key}}가 필요합니다."
-                raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id)
-            params[_path_key_slot(spec)] = self._config.require_provider_key(
-                spec.auth.provider_key or spec.provider
-            )
-        elif spec.auth.type != "none":
-            msg = (
-                f"{spec.id}: auth.type={spec.auth.type!r}은(는) 아직 spec 실행기가 "
-                "지원하지 않습니다."
-            )
-            raise NotImplementedError(msg)
+        self._add_auth_params(spec, params)
 
         format_value = self._resolve_format_value(spec, format_hint)
         format_param = spec.endpoint.format_param
@@ -738,13 +744,27 @@ class SpecExecutor:
             raise NotImplementedError(msg)
 
         reserved = {key.lower() for key in params}
-        alias_map = {param.exposed_name: param.name for param in spec.params}
+        declared = {param.exposed_name: param for param in spec.params}
         for key, raw_value in query.filters.items():
             # Auth, format, pagination params already filled; don't override with user filters.
             if key.lower() in reserved:
                 continue
-            provider_name = alias_map.get(key, key)
-            params[provider_name] = str(raw_value)
+            param_spec = declared.get(key)
+            provider_name = param_spec.name if param_spec is not None else key
+            encoded = scalar_filter_value(
+                provider_name,
+                raw_value,
+                allow_bool=param_spec is not None and param_spec.type == "boolean",
+            )
+            if encoded is None:
+                if param_spec is not None and param_spec.required:
+                    raise InvalidRequestError(
+                        f"Required filter {provider_name!r} cannot be None",
+                        provider=spec.provider,
+                        dataset_id=spec.id,
+                    )
+                continue
+            params[provider_name] = encoded
 
         return params
 
@@ -876,10 +896,6 @@ class SpecExecutor:
                 "아직 spec 실행기가 지원하지 않습니다."
             )
             raise NotImplementedError(msg)
-
-    def _raise_for_code(self, spec: SpecDefinition, code: str, message: str) -> None:
-        """Delegate to module function — if same rule exists twice, they must diverge."""
-        raise_for_code(spec, code, message)
 
     def _check_error(self, spec: SpecDefinition, payload: dict[str, object]) -> None:
         """Delegate to module function.
@@ -1052,12 +1068,18 @@ class SpecExecutor:
         format_hint: str | None = None,
     ) -> dict[str, object]:
         """Return the decoded raw payload without envelope interpretation (raw escape hatch)."""
-        string_params: dict[str, str] = {key: str(value) for key, value in params.items()}
-        if spec.auth.type == "query_param" and spec.auth.param_name:
-            provider_key = spec.auth.provider_key or spec.provider
-            string_params.setdefault(
-                spec.auth.param_name, self._config.require_provider_key(provider_key)
+        declared = {param.name: param for param in spec.params}
+        string_params: dict[str, str] = {}
+        for key, value in params.items():
+            param_spec = declared.get(key)
+            encoded = scalar_filter_value(
+                key,
+                value,
+                allow_bool=param_spec is not None and param_spec.type == "boolean",
             )
+            if encoded is not None:
+                string_params[key] = encoded
+        self._add_auth_params(spec, string_params)
         format_value = self._resolve_format_value(spec, format_hint)
         format_param = spec.endpoint.format_param
         if format_param is not None and format_param.name and format_value is not None:
@@ -1433,10 +1455,13 @@ class SpecDatasetAdapter:
         decision = _CastingDecision(spec)
         spool = _PageSpool()
         failure: PublicDataError | None = None
+        safety_error: InvalidRequestError | None = None
         try:
             total_count: int | None = None
             page_query = query
             next_page: int | None = None
+            previous_staged: list[dict[str, object]] | None = None
+            consecutive_empty_pages = 0
 
             while True:
                 try:
@@ -1457,6 +1482,34 @@ class SpecDatasetAdapter:
                 if total_count is None:
                     total_count = page_count
                 next_page = _next_page(spec, page_query, page_count, len(staged))
+
+                # Match the legacy paging guard (#837) before either observing or
+                # spooling the offending page. Retain only the previous page's rows.
+                if staged and previous_staged == staged:
+                    safety_error = InvalidRequestError(
+                        "Detected repeated page: the provider may ignore the page parameter.",
+                        provider=self._provider,
+                        dataset_id=dataset.id,
+                    )
+                elif not staged:
+                    consecutive_empty_pages += 1
+                    if consecutive_empty_pages >= 3:
+                        safety_error = InvalidRequestError(
+                            "Received 3 consecutive empty pages while paginating.",
+                            provider=self._provider,
+                            dataset_id=dataset.id,
+                        )
+                else:
+                    consecutive_empty_pages = 0
+
+                if safety_error is not None:
+                    if not partial:
+                        raise safety_error
+                    # With partial=True, yield only the safe, already staged pages
+                    # before raising the integrity error (not IncompleteListError).
+                    break
+
+                previous_staged = staged
                 # The evidence stays; the rows go to disk (#789).
                 decision.observe(staged)
                 spool.append(_FetchedPage(staged, payload, provenance, next_page))
@@ -1498,6 +1551,8 @@ class SpecDatasetAdapter:
             raise IncompleteListError(
                 failure, pages=len(spool), provider=dataset.provider, dataset_id=dataset.id
             ) from failure
+        if safety_error is not None:
+            raise safety_error
         if next_page is not None:
             raise InvalidRequestError(
                 f"Pagination limit exceeded: reached {effective_max + 1} pages "

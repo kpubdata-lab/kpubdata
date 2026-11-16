@@ -12,9 +12,8 @@ missing entry silently filled in from the process environment: the call would
 run on the operator's key, spend the operator's quota and report a verdict
 that is not the user's.
 
-data.go.kr family providers (localdata, lofin, semas) all use the "datago"
-key. Setting KPUBDATA_DATAGO_API_KEY once covers every data.go.kr based
-provider.
+Data.go.kr family providers (localdata, semas) share the "datago" key.
+LOFIN365 issues its own credential and must not use a data.go.kr key.
 """
 
 from __future__ import annotations

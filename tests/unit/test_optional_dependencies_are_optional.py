@@ -1,7 +1,8 @@
 """Verify that basic paths work without optional extras.
 
-CI always runs with --extra dev, so it misses dependencies wrongly marked
-optional. The krx adapter imported pandas at the top level, breaking
+The main CI test suite runs with --extra dev; a separate all-extras smoke runs
+afterward. Import blocking also exposes dependencies wrongly marked optional.
+The krx adapter imported pandas at the top level, breaking
 client.datasets.list() for users without krx. Since krx requires no auth,
 it's always in the provider manifest, and listing without a provider
 instantiates every adapter.
