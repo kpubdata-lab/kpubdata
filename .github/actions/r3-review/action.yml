@@ -61,7 +61,7 @@ runs:
           > "${dir}/reviews.jsonl"
         script="${{ github.action_path }}/../../../scripts/r3_review.py"
         agent_flag=()
-        if [[ "${ALLOW_AGENT_REVIEW}" == "true" ]]; then
+        if [[ "${ALLOW_AGENT_REVIEW:-false}" == "true" ]]; then
           agent_flag=(--allow-agent-review)
         fi
 
