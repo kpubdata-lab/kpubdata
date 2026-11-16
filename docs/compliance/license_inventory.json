@@ -24,8 +24,8 @@
       "basis": "installed",
       "status": "recorded"
     },
-    "ast-serialize==0.11.2": {
-      "version": "0.11.2",
+    "ast-serialize==0.13.1": {
+      "version": "0.13.1",
       "scope": "dev",
       "license": "MIT",
       "source": "https://github.com/mypyc/ast_serialize",
@@ -360,8 +360,8 @@
       "basis": "installed",
       "status": "recorded"
     },
-    "mypy==2.4.0": {
-      "version": "2.4.0",
+    "mypy==2.4.1": {
+      "version": "2.4.1",
       "scope": "dev",
       "license": "MIT",
       "source": "https://www.mypy-lang.org/",

@@ -37,7 +37,7 @@ optional extra; `dev` only for development and documentation.
 | annotated-types | 0.7.0 | extra:mcp | MIT License | recorded | https://github.com/annotated-types/annotated-types |
 | anyio | 4.14.2 | runtime | MIT | recorded | https://pypi.org/project/anyio/ |
 | anyio | 4.15.1 | runtime | MIT | recorded | https://pypi.org/project/anyio/ |
-| ast-serialize | 0.11.2 | dev | MIT | recorded | https://github.com/mypyc/ast_serialize |
+| ast-serialize | 0.13.1 | dev | MIT | recorded | https://github.com/mypyc/ast_serialize |
 | attrs | 26.1.0 | extra:mcp | MIT | recorded | https://pypi.org/project/attrs/ |
 | babel | 2.18.0 | extra:docs | BSD-3-Clause | recorded | https://github.com/python-babel/babel |
 | backrefs | 7.0 | extra:docs | MIT | recorded | https://github.com/facelessuser/backrefs |
@@ -79,7 +79,7 @@ optional extra; `dev` only for development and documentation.
 | mkdocs | 1.6.1 | extra:docs | BSD-2-Clause | recorded | https://github.com/mkdocs/mkdocs |
 | multipledispatch | 1.0.0 | extra:krx | BSD | recorded | http://github.com/mrocklin/multipledispatch/ |
 | mypy-extensions | 1.1.0 | dev | MIT | recorded | https://github.com/python/mypy_extensions |
-| mypy | 2.4.0 | dev | MIT | recorded | https://www.mypy-lang.org/ |
+| mypy | 2.4.1 | dev | MIT | recorded | https://www.mypy-lang.org/ |
 | numpy | 2.4.4 | extra:krx | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | needs review | https://numpy.org |
 | opentelemetry-api | 1.45.2 | extra:mcp | Apache-2.0 | recorded | https://github.com/open-telemetry/opentelemetry-python/tree/main/opentelemetry-api |
 | packaging | 26.0 | extra:docs | Apache-2.0 OR BSD-2-Clause | recorded | https://github.com/pypa/packaging |
