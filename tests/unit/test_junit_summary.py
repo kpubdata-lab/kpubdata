@@ -43,11 +43,11 @@ _ZERO_TESTS = """<?xml version="1.0" encoding="utf-8"?>
 """
 
 
-def _run(tmp_path: Path, xml: str) -> subprocess.CompletedProcess[str]:
+def _run(tmp_path: Path, xml: str, *extra_args: str) -> subprocess.CompletedProcess[str]:
     report = tmp_path / "report.xml"
     report.write_text(xml, encoding="utf-8")
     return subprocess.run(
-        [sys.executable, str(_SCRIPT), str(report), "--label", "datago live"],
+        [sys.executable, str(_SCRIPT), str(report), "--label", "datago live", *extra_args],
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -122,3 +122,90 @@ def test_a_missing_attribute_defaults_to_zero(tmp_path: Path, missing: str) -> N
     rendered = " ".join(f'{k}="{v}"' for k, v in attrs.items())
     xml = f'<?xml version="1.0"?><testsuites><testsuite name="a" {rendered}/></testsuites>'
     assert _run(tmp_path, xml).returncode in (0, 1)
+
+
+class TestRequirePassed:
+    def test_all_skipped_is_unverified(self, tmp_path: Path) -> None:
+        xml = (
+            '<testsuites><testsuite tests="3" failures="0" errors="0" skipped="3">'
+            + "<testcase><skipped/></testcase>" * 3
+            + "</testsuite></testsuites>"
+        )
+        result = _run(tmp_path, xml, "--require-passed")
+        assert result.returncode == 1
+        assert "smoke=FAIL" in result.stdout
+        assert "no tests passed" in result.stderr
+
+    def test_passing_and_skipped_is_verified(self, tmp_path: Path) -> None:
+        result = _run(
+            tmp_path,
+            '<testsuite tests="2" skipped="1"><testcase name="ok"/><testcase name="skip"><skipped/></testcase></testsuite>',
+            "--require-passed",
+        )
+        assert result.returncode == 0
+        assert "smoke=PASS" in result.stdout
+
+    def test_all_skipped_is_still_accepted_without_live_guard(self, tmp_path: Path) -> None:
+        xml = '<testsuites><testsuite tests="2" failures="0" errors="0" skipped="2"/></testsuites>'
+        result = _run(tmp_path, xml)
+        assert result.returncode == 0
+
+
+@pytest.mark.parametrize(
+    "attributes",
+    [
+        'tests="1" skipped="2"',
+        'tests="1" skipped="-1"',
+        'tests="not-a-number"',
+        'tests="2" skipped="0"',
+        'tests="1" failures="2"',
+        'tests="1" errors="-1"',
+    ],
+)
+def test_live_guard_rejects_untrustworthy_counts(tmp_path: Path, attributes: str) -> None:
+    """Malformed summaries cannot certify skipped or unexecuted live tests."""
+    xml = f'<testsuite {attributes}><testcase name="skip"><skipped/></testcase></testsuite>'
+    result = _run(tmp_path, xml, "--require-passed")
+    assert result.returncode != 0
+    assert "smoke=PASS" not in result.stdout
+
+
+def test_live_guard_requires_testcase_evidence(tmp_path: Path) -> None:
+    """A positive counter without testcase records is not live evidence."""
+    result = _run(tmp_path, '<testsuite tests="2"/>', "--require-passed")
+    assert result.returncode != 0
+    assert "smoke=PASS" not in result.stdout
+
+
+@pytest.mark.parametrize("outcome", ["pass", "skip", "fail"])
+def test_live_guard_reads_actual_pytest_report(tmp_path: Path, outcome: str) -> None:
+    """Exercise the strict checker against reports from the real test runner."""
+    body = {"pass": "assert True", "skip": "pytest.skip('offline probe')", "fail": "assert False"}[
+        outcome
+    ]
+    probe = tmp_path / "test_probe.py"
+    probe.write_text("import pytest\n\ndef test_probe():\n    " + body + "\n", encoding="utf-8")
+    report = tmp_path / "actual.xml"
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-o",
+            "addopts=",
+            str(probe),
+            f"--junitxml={report}",
+            "-q",
+        ],
+        cwd=tmp_path,
+        capture_output=True,
+        check=False,
+    )
+    result = subprocess.run(
+        [sys.executable, str(_SCRIPT), str(report), "--require-passed"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == (0 if outcome == "pass" else 1), result.stderr
+    assert ("smoke=PASS" in result.stdout) is (outcome == "pass")

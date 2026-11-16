@@ -21,6 +21,8 @@
 export KPUBDATA_LOFIN_API_KEY="발급받은키"
 ```
 
+> **인증키 분리:** SDK는 `KPUBDATA_LOFIN_API_KEY` 또는 명시적인 `provider_keys={"lofin": ...}`를 사용합니다. 공공데이터포털의 `KPUBDATA_DATAGO_API_KEY`를 LOFIN365 인증키로 대체하지 않습니다. 실제 호출 검증은 발급받은 LOFIN 키와 HTTPS 사용 조건을 확인한 후 수행합니다.
+
 ## 지원 데이터셋
 
 [SUPPORTED_DATA.md](https://github.com/kpubdata-lab/kpubdata/blob/main/SUPPORTED_DATA.md) 의 `lofin` 행을 본다 — 상태·검증
