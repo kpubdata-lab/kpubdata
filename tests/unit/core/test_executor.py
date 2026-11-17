@@ -218,9 +218,7 @@ def test_build_params_enum_allows_missing_optional_filter(apt_spec: SpecDefiniti
     )
     spec = replace(apt_spec, params=params)
 
-    result = _make_executor(FakeTransport()).build_params(
-        spec, Query(filters={"option": None})
-    )
+    result = _make_executor(FakeTransport()).build_params(spec, Query(filters={"option": None}))
 
     assert "OPTIONAL" not in result
 
