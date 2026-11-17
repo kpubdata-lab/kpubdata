@@ -803,7 +803,9 @@ class SpecExecutor:
         """
         template = spec.endpoint.path_template
         if template:
-            start_index = spec.pagination.start_index_base or 1
+            start_index = spec.pagination.start_index_base
+            if start_index is None:
+                start_index = 1
             start = (page - 1) * page_size + start_index
             end = start + page_size - 1
             return template.format(
@@ -816,13 +818,14 @@ class SpecExecutor:
         return f"{spec.endpoint.base_url.rstrip('/')}/{spec.endpoint.operation.lstrip('/')}"
 
     def _request(
-        self, spec: SpecDefinition, params: dict[str, str]
+        self, spec: SpecDefinition, params: dict[str, str], *, query: Query | None = None
     ) -> tuple[dict[str, object], dict[str, object]]:
         """Send GET request to spec endpoint and return decoded dict.
 
         Args:
             spec: The dataset spec.
             params: Request parameters.
+            query: Canonical paging context for normalized index-range requests.
 
         Raises:
             AuthError: On transport 403 (with activation request hint).
@@ -839,6 +842,9 @@ class SpecExecutor:
             raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id)
         page_part = params.get(spec.pagination.page_param or "", "1")
         size_part = params.get(spec.pagination.size_param or "", str(_DEFAULT_PAGE_SIZE))
+        if query is not None and spec.pagination.type == "index_range":
+            page_part = str(query.page or 1)
+            size_part = str(_page_size(spec, query))
         url = self.build_url(
             spec,
             page=_to_int(page_part) or 1,
@@ -1037,7 +1043,7 @@ class SpecExecutor:
         """Execute the query per spec and return a RecordBatch."""
         self._require_supported_envelope(spec)
         params = self.build_params(spec, query, format_hint=format_hint)
-        payload, provenance = self._request(spec, params)
+        payload, provenance = self._request(spec, params, query=query)
         self._check_error(spec, payload)
 
         items, validation = self._normalize_fields(spec, self._extract_items(spec, payload))
@@ -1074,7 +1080,7 @@ class SpecExecutor:
         """
         self._require_supported_envelope(spec)
         params = self.build_params(spec, query, format_hint=format_hint)
-        payload, _provenance = self._request(spec, params)
+        payload, _provenance = self._request(spec, params, query=query)
         return params, payload
 
     def request_raw(
@@ -1313,8 +1319,11 @@ def spec_schema(spec: SpecDefinition, dataset: DatasetRef) -> SchemaDescriptor |
 def build_spec_dataset_ref(spec: SpecDefinition) -> DatasetRef:
     """Convert SpecDefinition to DatasetRef with catalog-equivalent semantics."""
     paginated = spec.pagination.type in {"page_no_rows", "page_display", "pindex_psize"}
+    pagination = PaginationMode.OFFSET if paginated else PaginationMode.NONE
+    if spec.pagination.type == "index_range":
+        pagination = PaginationMode.INDEX
     query_support = QuerySupport(
-        pagination=PaginationMode.OFFSET if paginated else PaginationMode.NONE,
+        pagination=pagination,
         filterable_fields=frozenset(param.exposed_name for param in spec.params),
         max_page_size=spec.pagination.max_size,
     )
@@ -1483,7 +1492,7 @@ class SpecDatasetAdapter:
                 try:
                     self._executor._require_supported_envelope(spec)
                     params = self._executor.build_params(spec, page_query, format_hint=None)
-                    payload, provenance = self._executor._request(spec, params)
+                    payload, provenance = self._executor._request(spec, params, query=page_query)
                     self._executor._check_error(spec, payload)
                     staged = self._executor._stage_fields(
                         spec, self._executor._extract_items(spec, payload)
