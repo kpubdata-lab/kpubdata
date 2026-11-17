@@ -52,7 +52,7 @@ xml = [
   "xmltodict>=0.13,<2",
 ]
 pandas = [
-  "pandas>=2.2,<3",
+  "pandas>=2.2,<4",
 ]
 krx = [
   "pykrx>=1.0.45,<2",
