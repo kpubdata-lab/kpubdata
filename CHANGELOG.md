@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Wheels include the existing third-party notices alongside distribution metadata (#847), matching the notices already shipped in source archives. License declarations and unresolved inventory review items are unchanged.
+- Spec executor `page_display` pagination advances using its actual default page size, and both `page_display` and `pindex_psize` honor the declared size cap on the wire (#973). This prevents early termination and mismatched requests for these existing modes; bundled spec definitions and live-verification claims are unchanged.
 
 - Spec-backed normalized queries reject missing required filters and invalid declared enum values before sending a request (#969). Errors use public filter aliases without echoing rejected values. Supply all required filters explicitly; sample values in specs are not defaults. Explicit empty strings remain supplied values, and `call_raw()` retains provider-native parameter handling.
 

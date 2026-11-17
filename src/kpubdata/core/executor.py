@@ -292,6 +292,13 @@ class _PageSpool:
         self._file.close()
 
 
+def _page_size(spec: SpecDefinition, query: Query) -> int:
+    """Resolve the mode default and cap once for requests and page progression."""
+    default = 20 if spec.pagination.type == "page_display" else _DEFAULT_PAGE_SIZE
+    size = query.page_size or default
+    return min(size, spec.pagination.max_size) if spec.pagination.max_size is not None else size
+
+
 def _next_page(
     spec: SpecDefinition, query: Query, total_count: int | None, item_count: int
 ) -> int | None:
@@ -304,9 +311,7 @@ def _next_page(
     if spec.pagination.type == "none":
         return None
     page = query.page or 1
-    page_size = query.page_size or _DEFAULT_PAGE_SIZE
-    if spec.pagination.max_size is not None:
-        page_size = min(page_size, spec.pagination.max_size)
+    page_size = _page_size(spec, query)
     if total_count == 0:
         # The provider says there is nothing; no page follows (#642).
         return None
@@ -711,9 +716,7 @@ class SpecExecutor:
             params[format_param.name] = format_value
 
         page = query.page or 1
-        page_size = query.page_size or _DEFAULT_PAGE_SIZE
-        if spec.pagination.max_size is not None:
-            page_size = min(page_size, spec.pagination.max_size)
+        page_size = _page_size(spec, query)
         if spec.pagination.type == "page_no_rows":
             page_param = spec.pagination.page_param or "pageNo"
             size_param = spec.pagination.size_param or "numOfRows"
@@ -721,17 +724,15 @@ class SpecExecutor:
             params[size_param] = str(page_size)
         elif spec.pagination.type in {"pindex_psize", "page_display"}:
             # lofin(pIndex/pSize, 1-based)·law(page/display) — query parameter style
-            defaults: dict[str, tuple[str, str, int, int]] = {
-                "pindex_psize": ("pIndex", "pSize", 1, 100),
-                "page_display": ("page", "display", 1, 20),
+            defaults: dict[str, tuple[str, str]] = {
+                "pindex_psize": ("pIndex", "pSize"),
+                "page_display": ("page", "display"),
             }
-            default_page_p, default_size_p, default_page, default_size = defaults[
-                spec.pagination.type
-            ]
+            default_page_p, default_size_p = defaults[spec.pagination.type]
             page_param = spec.pagination.page_param or default_page_p
             size_param = spec.pagination.size_param or default_size_p
-            params[page_param] = str(query.page or default_page)
-            params[size_param] = str(query.page_size or default_size)
+            params[page_param] = str(page)
+            params[size_param] = str(page_size)
         elif spec.pagination.type == "index_range":
             # BOK/Seoul family — start/end go in URL path (path_template {{start}}/{{end}}).
             if not spec.endpoint.path_template:
