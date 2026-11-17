@@ -1,5 +1,10 @@
 # KPubData Product Family — 전체 시스템 아키텍처
 
+> **통합 관계의 이력·호환성 참고 문서입니다.** SDK의 설치·사용 전제나 시작
+> 가이드가 아닙니다. 현재 SDK 사용 안내는 [문서 홈](index.md)과
+> [빠른 시작](quickstart.md)을 따릅니다. 아래 통합 관계는 유지보수를 위한 기록으로
+> 보존하며, SDK는 독립 설치·실행·릴리스됩니다.
+
 KPubData 는 한국 공공데이터 접근을 위한 **독립 Python SDK** 입니다. KPubData Builder, KPubData Studio, KPubData Watch 는 KPubData 위에 만들어진 **관련 프로젝트**이며, KPubData 는 이들 없이도 단독으로 설치·사용·릴리스됩니다. 이 문서는 네 제품을 함께 쓸 때의 관계를 설명합니다. 제품 이름과 저장소·패키지 이름은 다르다 — 저장소는 바꾸지 않는다([BRAND.md](brand/BRAND.md)).
 
 의존은 한 방향으로만 흐릅니다: **Studio → Builder → KPubData**, 그리고 **Watch → KPubData**. Watch 는 Builder 의 하위 단계가 아니라 Builder 와 나란한 **형제 제품**이며 Builder·Studio 에 의존하지 않습니다([ADR 0007](adrs/0007-independence-rules.md) §5). KPubData 는 Builder·Studio·Watch 를 알지 못하고, 함께 사용할 때에만 공공데이터의 전체 생명주기가 하나의 흐름으로 이어집니다.

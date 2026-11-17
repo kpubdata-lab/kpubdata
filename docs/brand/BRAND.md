@@ -1,70 +1,39 @@
 # 브랜드 (Brand)
 
-## 제품 브랜드
+## 브랜드와 SDK 표시명
 
-```
-KPubData
-```
-
-한 개다. 하위 구성요소는 별도 브랜드가 아니라 **접미사**다.
-
-```
-KPubData
-├── KPubData          독립 Python SDK · 한국 공공데이터 접근
-├── KPubData Builder  수집 · 변환 · Snapshot · 질의 (KPubData 사용)
-├── KPubData Studio   Catalog · Tables · SQL · Lineage · Quality (Builder 사용)
-└── KPubData Watch    공공데이터 API 신뢰성 관측 · Public Status (KPubData 사용, Builder 의 형제)
-```
-
-AI 기능은 **독립 브랜드를 만들지 않는다.**
-
-```
-Ask KPubData
-```
-
-`Kubi`, `Kubi AI`, `Kubi Assistant` 는 사용자에게 보이는 곳에서 쓰지 않는다.
+전체 브랜드는 **KPubData**, 이 저장소의 Python 라이브러리 표시명은
+**KPubData SDK**입니다. SDK를 소개하는 제목과 문서 홈에는 표시명을 사용합니다.
+SDK 사용 안내는 독립 설치·탐색·수집·정규화와 원본 응답 접근을 설명합니다.
+다른 제품의 소개나 설치를 SDK 시작 경로에 끼워 넣지 않습니다.
 
 ## 한 줄 정의
 
-```
-KPubData — Korean public data, ready to query.
-```
-
-```
-한국 공공데이터를, 바로 분석할 수 있는 테이블로.
+```text
+KPubData SDK — Python SDK for Korean Public Data
 ```
 
-설명:
+> 한국 공공 API의 인증·응답·페이지 처리 차이를 흡수하는 독립 Python SDK.
+> 사용자의 공식 API 키로 데이터를 탐색하고 수집하며 원본 응답 접근을 유지합니다.
 
-> 제각각인 한국 공공 API 를 수집하고 버전 관리해 SQL 로 분석하면서도, 원천·출처·
-> 수집 범위·이용 조건을 그대로 추적합니다.
+> A standalone Python SDK for discovering and querying Korean public-data APIs
+> with your own official API key and access to provider-native responses.
 
-> Turn fragmented Korean public APIs into versioned, queryable tables without
-> losing source context, provenance, or usage conditions.
+데이터 게시·배포, SQL 작업공간과 파이프라인 운영은 SDK 기능으로 소개하지 않습니다.
 
-## 구성요소별 한 문장
+## 저장소·패키지·import·CLI 이름
 
-| | |
+표시명 변경으로 설치 식별자를 바꾸지 않습니다.
+
+| 구분 | 이름 |
 |---|---|
-| **KPubData** | 한국 공공 API 의 차이를 흡수하는 독립 Python SDK |
-| **Builder** | KPubData를 활용해 재현 가능한 데이터셋·테이블을 생성하고 관리 |
-| **Studio** | 한국 공공데이터를 수집하고, 출처와 이용 조건을 유지한 스냅샷으로 관리하며, 표와 SQL 로 분석하는 작업공간 |
-| **Watch** | 한국 공공데이터 API 를 지속 관측해 "이 공공데이터를 지금 믿고 사용할 수 있는가?" 를 근거와 함께 공개하는 Public Data Reliability 서비스 |
+| 사용자 표시명 | KPubData SDK |
+| 저장소·PyPI 패키지 | `kpubdata` |
+| Python import | `from kpubdata import Client` |
+| CLI | `kpubdata` |
 
-## 저장소 이름과 제품 이름은 다르다
-
-저장소는 **바꾸지 않는다.**
-
-```
-kpubdata          → 제품명 KPubData
-kpubdata-builder  → 제품명 KPubData Builder
-kpubdata-studio   → 제품명 KPubData Studio
-kpubdata-watch    → 제품명 KPubData Watch
-```
-
-패키지 이름(`kpubdata`, `kpubdata-builder`, `kpubdata-watch`)도 그대로다. rename 은 설치된 사용자와
-의존 관계를 깨뜨리는 일이고, 제품명 정리와는 별개 결정이다. **향후 rename 여부는
-결정하지 않은 상태로 남긴다.**
+설치는 `pip install kpubdata` 그대로입니다. 공개 API와 의존성, URL 및 실행
+동작은 표시명과 별개인 기존 계약을 따릅니다.
 
 ## 목소리 (Voice)
 
