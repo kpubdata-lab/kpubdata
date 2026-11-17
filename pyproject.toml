@@ -81,6 +81,9 @@ docs = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/kpubdata"]
 
+[tool.hatch.build.targets.wheel.extra-metadata]
+"THIRD_PARTY_NOTICES.md" = "THIRD_PARTY_NOTICES.md"
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"
