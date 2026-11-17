@@ -168,6 +168,51 @@ def test_build_params_reserved_keys_not_overwritten(apt_spec: SpecDefinition) ->
     assert params["pageNo"] == "1"
 
 
+def test_build_params_rejects_invalid_enum_before_network(apt_spec: SpecDefinition) -> None:
+    """An aliased declared enum must reject invalid values before the provider call."""
+    params = (replace(apt_spec.params[0], alias="region", enum=("11110", "11680")), *apt_spec.params[1:])
+    spec = replace(apt_spec, params=params)
+    transport = FakeTransport()
+    executor = _make_executor(transport)
+
+    with pytest.raises(InvalidRequestError, match="region"):
+        executor.query(
+            spec,
+            _ref(spec),
+            Query(filters={"region": "99999", "DEAL_YMD": "202401"}),
+        )
+
+    assert transport.calls == []
+
+
+def test_build_params_accepts_valid_enum_alias(apt_spec: SpecDefinition) -> None:
+    """Alias validation preserves the provider parameter name on the wire."""
+    params = (replace(apt_spec.params[0], alias="region", enum=("11110", "11680")), *apt_spec.params[1:])
+    spec = replace(apt_spec, params=params)
+
+    result = _make_executor(FakeTransport()).build_params(
+        spec, Query(filters={"region": "11680", "DEAL_YMD": "202401"})
+    )
+
+    assert result["LAWD_CD"] == "11680"
+    assert "region" not in result
+
+
+def test_build_params_enum_allows_missing_optional_filter(apt_spec: SpecDefinition) -> None:
+    """An optional enum parameter remains absent when its value is None."""
+    params = (
+        *apt_spec.params,
+        replace(apt_spec.params[0], name="OPTIONAL", alias="option", required=False, enum=("A", "B")),
+    )
+    spec = replace(apt_spec, params=params)
+
+    result = _make_executor(FakeTransport()).build_params(
+        spec, Query(filters={"option": None})
+    )
+
+    assert "OPTIONAL" not in result
+
+
 def test_build_params_max_size_clamp(apt_spec: SpecDefinition) -> None:
     """page_size is clamped if it exceeds max_size."""
     executor = _make_executor(FakeTransport())
