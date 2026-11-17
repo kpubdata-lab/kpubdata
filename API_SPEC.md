@@ -1,4 +1,4 @@
-# Public API specification — KPubData
+# Public API specification — KPubData SDK
 
 ## 1. Top-level API
 
@@ -427,7 +427,7 @@ Returns provider-native payload / response object.
 
 ## 7. Public API promises
 
-KPubData promises stability for:
+KPubData SDK promises stability for:
 
 - `Client`
 - `Client.from_env()`
@@ -466,7 +466,7 @@ does not change with the message, so map on it rather than on the text.
 `RateLimitError`, `ServiceUnavailableError` and `TransportTimeoutError` are
 `TransportError`s; `AuthError` is not, so `except TransportError` does not catch a 401.
 
-KPubData does **not** promise stability for:
+KPubData SDK does **not** promise stability for:
 
 - internal adapter helper functions
 - internal transport implementation details
@@ -523,9 +523,3 @@ client.call_provider_endpoint("seoul", "SearchSTNTimeTableByIDService", ...)
 | [CANONICAL_MODEL.md](./CANONICAL_MODEL.md) | 표준 데이터 모델 정의 |
 | [PROVIDER_ADAPTER_CONTRACT.md](./PROVIDER_ADAPTER_CONTRACT.md) | 어댑터 구현 규약 |
 | [VALIDATION.md](./VALIDATION.md) | 아키텍처 타당성 검증 |
-
-### KPubData Product Family
-| 저장소 | 문서 | 설명 |
-| :--- | :--- | :--- |
-| [kpubdata-builder](https://github.com/kpubdata-lab/kpubdata-builder) | [API_CONTRACT.md](https://github.com/kpubdata-lab/kpubdata-builder/blob/main/API_CONTRACT.md) | Builder API 규약 |
-| [kpubdata-studio](https://github.com/kpubdata-lab/kpubdata-studio) | [API_CONTRACT.md](https://github.com/kpubdata-lab/kpubdata-studio/blob/main/API_CONTRACT.md) | Studio API 규약 |

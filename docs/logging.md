@@ -1,6 +1,6 @@
 # 로깅 가이드
 
-KPubData는 파이썬 표준 [`logging`](https://docs.python.org/3/library/logging.html) 모듈을 사용합니다. 별도의 의존성 없이 여러분이 사용 중인 로깅 설정에 자연스럽게 통합됩니다.
+KPubData SDK는 파이썬 표준 [`logging`](https://docs.python.org/3/library/logging.html) 모듈을 사용합니다. 별도의 의존성 없이 여러분이 사용 중인 로깅 설정에 자연스럽게 통합됩니다.
 
 라이브러리 관례에 따라 모든 내부 로그는 **`DEBUG` 레벨**로 기록됩니다. 기본값으로는 출력되지 않으며, 사용자가 명시적으로 활성화해야 합니다.
 
@@ -20,11 +20,11 @@ KPubData는 파이썬 표준 [`logging`](https://docs.python.org/3/library/loggi
 | `kpubdata.provider.kosis` | `providers/kosis/adapter.py` | KOSIS 요청 진입, 에러 페이로드 감지 |
 | `kpubdata.provider.lofin` | `providers/lofin/adapter.py` | LOFIN 요청 진입, 응답 검증 |
 
-모든 로거는 `kpubdata`를 부모로 가지므로, 이 이름 하나로 KPubData 전체 로그를 한꺼번에 제어할 수 있습니다.
+모든 로거는 `kpubdata`를 부모로 가지므로, 이 이름 하나로 KPubData SDK 전체 로그를 한꺼번에 제어할 수 있습니다.
 
 ## 활성화 방법
 
-### 모든 KPubData 로그를 표준 출력에 보기
+### 모든 KPubData SDK 로그를 표준 출력에 보기
 
 ```python
 import logging
@@ -147,7 +147,7 @@ URL 쿼리를 마스킹합니다 (#694). 이전에는 이 줄에 `serviceKey` �
 
 ## 운영 권장 사항
 
-- **운영 환경**: 기본값(WARNING 이상)을 유지하세요. KPubData는 정상 흐름에서 INFO/WARNING 로그를 거의 발생시키지 않습니다.
+- **운영 환경**: 기본값(WARNING 이상)을 유지하세요. KPubData SDK는 정상 흐름에서 INFO/WARNING 로그를 거의 발생시키지 않습니다.
 - **이슈 재현**: `kpubdata`(루트) 로거를 DEBUG로 일시 활성화한 후, 로그 안의 `dataset_id`/`url`/`status_code`/`attempt` 등을 단서로 추적하세요.
 - **민감 데이터**: 응답 본문 미리보기(`preview`)는 최대 500자만 기록되지만, 부분적으로 식별정보가 포함될 수 있습니다. 필요 시 `kpubdata.transport` 핸들러에 별도 필터를 적용하세요.
 

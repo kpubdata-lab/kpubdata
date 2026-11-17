@@ -1,19 +1,13 @@
-# KPubData
+# KPubData SDK
 
-**Korean public data, ready to query.**
+**Python SDK for Korean Public Data**
 
-> A standalone Python SDK for accessing Korean public data. KPubData installs and runs on its own, without any other project.
->
-> Related projects:
->
-> - [KPubData Builder](https://github.com/kpubdata-lab/kpubdata-builder) — builds and manages reproducible datasets and tables on top of KPubData
-> - [KPubData Studio](https://github.com/kpubdata-lab/kpubdata-studio) — a visual workspace for KPubData Builder
-> - [KPubData Watch](https://github.com/kpubdata-lab/kpubdata-watch) — continuously observes Korean public data APIs and publishes, with evidence, whether they can be trusted right now
+> A standalone Python SDK for accessing Korean public data. KPubData SDK installs and runs on its own.
 
 [한국어](./README.md)
 
 Every Korean public-data API authenticates differently, answers in a different shape
-and paginates its own way. KPubData absorbs those differences in adapters so one
+and paginates its own way. KPubData SDK absorbs those differences in adapters so one
 Python interface reaches all of them. It is **an SDK that uses your own official API
 key**, so it neither holds nor redistributes the data.
 
@@ -41,8 +35,7 @@ key**, so it neither holds nor redistributes the data.
 
 - Does not store or redistribute data — the key is yours and so is the call
 - Does not invent capabilities a provider's API does not have
-- Publishing and distribution belong to
-  [kpubdata-builder](https://github.com/kpubdata-lab/kpubdata-builder)
+- Data publishing, distribution and pipeline operations are outside the SDK scope
 
 ## 설치
 
@@ -90,15 +83,6 @@ translating their names loses what they refer to.
 
 The project runs on [POLICY.md](docs/governance/POLICY.md) and
 [VERIFICATION.md](docs/governance/VERIFICATION.md).
-
-## 제품군
-
-| Repository | Role |
-|---|---|
-| **kpubdata** | Collection and normalisation — this repository |
-| [kpubdata-builder](https://github.com/kpubdata-lab/kpubdata-builder) | Pipeline and publishing |
-| [kpubdata-studio](https://github.com/kpubdata-lab/kpubdata-studio) | Screens and workflow |
-| [kpubdata-watch](https://github.com/kpubdata-lab/kpubdata-watch) | Public data reliability — depends on KPubData only |
 
 ## 라이선스
 

@@ -1,6 +1,6 @@
 # 빠른 시작 가이드: 처음부터 끝까지
 
-이 문서를 따라하면 KPubData를 설치하고, API 키를 설정하고, 실제 공공데이터를 조회하는 것까지 한 번에 완료할 수 있습니다.
+이 문서를 따라하면 KPubData SDK를 설치하고, API 키를 설정하고, 실제 공공데이터를 조회하는 것까지 한 번에 완료할 수 있습니다.
 
 ## 필요한 것
 - Python 3.11 이상 (확인: `python --version`)
@@ -14,7 +14,7 @@ python --version
 # 설치 안 되어 있다면: https://www.python.org/downloads/
 ```
 
-## 2단계: KPubData 설치
+## 2단계: KPubData SDK 설치
 ```bash
 pip install kpubdata
 ```

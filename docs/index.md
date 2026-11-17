@@ -1,8 +1,8 @@
-# KPubData
+# KPubData SDK
 
-**한국 공공데이터 접근 프레임워크**
+**Python SDK for Korean Public Data**
 
-KPubData는 한국 공공데이터(data.go.kr 등)의 파편화된 API를 하나의 일관된 인터페이스로 통합하는 Python 프레임워크입니다.
+KPubData SDK는 한국 공공데이터(data.go.kr 등)의 파편화된 API를 하나의 일관된 인터페이스로 통합하는 독립 Python SDK입니다. `kpubdata` 패키지만으로 설치하고 사용할 수 있으며, 데이터 게시·배포와 파이프라인 운영은 제공 범위에 포함하지 않습니다.
 
 ## 특징
 

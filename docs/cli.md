@@ -1,6 +1,6 @@
 # CLI 가이드
 
-KPubData를 설치하면 `kpubdata` 명령이 함께 등록됩니다. 노트북이나 짧은 탐색 세션에서 데이터셋을 찾고, 파라미터를 시험하고, 원본 응답을 빠르게 확인할 때 유용합니다.
+KPubData SDK를 설치하면 `kpubdata` 명령이 함께 등록됩니다. 노트북이나 짧은 탐색 세션에서 데이터셋을 찾고, 파라미터를 시험하고, 원본 응답을 빠르게 확인할 때 유용합니다.
 
 ## 설치 후 명령 확인
 
@@ -24,7 +24,7 @@ uv run kpubdata --help
 | `--cache` | 응답 캐시를 명시적으로 활성화합니다. 기본값은 비활성화입니다. |
 | `--log-level {warning,info,debug}` | `kpubdata` 로거 레벨을 설정합니다. 기본값은 `warning`입니다. |
 | `--provider-key PROVIDER=KEY` | 환경 변수 대신 특정 Provider 키를 직접 덮어씁니다. 여러 번 지정할 수 있습니다. |
-| `--version` | 현재 설치된 KPubData 버전을 출력합니다. |
+| `--version` | 현재 설치된 KPubData SDK 버전을 출력합니다. |
 
 ## datasets list
 

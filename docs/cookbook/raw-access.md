@@ -4,7 +4,7 @@
 
 ## 왜 Raw 호출이 필요한가요?
 
-KPubData의 `list()`, `schema()` 등은 기관마다 다른 파라미터를 표준화합니다.
+KPubData SDK의 `list()`, `schema()` 등은 기관마다 다른 파라미터를 표준화합니다.
 하지만 때로는 원본 API의 특수한 파라미터나 operation이 필요할 수 있습니다.
 
 `call_raw()`는 이런 경우를 위한 비상구다.
@@ -32,7 +32,7 @@ print(raw)
 
 | | `list()` | `call_raw()` |
 |---|---|---|
-| 파라미터 | KPubData 표준 | 기관 원본 그대로 |
+| 파라미터 | KPubData SDK 표준 | 기관 원본 그대로 |
 | 반환값 | `RecordBatch` | 원본 응답 (dict/list) |
 | 페이지네이션 | 자동 (`list_all()`) | 직접 처리 |
 | 스키마 보장 | 있음 | 없음 |
@@ -55,7 +55,7 @@ raw = ds.call_raw(
 
 ## 언제 Raw를 쓰나요?
 
-- KPubData가 아직 정규화하지 않은 operation을 호출할 때
+- KPubData SDK가 아직 정규화하지 않은 operation을 호출할 때
 - 원본 응답의 특정 필드를 확인해야 할 때
 - 디버깅 시 기관 API의 실제 응답을 보고 싶을 때
 

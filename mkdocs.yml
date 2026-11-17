@@ -1,6 +1,6 @@
-site_name: KPubData
+site_name: KPubData SDK
 site_url: https://kpubdata-lab.github.io/kpubdata
-site_description: 한국 공공데이터 접근 프레임워크
+site_description: Python SDK for Korean Public Data
 repo_url: https://github.com/kpubdata-lab/kpubdata
 repo_name: kpubdata-lab/kpubdata
 
@@ -82,8 +82,6 @@ nav:
       - 교육부 나이스 (neis): providers/neis.md
   - 아키텍처:
       - 시스템 구조: architecture-diagrams.md
-      - Product Family: product-family-architecture.md
-      - 호환성 매트릭스: compatibility.md
       - datago API 참고: datago-api-reference.md
       - 데이터셋 상태 전이: DATASET_STATUS.md
       - Live Probe: LIVE_PROBE.md
@@ -101,3 +99,4 @@ nav:
       - AI 에이전트 워크플로우: tutorial-ai-agent-workflow.md
   - 기여:
       - 기여 가이드: contributing.md
+      - 통합 호환성 기록: compatibility.md
