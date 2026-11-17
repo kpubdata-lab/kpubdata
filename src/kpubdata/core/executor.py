@@ -764,6 +764,12 @@ class SpecExecutor:
                         dataset_id=spec.id,
                     )
                 continue
+            if param_spec is not None and param_spec.enum and encoded not in param_spec.enum:
+                raise InvalidRequestError(
+                    f"Filter {param_spec.exposed_name!r} must be one of the declared enum values",
+                    provider=spec.provider,
+                    dataset_id=spec.id,
+                )
             params[provider_name] = encoded
 
         return params
