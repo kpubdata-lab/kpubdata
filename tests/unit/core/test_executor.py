@@ -162,7 +162,9 @@ def test_build_params_assembles_auth_format_pagination_filters(apt_spec: SpecDef
 def test_build_params_reserved_keys_not_overwritten(apt_spec: SpecDefinition) -> None:
     """User filters do not overwrite auth/format/pagination parameters."""
     executor = _make_executor(FakeTransport())
-    query = Query(filters={"serviceKey": "hijack", "pageNo": "999"})
+    query = Query(
+        filters={"LAWD_CD": "11680", "DEAL_YMD": "202401", "serviceKey": "hijack", "pageNo": "999"}
+    )
     params = executor.build_params(apt_spec, query)
     assert params["serviceKey"] == "test-key-datago"
     assert params["pageNo"] == "1"
@@ -218,7 +220,9 @@ def test_build_params_enum_allows_missing_optional_filter(apt_spec: SpecDefiniti
     )
     spec = replace(apt_spec, params=params)
 
-    result = _make_executor(FakeTransport()).build_params(spec, Query(filters={"option": None}))
+    result = _make_executor(FakeTransport()).build_params(
+        spec, Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401", "option": None})
+    )
 
     assert "OPTIONAL" not in result
 
@@ -226,7 +230,9 @@ def test_build_params_enum_allows_missing_optional_filter(apt_spec: SpecDefiniti
 def test_build_params_max_size_clamp(apt_spec: SpecDefinition) -> None:
     """page_size is clamped if it exceeds max_size."""
     executor = _make_executor(FakeTransport())
-    params = executor.build_params(apt_spec, Query(page=1, page_size=99999))
+    params = executor.build_params(
+        apt_spec, Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"}, page=1, page_size=99999)
+    )
     assert int(params["numOfRows"]) == 1000
 
 
@@ -248,7 +254,11 @@ def test_query_multi_items_with_total_count(apt_spec: SpecDefinition) -> None:
     items = [{"아파트": "래미안", "거래금액": "120,000"} for _ in range(10)]
     transport = FakeTransport([_standard_envelope(items, total_count=30)])
     executor = _make_executor(transport)
-    batch = executor.query(apt_spec, _ref(apt_spec), Query(page=1, page_size=10))
+    batch = executor.query(
+        apt_spec,
+        _ref(apt_spec),
+        Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"}, page=1, page_size=10),
+    )
     assert len(batch.items) == 10
     assert batch.total_count == 30
     assert batch.next_page == 2
@@ -265,7 +275,11 @@ def test_query_single_item_dict_wrapped(apt_spec: SpecDefinition) -> None:
     """Single item dict is normalized into a 1-item list."""
     transport = FakeTransport([_standard_envelope({"아파트": "단일"}, total_count=1)])
     executor = _make_executor(transport)
-    batch = executor.query(apt_spec, _ref(apt_spec), Query(page=1, page_size=10))
+    batch = executor.query(
+        apt_spec,
+        _ref(apt_spec),
+        Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"}, page=1, page_size=10),
+    )
     assert batch.items == [{"아파트": "단일"}]
     assert batch.next_page is None
 
@@ -274,7 +288,11 @@ def test_query_empty_items(apt_spec: SpecDefinition) -> None:
     """Empty page returns empty batch and next_page=None."""
     transport = FakeTransport([_standard_envelope(None, total_count=None)])
     executor = _make_executor(transport)
-    batch = executor.query(apt_spec, _ref(apt_spec), Query(page=1, page_size=10))
+    batch = executor.query(
+        apt_spec,
+        _ref(apt_spec),
+        Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"}, page=1, page_size=10),
+    )
     assert batch.items == []
     assert batch.total_count is None
     assert batch.next_page is None
@@ -285,7 +303,11 @@ def test_query_full_page_without_total_suggests_next(apt_spec: SpecDefinition) -
     items = [{"no": i} for i in range(10)]
     transport = FakeTransport([_standard_envelope(items, total_count=None)])
     executor = _make_executor(transport)
-    batch = executor.query(apt_spec, _ref(apt_spec), Query(page=1, page_size=10))
+    batch = executor.query(
+        apt_spec,
+        _ref(apt_spec),
+        Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"}, page=1, page_size=10),
+    )
     assert batch.next_page == 2
 
 
@@ -293,7 +315,9 @@ def test_query_default_page_size_is_100(apt_spec: SpecDefinition) -> None:
     """Default page=1·page_size=100 is used when page is not specified."""
     transport = FakeTransport([_standard_envelope([{"x": 1}], total_count=1)])
     executor = _make_executor(transport)
-    executor.query(apt_spec, _ref(apt_spec), Query())
+    executor.query(
+        apt_spec, _ref(apt_spec), Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"})
+    )
     params = transport.calls[0]["params"]
     assert isinstance(params, dict)
     assert params["pageNo"] == "1"
@@ -333,7 +357,9 @@ def test_query_error_code_table(
     transport = FakeTransport([FakeResponse(json.dumps(payload).encode())])
     executor = _make_executor(transport)
     with pytest.raises(expected_exc) as exc_info:
-        executor.query(apt_spec, _ref(apt_spec), Query())
+        executor.query(
+            apt_spec, _ref(apt_spec), Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"})
+        )
     assert getattr(exc_info.value, "provider_code", None) == code
 
 
@@ -348,7 +374,9 @@ def test_query_ok_values_numeric_zero(apt_spec: SpecDefinition, ok_code: str) ->
     }
     transport = FakeTransport([FakeResponse(json.dumps(payload).encode())])
     executor = _make_executor(transport)
-    batch = executor.query(apt_spec, _ref(apt_spec), Query())
+    batch = executor.query(
+        apt_spec, _ref(apt_spec), Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"})
+    )
     assert len(batch.items) == 1
 
 
@@ -357,7 +385,9 @@ def test_query_missing_result_code_raises(apt_spec: SpecDefinition) -> None:
     transport = FakeTransport([FakeResponse(b'{"response": {"header": {}, "body": {}}}')])
     executor = _make_executor(transport)
     with pytest.raises(ProviderResponseError, match="에러 코드"):
-        executor.query(apt_spec, _ref(apt_spec), Query())
+        executor.query(
+            apt_spec, _ref(apt_spec), Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"})
+        )
 
 
 def test_query_http_403_maps_to_auth_error(apt_spec: SpecDefinition) -> None:
@@ -372,7 +402,9 @@ def test_query_http_403_maps_to_auth_error(apt_spec: SpecDefinition) -> None:
     transport_error = TransportError("forbidden", provider="datago", status_code=403)
     executor = _make_executor(FakeTransport(error=transport_error))
     with pytest.raises(AuthError, match="활용"):
-        executor.query(apt_spec, _ref(apt_spec), Query())
+        executor.query(
+            apt_spec, _ref(apt_spec), Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"})
+        )
 
 
 def test_query_http_403_maps_to_auth_error_even_without_an_exception_chain(
@@ -385,7 +417,9 @@ def test_query_http_403_maps_to_auth_error_even_without_an_exception_chain(
     executor = _make_executor(FakeTransport(error=transport_error))
 
     with pytest.raises(AuthError, match="활용"):
-        executor.query(apt_spec, _ref(apt_spec), Query())
+        executor.query(
+            apt_spec, _ref(apt_spec), Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"})
+        )
 
 
 def test_a_non_403_transport_error_is_not_turned_into_an_auth_error(
@@ -396,7 +430,9 @@ def test_a_non_403_transport_error_is_not_turned_into_an_auth_error(
     )
 
     with pytest.raises(TransportError):
-        executor.query(apt_spec, _ref(apt_spec), Query())
+        executor.query(
+            apt_spec, _ref(apt_spec), Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"})
+        )
 
 
 # ----------------------------------------------------------------------
@@ -439,7 +475,7 @@ def test_query_fields_normalization() -> None:
     }
     transport = FakeTransport([FakeResponse(json.dumps(payload).encode())])
     executor = _make_executor(transport)
-    batch = executor.query(spec, _ref(spec), Query())
+    batch = executor.query(spec, _ref(spec), Query(filters={"region_code": "11110"}))
     item = batch.items[0]
     assert item["deal_amount"] == 120000
     assert "거래금액" not in item
@@ -463,7 +499,7 @@ def _valid_full_result(
     }
     transport = FakeTransport([FakeResponse(json.dumps(payload).encode())])
     executor = _make_executor(transport)
-    return executor.query(spec, _ref(spec), Query())
+    return executor.query(spec, _ref(spec), Query(filters={"region_code": "11110"}))
 
 
 def _valid_full_batch(
@@ -480,7 +516,7 @@ def _valid_full_batch(
     }
     transport = FakeTransport([FakeResponse(json.dumps(payload).encode())])
     executor = _make_executor(transport)
-    return list(executor.query(spec, _ref(spec), Query()).items)
+    return list(executor.query(spec, _ref(spec), Query(filters={"region_code": "11110"})).items)
 
 
 class TestColumnConsistentCasting:
@@ -573,7 +609,9 @@ def test_spec_dataset_adapter_surface(
     with pytest.raises(DatasetNotFoundError):
         adapter.get_dataset("nope")
 
-    batch = adapter.query_records(ref, Query(page=1, page_size=10))
+    batch = adapter.query_records(
+        ref, Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"}, page=1, page_size=10)
+    )
     assert len(batch.items) == 1
 
     raw = adapter.call_raw(ref, "raw", {"LAWD_CD": "11110"})

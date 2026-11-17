@@ -54,7 +54,9 @@ def _key_forms() -> set[str]:
 def _run(spec: SpecDefinition) -> tuple[dict[str, object], str]:
     transport = _UrlTransport([_standard_envelope([{"x": "1"}], total_count=1)])
     executor = SpecExecutor(transport, _Config())  # type: ignore[arg-type]
-    batch = executor.query(spec, _ref(spec), Query())
+    batch = executor.query(
+        spec, _ref(spec), Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"})
+    )
     provenance = batch.meta["provenance"]
     assert isinstance(provenance, dict)
     return provenance, json.dumps(batch.meta, ensure_ascii=False, default=str)

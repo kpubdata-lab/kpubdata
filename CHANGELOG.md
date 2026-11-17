@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Spec-backed normalized queries reject missing required filters and invalid declared enum values before sending a request (#969). Errors use public filter aliases without echoing rejected values. Supply all required filters explicitly; sample values in specs are not defaults. Explicit empty strings remain supplied values, and `call_raw()` retains provider-native parameter handling.
+
 ## [0.11.0] — 2026-11-16
 
 ### Highlights

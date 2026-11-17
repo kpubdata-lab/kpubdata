@@ -699,7 +699,8 @@ class SpecExecutor:
             format_hint: Optional format override.
 
         Raises:
-            InvalidRequestError: If pagination mode lacks required param name.
+            InvalidRequestError: If a declared required filter is absent or None,
+                an enum value is invalid, or pagination configuration is incomplete.
         """
         params: dict[str, str] = {}
         self._add_auth_params(spec, params)
@@ -759,7 +760,7 @@ class SpecExecutor:
             if encoded is None:
                 if param_spec is not None and param_spec.required:
                     raise InvalidRequestError(
-                        f"Required filter {provider_name!r} cannot be None",
+                        f"Required filter {param_spec.exposed_name!r} cannot be None",
                         provider=spec.provider,
                         dataset_id=spec.id,
                     )
@@ -771,6 +772,14 @@ class SpecExecutor:
                     dataset_id=spec.id,
                 )
             params[provider_name] = encoded
+
+        for param_spec in spec.params:
+            if param_spec.required and param_spec.name not in params:
+                raise InvalidRequestError(
+                    f"Required filter {param_spec.exposed_name!r} is missing",
+                    provider=spec.provider,
+                    dataset_id=spec.id,
+                )
 
         return params
 

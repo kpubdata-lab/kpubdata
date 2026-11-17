@@ -202,6 +202,16 @@ Date/period formats are provider-specific: pass the required format as a
 string, rather than relying on an implicit conversion. Existing text and
 numeric filter strings are not reformatted (#968).
 
+For spec-backed normalized queries, every declared required filter must be
+present after authentication, format and pagination parameters are assembled.
+Missing required filters and invalid declared enum values raise
+`InvalidRequestError` before transport. These errors name the public filter alias and
+omit rejected values. A spec's examples are sample calls, not implicit defaults.
+An explicit empty string remains a supplied value; an enum still restricts it
+when declared. Optional and undeclared filters keep their existing behavior.
+`call_raw()` keeps provider-native parameter handling without enforcing these
+normalized required/enum constraints (#969).
+
 ### List all pages
 
 ```python

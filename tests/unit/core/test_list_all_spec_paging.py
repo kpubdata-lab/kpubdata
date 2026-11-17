@@ -68,7 +68,11 @@ def test_buffering_is_lazy_and_bounded_by_max_pages(apt_spec: SpecDefinition) ->
         ],
     )
 
-    batches = adapter.query_records_all(_ref(apt_spec), Query(page_size=2), max_pages=5)
+    batches = adapter.query_records_all(
+        _ref(apt_spec),
+        Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"}, page_size=2),
+        max_pages=5,
+    )
     assert transport.calls == []
 
     first = next(iter(batches))
@@ -88,7 +92,7 @@ def test_page_size_drives_paging_instead_of_being_a_filter(apt_spec: SpecDefinit
     )
     dataset = Dataset(_ref(apt_spec), adapter)
 
-    batches = list(dataset.list_all(page_size=2, LAWD_CD="11680"))
+    batches = list(dataset.list_all(DEAL_YMD="202401", page_size=2, LAWD_CD="11680"))
 
     assert [len(batch.items) for batch in batches] == [2, 2]
     sent = [call["params"] for call in transport.calls]
@@ -113,7 +117,7 @@ def test_max_pages_raises_like_the_legacy_path(apt_spec: SpecDefinition) -> None
 
     received = []
     with pytest.raises(InvalidRequestError, match="Pagination limit exceeded"):
-        for batch in dataset.list_all(max_pages=2, page_size=2):
+        for batch in dataset.list_all(LAWD_CD="11680", DEAL_YMD="202401", max_pages=2, page_size=2):
             received.append(batch)
 
     # As in the legacy path, the pages already fetched are yielded first.
@@ -133,7 +137,11 @@ def test_page_size_above_max_size_is_capped_for_has_next(apt_spec: SpecDefinitio
         ],
     )
 
-    batches = list(adapter.query_records_all(_ref(spec), Query(page_size=5)))
+    batches = list(
+        adapter.query_records_all(
+            _ref(spec), Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"}, page_size=5)
+        )
+    )
 
     assert sum(len(batch.items) for batch in batches) == 5
     assert [call["params"]["numOfRows"] for call in transport.calls] == ["2", "2", "2"]  # type: ignore[index]
@@ -151,7 +159,9 @@ def test_each_batch_keeps_its_own_page_metadata(apt_spec: SpecDefinition) -> Non
         ],
     )
 
-    first, second = adapter.query_records_all(_ref(apt_spec), Query(page_size=2))
+    first, second = adapter.query_records_all(
+        _ref(apt_spec), Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"}, page_size=2)
+    )
 
     assert first.next_page == 2
     assert second.next_page is None

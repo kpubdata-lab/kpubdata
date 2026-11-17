@@ -34,7 +34,9 @@ def test_client_list_all_casts_one_type_across_pages() -> None:
         ]
     )
 
-    batches = list(client.dataset("datago.apt_trade").list_all(page_size=2, LAWD_CD="11680"))
+    batches = list(
+        client.dataset("datago.apt_trade").list_all(DEAL_YMD="202401", page_size=2, LAWD_CD="11680")
+    )
 
     values = [item["aptDong"] for batch in batches for item in batch.items]
     assert len(values) == 4
@@ -60,4 +62,6 @@ def test_unsupported_key_is_refused_rather_than_guessed() -> None:
     adapter = client._registry.get("datago")
     assert isinstance(adapter, CompositeProviderAdapter)
     with pytest.raises(NotImplementedError):
-        adapter.query_records_all(_catalogue_only_ref(adapter), Query())
+        adapter.query_records_all(
+            _catalogue_only_ref(adapter), Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"})
+        )

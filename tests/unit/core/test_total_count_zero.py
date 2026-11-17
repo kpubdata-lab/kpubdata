@@ -44,7 +44,9 @@ def test_a_missing_or_unreadable_count_is_unknown(apt_spec: SpecDefinition, raw:
 
 def test_query_keeps_zero(apt_spec: SpecDefinition) -> None:
     executor = _make_executor(FakeTransport([_standard_envelope(None, total_count=0)]))
-    batch = executor.query(apt_spec, _ref(apt_spec), Query())
+    batch = executor.query(
+        apt_spec, _ref(apt_spec), Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"})
+    )
     assert batch.total_count == 0
     assert batch.next_page is None
 
@@ -52,13 +54,30 @@ def test_query_keeps_zero(apt_spec: SpecDefinition) -> None:
 def test_list_all_keeps_zero(apt_spec: SpecDefinition) -> None:
     transport = FakeTransport([_standard_envelope(None, total_count=0)])
     adapter = SpecDatasetAdapter("datago", [apt_spec], _make_executor(transport))
-    batches = list(adapter.query_records_all(_ref(apt_spec), Query(page_size=2)))
+    batches = list(
+        adapter.query_records_all(
+            _ref(apt_spec), Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"}, page_size=2)
+        )
+    )
     assert [batch.total_count for batch in batches] == [0]
     assert len(transport.calls) == 1
 
 
 def test_zero_ends_paging_even_on_a_full_page(apt_spec: SpecDefinition) -> None:
     """The intent is written down: a reported 0 means no next page."""
-    assert _next_page(apt_spec, Query(page_size=2), 0, 2) is None
+    assert (
+        _next_page(
+            apt_spec, Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"}, page_size=2), 0, 2
+        )
+        is None
+    )
     # Unknown count still falls back to "a full page means there may be more".
-    assert _next_page(apt_spec, Query(page_size=2), None, 2) == 2
+    assert (
+        _next_page(
+            apt_spec,
+            Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"}, page_size=2),
+            None,
+            2,
+        )
+        == 2
+    )
