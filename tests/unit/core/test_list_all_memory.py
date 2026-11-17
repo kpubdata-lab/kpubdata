@@ -62,7 +62,10 @@ def _peak_bytes(spec: SpecDefinition, pages: int) -> tuple[int, int]:
     tracemalloc.start()
     try:
         rows = 0
-        for batch in adapter.query_records_all(_ref(spec), Query(page_size=_PAGE_SIZE)):
+        for batch in adapter.query_records_all(
+            _ref(spec),
+            Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"}, page_size=_PAGE_SIZE),
+        ):
             rows += len(batch.items)
         _current, peak = tracemalloc.get_traced_memory()
     finally:
@@ -87,7 +90,10 @@ def test_a_failing_page_yields_nothing_and_raises(apt_spec: SpecDefinition) -> N
     seen: list[int] = []
 
     with pytest.raises(TransportError, match="boom"):
-        for batch in adapter.query_records_all(_ref(apt_spec), Query(page_size=_PAGE_SIZE)):
+        for batch in adapter.query_records_all(
+            _ref(apt_spec),
+            Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"}, page_size=_PAGE_SIZE),
+        ):
             seen.append(len(batch.items))
 
     assert seen == []
@@ -198,7 +204,11 @@ def test_list_all_returns_rows_holding_a_lone_surrogate_unchanged(apt_spec: Spec
     transport = _SurrogateTransport()
     adapter = SpecDatasetAdapter("datago", [apt_spec], _make_executor(transport))
 
-    batches = list(adapter.query_records_all(_ref(apt_spec), Query(page_size=2)))
+    batches = list(
+        adapter.query_records_all(
+            _ref(apt_spec), Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401"}, page_size=2)
+        )
+    )
 
     assert transport.requests == 2
     names = [str(row["aptNm"]) for batch in batches for row in batch.items]

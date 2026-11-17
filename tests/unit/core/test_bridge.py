@@ -215,7 +215,9 @@ def test_query_records_routes_by_owner(
 ) -> None:
     """Spec-owned queries go to executor; catalog-owned queries go to inner adapter."""
     spec_ref = composite.get_dataset("apt_trade")
-    batch = composite.query_records(spec_ref, Query())
+    batch = composite.query_records(
+        spec_ref, Query(filters={"LAWD_CD": "11110", "DEAL_YMD": "202401"})
+    )
     assert batch.items == [{"from": "spec"}]
     assert inner.query_calls == []
 
@@ -279,7 +281,7 @@ def test_client_resolves_spec_dataset_end_to_end() -> None:
     with patch.object(HttpTransport, "request", return_value=mock_response) as mock_request:
         client = Client(provider_keys={"datago": "test-key"}, cache=False)
         dataset = client.dataset("datago.village_fcst")
-        batch = dataset.list()
+        batch = dataset.list(base_date="20260908", base_time="2300", nx=55, ny=127)
         assert isinstance(batch, RecordBatch)
         assert batch.items == [{"category": "T1H"}]
         assert mock_request.call_count == 1
@@ -304,7 +306,7 @@ def test_client_catalogue_dataset_unaffected() -> None:
     with patch.object(HttpTransport, "request", return_value=mock_response) as mock_request:
         client = Client(provider_keys={"datago": "test-key"}, cache=False)
         dataset = client.dataset("datago.air_quality")
-        batch = dataset.list()
+        batch = dataset.list(sido="서울")
         assert len(batch.items) == 1
         kwargs = mock_request.call_args.kwargs
         params = kwargs["params"]

@@ -65,7 +65,7 @@ class TestClientDatasetListContract:
         mock_request.return_value = _build_mock_response("success_single_page.json")
         client = Client(provider_keys={"datago": "test-key"}, cache=False)
         dataset = client.dataset("datago.village_fcst")
-        batch = dataset.list()
+        batch = dataset.list(base_date="20260908", base_time="2300", nx=55, ny=127)
 
         # Verify RecordBatch type
         assert isinstance(batch, RecordBatch)
@@ -79,7 +79,7 @@ class TestClientDatasetListContract:
         mock_request.return_value = _build_mock_response("success_single_page.json")
         client = Client(provider_keys={"datago": "test-key"}, cache=False)
         dataset = client.dataset("datago.village_fcst")
-        batch = dataset.list()
+        batch = dataset.list(base_date="20260908", base_time="2300", nx=55, ny=127)
 
         # Verify items property exists
         assert hasattr(batch, "items")
@@ -93,7 +93,7 @@ class TestClientDatasetListContract:
         mock_request.return_value = _build_mock_response("success_single_page.json")
         client = Client(provider_keys={"datago": "test-key"}, cache=False)
         dataset = client.dataset("datago.village_fcst")
-        batch = dataset.list()
+        batch = dataset.list(base_date="20260908", base_time="2300", nx=55, ny=127)
 
         # Verify items is iterable
         item_count = 0
@@ -110,7 +110,7 @@ class TestClientDatasetListContract:
         mock_request.return_value = _build_mock_response("success_single_page.json")
         client = Client(provider_keys={"datago": "test-key"}, cache=False)
         dataset = client.dataset("datago.village_fcst")
-        batch = dataset.list()
+        batch = dataset.list(base_date="20260908", base_time="2300", nx=55, ny=127)
 
         # Verify all items are dicts
         for item in batch.items:
@@ -126,7 +126,9 @@ class TestClientDatasetListContract:
         dataset = client.dataset("datago.village_fcst")
 
         # Call with keyword filter parameter
-        batch = dataset.list(page=1, page_size=10)
+        batch = dataset.list(
+            base_date="20260908", base_time="2300", nx=55, ny=127, page=1, page_size=10
+        )
 
         # Verify result is returned correctly
         assert batch is not None
@@ -162,7 +164,7 @@ class TestClientDatasetListContract:
         mock_request.return_value = _build_mock_response("success_empty.json")
         client = Client(provider_keys={"datago": "test-key"}, cache=False)
         dataset = client.dataset("datago.village_fcst")
-        batch = dataset.list()
+        batch = dataset.list(base_date="20260908", base_time="2300", nx=55, ny=127)
 
         # Verify items contract even with empty result
         assert hasattr(batch, "items")
@@ -180,7 +182,7 @@ class TestClientDatasetListContract:
         # Verify representative dataset follows contract
         dataset_key = "datago.village_fcst"
         dataset = client.dataset(dataset_key)
-        batch = dataset.list()
+        batch = dataset.list(base_date="20260908", base_time="2300", nx=55, ny=127)
 
         # Verify items contract is maintained
         assert hasattr(batch, "items"), f"Dataset {dataset_key} missing items attribute"

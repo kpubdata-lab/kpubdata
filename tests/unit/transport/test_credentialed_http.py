@@ -106,9 +106,7 @@ def test_bundled_spec_cannot_send_its_configured_key_over_http(spec: SpecDefinit
             patch(_SEND, side_effect=AssertionError("network send must not occur")) as send,
             pytest.raises(TransportError, match="require HTTPS"),
         ):
-            adapter.query_records(
-                _ref(spec), Query(filters={"LAWD_CD": "11110", "DEAL_YMD": "202401"})
-            )
+            adapter.query_records(_ref(spec), Query(filters=dict(spec.examples[0].params)))
     send.assert_not_called()
 
 

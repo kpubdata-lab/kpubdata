@@ -102,7 +102,11 @@ class TestTheSpecPath:
         transport = FakeTransport([FakeResponse(json.dumps(_STANDARD).encode("utf-8"))])
         executor: SpecExecutor = _make_executor(transport)
 
-        batch = executor.query(spec, build_spec_dataset_ref(spec), Query(page=1, page_size=10))
+        batch = executor.query(
+            spec,
+            build_spec_dataset_ref(spec),
+            Query(filters={"LAWD_CD": "11110", "DEAL_YMD": "202401"}, page=1, page_size=10),
+        )
 
         assert batch.items == []
         assert batch.total_count == 0

@@ -65,7 +65,8 @@ def test_spec_omits_none_optional_and_keeps_scalar_filters() -> None:
     spec = _golden_spec("apt_trade")
     transport = FakeTransport()
     params = _make_executor(transport).build_params(
-        spec, Query(filters={"optional": None, "LAWD_CD": "00220", "amount": 12.5})
+        spec,
+        Query(filters={"DEAL_YMD": "202401", "optional": None, "LAWD_CD": "00220", "amount": 12.5}),
     )
     assert "optional" not in params
     assert params["LAWD_CD"] == "00220"
@@ -85,11 +86,13 @@ def test_spec_boolean_needs_a_boolean_parameter_declaration() -> None:
     base = _golden_spec("apt_trade")
     spec = replace(base, params=(*base.params, ParamSpec(name="includeClosed", type="boolean")))
     params = _make_executor(FakeTransport()).build_params(
-        spec, Query(filters={"includeClosed": True})
+        spec, Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401", "includeClosed": True})
     )
     assert params["includeClosed"] == "true"
     with pytest.raises(InvalidRequestError, match="boolean"):
-        _make_executor(FakeTransport()).build_params(base, Query(filters={"includeClosed": True}))
+        _make_executor(FakeTransport()).build_params(
+            base, Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401", "includeClosed": True})
+        )
 
 
 def test_spec_rejects_list_and_raw_list_without_transport_calls() -> None:
