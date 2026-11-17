@@ -170,7 +170,10 @@ def test_build_params_reserved_keys_not_overwritten(apt_spec: SpecDefinition) ->
 
 def test_build_params_rejects_invalid_enum_before_network(apt_spec: SpecDefinition) -> None:
     """An aliased declared enum must reject invalid values before the provider call."""
-    params = (replace(apt_spec.params[0], alias="region", enum=("11110", "11680")), *apt_spec.params[1:])
+    params = (
+        replace(apt_spec.params[0], alias="region", enum=("11110", "11680")),
+        *apt_spec.params[1:],
+    )
     spec = replace(apt_spec, params=params)
     transport = FakeTransport()
     executor = _make_executor(transport)
@@ -187,7 +190,10 @@ def test_build_params_rejects_invalid_enum_before_network(apt_spec: SpecDefiniti
 
 def test_build_params_accepts_valid_enum_alias(apt_spec: SpecDefinition) -> None:
     """Alias validation preserves the provider parameter name on the wire."""
-    params = (replace(apt_spec.params[0], alias="region", enum=("11110", "11680")), *apt_spec.params[1:])
+    params = (
+        replace(apt_spec.params[0], alias="region", enum=("11110", "11680")),
+        *apt_spec.params[1:],
+    )
     spec = replace(apt_spec, params=params)
 
     result = _make_executor(FakeTransport()).build_params(
@@ -202,7 +208,13 @@ def test_build_params_enum_allows_missing_optional_filter(apt_spec: SpecDefiniti
     """An optional enum parameter remains absent when its value is None."""
     params = (
         *apt_spec.params,
-        replace(apt_spec.params[0], name="OPTIONAL", alias="option", required=False, enum=("A", "B")),
+        replace(
+            apt_spec.params[0],
+            name="OPTIONAL",
+            alias="option",
+            required=False,
+            enum=("A", "B"),
+        ),
     )
     spec = replace(apt_spec, params=params)
 
