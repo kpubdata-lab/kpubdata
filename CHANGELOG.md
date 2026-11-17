@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Spec executor `index_range` queries and recordings preserve the caller's page and capped size when constructing URLs, advance bulk requests to distinct ranges, and report index pagination metadata (#973). Explicit zero-based starts are honored. Raw calls retain their existing low-level paging defaults; bundled spec and fixture evidence is unchanged.
+
 - Wheels include the existing third-party notices alongside distribution metadata (#847), matching the notices already shipped in source archives. License declarations and unresolved inventory review items are unchanged.
 - Spec executor `page_display` pagination advances using its actual default page size, and both `page_display` and `pindex_psize` honor the declared size cap on the wire (#973). This prevents early termination and mismatched requests for these existing modes; bundled spec definitions and live-verification claims are unchanged.
 

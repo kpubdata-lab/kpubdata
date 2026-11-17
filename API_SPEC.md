@@ -227,6 +227,10 @@ pagination controls, not filters: they are never sent as raw provider
 parameters. When more than `max_pages` pages (default 1000) would be needed,
 the pages fetched so far are yielded and then `InvalidRequestError` is raised.
 
+Existing `index_range` specs report `query_support.pagination` as `index`.
+Normalized single and bulk queries use `page` and the capped `page_size` to
+construct each URL range, respecting the declared zero- or one-based start.
+
 For spec-backed datasets, `list_all()` decides column casting across all pages
 at once, so it **buffers**: every page is fetched before the first batch is
 yielded.
