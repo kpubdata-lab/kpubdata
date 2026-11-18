@@ -427,3 +427,12 @@ def test_the_https_job_runs_fixed_commands_only() -> None:
     assert holders == ["Record over https"]
     names = [s.get("name") for s in job["steps"]]
     assert names.index("Check what changed") < names.index("Open the pull request")
+    # Every generator CI checks with --check must have run before the change check.
+    regenerate = next(s for s in job["steps"] if s.get("name") == "Regenerate and verify")
+    for generator in (
+        "sync_supported_data.py",
+        "gen_dataset_status.py",
+        "gen_docs_examples.py",
+        "gen_status_page.py",
+    ):
+        assert f"scripts/{generator}" in regenerate["run"]

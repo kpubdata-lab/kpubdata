@@ -59,6 +59,8 @@ GENERATED = (
     "src/kpubdata/dataset_metadata.json",
     "src/kpubdata/dataset_status.json",
     "docs/dataset-examples.md",
+    "docs/status.md",
+    "docs/status/latest.json",
 )
 
 _WRITE_PERMISSIONS = frozenset({"admin", "write"})
