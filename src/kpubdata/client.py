@@ -40,8 +40,8 @@ class Client:
 
         Credentials are passed directly via ``provider_keys``; transport
         behavior is configured through ``timeout`` and ``max_retries``.
-        Built-in providers (datago, bok, kosis, lofin) are registered
-        lazily by default.
+        Every built-in provider is registered lazily: its adapter is
+        imported and built the first time it is used.
 
         A provider missing from ``provider_keys`` is looked up in the
         environment (``KPUBDATA_<PROVIDER>_API_KEY``, then
@@ -134,7 +134,13 @@ class Client:
         self.close()
 
     def close(self) -> None:
-        """Close the transport resources this client uses."""
+        """Close the transport resources this client uses.
+
+        Closing is idempotent. A client used again after ``close()`` rebuilds
+        its connection pools lazily, and a later ``close()`` closes them too:
+        the dedicated provider transports stay tracked for the client's
+        lifetime (#973).
+        """
 
         logger.debug(
             "Client closing",
@@ -143,7 +149,6 @@ class Client:
         self._transport.close()
         for provider_transport in self._provider_transports:
             provider_transport.close()
-        self._provider_transports.clear()
 
     @property
     def datasets(self) -> Catalog:
