@@ -5,7 +5,7 @@ description: Seoul Metro real-time fare information by station pair
 source:
   url: https://www.data.go.kr/data/15143846/openapi.do
 endpoint:
-  base_url: http://apis.data.go.kr/B553766/fare2
+  base_url: https://apis.data.go.kr/B553766/fare2
   operation: getRltmFare2
   method: GET
   format_param:
@@ -156,4 +156,4 @@ examples:
   page: 1
   page_size: 10
 status: active
-last_verified: '2026-09-09'
+last_verified: "2026-11-18"
