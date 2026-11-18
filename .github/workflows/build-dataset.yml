@@ -27,8 +27,8 @@
 # the next dispatch: runs share a concurrency group, so a third queued dispatch cancels
 # the second, and every pull request edits the same baseline and generated files.
 # Its pull request is opened with the workflow token, which starts no CI: close and
-# reopen it once the run has finished. Specs whose examples have aged out (the KMA
-# base_date ones) fail to record here and need their example dates refreshed first.
+# reopen it once the run has finished. KMA examples are moved to the latest published
+# base_date of their base_time first, since the API answers only for recent releases.
 name: Build Dataset (agent)
 
 on:
