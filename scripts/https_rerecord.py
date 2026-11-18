@@ -22,7 +22,8 @@ has a second, deterministic mode that runs the three subcommands of this script 
 
 ``switch``
     Moves every example ``base_date`` to the latest release its ``base_time`` has had
-    (KMA forecasts answer only for recent releases, so a recorded date ages out). For a
+    (KMA forecasts answer only for recent releases, so a recorded date ages out), in
+    the spec and in the dataset's example script, whose parameters must match it. For a
     baseline entry it also rewrites the spec's ``base_url`` from
     ``http://apis.data.go.kr/`` to ``https://apis.data.go.kr/`` (any other host is
     refused) and removes the dataset's line from the insecure-http baseline; a spec
@@ -35,9 +36,10 @@ has a second, deterministic mode that runs the three subcommands of this script 
     Runs after the recording and the generators, against the dispatch commit. Every
     changed path must be one this re-record produces; the spec may differ from the
     dispatch commit only in that scheme (baseline entries), in ``last_verified`` and in
-    example ``base_date`` values; the insecure-http baseline may lose exactly this
-    dataset's line for a baseline entry and must not change otherwise, and the legacy
-    baseline may lose only lines of this dataset's fixtures.
+    example ``base_date`` values, and the example script only in those dates; the
+    insecure-http baseline may lose exactly this dataset's line for a baseline entry
+    and must not change otherwise, and the legacy baseline may lose only lines of this
+    dataset's fixtures.
 
 The script uses the standard library only: the gate job runs it on a bare runner.
 
@@ -85,6 +87,11 @@ _HTTP_BASE_URL = re.compile(r'^(\s*base_url:\s*"?)http://apis\.data\.go\.kr/', r
 _LAST_VERIFIED = re.compile(r"^last_verified:.*\n?", re.MULTILINE)
 _BASE_DATE = re.compile(r"^(\s*base_date:\s*)(['\"]?)(\d{8})\2\s*$", re.MULTILINE)
 _BASE_TIME = re.compile(r"^\s*base_time:\s*['\"]?(\d{4})['\"]?\s*$", re.MULTILINE)
+#: ``base_date="…", base_time="…"`` in an example script: the script's parameters must
+#: match the spec's ``examples[]`` exactly, or replay finds no fixture.
+_SCRIPT_DATE = re.compile(
+    r'(base_date\s*=\s*["\'])(\d{8})(["\']\s*,\s*base_time\s*=\s*["\'](\d{4})["\'])'
+)
 _KST = ZoneInfo("Asia/Seoul")
 #: How long after its base_time a KMA release is safely published.
 _RELEASE_MARGIN = timedelta(hours=1)
@@ -212,6 +219,22 @@ def refresh_example_dates(text: str, now: datetime) -> str:
     return "".join(out)
 
 
+def refresh_script_dates(text: str, now: datetime) -> str:
+    """Move each ``base_date=`` in an example script to its ``base_time``'s latest release."""
+    return _SCRIPT_DATE.sub(
+        lambda m: f"{m.group(1)}{latest_release_date(m.group(4), now)}{m.group(3)}", text
+    )
+
+
+def _script_without_dates(text: str) -> str:
+    return _SCRIPT_DATE.sub(lambda m: f"{m.group(1)}<date>{m.group(3)}", text)
+
+
+def example_path(dataset: str) -> str:
+    provider, key = split_dataset(dataset)
+    return f"examples/{provider}/{key}.py"
+
+
 def _without_volatile(text: str) -> str:
     """Spec text with the lines a re-record may change blanked out."""
     text = _LAST_VERIFIED.sub("", text)
@@ -246,6 +269,12 @@ def switch(dataset: str, root: Path, now: datetime | None = None) -> list[str]:
     except ValueError as exc:
         return [f"{spec_path(dataset)}: {exc}"]
     spec.write_text(new_spec, encoding="utf-8")
+    script = root / example_path(dataset)
+    if script.is_file():
+        script.write_text(
+            refresh_script_dates(script.read_text(encoding="utf-8"), now or datetime.now(tz=_KST)),
+            encoding="utf-8",
+        )
     if listed:
         insecure.write_text(
             drop_baseline_lines(insecure_text, lambda entry: entry == dataset),
@@ -280,6 +309,12 @@ def _base_text(root: Path, base: str, path: str) -> str:
     return _git(root, "show", f"{base}:{path}")
 
 
+def _base_text_or_empty(root: Path, base: str, path: str) -> str:
+    """The file at ``base``, or empty when it did not exist there."""
+    listed = _git(root, "ls-tree", "--name-only", base, "--", path).strip()
+    return _base_text(root, base, path) if listed else ""
+
+
 def evaluate(
     dataset: str,
     *,
@@ -290,11 +325,19 @@ def evaluate(
     insecure: str,
     base_legacy: str,
     legacy: str,
+    base_script: str = "",
+    script: str = "",
 ) -> list[str]:
     """Problems with a re-record's changes; an empty list means it may be committed."""
     problems: list[str] = []
     fixtures = f"tests/fixtures/{fixture_prefix(dataset)}"
-    allowed = {spec_path(dataset), INSECURE_BASELINE, LEGACY_BASELINE, *GENERATED}
+    allowed = {
+        spec_path(dataset),
+        example_path(dataset),
+        INSECURE_BASELINE,
+        LEGACY_BASELINE,
+        *GENERATED,
+    }
     for path in changed:
         if path not in allowed and not path.startswith(fixtures):
             problems.append(f"{path} is not something an https re-record of {dataset} changes")
@@ -312,6 +355,9 @@ def evaluate(
                 f"{spec_path(dataset)} changed beyond the https scheme, last_verified"
                 " and example base_date values"
             )
+
+    if _script_without_dates(base_script) != _script_without_dates(script):
+        problems.append(f"{example_path(dataset)} changed beyond example base_date values")
 
     before = baseline_entries(base_insecure)
     after = baseline_entries(insecure)
@@ -353,6 +399,8 @@ def check(dataset: str, root: Path, base: str) -> list[str]:
         insecure=read(INSECURE_BASELINE),
         base_legacy=_base_text(root, base, LEGACY_BASELINE),
         legacy=read(LEGACY_BASELINE),
+        base_script=_base_text_or_empty(root, base, example_path(dataset)),
+        script=read(example_path(dataset)),
     )
 
 
