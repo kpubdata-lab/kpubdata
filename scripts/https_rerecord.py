@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Move one plain-http spec to https and guard what its re-record changes (#893).
+"""Move one plain-http spec to https, or re-record one on https, and guard the result.
+
+#893 is the switch; #907 is the re-record of a spec already on https whose fixtures
+name a recording run that did not succeed.
 
 Twenty-two bundled specs still call ``http://apis.data.go.kr`` and send the service key
 in the clear. Switching a ``base_url`` moves the spec digest, so the dataset's fixtures
@@ -12,26 +15,29 @@ has a second, deterministic mode that runs the three subcommands of this script 
 ``decide``
     Runs in the hosted ``gate`` job, which holds no secret. A run passes only when the
     account that started it can push to the repository, no issue number was given with
-    it, and the dataset id is well formed and listed in
-    ``scripts/insecure_http_baseline.txt``. Prints ``key=value`` lines for
+    it, and the dataset id is well formed and either listed in
+    ``scripts/insecure_http_baseline.txt`` (switch and re-record) or names a spec whose
+    ``base_url`` is already ``https://`` (re-record only). Prints ``key=value`` lines for
     ``$GITHUB_OUTPUT`` and exits 0 either way, like ``dataset_request_gate.py``.
 
 ``switch``
     Moves every example ``base_date`` to the latest release its ``base_time`` has had
-    (KMA forecasts answer only for recent releases, so a recorded date ages out), then
-    rewrites the spec's ``base_url`` from ``http://apis.data.go.kr/`` to
-    ``https://apis.data.go.kr/`` (any other host is refused), removes the dataset's line
-    from the insecure-http baseline, and removes its fixtures' lines from
-    ``scripts/legacy_evidence_baseline.txt``: a re-recorded meta carries
-    ``spec_sha256``, and ``verify_spec.py`` fails a legacy entry that does.
+    (KMA forecasts answer only for recent releases, so a recorded date ages out). For a
+    baseline entry it also rewrites the spec's ``base_url`` from
+    ``http://apis.data.go.kr/`` to ``https://apis.data.go.kr/`` (any other host is
+    refused) and removes the dataset's line from the insecure-http baseline; a spec
+    already on https keeps its URL and the baseline is left alone. Either way it removes
+    the dataset's fixtures' lines from ``scripts/legacy_evidence_baseline.txt``: a
+    re-recorded meta carries ``spec_sha256``, and ``verify_spec.py`` fails a legacy
+    entry that does.
 
 ``check``
     Runs after the recording and the generators, against the dispatch commit. Every
     changed path must be one this re-record produces; the spec may differ from the
-    dispatch commit only in that scheme, in ``last_verified`` and in example
-    ``base_date`` values; the insecure-http
-    baseline may lose exactly this dataset's line, and the legacy baseline only lines
-    of this dataset's fixtures.
+    dispatch commit only in that scheme (baseline entries), in ``last_verified`` and in
+    example ``base_date`` values; the insecure-http baseline may lose exactly this
+    dataset's line for a baseline entry and must not change otherwise, and the legacy
+    baseline may lose only lines of this dataset's fixtures.
 
 The script uses the standard library only: the gate job runs it on a bare runner.
 
@@ -70,6 +76,11 @@ GENERATED = (
 
 _WRITE_PERMISSIONS = frozenset({"admin", "write"})
 _DATASET_ID = re.compile(r"[a-z][a-z0-9_]{0,31}\.[a-z][a-z0-9_]{0,63}")
+#: The hosts an already-https spec may be re-recorded against: the run sends the
+#: data.go.kr key, so only data.go.kr's own gateways qualify.
+_HTTPS_BASE_URL = re.compile(
+    r'^\s*base_url:\s*"?https://(?:apis\.data\.go\.kr|api\.odcloud\.kr)/', re.MULTILINE
+)
 _HTTP_BASE_URL = re.compile(r'^(\s*base_url:\s*"?)http://apis\.data\.go\.kr/', re.MULTILINE)
 _LAST_VERIFIED = re.compile(r"^last_verified:.*\n?", re.MULTILINE)
 _BASE_DATE = re.compile(r"^(\s*base_date:\s*)(['\"]?)(\d{8})\2\s*$", re.MULTILINE)
@@ -111,7 +122,19 @@ def fixture_prefix(dataset: str) -> str:
 # --- decide ---------------------------------------------------------------------------
 
 
-def decide(*, permission: str, dataset: str, issue_number: str, baseline: str) -> list[str]:
+def is_https(spec_text: str) -> bool:
+    """Whether the spec's ``base_url`` already says ``https://``."""
+    return _HTTPS_BASE_URL.search(spec_text) is not None
+
+
+def decide(
+    *,
+    permission: str,
+    dataset: str,
+    issue_number: str,
+    baseline: str,
+    spec: str | None = None,
+) -> list[str]:
     """``key=value`` lines for ``$GITHUB_OUTPUT``. No value holds a newline."""
 
     def lines(allowed: bool, reason: str, chosen: str = "") -> list[str]:
@@ -133,9 +156,14 @@ def decide(*, permission: str, dataset: str, issue_number: str, baseline: str) -
         split_dataset(dataset)
     except ValueError:
         return lines(False, "the https dataset is not a well-formed dataset id")
-    if dataset not in baseline_entries(baseline):
-        return lines(False, f"{dataset} is not in {INSECURE_BASELINE}; nothing to switch")
-    return lines(True, f"{dataset} https re-record", dataset)
+    if dataset in baseline_entries(baseline):
+        return lines(True, f"{dataset} https switch and re-record", dataset)
+    if spec is not None and is_https(spec):
+        return lines(True, f"{dataset} re-record (already on https)", dataset)
+    return lines(
+        False,
+        f"{dataset} is neither in {INSECURE_BASELINE} nor a spec already on https",
+    )
 
 
 # --- switch ---------------------------------------------------------------------------
@@ -208,17 +236,21 @@ def switch(dataset: str, root: Path, now: datetime | None = None) -> list[str]:
     if not spec.is_file():
         return [f"{spec_path(dataset)} does not exist"]
     insecure_text = insecure.read_text(encoding="utf-8")
-    if dataset not in baseline_entries(insecure_text):
-        return [f"{dataset} is not in {INSECURE_BASELINE}"]
+    listed = dataset in baseline_entries(insecure_text)
+    text = spec.read_text(encoding="utf-8")
+    if not listed and not is_https(text):
+        return [f"{dataset} is neither in {INSECURE_BASELINE} nor a spec already on https"]
     try:
-        new_spec = switch_spec(spec.read_text(encoding="utf-8"))
+        new_spec = switch_spec(text) if listed else text
         new_spec = refresh_example_dates(new_spec, now or datetime.now(tz=_KST))
     except ValueError as exc:
         return [f"{spec_path(dataset)}: {exc}"]
     spec.write_text(new_spec, encoding="utf-8")
-    insecure.write_text(
-        drop_baseline_lines(insecure_text, lambda entry: entry == dataset), encoding="utf-8"
-    )
+    if listed:
+        insecure.write_text(
+            drop_baseline_lines(insecure_text, lambda entry: entry == dataset),
+            encoding="utf-8",
+        )
     if legacy.is_file():
         prefix = fixture_prefix(dataset)
         legacy.write_text(
@@ -267,10 +299,13 @@ def evaluate(
         if path not in allowed and not path.startswith(fixtures):
             problems.append(f"{path} is not something an https re-record of {dataset} changes")
 
+    listed = dataset in baseline_entries(base_insecure)
     try:
-        expected_spec = switch_spec(base_spec)
+        expected_spec = switch_spec(base_spec) if listed else base_spec
+        if not listed and not is_https(base_spec):
+            raise ValueError("it is not in the insecure-http baseline and not on https")
     except ValueError as exc:
-        problems.append(f"the dispatch commit's spec cannot be switched: {exc}")
+        problems.append(f"the dispatch commit's spec cannot be re-recorded: {exc}")
     else:
         if _without_volatile(expected_spec) != _without_volatile(spec):
             problems.append(
@@ -280,8 +315,10 @@ def evaluate(
 
     before = baseline_entries(base_insecure)
     after = baseline_entries(insecure)
-    if dataset not in before or sorted(after) != sorted(e for e in before if e != dataset):
+    if listed and sorted(after) != sorted(e for e in before if e != dataset):
         problems.append(f"{INSECURE_BASELINE} must lose exactly the line {dataset}")
+    if not listed and sorted(after) != sorted(before):
+        problems.append(f"{INSECURE_BASELINE} must not change when re-recording {dataset}")
 
     prefix = fixture_prefix(dataset)
     legacy_before = baseline_entries(base_legacy)
@@ -336,6 +373,13 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "decide":
         baseline = (REPO_ROOT / INSECURE_BASELINE).read_text(encoding="utf-8")
+        spec_text: str | None = None
+        try:
+            spec_file = REPO_ROOT / spec_path(args.dataset.strip())
+            if spec_file.is_file():
+                spec_text = spec_file.read_text(encoding="utf-8")
+        except ValueError:
+            spec_text = None
         print(
             "\n".join(
                 decide(
@@ -343,6 +387,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                     dataset=args.dataset.strip(),
                     issue_number=args.issue_number.strip(),
                     baseline=baseline,
+                    spec=spec_text,
                 )
             )
         )

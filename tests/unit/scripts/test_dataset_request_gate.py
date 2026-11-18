@@ -398,7 +398,7 @@ def test_an_https_dataset_passes_without_reading_an_issue(tmp_path: Path, fake_g
 @pytest.mark.parametrize(
     "env",
     [
-        {"HTTPS_DATASET": "datago.bus_arrival"},  # already on https: not in the baseline
+        {"HTTPS_DATASET": "datago.no_such_dataset"},  # neither in the baseline nor a spec
         {"HTTPS_DATASET": "--help"},
         {"HTTPS_DATASET": _STILL_HTTP, "ISSUE_NUMBER": "42"},
         {"HTTPS_DATASET": _STILL_HTTP, "FAKE_PERMISSION": "read"},
@@ -445,3 +445,11 @@ def test_the_https_job_runs_fixed_commands_only() -> None:
         "gen_status_page.py",
     ):
         assert f"scripts/{generator}" in regenerate["run"]
+
+
+def test_the_gate_step_passes_a_spec_already_on_https(tmp_path: Path, fake_gh: Path) -> None:
+    outputs, _ = _run_gate(tmp_path, fake_gh, ISSUE_NUMBER="", HTTPS_DATASET="datago.bus_arrival")
+
+    assert outputs["allowed"] == "true"
+    assert outputs["mode"] == "https"
+    assert outputs["dataset"] == "datago.bus_arrival"

@@ -19,8 +19,8 @@
 #
 # HTTPS re-record (#893). Dispatched with `https_dataset` instead of `issue_number`,
 # the workflow runs no agent and needs no model key: the `https-rerecord` job moves
-# one spec listed in scripts/insecure_http_baseline.txt from http:// to https://,
-# records its fixtures again, verifies them and opens a pull request — all fixed
+# one spec listed in scripts/insecure_http_baseline.txt from http:// to https://, or
+# takes a data.go.kr spec already on https as it is (#907), records its fixtures again, verifies them and opens a pull request — all fixed
 # commands (scripts/https_rerecord.py). It stays in this workflow because only a
 # successful run of this workflow counts as a recording (check_fixture_authorship.py).
 # Dispatch it from main, one dataset at a time, and merge each pull request before
@@ -38,7 +38,7 @@ on:
         description: "처리할 dataset-request/drift 이슈 번호 (https_dataset 과 함께 쓰지 않는다)"
         required: false
       https_dataset:
-        description: "https 로 옮겨 다시 녹화할 spec id — insecure_http_baseline.txt 에 있는 것만 (#893)"
+        description: "다시 녹화할 spec id — insecure_http_baseline.txt 에 있으면 https 로 옮긴다(#893), 이미 https 인 data.go.kr spec 이면 녹화만 다시 한다(#907)"
         required: false
 
 # Each job names what it needs.
@@ -92,8 +92,9 @@ jobs:
             case "$PERMISSION" in admin | maintain | write | triage | read) ;; *) PERMISSION=none ;; esac
           }
           if [ -n "$HTTPS_DATASET" ]; then
-            # The https re-record (#893): no issue is read, no agent runs. The dataset
-            # must be listed in the insecure-http baseline of the dispatch commit.
+            # The https re-record (#893, #907): no issue is read, no agent runs. The dataset
+            # must be in the dispatch commit's insecure-http baseline, or be a spec there
+            # already on https at a data.go.kr host.
             lookup_permission
             python3 scripts/https_rerecord.py decide \
               --permission="$PERMISSION" \
@@ -378,7 +379,7 @@ jobs:
       contents: write
       pull-requests: write
     env:
-      # Validated by the gate job against the dispatch commit's insecure-http baseline.
+      # Validated by the gate job against the dispatch commit (baseline entry or https spec).
       DATASET: ${{ needs.gate.outputs.dataset }}
       KPUBDATA_BASELINE_BASE: ${{ github.sha }}
       # A run must not rewrite uv.lock; the change check would refuse it anyway.
@@ -426,17 +427,26 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           BRANCH="rerecord/https-$DATASET"
-          TITLE="fix(specs): switch $DATASET to https and re-record its fixtures"
+          if git diff --quiet "$GITHUB_SHA" -- scripts/insecure_http_baseline.txt; then
+            # Already on https: only the recording is redone (#907).
+            TITLE="fix(fixtures): re-record $DATASET from a successful run"
+            WHAT="Re-records the fixtures of \`$DATASET\`, already on https, through the re-record mode of Build Dataset, so its metas name a successful recording run (#907)."
+            REFS="Refs #907"
+          else
+            TITLE="fix(specs): switch $DATASET to https and re-record its fixtures"
+            WHAT="Moves \`$DATASET\` from http:// to https:// and re-records its fixtures through the https re-record mode of Build Dataset (#893)."
+            REFS="Refs #893"
+          fi
           git config user.name "kpubdata-agent"
           git config user.email "agent@kpubdata.local"
           git checkout -b "$BRANCH"
           git add -A
-          git commit -m "$TITLE" -m "Refs #893"
+          git commit -m "$TITLE" -m "$REFS"
           AUTH=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')
           echo "::add-mask::$AUTH"
           git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" push origin "$BRANCH"
           RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           gh pr create --base main --head "$BRANCH" --title "$TITLE" --body "$(printf '%s\n\n%s\n\n%s' \
-            "Moves \`$DATASET\` from http:// to https:// and re-records its fixtures through the https re-record mode of Build Dataset (#893)." \
+            "$WHAT" \
             "Recording run: $RUN_URL. This pull request was opened with the workflow token, so no CI started: close and reopen it once that run has finished, and the fixture-authorship check will find a completed run." \
-            "Refs #893")"
+            "$REFS")"
