@@ -1,6 +1,6 @@
 {
  "dataset_id": "datago.tour_kor_location",
- "endpoint": "http://apis.data.go.kr/B551011/KorService2/locationBasedList2",
+ "endpoint": "https://apis.data.go.kr/B551011/KorService2/locationBasedList2",
  "example": "gangnam_1km",
  "format": "json",
  "params": {
@@ -14,7 +14,10 @@
   "radius": "1000",
   "serviceKey": "[REDACTED]"
  },
- "recorded_at": "2026-09-09T22:40:54+00:00",
+ "record_commit": "ff37ffc7b9dce537b4a6ffd94f10d21626bc6e1a",
+ "recorded_at": "2026-11-18T23:28:46+00:00",
  "recorded_by": "ci",
- "response_sha256": "4bf64526680e8508a43cd34c5c9e5c2a60e79c424390cb4c4b77c1a3834b87cd"
+ "response_sha256": "188a35c5d2836e5a91c247f049175919786246510d1c1189b7e8c1bfdf9bc268",
+ "run_ref": "44421014155",
+ "spec_sha256": "3b3c1acf927fbcdcaae68d6546882a1e6903edadece793e915b7c54e93118b6f"
 }
