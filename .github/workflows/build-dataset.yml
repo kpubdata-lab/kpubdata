@@ -426,7 +426,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           BRANCH="rerecord/https-$DATASET"
-          TITLE="fix(specs): switch $DATASET to https and re-record its fixtures"
+          if git diff --quiet "$GITHUB_SHA" -- scripts/insecure_http_baseline.txt; then
+            # Already on https: only the recording is redone (#907).
+            TITLE="fix(fixtures): re-record $DATASET from a successful run"
+          else
+            TITLE="fix(specs): switch $DATASET to https and re-record its fixtures"
+          fi
           git config user.name "kpubdata-agent"
           git config user.email "agent@kpubdata.local"
           git checkout -b "$BRANCH"

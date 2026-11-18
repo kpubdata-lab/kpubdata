@@ -33,7 +33,7 @@ SPEC_HTTPS = SPEC_HTTP.replace("http://", "https://")
 
 
 def _decide(**overrides: str) -> dict[str, str]:
-    arguments = {
+    arguments: dict[str, str] = {
         "permission": "write",
         "dataset": "datago.apt_trade",
         "issue_number": "",
@@ -47,7 +47,7 @@ def _decide(**overrides: str) -> dict[str, str]:
 def test_a_maintainer_may_switch_a_baseline_dataset() -> None:
     assert _decide() == {
         "allowed": "true",
-        "reason": "datago.apt_trade https re-record",
+        "reason": "datago.apt_trade https switch and re-record",
         "dataset": "datago.apt_trade",
     }
 
@@ -59,7 +59,7 @@ def test_anyone_without_push_access_is_refused(permission: str) -> None:
 
 @pytest.mark.parametrize(
     "dataset",
-    ["datago.bus_arrival", "datago.apt_trade\nx", "../etc.passwd", "Datago.apt_trade", "-x"],
+    ["datago.no_such", "datago.apt_trade\nx", "../etc.passwd", "Datago.apt_trade", "-x"],
 )
 def test_only_a_well_formed_baseline_entry_passes(dataset: str) -> None:
     outputs = _decide(dataset=dataset)
@@ -294,3 +294,54 @@ def test_the_check_allows_a_refreshed_date_and_nothing_else_in_the_examples() ->
     assert problems(refreshed) == []
     assert problems(refreshed.replace("base_time: '0600'", "base_time: '0700'"))
     assert problems(refreshed.replace("name: b", "name: c"))
+
+
+def test_a_spec_already_on_https_may_be_re_recorded() -> None:
+    outputs = _decide(dataset="datago.bus_arrival", spec=SPEC_HTTPS)
+    assert outputs["allowed"] == "true"
+    assert outputs["dataset"] == "datago.bus_arrival"
+
+
+def test_an_http_spec_outside_the_baseline_is_refused() -> None:
+    assert _decide(dataset="datago.bus_arrival", spec=SPEC_HTTP)["allowed"] == "false"
+
+
+def test_a_re_record_on_https_keeps_the_spec_and_the_insecure_baseline() -> None:
+    def problems(**overrides: str) -> list[str]:
+        arguments = {
+            "spec": SPEC_HTTPS.replace("2026-10-01", "2026-11-19"),
+            "insecure": "# header\ndatago.air_quality\n",
+        }
+        arguments.update(overrides)
+        return rerecord.evaluate(
+            "datago.apt_trade",
+            changed=["src/kpubdata/specs/datago/apt_trade.yaml"],
+            base_spec=SPEC_HTTPS,
+            spec=arguments["spec"],
+            base_insecure="# header\ndatago.air_quality\n",
+            insecure=arguments["insecure"],
+            base_legacy=LEGACY,
+            legacy="# header\ndatago/apt_trade_x/b.meta.json\n",
+        )
+
+    assert problems() == []
+    assert problems(insecure="# header\n")
+    assert problems(spec=SPEC_HTTPS.replace("getRTMSDataSvcAptTradeDev", "other"))
+
+
+def test_switch_re_records_a_spec_already_on_https(repo: Path) -> None:
+    spec = repo / "src/kpubdata/specs/datago/apt_trade.yaml"
+    spec.write_text(SPEC_HTTPS, encoding="utf-8")
+    (repo / rerecord.INSECURE_BASELINE).write_text(
+        "# header\ndatago.air_quality\n", encoding="utf-8"
+    )
+    _git(repo, "add", "-A")
+    _git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "https")
+
+    result = _cli(repo, "switch", "datago.apt_trade", "--root", str(repo))
+
+    assert result.returncode == 0, result.stderr
+    assert spec.read_text(encoding="utf-8") == SPEC_HTTPS
+    assert (repo / rerecord.INSECURE_BASELINE).read_text(encoding="utf-8") == (
+        "# header\ndatago.air_quality\n"
+    )

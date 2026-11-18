@@ -398,7 +398,7 @@ def test_an_https_dataset_passes_without_reading_an_issue(tmp_path: Path, fake_g
 @pytest.mark.parametrize(
     "env",
     [
-        {"HTTPS_DATASET": "datago.bus_arrival"},  # already on https: not in the baseline
+        {"HTTPS_DATASET": "datago.no_such_dataset"},  # neither in the baseline nor a spec
         {"HTTPS_DATASET": "--help"},
         {"HTTPS_DATASET": _STILL_HTTP, "ISSUE_NUMBER": "42"},
         {"HTTPS_DATASET": _STILL_HTTP, "FAKE_PERMISSION": "read"},
