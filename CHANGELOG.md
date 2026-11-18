@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - SDK entry documentation uses the display name KPubData SDK and focuses on independent Python installation and use (#975). Package, import and CLI names remain `kpubdata`; historical integration records are preserved.
+- The SDK's production-grade criteria (`docs/PRODUCTION_GRADE.md`, `docs/production_grade.yaml`) no longer carry a Studio-only tier, and the Builder conversion work queue is no longer listed in the public documentation navigation (#975). The file stays in the repository; the machine-checked base criteria are unchanged.
 
 ### Fixed
 

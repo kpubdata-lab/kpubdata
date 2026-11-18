@@ -7,8 +7,8 @@
 ## Overview
 
 A dataset progresses from **test-verified** to **production-grade** when it
-meets all the criteria below. Studio adds a second tier for datasets that
-are ready for the visual builder experience.
+meets all the criteria below. The criteria describe the SDK alone: a
+dataset is production-grade without any other application consuming it.
 
 In the canonical vocabulary ([ADR 0005](adrs/0005-dataset-status-vocabulary.md))
 these tiers are `fixture_verified` and `production`.
@@ -37,15 +37,6 @@ these tiers are `fixture_verified` and `production`.
 - [ ] Error paths return typed exceptions (not raw HTTP errors)
 - [ ] Pagination works correctly (`list_all()` completes without data loss)
 - [ ] The dataset works with `call_raw()` escape hatch
-
-## Studio Additional Requirements
-
-Datasets marked for Studio must additionally satisfy:
-
-- [ ] Parameter form can be generated from the spec
-- [ ] Preview renders correctly with real data
-- [ ] Dataset appears in Studio's catalog discovery
-- [ ] No known Studio-specific blockers
 
 ## Machine-Readable Version
 
