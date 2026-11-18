@@ -5,7 +5,7 @@ description: Daily air quality forecast dispatch (PM10/PM25/O3) with regional gr
 source:
   url: https://www.data.go.kr/data/15073861/openapi.do
 endpoint:
-  base_url: http://apis.data.go.kr/B552584/ArpltnInforInqireSvc
+  base_url: https://apis.data.go.kr/B552584/ArpltnInforInqireSvc
   operation: getMinuDustFrcstDspth
   method: GET
   format_param:
@@ -50,4 +50,4 @@ examples:
   page: 1
   page_size: 10
 status: active
-last_verified: '2026-09-09'
+last_verified: "2026-11-18"
