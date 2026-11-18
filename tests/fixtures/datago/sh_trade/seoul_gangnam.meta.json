@@ -1,6 +1,6 @@
 {
  "dataset_id": "datago.sh_trade",
- "endpoint": "http://apis.data.go.kr/1613000/RTMSDataSvcSHTrade/getRTMSDataSvcSHTrade",
+ "endpoint": "https://apis.data.go.kr/1613000/RTMSDataSvcSHTrade/getRTMSDataSvcSHTrade",
  "example": "seoul_gangnam",
  "format": "json",
  "params": {
@@ -11,7 +11,10 @@
   "resultType": "json",
   "serviceKey": "[REDACTED]"
  },
- "recorded_at": "2026-09-09T10:13:44+00:00",
+ "record_commit": "b6d930a33994a46a8a57cd905e463afab380647d",
+ "recorded_at": "2026-11-18T23:15:53+00:00",
  "recorded_by": "ci",
- "response_sha256": "25b228f993df0cd668c98c1c662905ff87f7e9cf0d3fd50009f3bafb49184809"
+ "response_sha256": "25b228f993df0cd668c98c1c662905ff87f7e9cf0d3fd50009f3bafb49184809",
+ "run_ref": "44419132032",
+ "spec_sha256": "4d61c9a2f661e2d1b8ca5873b3e464d1d76bf78a63280264cd90014df9d27278"
 }
