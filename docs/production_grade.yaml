@@ -50,16 +50,3 @@ base:
   - id: raw_escape_hatch
     description: call_raw works
     check: unit test covers call_raw
-
-studio_additional:
-  - id: parameter_form
-    description: Parameter form generatable
-    check: spec has examples[] with params
-
-  - id: preview_renders
-    description: Preview renders with real data
-    check: studio e2e test
-
-  - id: catalog_discovery
-    description: Appears in Studio catalog
-    check: studio catalog integration

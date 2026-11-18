@@ -86,7 +86,6 @@ nav:
       - 데이터셋 상태 전이: DATASET_STATUS.md
       - Live Probe: LIVE_PROBE.md
       - Production-grade 기준: PRODUCTION_GRADE.md
-      - 데이터셋 수요 목록: dataset-demand-list.md
   - ADR:
       - "0001: Dialect 아키텍처": adrs/0001-dialect-inspired-architecture.md
       - "0002: UX 표준화": adrs/0002-standardize-ux-not-native-shape.md
