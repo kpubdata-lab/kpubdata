@@ -293,7 +293,7 @@
       "required": true,
       "url": "https://www.data.go.kr/tcs/dss/selectApiDataDetailView.do?publicDataPk=15101578"
     },
-    "checked_on": "2026-09-09",
+    "checked_on": "2026-11-18",
     "level": "live_verified",
     "verification": "live_verified"
   },
