@@ -1,6 +1,6 @@
 {
  "dataset_id": "datago.airkorea_forecast",
- "endpoint": "http://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getMinuDustFrcstDspth",
+ "endpoint": "https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getMinuDustFrcstDspth",
  "example": "default",
  "format": "json",
  "params": {
@@ -9,7 +9,10 @@
   "returnType": "json",
   "serviceKey": "[REDACTED]"
  },
- "recorded_at": "2026-09-09T09:01:47+00:00",
- "recorded_by": "batch-agent",
- "response_sha256": "5dd85b7b132ced8b2713f12347fa16338072744a2f97448cc549d6957e314274"
+ "record_commit": "c47ed473513031949efcf666676bc2e2c72be0a2",
+ "recorded_at": "2026-11-18T11:39:36+00:00",
+ "recorded_by": "ci",
+ "response_sha256": "811f3f7deea150c9fc7fe7093dd92b31cab90b5c7df2f0057e9da188973eedf1",
+ "run_ref": "44296618190",
+ "spec_sha256": "f50d90ff358a8fec0e67b7261654a153608978e42edac3a896d6348232b6ccf7"
 }
