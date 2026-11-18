@@ -1,6 +1,6 @@
 # 데이터셋 검증 상태
 
-> 생성: `2026-11-18T23:03:03+00:00` — `scripts/gen_status_page.py` (직접 편집 금지)
+> 생성: `2026-11-18T23:06:14+00:00` — `scripts/gen_status_page.py` (직접 편집 금지)
 
 ## 요약
 
@@ -43,7 +43,7 @@
 | `datago.hospital_info` | 2026-09-09 | active |
 | `datago.metro_fare` | 2026-11-18 | active |
 | `datago.ocean_buoy` | - | unstable |
-| `datago.offi_rent` | 2026-09-09 | active |
+| `datago.offi_rent` | 2026-11-18 | active |
 | `datago.offi_trade` | 2026-11-18 | active |
 | `datago.rh_rent` | 2026-09-09 | active |
 | `datago.sh_rent` | 2026-09-09 | active |
