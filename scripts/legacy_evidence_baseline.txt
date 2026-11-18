@@ -5,7 +5,6 @@
 # Ratchet: this list may only shrink. Re-recording a fixture binds it to the
 # spec, and verify then fails until its line is removed here. A fixture that
 # is not listed must carry a non-empty spec_sha256.
-datago/air_quality/seoul.meta.json
 datago/air_station/baengnyeong_daily.meta.json
 datago/air_station/gangnam_full_page.meta.json
 datago/airkorea_forecast/default.meta.json
