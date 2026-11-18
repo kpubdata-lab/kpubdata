@@ -1,6 +1,6 @@
 {
  "dataset_id": "datago.hospital_info",
- "endpoint": "http://apis.data.go.kr/B551182/hospInfoServicev2/getHospBasisList",
+ "endpoint": "https://apis.data.go.kr/B551182/hospInfoServicev2/getHospBasisList",
  "example": "with_pagination",
  "format": "json",
  "params": {
@@ -9,7 +9,10 @@
   "pageNo": "1",
   "serviceKey": "[REDACTED]"
  },
- "recorded_at": "2026-09-09T09:02:23+00:00",
- "recorded_by": "batch-agent",
- "response_sha256": "58b8d905bae86a6f5e589b6869bd24bcc6e77b77ad17b475d7ab70092da3d634"
+ "record_commit": "6f6b6f96edfeeb3bca620ea2b9501c9d46d9eaab",
+ "recorded_at": "2026-11-18T23:49:55+00:00",
+ "recorded_by": "ci",
+ "response_sha256": "d93ea98a9aeb1176a748786ddc1394cf8b686d8ea814ea98f4f06aa00edf6c1f",
+ "run_ref": "44423845223",
+ "spec_sha256": "bffe1773a612f9604f07fc6f059b49130704bc8a344931f9c403e31dd031ccb2"
 }
