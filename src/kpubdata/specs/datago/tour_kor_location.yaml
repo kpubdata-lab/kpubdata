@@ -6,7 +6,7 @@ source:
   url: https://www.data.go.kr/data/15101578/openapi.do
   verified_at: '2026-09-10'
 endpoint:
-  base_url: http://apis.data.go.kr/B551011/KorService2
+  base_url: https://apis.data.go.kr/B551011/KorService2
   operation: locationBasedList2
   method: GET
   format_param:
@@ -192,4 +192,4 @@ examples:
   page: 1
   page_size: 10
 status: active
-last_verified: '2026-09-10'
+last_verified: "2026-11-18"
