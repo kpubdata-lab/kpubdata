@@ -5,7 +5,7 @@ description: MOLIT apartment rent real transaction data
 source:
   url: https://www.data.go.kr
 endpoint:
-  base_url: http://apis.data.go.kr/1613000/RTMSDataSvcAptRent
+  base_url: https://apis.data.go.kr/1613000/RTMSDataSvcAptRent
   operation: getRTMSDataSvcAptRent
   method: GET
   format_param:
@@ -159,7 +159,7 @@ examples:
   page: 1
   page_size: 10
 status: active
-last_verified: '2026-09-09'
+last_verified: "2026-11-18"
 license:
   type: 공공누리_1유형
   commercial_use: true
