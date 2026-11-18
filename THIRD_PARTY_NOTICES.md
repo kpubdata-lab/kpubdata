@@ -117,7 +117,7 @@ optional extra; `dev` only for development and documentation.
 | tomli | 2.4.1 | dev | (none) | needs review | https://pypi.org/project/tomli/ |
 | truststore | 0.10.4 | extra:mcp | MIT | recorded | https://github.com/sethmlarson/truststore |
 | types-pytz | 2026.1.1.20260408 | dev | Apache-2.0 | recorded | https://github.com/python/typeshed |
-| types-pyyaml | 6.0.12.20260906 | dev | Apache-2.0 | recorded | https://github.com/python/typeshed |
+| types-pyyaml | 6.0.12.20261113 | dev | Apache-2.0 | recorded | https://github.com/python/typeshed |
 | typing-extensions | 4.16.0 | runtime | PSF-2.0 | recorded | https://github.com/python/typing_extensions |
 | typing-inspection | 0.4.5 | extra:mcp | MIT | recorded | https://github.com/pydantic/typing-inspection |
 | tzdata | 2025.3 | extra:krx | Apache-2.0 | recorded | https://github.com/python/tzdata |
