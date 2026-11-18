@@ -1,6 +1,6 @@
 {
  "dataset_id": "datago.rh_rent",
- "endpoint": "http://apis.data.go.kr/1613000/RTMSDataSvcRHRent/getRTMSDataSvcRHRent",
+ "endpoint": "https://apis.data.go.kr/1613000/RTMSDataSvcRHRent/getRTMSDataSvcRHRent",
  "example": "seoul_gangnam",
  "format": "json",
  "params": {
@@ -11,7 +11,10 @@
   "resultType": "json",
   "serviceKey": "[REDACTED]"
  },
- "recorded_at": "2026-09-09T10:13:44+00:00",
+ "record_commit": "3f687765b9a143f4c3eb6ab0b58f36cbbd9837bc",
+ "recorded_at": "2026-11-18T23:09:19+00:00",
  "recorded_by": "ci",
- "response_sha256": "3a799aa6d2d704dc91410b47c06cae5225e5da45270eff4c5eb9f85c57729bbe"
+ "response_sha256": "3a799aa6d2d704dc91410b47c06cae5225e5da45270eff4c5eb9f85c57729bbe",
+ "run_ref": "44418147291",
+ "spec_sha256": "fc35d934b0810e2aa0fd5e567384b7646a7726000cd3ec3b5dfe91fb99a2976d"
 }
