@@ -1,6 +1,6 @@
 {
  "dataset_id": "localdata.bakery",
- "endpoint": "http://apis.data.go.kr/1741000/bakeries/info",
+ "endpoint": "https://apis.data.go.kr/1741000/bakeries/info",
  "example": "default",
  "format": "json",
  "params": {
@@ -9,7 +9,10 @@
   "serviceKey": "[REDACTED]",
   "type": "json"
  },
- "recorded_at": "2026-09-09T08:59:35+00:00",
- "recorded_by": "batch-agent",
- "response_sha256": "d647259d942f4030452f829350d490673261eeec0b400c3786a07b7c897a2ab8"
+ "record_commit": "88ae57354807dac763f990b406ba613d686f39de",
+ "recorded_at": "2026-11-18T23:31:43+00:00",
+ "recorded_by": "ci",
+ "response_sha256": "dd3edeae1b65ea5f3064fb79418b22391c1686dd368f438c950c009c4b3ef358",
+ "run_ref": "44421421995",
+ "spec_sha256": "cfb00675f6fe37d99dff48d2f96791ca83380351614e751031eb14510a5cd08a"
 }

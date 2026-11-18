@@ -10,6 +10,5 @@ datago/hospital_info/with_pagination.meta.json
 datago/village_fcst/seoul_default.meta.json
 datago/village_fcst/seoul_evening.meta.json
 datago/village_fcst/xml_response.meta.json
-localdata/bakery/default.meta.json
 localdata/general_restaurant/default.meta.json
 localdata/rest_cafe/default.meta.json
