@@ -11,7 +11,9 @@ from __future__ import annotations
 import subprocess
 import sys
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -234,3 +236,61 @@ def test_switch_refuses_a_dataset_outside_the_baseline(repo: Path) -> None:
     result = _cli(repo, "switch", "datago.air_station", "--root", str(repo))
     assert result.returncode == 1
     assert _git(repo, "status", "--porcelain") == ""
+
+
+_KST = ZoneInfo("Asia/Seoul")
+_KMA_SPEC = (
+    "endpoint:\n  base_url: http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0\n"
+    "examples:\n- name: a\n  params:\n    base_date: '20260908'\n    base_time: '2300'\n"
+    "- name: b\n  params:\n    base_date: '20260908'\n    base_time: '0600'\n"
+)
+
+
+@pytest.mark.parametrize(
+    ("now", "base_time", "expected"),
+    [
+        (datetime(2026, 11, 19, 8, 0, tzinfo=_KST), "0600", "20261119"),
+        (datetime(2026, 11, 19, 6, 30, tzinfo=_KST), "0600", "20261118"),  # not out yet
+        (datetime(2026, 11, 19, 23, 30, tzinfo=_KST), "2300", "20261118"),
+        (datetime(2026, 11, 20, 0, 30, tzinfo=_KST), "2300", "20261119"),
+        (datetime(2026, 11, 18, 23, 0, tzinfo=UTC), "0600", "20261119"),  # 08:00 KST
+    ],
+)
+def test_the_release_date_is_the_latest_published_one(
+    now: datetime, base_time: str, expected: str
+) -> None:
+    assert rerecord.latest_release_date(base_time, now) == expected
+
+
+def test_example_dates_move_to_their_own_latest_release() -> None:
+    now = datetime(2026, 11, 19, 8, 0, tzinfo=_KST)
+    refreshed = rerecord.refresh_example_dates(_KMA_SPEC, now)
+    assert "base_date: '20261118'\n    base_time: '2300'" in refreshed
+    assert "base_date: '20261119'\n    base_time: '0600'" in refreshed
+    assert rerecord.refresh_example_dates(SPEC_HTTP, now) == SPEC_HTTP
+
+
+def test_a_base_date_without_a_base_time_is_refused() -> None:
+    with pytest.raises(ValueError):
+        rerecord.refresh_example_dates("params:\n  base_date: '20260908'\n", datetime.now(_KST))
+
+
+def test_the_check_allows_a_refreshed_date_and_nothing_else_in_the_examples() -> None:
+    switched = rerecord.switch_spec(_KMA_SPEC)
+    refreshed = rerecord.refresh_example_dates(switched, datetime(2026, 11, 19, 8, 0, tzinfo=_KST))
+
+    def problems(spec: str) -> list[str]:
+        return rerecord.evaluate(
+            "datago.village_fcst",
+            changed=["src/kpubdata/specs/datago/village_fcst.yaml"],
+            base_spec=_KMA_SPEC,
+            spec=spec,
+            base_insecure="datago.village_fcst\n",
+            insecure="",
+            base_legacy="",
+            legacy="",
+        )
+
+    assert problems(refreshed) == []
+    assert problems(refreshed.replace("base_time: '0600'", "base_time: '0700'"))
+    assert problems(refreshed.replace("name: b", "name: c"))

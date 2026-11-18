@@ -17,7 +17,9 @@ has a second, deterministic mode that runs the three subcommands of this script 
     ``$GITHUB_OUTPUT`` and exits 0 either way, like ``dataset_request_gate.py``.
 
 ``switch``
-    Rewrites the spec's ``base_url`` from ``http://apis.data.go.kr/`` to
+    Moves every example ``base_date`` to the latest release its ``base_time`` has had
+    (KMA forecasts answer only for recent releases, so a recorded date ages out), then
+    rewrites the spec's ``base_url`` from ``http://apis.data.go.kr/`` to
     ``https://apis.data.go.kr/`` (any other host is refused), removes the dataset's line
     from the insecure-http baseline, and removes its fixtures' lines from
     ``scripts/legacy_evidence_baseline.txt``: a re-recorded meta carries
@@ -26,7 +28,8 @@ has a second, deterministic mode that runs the three subcommands of this script 
 ``check``
     Runs after the recording and the generators, against the dispatch commit. Every
     changed path must be one this re-record produces; the spec may differ from the
-    dispatch commit only in that scheme and in ``last_verified``; the insecure-http
+    dispatch commit only in that scheme, in ``last_verified`` and in example
+    ``base_date`` values; the insecure-http
     baseline may lose exactly this dataset's line, and the legacy baseline only lines
     of this dataset's fixtures.
 
@@ -46,7 +49,9 @@ import re
 import subprocess
 import sys
 from collections.abc import Callable, Sequence
+from datetime import datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -67,6 +72,11 @@ _WRITE_PERMISSIONS = frozenset({"admin", "write"})
 _DATASET_ID = re.compile(r"[a-z][a-z0-9_]{0,31}\.[a-z][a-z0-9_]{0,63}")
 _HTTP_BASE_URL = re.compile(r'^(\s*base_url:\s*"?)http://apis\.data\.go\.kr/', re.MULTILINE)
 _LAST_VERIFIED = re.compile(r"^last_verified:.*\n?", re.MULTILINE)
+_BASE_DATE = re.compile(r"^(\s*base_date:\s*)(['\"]?)(\d{8})\2\s*$", re.MULTILINE)
+_BASE_TIME = re.compile(r"^\s*base_time:\s*['\"]?(\d{4})['\"]?\s*$", re.MULTILINE)
+_KST = ZoneInfo("Asia/Seoul")
+#: How long after its base_time a KMA release is safely published.
+_RELEASE_MARGIN = timedelta(hours=1)
 
 
 def baseline_entries(text: str) -> list[str]:
@@ -139,6 +149,47 @@ def switch_spec(text: str) -> str:
     return new
 
 
+def latest_release_date(base_time: str, now: datetime) -> str:
+    """The most recent KST date whose ``base_time`` release is already published."""
+    local = now.astimezone(_KST)
+    release = local.replace(
+        hour=int(base_time[:2]), minute=int(base_time[2:]), second=0, microsecond=0
+    )
+    if local < release + _RELEASE_MARGIN:
+        release -= timedelta(days=1)
+    return release.strftime("%Y%m%d")
+
+
+def refresh_example_dates(text: str, now: datetime) -> str:
+    """Move each ``base_date`` to the latest release of the ``base_time`` after it.
+
+    A spec without ``base_date`` comes back unchanged. A ``base_date`` with no
+    ``base_time`` before the next ``base_date`` is refused: the date alone does not say
+    which release is meant.
+    """
+    out: list[str] = []
+    last = 0
+    dates = list(_BASE_DATE.finditer(text))
+    for index, match in enumerate(dates):
+        end = dates[index + 1].start() if index + 1 < len(dates) else len(text)
+        window = text[match.end() : end]
+        time_match = _BASE_TIME.search(window)
+        if time_match is None:
+            raise ValueError("an example has base_date without a base_time after it")
+        new_date = latest_release_date(time_match.group(1), now)
+        out.append(text[last : match.start(3)])
+        out.append(new_date)
+        last = match.end(3)
+    out.append(text[last:])
+    return "".join(out)
+
+
+def _without_volatile(text: str) -> str:
+    """Spec text with the lines a re-record may change blanked out."""
+    text = _LAST_VERIFIED.sub("", text)
+    return _BASE_DATE.sub(lambda m: f"{m.group(1)}{m.group(2)}<date>{m.group(2)}", text)
+
+
 def drop_baseline_lines(text: str, drop: Callable[[str], bool]) -> str:
     """The baseline text without the entry lines ``drop`` selects; comments stay."""
     kept = [
@@ -149,7 +200,7 @@ def drop_baseline_lines(text: str, drop: Callable[[str], bool]) -> str:
     return "".join(kept)
 
 
-def switch(dataset: str, root: Path) -> list[str]:
+def switch(dataset: str, root: Path, now: datetime | None = None) -> list[str]:
     """Apply the switch in ``root``. Returns problems; an empty list means it applied."""
     spec = root / spec_path(dataset)
     insecure = root / INSECURE_BASELINE
@@ -161,6 +212,7 @@ def switch(dataset: str, root: Path) -> list[str]:
         return [f"{dataset} is not in {INSECURE_BASELINE}"]
     try:
         new_spec = switch_spec(spec.read_text(encoding="utf-8"))
+        new_spec = refresh_example_dates(new_spec, now or datetime.now(tz=_KST))
     except ValueError as exc:
         return [f"{spec_path(dataset)}: {exc}"]
     spec.write_text(new_spec, encoding="utf-8")
@@ -220,9 +272,10 @@ def evaluate(
     except ValueError as exc:
         problems.append(f"the dispatch commit's spec cannot be switched: {exc}")
     else:
-        if _LAST_VERIFIED.sub("", expected_spec) != _LAST_VERIFIED.sub("", spec):
+        if _without_volatile(expected_spec) != _without_volatile(spec):
             problems.append(
-                f"{spec_path(dataset)} changed beyond the https scheme and last_verified"
+                f"{spec_path(dataset)} changed beyond the https scheme, last_verified"
+                " and example base_date values"
             )
 
     before = baseline_entries(base_insecure)

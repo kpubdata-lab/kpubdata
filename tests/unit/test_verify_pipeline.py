@@ -986,8 +986,6 @@ class TestInsecureHttp:
 # ----------------------------------------------------------------------
 
 _TERM_ENTRIES = ["datago.ultra_srt_fcst", "datago.ultra_srt_ncst"]
-# The kept entry must still be a plain-http spec on main; village_fcst waits for its
-# example dates to be refreshed before it can move to https (#893).
 _HTTP_ENTRIES = ["datago.village_fcst", "datago.apt_trade"]
 
 
@@ -1022,6 +1020,10 @@ def test_a_pure_removal_passes(
     baseline.write_text(entries[0] + "\n", encoding="utf-8")
     monkeypatch.setattr(verify_mod, baseline_attr, baseline)
     monkeypatch.setattr(verify_mod, "_base_branch_entries", lambda _p: set(entries))
+    if baseline_attr == "INSECURE_HTTP_BASELINE":
+        # The real specs move to https one by one (#893); keep the kept entry on http.
+        http_specs = [_http_spec(entry, base_url=_HTTP_URL) for entry in entries]
+        monkeypatch.setattr(verify_mod, "discover_specs", lambda: http_specs)
 
     steps = getattr(verify_mod, check_attr)()
 
