@@ -1,6 +1,6 @@
 {
  "dataset_id": "datago.apt_trade",
- "endpoint": "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev",
+ "endpoint": "https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev",
  "example": "seoul_gangnam_2024_01_full_page",
  "format": "json",
  "params": {
@@ -11,7 +11,10 @@
   "resultType": "json",
   "serviceKey": "[REDACTED]"
  },
- "recorded_at": "2026-09-09T09:01:49+00:00",
- "recorded_by": "batch-agent",
- "response_sha256": "239231a90c0264c136075a8587a743faa23846dd8c5dfd0aaf58c4b51713559a"
+ "record_commit": "1de7a16cf4e550cfdb0b9291b4e8b8f474f856fe",
+ "recorded_at": "2026-11-18T11:45:44+00:00",
+ "recorded_by": "ci",
+ "response_sha256": "239231a90c0264c136075a8587a743faa23846dd8c5dfd0aaf58c4b51713559a",
+ "run_ref": "44297527128",
+ "spec_sha256": "113ad0c7a138fa7801d73381e97340bcab05abcd8ed7910e1b5a9024fae3e25d"
 }
