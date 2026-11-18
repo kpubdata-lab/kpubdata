@@ -22,7 +22,6 @@ datago.apt_trade
 datago.hospital_info
 datago.metro_fare
 datago.offi_rent
-datago.offi_trade
 datago.rh_rent
 datago.sh_rent
 datago.sh_trade

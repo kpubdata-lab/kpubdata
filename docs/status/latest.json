@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-10-12T03:39:19+00:00",
+  "generated_at": "2026-11-18T11:10:44+00:00",
   "spec_datasets": {
     "total": 25,
     "verified": 24,
     "verified_recent_90d": 24,
-    "recent_reference": "2026-10-01",
+    "recent_reference": "2026-11-18",
     "per_dataset": {
       "datago.air_quality": {
         "last_verified": "2026-09-09",
@@ -47,7 +47,7 @@
         "status": "active"
       },
       "datago.offi_trade": {
-        "last_verified": "2026-09-09",
+        "last_verified": "2026-11-18",
         "status": "active"
       },
       "datago.rh_rent": {

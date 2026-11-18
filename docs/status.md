@@ -1,10 +1,10 @@
 # 데이터셋 검증 상태
 
-> 생성: `2026-10-12T03:39:19+00:00` — `scripts/gen_status_page.py` (직접 편집 금지)
+> 생성: `2026-11-18T11:10:44+00:00` — `scripts/gen_status_page.py` (직접 편집 금지)
 
 ## 요약
 
-- spec 데이터셋: **25종** (검증 24종, 최신 검증일 2026-10-01 기준 90일 이내 24종)
+- spec 데이터셋: **25종** (검증 24종, 최신 검증일 2026-11-18 기준 90일 이내 24종)
 - catalogue 데이터셋: 131종 (bok 4, datago 25, fds 1, kipris 1, korean 1, kosis 2, krx 3, law 3, localdata 56, lofin 6, neis 2, semas 17, seoul 7, sgis 3)
 - SUPPORTED_DATA 행 분포: {'지원': 24, '활용신청 대기': 94, '스키마만': 36, '폐기': 1, '진행 중': 1, '예정': 1} (합계 157)
 
@@ -44,7 +44,7 @@
 | `datago.metro_fare` | 2026-09-09 | active |
 | `datago.ocean_buoy` | - | unstable |
 | `datago.offi_rent` | 2026-09-09 | active |
-| `datago.offi_trade` | 2026-09-09 | active |
+| `datago.offi_trade` | 2026-11-18 | active |
 | `datago.rh_rent` | 2026-09-09 | active |
 | `datago.sh_rent` | 2026-09-09 | active |
 | `datago.sh_trade` | 2026-09-09 | active |
