@@ -1,6 +1,6 @@
 {
  "dataset_id": "datago.air_station",
- "endpoint": "http://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getMsrstnAcctoRltmMesureDnsty",
+ "endpoint": "https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getMsrstnAcctoRltmMesureDnsty",
  "example": "baengnyeong_daily",
  "format": "json",
  "params": {
@@ -11,7 +11,10 @@
   "serviceKey": "[REDACTED]",
   "stationName": "백령도"
  },
- "recorded_at": "2026-09-09T09:01:47+00:00",
- "recorded_by": "batch-agent",
- "response_sha256": "fdab7243a450ac33958c2157c5b285bda1a380770e41ffd9e121c3931a76a1fb"
+ "record_commit": "83e8cc6e52d42504d99f40bfc7dd095a80625d34",
+ "recorded_at": "2026-11-18T11:36:45+00:00",
+ "recorded_by": "ci",
+ "response_sha256": "a77eec68324708fc6f2403e8c6e72706da3481ddfc6fc5dc074c2655c113e657",
+ "run_ref": "44296190084",
+ "spec_sha256": "81bd538184ed443fef855306b85fcefd1dc4702b8744490434d086743b699183"
 }
