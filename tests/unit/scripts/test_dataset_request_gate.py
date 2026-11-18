@@ -201,7 +201,9 @@ def test_the_self_hosted_job_waits_for_the_hosted_gate() -> None:
 
     assert jobs["gate"]["runs-on"] == "ubuntu-latest"
     assert jobs["build"]["needs"] == "gate"
-    assert jobs["build"]["if"] == "needs.gate.outputs.allowed == 'true'"
+    assert jobs["build"]["if"] == (
+        "needs.gate.outputs.allowed == 'true' && needs.gate.outputs.mode == 'agent'"
+    )
     assert "secrets." not in yaml.safe_dump(jobs["gate"])
 
 
@@ -220,7 +222,7 @@ def test_no_checkout_keeps_its_credential() -> None:
         if str(step.get("uses", "")).startswith("actions/checkout@")
     ]
 
-    assert len(checkouts) == 2
+    assert len(checkouts) == 3  # gate, build, https-rerecord
     assert all(step["with"]["persist-credentials"] is False for step in checkouts)
 
 
@@ -363,3 +365,65 @@ def test_a_malformed_actor_is_not_looked_up(tmp_path: Path, fake_gh: Path) -> No
 
     assert outputs["allowed"] == "false"
     assert "collaborators" not in gh_calls
+
+
+def test_a_plain_request_runs_in_agent_mode(tmp_path: Path, fake_gh: Path) -> None:
+    outputs, _ = _run_gate(tmp_path, fake_gh)
+
+    assert outputs["mode"] == "agent"
+
+
+def test_an_https_dataset_passes_without_reading_an_issue(tmp_path: Path, fake_gh: Path) -> None:
+    outputs, gh_calls = _run_gate(
+        tmp_path, fake_gh, ISSUE_NUMBER="", HTTPS_DATASET="datago.apt_trade"
+    )
+
+    assert outputs["allowed"] == "true"
+    assert outputs["mode"] == "https"
+    assert outputs["dataset"] == "datago.apt_trade"
+    assert outputs["agent"] == ""
+    assert outputs["issue_number"] == ""
+    assert "/issues/" not in gh_calls
+
+
+@pytest.mark.parametrize(
+    "env",
+    [
+        {"HTTPS_DATASET": "datago.bus_arrival"},  # already on https: not in the baseline
+        {"HTTPS_DATASET": "--help"},
+        {"HTTPS_DATASET": "datago.apt_trade", "ISSUE_NUMBER": "42"},
+        {"HTTPS_DATASET": "datago.apt_trade", "FAKE_PERMISSION": "read"},
+    ],
+    ids=["not-in-baseline", "option-like", "with-issue", "read-only"],
+)
+def test_the_gate_step_refuses_an_https_run_it_cannot_justify(
+    tmp_path: Path, fake_gh: Path, env: dict[str, str]
+) -> None:
+    environment = {"ISSUE_NUMBER": "", **env}
+    outputs, _ = _run_gate(tmp_path, fake_gh, **environment)
+
+    assert outputs["allowed"] == "false"
+    assert outputs["mode"] == "https"
+    assert outputs["dataset"] == ""
+
+
+def test_the_https_job_runs_fixed_commands_only() -> None:
+    jobs = _jobs()
+    job = jobs["https-rerecord"]
+    assert job["needs"] == "gate"
+    assert job["if"] == (
+        "needs.gate.outputs.allowed == 'true' && needs.gate.outputs.mode == 'https'"
+        " && github.ref == 'refs/heads/main'"
+    )
+    assert job["env"]["UV_FROZEN"] == "1"
+    assert job["runs-on"] == ["self-hosted", "kr"]
+    assert job["permissions"] == {"contents": "write", "pull-requests": "write"}
+    assert job["env"]["DATASET"] == "${{ needs.gate.outputs.dataset }}"
+    dumped = yaml.safe_dump(job)
+    assert "opencode" not in dumped
+    assert "OPENCODE_API_KEY" not in dumped
+    # The provider key reaches the recording step and nothing else.
+    holders = [s.get("name") for s in job["steps"] if "secrets." in yaml.safe_dump(s)]
+    assert holders == ["Record over https"]
+    names = [s.get("name") for s in job["steps"]]
+    assert names.index("Check what changed") < names.index("Open the pull request")
