@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-18T23:36:28+00:00",
+  "generated_at": "2026-11-18T23:39:28+00:00",
   "spec_datasets": {
     "total": 25,
     "verified": 24,
@@ -103,7 +103,7 @@
         "status": "active"
       },
       "localdata.rest_cafe": {
-        "last_verified": "2026-09-09",
+        "last_verified": "2026-11-18",
         "status": "active"
       }
     }

@@ -1,6 +1,6 @@
 {
  "dataset_id": "localdata.rest_cafe",
- "endpoint": "http://apis.data.go.kr/1741000/rest_cafes/info",
+ "endpoint": "https://apis.data.go.kr/1741000/rest_cafes/info",
  "example": "default",
  "format": "json",
  "params": {
@@ -9,7 +9,10 @@
   "serviceKey": "[REDACTED]",
   "type": "json"
  },
- "recorded_at": "2026-09-09T09:01:02+00:00",
- "recorded_by": "batch-agent",
- "response_sha256": "941c9330fdbdef0c5cf39434f29728a3418d73060f0b6f1d46ed278432c1fa00"
+ "record_commit": "14cf4da8cab2688af6ed8cce8b38f9144b064cfb",
+ "recorded_at": "2026-11-18T23:39:26+00:00",
+ "recorded_by": "ci",
+ "response_sha256": "cd31cc334f581b5eddafaabcefe896b9efb67a658c6dc74e35c2c553a34fa1a0",
+ "run_ref": "44422521750",
+ "spec_sha256": "e4365c2554ac4fd6f7a67a1a7fb9c9042b1183ea1d4c16517114b969ff1d018a"
 }

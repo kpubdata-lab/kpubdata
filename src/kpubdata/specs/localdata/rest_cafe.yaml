@@ -5,7 +5,7 @@ description: 휴게음식점 인허가 (Rest Cafe Permits) 데이터셋 (catalog
 source:
   url: https://www.data.go.kr
 endpoint:
-  base_url: http://apis.data.go.kr/1741000/rest_cafes
+  base_url: https://apis.data.go.kr/1741000/rest_cafes
   operation: info
   method: GET
   format_param:
@@ -48,7 +48,7 @@ examples:
   page: 1
   page_size: 10
 status: active
-last_verified: '2026-09-09'
+last_verified: "2026-11-18"
 license:
   pii_columns:
   - TELNO
