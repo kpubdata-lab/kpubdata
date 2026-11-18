@@ -391,3 +391,52 @@ def test_the_decide_cli_reads_the_real_spec() -> None:
         check=True,
     )
     assert "allowed=true" in result.stdout.splitlines()
+
+
+_SCRIPT = (
+    'batch = client.dataset("datago.village_fcst").list(\n'
+    '    base_date="20260908", base_time="2300", nx=55, ny=127, page=1, page_size=100\n'
+    ")\n"
+)
+
+
+def test_example_script_dates_follow_the_spec() -> None:
+    now = datetime(2026, 11, 19, 9, 0, tzinfo=_KST)
+    refreshed = rerecord.refresh_script_dates(_SCRIPT, now)
+    assert 'base_date="20261118", base_time="2300"' in refreshed
+
+
+def test_the_check_allows_only_date_changes_in_the_example_script() -> None:
+    refreshed = rerecord.refresh_script_dates(_SCRIPT, datetime(2026, 11, 19, 9, 0, tzinfo=_KST))
+
+    def problems(script: str) -> list[str]:
+        return rerecord.evaluate(
+            "datago.apt_trade",
+            changed=["examples/datago/apt_trade.py"],
+            base_spec=SPEC_HTTPS,
+            spec=SPEC_HTTPS,
+            base_insecure="",
+            insecure="",
+            base_legacy="",
+            legacy="",
+            base_script=_SCRIPT,
+            script=script,
+        )
+
+    assert problems(refreshed) == []
+    assert problems(refreshed.replace("nx=55", "nx=56"))
+    assert problems(refreshed + "import os\n")
+
+
+def test_switch_refreshes_the_example_script(repo: Path) -> None:
+    script = repo / "examples/datago/apt_trade.py"
+    script.parent.mkdir(parents=True)
+    script.write_text(_SCRIPT, encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "script")
+    base = _git(repo, "rev-parse", "HEAD")
+
+    assert _cli(repo, "switch", "datago.apt_trade", "--root", str(repo)).returncode == 0
+    assert "20260908" not in script.read_text(encoding="utf-8")
+    checked = _cli(repo, "check", "datago.apt_trade", "--root", str(repo), "--base", base)
+    assert checked.returncode == 0, checked.stderr
