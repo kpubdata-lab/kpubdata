@@ -1,6 +1,6 @@
 {
  "dataset_id": "datago.metro_fare",
- "endpoint": "http://apis.data.go.kr/B553766/fare2/getRltmFare2",
+ "endpoint": "https://apis.data.go.kr/B553766/fare2/getRltmFare2",
  "example": "default",
  "format": "json",
  "params": {
@@ -9,7 +9,10 @@
   "pageNo": "1",
   "serviceKey": "[REDACTED]"
  },
- "recorded_at": "2026-09-09T09:02:24+00:00",
- "recorded_by": "batch-agent",
- "response_sha256": "bed1a387a2e48ab4e59e8a04008009086394a3b80e04956322aa2a63641a339d"
+ "record_commit": "fe59b1c16a3f1c5caa7f9297fa2a55f7bcd45a01",
+ "recorded_at": "2026-11-18T23:03:00+00:00",
+ "recorded_by": "ci",
+ "response_sha256": "f9bf46f21a9590bb9604cef5b2d36b2fca9e6ccd5ae10c35e4af658c935a52a6",
+ "run_ref": "44417166306",
+ "spec_sha256": "72a5081f89c27095c72682e49ac1d115cbd4b1961f8e400851517bc3450ecb49"
 }
