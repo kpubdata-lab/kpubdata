@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `Client.close()` keeps closing the dedicated provider transports (currently lofin's) after the client is used again; a second `close()` used to leave the rebuilt connection pool open (#973). Closing stays idempotent and the public API is unchanged.
 - Spec executor `index_range` queries and recordings preserve the caller's page and capped size when constructing URLs, advance bulk requests to distinct ranges, and report index pagination metadata (#973). Explicit zero-based starts are honored. Raw calls retain their existing low-level paging defaults; bundled spec and fixture evidence is unchanged.
 - Monthly report generation stops without overwriting an existing report when drift evidence cannot be read or validated (#899). Undated pilot counts include skipped entries and are labeled cumulative; recorded dataset status shows its snapshot time and is distinguished from monthly live execution evidence.
 
