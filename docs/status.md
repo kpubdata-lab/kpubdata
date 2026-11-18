@@ -1,6 +1,6 @@
 # 데이터셋 검증 상태
 
-> 생성: `2026-11-18T23:09:23+00:00` — `scripts/gen_status_page.py` (직접 편집 금지)
+> 생성: `2026-11-18T23:12:50+00:00` — `scripts/gen_status_page.py` (직접 편집 금지)
 
 ## 요약
 
@@ -46,7 +46,7 @@
 | `datago.offi_rent` | 2026-11-18 | active |
 | `datago.offi_trade` | 2026-11-18 | active |
 | `datago.rh_rent` | 2026-11-18 | active |
-| `datago.sh_rent` | 2026-09-09 | active |
+| `datago.sh_rent` | 2026-11-18 | active |
 | `datago.sh_trade` | 2026-09-09 | active |
 | `datago.social_enterprise` | 2026-10-01 | active |
 | `datago.tour_kor_area` | 2026-09-10 | active |
