@@ -16,7 +16,6 @@ datago/hospital_info/default.meta.json
 datago/hospital_info/with_pagination.meta.json
 datago/metro_fare/default.meta.json
 datago/offi_rent/seoul_gangnam.meta.json
-datago/offi_trade/seoul_gangnam.meta.json
 datago/rh_rent/seoul_gangnam.meta.json
 datago/sh_rent/seoul_gangnam.meta.json
 datago/sh_trade/seoul_gangnam.meta.json

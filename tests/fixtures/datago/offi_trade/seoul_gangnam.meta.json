@@ -1,6 +1,6 @@
 {
  "dataset_id": "datago.offi_trade",
- "endpoint": "http://apis.data.go.kr/1613000/RTMSDataSvcOffiTrade/getRTMSDataSvcOffiTrade",
+ "endpoint": "https://apis.data.go.kr/1613000/RTMSDataSvcOffiTrade/getRTMSDataSvcOffiTrade",
  "example": "seoul_gangnam",
  "format": "json",
  "params": {
@@ -11,7 +11,10 @@
   "resultType": "json",
   "serviceKey": "[REDACTED]"
  },
- "recorded_at": "2026-09-09T10:13:43+00:00",
+ "record_commit": "8405608d1eaf9ad8b4e16359959faaeb76470cb0",
+ "recorded_at": "2026-11-18T11:10:41+00:00",
  "recorded_by": "ci",
- "response_sha256": "1c8ab872b0cb32471211e9f5ab947792e14c9537aabf2ed442ffc26c8a518451"
+ "response_sha256": "1c8ab872b0cb32471211e9f5ab947792e14c9537aabf2ed442ffc26c8a518451",
+ "run_ref": "44292185288",
+ "spec_sha256": "e1f76d87082e2688c7b22d78cf9d7bb6d42ce6bf33f11fea02022c4fe0753964"
 }

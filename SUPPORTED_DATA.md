@@ -36,7 +36,7 @@
 |---|---|---|---|---|---|---|---|---|
 | 지원 | 실API 검증 | 2026-09-09 | 공공데이터포털 (`datago`) | `apt_trade` | 아파트매매 실거래가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) — **spec 단일원천 전환 완료**(catalogue 제거, #378 청소) | 국토교통부 제공 |
 | 지원 | 실API 검증 | 2026-09-09 | 공공데이터포털 (`datago`) | `apt_rent` | 아파트 전월세 실거래가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 국토교통부 제공 |
-| 지원 | 실API 검증 | 2026-09-09 | 공공데이터포털 (`datago`) | `offi_trade` | 오피스텔 매매 실거래가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 국토교통부 제공 |
+| 지원 | 실API 검증 | 2026-11-18 | 공공데이터포털 (`datago`) | `offi_trade` | 오피스텔 매매 실거래가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 국토교통부 제공 |
 | 지원 | 실API 검증 | 2026-09-09 | 공공데이터포털 (`datago`) | `offi_rent` | 오피스텔 전월세 실거래가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 국토교통부 제공 |
 | 활용신청 대기 | 테스트 검증 | - | 공공데이터포털 (`datago`) | `rh_trade` | 연립다세대 매매 실거래가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 국토교통부 제공, 활용신청 승인 반영 대기 (2026-04-21 시점 403) — 활용신청 필요(2026-09-09 프로브 #409) |
 | 지원 | 실API 검증 | 2026-09-09 | 공공데이터포털 (`datago`) | `rh_rent` | 연립다세대 전월세 실거래가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 국토교통부 제공 |
