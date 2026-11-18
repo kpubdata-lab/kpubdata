@@ -22,20 +22,22 @@ has a second, deterministic mode that runs the three subcommands of this script 
 
 ``switch``
     Moves every example ``base_date`` to the latest release its ``base_time`` has had
-    (KMA forecasts answer only for recent releases, so a recorded date ages out), then
-    rewrites the spec's ``base_url`` from ``http://apis.data.go.kr/`` to
-    ``https://apis.data.go.kr/`` (any other host is refused), removes the dataset's line
-    from the insecure-http baseline, and removes its fixtures' lines from
-    ``scripts/legacy_evidence_baseline.txt``: a re-recorded meta carries
-    ``spec_sha256``, and ``verify_spec.py`` fails a legacy entry that does.
+    (KMA forecasts answer only for recent releases, so a recorded date ages out). For a
+    baseline entry it also rewrites the spec's ``base_url`` from
+    ``http://apis.data.go.kr/`` to ``https://apis.data.go.kr/`` (any other host is
+    refused) and removes the dataset's line from the insecure-http baseline; a spec
+    already on https keeps its URL and the baseline is left alone. Either way it removes
+    the dataset's fixtures' lines from ``scripts/legacy_evidence_baseline.txt``: a
+    re-recorded meta carries ``spec_sha256``, and ``verify_spec.py`` fails a legacy
+    entry that does.
 
 ``check``
     Runs after the recording and the generators, against the dispatch commit. Every
     changed path must be one this re-record produces; the spec may differ from the
-    dispatch commit only in that scheme, in ``last_verified`` and in example
-    ``base_date`` values; the insecure-http
-    baseline may lose exactly this dataset's line, and the legacy baseline only lines
-    of this dataset's fixtures.
+    dispatch commit only in that scheme (baseline entries), in ``last_verified`` and in
+    example ``base_date`` values; the insecure-http baseline may lose exactly this
+    dataset's line for a baseline entry and must not change otherwise, and the legacy
+    baseline may lose only lines of this dataset's fixtures.
 
 The script uses the standard library only: the gate job runs it on a bare runner.
 
@@ -74,7 +76,11 @@ GENERATED = (
 
 _WRITE_PERMISSIONS = frozenset({"admin", "write"})
 _DATASET_ID = re.compile(r"[a-z][a-z0-9_]{0,31}\.[a-z][a-z0-9_]{0,63}")
-_HTTPS_BASE_URL = re.compile(r'^\s*base_url:\s*"?https://', re.MULTILINE)
+#: The hosts an already-https spec may be re-recorded against: the run sends the
+#: data.go.kr key, so only data.go.kr's own gateways qualify.
+_HTTPS_BASE_URL = re.compile(
+    r'^\s*base_url:\s*"?https://(?:apis\.data\.go\.kr|api\.odcloud\.kr)/', re.MULTILINE
+)
 _HTTP_BASE_URL = re.compile(r'^(\s*base_url:\s*"?)http://apis\.data\.go\.kr/', re.MULTILINE)
 _LAST_VERIFIED = re.compile(r"^last_verified:.*\n?", re.MULTILINE)
 _BASE_DATE = re.compile(r"^(\s*base_date:\s*)(['\"]?)(\d{8})\2\s*$", re.MULTILINE)

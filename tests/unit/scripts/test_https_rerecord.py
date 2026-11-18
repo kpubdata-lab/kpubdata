@@ -61,7 +61,7 @@ def test_anyone_without_push_access_is_refused(permission: str) -> None:
     "dataset",
     ["datago.no_such", "datago.apt_trade\nx", "../etc.passwd", "Datago.apt_trade", "-x"],
 )
-def test_only_a_well_formed_baseline_entry_passes(dataset: str) -> None:
+def test_a_malformed_or_unknown_dataset_is_refused(dataset: str) -> None:
     outputs = _decide(dataset=dataset)
     assert outputs["allowed"] == "false"
     assert outputs["dataset"] == ""
@@ -345,3 +345,49 @@ def test_switch_re_records_a_spec_already_on_https(repo: Path) -> None:
     assert (repo / rerecord.INSECURE_BASELINE).read_text(encoding="utf-8") == (
         "# header\ndatago.air_quality\n"
     )
+
+
+def test_an_https_spec_on_another_host_is_refused() -> None:
+    other = SPEC_HTTPS.replace("apis.data.go.kr", "example.com")
+    assert _decide(dataset="datago.bus_arrival", spec=other)["allowed"] == "false"
+
+
+def test_the_check_refuses_a_dispatch_spec_neither_listed_nor_on_https() -> None:
+    problems = rerecord.evaluate(
+        "datago.apt_trade",
+        changed=[],
+        base_spec=SPEC_HTTP,
+        spec=SPEC_HTTP,
+        base_insecure="# header\n",
+        insecure="# header\n",
+        base_legacy="",
+        legacy="",
+    )
+    assert any("cannot be re-recorded" in problem for problem in problems)
+
+
+def test_switch_refuses_an_http_spec_outside_the_baseline(repo: Path) -> None:
+    (repo / rerecord.INSECURE_BASELINE).write_text("# header\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "unlisted")
+
+    result = _cli(repo, "switch", "datago.apt_trade", "--root", str(repo))
+
+    assert result.returncode == 1
+    assert _git(repo, "status", "--porcelain") == ""
+
+
+def test_the_decide_cli_reads_the_real_spec() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(REPO_ROOT / "scripts" / "https_rerecord.py"),
+            "decide",
+            "--permission=write",
+            "--dataset=datago.bus_arrival",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert "allowed=true" in result.stdout.splitlines()

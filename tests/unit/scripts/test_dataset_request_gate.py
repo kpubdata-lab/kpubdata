@@ -445,3 +445,11 @@ def test_the_https_job_runs_fixed_commands_only() -> None:
         "gen_status_page.py",
     ):
         assert f"scripts/{generator}" in regenerate["run"]
+
+
+def test_the_gate_step_passes_a_spec_already_on_https(tmp_path: Path, fake_gh: Path) -> None:
+    outputs, _ = _run_gate(tmp_path, fake_gh, ISSUE_NUMBER="", HTTPS_DATASET="datago.bus_arrival")
+
+    assert outputs["allowed"] == "true"
+    assert outputs["mode"] == "https"
+    assert outputs["dataset"] == "datago.bus_arrival"
