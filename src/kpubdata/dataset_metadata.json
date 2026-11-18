@@ -265,7 +265,7 @@
       "required": true,
       "url": "https://www.data.go.kr/data/15082035/openapi.do"
     },
-    "checked_on": "2026-10-01",
+    "checked_on": "2026-11-18",
     "level": "live_verified",
     "verification": "live_verified"
   },
