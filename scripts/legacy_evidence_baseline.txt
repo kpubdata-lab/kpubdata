@@ -7,7 +7,6 @@
 # is not listed must carry a non-empty spec_sha256.
 datago/hospital_info/default.meta.json
 datago/hospital_info/with_pagination.meta.json
-datago/tour_kor_festival/year_2026.meta.json
 datago/tour_kor_keyword/gangnam_keyword.meta.json
 datago/tour_kor_location/gangnam_1km.meta.json
 datago/village_fcst/seoul_default.meta.json

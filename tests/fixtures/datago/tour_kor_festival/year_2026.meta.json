@@ -1,6 +1,6 @@
 {
  "dataset_id": "datago.tour_kor_festival",
- "endpoint": "http://apis.data.go.kr/B551011/KorService2/searchFestival2",
+ "endpoint": "https://apis.data.go.kr/B551011/KorService2/searchFestival2",
  "example": "year_2026",
  "format": "json",
  "params": {
@@ -13,7 +13,10 @@
   "pageNo": "1",
   "serviceKey": "[REDACTED]"
  },
- "recorded_at": "2026-09-09T22:40:55+00:00",
+ "record_commit": "b44bbbbb47763a6c3526d2781cb9266ddec3aec8",
+ "recorded_at": "2026-11-18T23:22:32+00:00",
  "recorded_by": "ci",
- "response_sha256": "095195ba9f60c882815f9ca011e04ea70051cf249fb91c51a348f45fca2dff34"
+ "response_sha256": "cce1e2419f9e08b56453ac0bc4dcd2845b82d3b810883e2e92ea38c7fa74a0ce",
+ "run_ref": "44420078939",
+ "spec_sha256": "9928c4cb1dc58400aa31de451eba46ce72fbaebba911ce218836d8fd93a37005"
 }
