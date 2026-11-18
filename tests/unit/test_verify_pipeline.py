@@ -550,7 +550,7 @@ def test_replay_matches_recorded_request(tmp_path: Path, monkeypatch: pytest.Mon
 
     response = replay_response(
         "GET",
-        "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev",
+        "https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev",
         params={
             "serviceKey": "any-other-key",
             "pageNo": "1",
@@ -582,7 +582,7 @@ def test_replay_miss_raises_with_record_hint(
     with pytest.raises(InvalidRequestError, match="make record"):
         replay_response(
             "GET",
-            "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev",
+            "https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev",
             params={"pageNo": "99", "numOfRows": "1", "LAWD_CD": "11110", "DEAL_YMD": "202401"},
             dataset_id="datago.apt_trade",
             provider="datago",
@@ -890,6 +890,11 @@ def _http_spec(spec_id: str, **changes: object):
     return dataclasses.replace(base, endpoint=endpoint)
 
 
+#: A plain-http base_url, set on a spec by hand: the bundled specs move to https one by
+#: one (#893), so no real spec is relied on to still be on http.
+_HTTP_URL = "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev"
+
+
 class TestInsecureHttp:
     def test_an_https_base_url_emits_nothing(self) -> None:
         assert verify_mod._verify_insecure_http(_spec("datago.bus_arrival")) == []
@@ -908,7 +913,7 @@ class TestInsecureHttp:
         baseline.write_text("", encoding="utf-8")
         monkeypatch.setattr(verify_mod, "INSECURE_HTTP_BASELINE", baseline)
 
-        steps = verify_mod._verify_insecure_http(_spec("datago.apt_trade"))
+        steps = verify_mod._verify_insecure_http(_http_spec("datago.apt_trade", base_url=_HTTP_URL))
 
         assert len(steps) == 1 and not steps[0].passed
         assert "insecure_http_reason" in steps[0].detail
@@ -920,7 +925,7 @@ class TestInsecureHttp:
         baseline.write_text("datago.apt_trade\n", encoding="utf-8")
         monkeypatch.setattr(verify_mod, "INSECURE_HTTP_BASELINE", baseline)
 
-        steps = verify_mod._verify_insecure_http(_spec("datago.apt_trade"))
+        steps = verify_mod._verify_insecure_http(_http_spec("datago.apt_trade", base_url=_HTTP_URL))
 
         assert len(steps) == 1 and steps[0].passed
         assert "baseline 등록" in steps[0].detail
@@ -981,7 +986,9 @@ class TestInsecureHttp:
 # ----------------------------------------------------------------------
 
 _TERM_ENTRIES = ["datago.ultra_srt_fcst", "datago.ultra_srt_ncst"]
-_HTTP_ENTRIES = ["datago.apt_trade", "datago.village_fcst"]
+# The kept entry must still be a plain-http spec on main; village_fcst waits for its
+# example dates to be refreshed before it can move to https (#893).
+_HTTP_ENTRIES = ["datago.village_fcst", "datago.apt_trade"]
 
 
 @pytest.mark.parametrize(

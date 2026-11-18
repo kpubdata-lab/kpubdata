@@ -265,7 +265,7 @@ def test_query_multi_items_with_total_count(apt_spec: SpecDefinition) -> None:
     call = transport.calls[0]
     assert (
         call["url"]
-        == "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev"
+        == "https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev/getRTMSDataSvcAptTradeDev"
     )
     assert call["provider"] == "datago"
     assert call["dataset_id"] == "datago.apt_trade"
