@@ -18,4 +18,3 @@ datago.hospital_info
 datago.ultra_srt_fcst
 datago.ultra_srt_ncst
 datago.village_fcst
-localdata.rest_cafe

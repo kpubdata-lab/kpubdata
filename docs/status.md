@@ -1,6 +1,6 @@
 # 데이터셋 검증 상태
 
-> 생성: `2026-11-18T23:36:28+00:00` — `scripts/gen_status_page.py` (직접 편집 금지)
+> 생성: `2026-11-18T23:39:28+00:00` — `scripts/gen_status_page.py` (직접 편집 금지)
 
 ## 요약
 
@@ -58,4 +58,4 @@
 | `datago.village_fcst` | 2026-09-09 | active |
 | `localdata.bakery` | 2026-11-18 | active |
 | `localdata.general_restaurant` | 2026-11-18 | active |
-| `localdata.rest_cafe` | 2026-09-09 | active |
+| `localdata.rest_cafe` | 2026-11-18 | active |
