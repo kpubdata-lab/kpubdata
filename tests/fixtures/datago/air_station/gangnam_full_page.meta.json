@@ -1,6 +1,6 @@
 {
  "dataset_id": "datago.air_station",
- "endpoint": "http://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getMsrstnAcctoRltmMesureDnsty",
+ "endpoint": "https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getMsrstnAcctoRltmMesureDnsty",
  "example": "gangnam_full_page",
  "format": "json",
  "params": {
@@ -11,7 +11,10 @@
   "serviceKey": "[REDACTED]",
   "stationName": "강남구"
  },
- "recorded_at": "2026-09-09T09:01:47+00:00",
- "recorded_by": "batch-agent",
- "response_sha256": "cbe4447384338248c0c4e433a47859817fdd0fcabd6066894da1a278bdb1ca7c"
+ "record_commit": "83e8cc6e52d42504d99f40bfc7dd095a80625d34",
+ "recorded_at": "2026-11-18T11:36:45+00:00",
+ "recorded_by": "ci",
+ "response_sha256": "84d3d64191c7a75dfb5e0381953a5076a6d71adf7bb0ef3b7bb7483ab76f6908",
+ "run_ref": "44296190084",
+ "spec_sha256": "81bd538184ed443fef855306b85fcefd1dc4702b8744490434d086743b699183"
 }
