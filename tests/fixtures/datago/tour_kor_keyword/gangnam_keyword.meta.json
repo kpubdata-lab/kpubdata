@@ -1,6 +1,6 @@
 {
  "dataset_id": "datago.tour_kor_keyword",
- "endpoint": "http://apis.data.go.kr/B551011/KorService2/searchKeyword2",
+ "endpoint": "https://apis.data.go.kr/B551011/KorService2/searchKeyword2",
  "example": "gangnam_keyword",
  "format": "json",
  "params": {
@@ -13,7 +13,10 @@
   "pageNo": "1",
   "serviceKey": "[REDACTED]"
  },
- "recorded_at": "2026-09-09T22:40:55+00:00",
+ "record_commit": "a5435239fe36aec28732ad1760fc335de14e3c64",
+ "recorded_at": "2026-11-18T23:25:56+00:00",
  "recorded_by": "ci",
- "response_sha256": "2d162a2de1930b628e202773f4d0929d605a3ae11c3ff0ac667ec4cb1cafd17e"
+ "response_sha256": "e294e1a84b9a635f048a9c21f07f6f5becdc00ae0e874fada7f4e2dfe6c832b8",
+ "run_ref": "44420618197",
+ "spec_sha256": "07428d84352ce8423eab28b321df81ee88bd81e3f2005d571a3e3d74679c4d51"
 }
