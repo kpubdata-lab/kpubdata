@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-18T23:15:57+00:00",
+  "generated_at": "2026-11-18T23:19:06+00:00",
   "spec_datasets": {
     "total": 25,
     "verified": 24,
@@ -67,7 +67,7 @@
         "status": "active"
       },
       "datago.tour_kor_area": {
-        "last_verified": "2026-09-10",
+        "last_verified": "2026-11-18",
         "status": "active"
       },
       "datago.tour_kor_festival": {
