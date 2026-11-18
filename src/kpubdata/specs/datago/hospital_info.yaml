@@ -6,7 +6,7 @@ source:
   url: https://www.data.go.kr/data/15001698/openapi.do
   verified_at: '2026-04-21'
 endpoint:
-  base_url: http://apis.data.go.kr/B551182/hospInfoServicev2
+  base_url: https://apis.data.go.kr/B551182/hospInfoServicev2
   operation: getHospBasisList
   method: GET
   format_param:
@@ -183,4 +183,4 @@ examples:
   page: 1
   page_size: 100
 status: active
-last_verified: '2026-09-09'
+last_verified: "2026-11-18"
