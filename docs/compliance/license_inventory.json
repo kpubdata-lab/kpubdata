@@ -664,8 +664,8 @@
       "basis": "installed",
       "status": "recorded"
     },
-    "types-pyyaml==6.0.12.20260906": {
-      "version": "6.0.12.20260906",
+    "types-pyyaml==6.0.12.20261113": {
+      "version": "6.0.12.20261113",
       "scope": "dev",
       "license": "Apache-2.0",
       "source": "https://github.com/python/typeshed",
