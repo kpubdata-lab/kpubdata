@@ -367,6 +367,17 @@ def test_a_malformed_actor_is_not_looked_up(tmp_path: Path, fake_gh: Path) -> No
     assert "collaborators" not in gh_calls
 
 
+#: A dataset still listed in the insecure-http baseline. The list shrinks as specs move
+#: to https (#893), so the tests take whichever entry remains rather than naming one.
+_STILL_HTTP = next(
+    line.strip()
+    for line in (REPO_ROOT / "scripts" / "insecure_http_baseline.txt")
+    .read_text(encoding="utf-8")
+    .splitlines()
+    if line.strip() and not line.startswith("#")
+)
+
+
 def test_a_plain_request_runs_in_agent_mode(tmp_path: Path, fake_gh: Path) -> None:
     outputs, _ = _run_gate(tmp_path, fake_gh)
 
@@ -374,13 +385,11 @@ def test_a_plain_request_runs_in_agent_mode(tmp_path: Path, fake_gh: Path) -> No
 
 
 def test_an_https_dataset_passes_without_reading_an_issue(tmp_path: Path, fake_gh: Path) -> None:
-    outputs, gh_calls = _run_gate(
-        tmp_path, fake_gh, ISSUE_NUMBER="", HTTPS_DATASET="datago.apt_trade"
-    )
+    outputs, gh_calls = _run_gate(tmp_path, fake_gh, ISSUE_NUMBER="", HTTPS_DATASET=_STILL_HTTP)
 
     assert outputs["allowed"] == "true"
     assert outputs["mode"] == "https"
-    assert outputs["dataset"] == "datago.apt_trade"
+    assert outputs["dataset"] == _STILL_HTTP
     assert outputs["agent"] == ""
     assert outputs["issue_number"] == ""
     assert "/issues/" not in gh_calls
@@ -391,8 +400,8 @@ def test_an_https_dataset_passes_without_reading_an_issue(tmp_path: Path, fake_g
     [
         {"HTTPS_DATASET": "datago.bus_arrival"},  # already on https: not in the baseline
         {"HTTPS_DATASET": "--help"},
-        {"HTTPS_DATASET": "datago.apt_trade", "ISSUE_NUMBER": "42"},
-        {"HTTPS_DATASET": "datago.apt_trade", "FAKE_PERMISSION": "read"},
+        {"HTTPS_DATASET": _STILL_HTTP, "ISSUE_NUMBER": "42"},
+        {"HTTPS_DATASET": _STILL_HTTP, "FAKE_PERMISSION": "read"},
     ],
     ids=["not-in-baseline", "option-like", "with-issue", "read-only"],
 )

@@ -6,7 +6,7 @@ source:
   url: https://www.data.go.kr
   verified_at: '2026-04-21'
 endpoint:
-  base_url: http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev
+  base_url: https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev
   operation: getRTMSDataSvcAptTradeDev
   method: GET
   format_param:
@@ -198,7 +198,7 @@ examples:
   page: 1
   page_size: 1000
 status: active
-last_verified: "2026-09-12"
+last_verified: "2026-11-18"
 license:
   type: 공공누리_1유형
   commercial_use: true
