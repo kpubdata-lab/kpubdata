@@ -16,14 +16,30 @@
 # (scripts/dataset_request_gate.py). Only a maintainer can start the workflow
 # manually after reviewing the issue. This is not yet the protected environment and
 # the separated jobs #521 asks for — the agent still shares the build job.
+#
+# HTTPS re-record (#893). Dispatched with `https_dataset` instead of `issue_number`,
+# the workflow runs no agent and needs no model key: the `https-rerecord` job moves
+# one spec listed in scripts/insecure_http_baseline.txt from http:// to https://,
+# records its fixtures again, verifies them and opens a pull request — all fixed
+# commands (scripts/https_rerecord.py). It stays in this workflow because only a
+# successful run of this workflow counts as a recording (check_fixture_authorship.py).
+# Dispatch it from main, one dataset at a time, and merge each pull request before
+# the next dispatch: runs share a concurrency group, so a third queued dispatch cancels
+# the second, and every pull request edits the same baseline and generated files.
+# Its pull request is opened with the workflow token, which starts no CI: close and
+# reopen it once the run has finished. Specs whose examples have aged out (the KMA
+# base_date ones) fail to record here and need their example dates refreshed first.
 name: Build Dataset (agent)
 
 on:
   workflow_dispatch:
     inputs:
       issue_number:
-        description: "처리할 dataset-request/drift 이슈 번호"
-        required: true
+        description: "처리할 dataset-request/drift 이슈 번호 (https_dataset 과 함께 쓰지 않는다)"
+        required: false
+      https_dataset:
+        description: "https 로 옮겨 다시 녹화할 spec id — insecure_http_baseline.txt 에 있는 것만 (#893)"
+        required: false
 
 # Each job names what it needs.
 permissions: {}
@@ -49,6 +65,7 @@ jobs:
       dataset: ${{ steps.decide.outputs.dataset }}
       agent: ${{ steps.decide.outputs.agent }}
       issue_sha256: ${{ steps.decide.outputs.issue_sha256 }}
+      mode: ${{ steps.decide.outputs.mode }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -61,32 +78,54 @@ jobs:
           # Untrusted values reach the shell as variables only, never as ${{ }} text.
           ISSUE_NUMBER: ${{ github.event.inputs.issue_number || github.event.issue.number }}
           ACTOR: ${{ github.triggering_actor }}
+          HTTPS_DATASET: ${{ github.event.inputs.https_dataset }}
         run: |
           PERMISSION=none
           ISSUE_SHA256=
           : > "$RUNNER_TEMP/issue.json"
           : > "$RUNNER_TEMP/issue.md"
-          if [[ "$ISSUE_NUMBER" =~ ^[1-9][0-9]{0,9}$ ]]; then
+          lookup_permission() {
             if [[ "$ACTOR" =~ ^[A-Za-z0-9][A-Za-z0-9_-]{0,38}(\[bot\])?$ ]]; then
               PERMISSION=$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$ACTOR/permission" \
                 --jq .permission 2>/dev/null) || PERMISSION=none
             fi
             case "$PERMISSION" in admin | maintain | write | triage | read) ;; *) PERMISSION=none ;; esac
-            gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER" > "$RUNNER_TEMP/issue.json" || true
-            gh issue view "$ISSUE_NUMBER" --json title,body -q '.title + "\n\n" + .body' \
-              > "$RUNNER_TEMP/issue.md" || true
-            ISSUE_SHA256=$(sha256sum "$RUNNER_TEMP/issue.md" | cut -d' ' -f1)
+          }
+          if [ -n "$HTTPS_DATASET" ]; then
+            # The https re-record (#893): no issue is read, no agent runs. The dataset
+            # must be listed in the insecure-http baseline of the dispatch commit.
+            lookup_permission
+            python3 scripts/https_rerecord.py decide \
+              --permission="$PERMISSION" \
+              --dataset="$HTTPS_DATASET" \
+              --issue-number="$ISSUE_NUMBER" > "$RUNNER_TEMP/decision.txt"
+            {
+              cat "$RUNNER_TEMP/decision.txt"
+              echo "mode=https"
+              echo "agent="
+              echo "issue_number="
+              echo "issue_sha256="
+            } >> "$GITHUB_OUTPUT"
+          else
+            if [[ "$ISSUE_NUMBER" =~ ^[1-9][0-9]{0,9}$ ]]; then
+              lookup_permission
+              gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER" > "$RUNNER_TEMP/issue.json" || true
+              gh issue view "$ISSUE_NUMBER" --json title,body -q '.title + "\n\n" + .body' \
+                > "$RUNNER_TEMP/issue.md" || true
+              ISSUE_SHA256=$(sha256sum "$RUNNER_TEMP/issue.md" | cut -d' ' -f1)
+            fi
+            python3 scripts/dataset_request_gate.py \
+              --permission "$PERMISSION" \
+              --issue-number "$ISSUE_NUMBER" \
+              --issue-json "$RUNNER_TEMP/issue.json" \
+              --issue-text "$RUNNER_TEMP/issue.md" > "$RUNNER_TEMP/decision.txt"
+            {
+              cat "$RUNNER_TEMP/decision.txt"
+              echo "mode=agent"
+              echo "issue_number=$ISSUE_NUMBER"
+              echo "issue_sha256=$ISSUE_SHA256"
+            } >> "$GITHUB_OUTPUT"
           fi
-          python3 scripts/dataset_request_gate.py \
-            --permission "$PERMISSION" \
-            --issue-number "$ISSUE_NUMBER" \
-            --issue-json "$RUNNER_TEMP/issue.json" \
-            --issue-text "$RUNNER_TEMP/issue.md" > "$RUNNER_TEMP/decision.txt"
-          {
-            cat "$RUNNER_TEMP/decision.txt"
-            echo "issue_number=$ISSUE_NUMBER"
-            echo "issue_sha256=$ISSUE_SHA256"
-          } >> "$GITHUB_OUTPUT"
           REASON=$(sed -n 's/^reason=//p' "$RUNNER_TEMP/decision.txt")
           if grep -qx 'allowed=true' "$RUNNER_TEMP/decision.txt"; then
             echo "gate: passed — $REASON" | tee -a "$GITHUB_STEP_SUMMARY"
@@ -97,7 +136,7 @@ jobs:
 
   build:
     needs: gate
-    if: needs.gate.outputs.allowed == 'true'
+    if: needs.gate.outputs.allowed == 'true' && needs.gate.outputs.mode == 'agent'
     runs-on: [self-hosted, kr]
     timeout-minutes: 30
     permissions:
@@ -325,3 +364,78 @@ jobs:
         run: |
           gh issue comment "$ISSUE_NUMBER" --body "워크플로우 실패(자동) — [실행 로그]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)" || true
           gh issue edit "$ISSUE_NUMBER" --add-label needs-human || true
+
+  # HTTPS re-record (#893): fixed commands only — no agent, no model key, no issue text.
+  # The provider key reaches the recording step alone.
+  https-rerecord:
+    needs: gate
+    if: >-
+      needs.gate.outputs.allowed == 'true' && needs.gate.outputs.mode == 'https'
+      && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, kr]
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      # Validated by the gate job against the dispatch commit's insecure-http baseline.
+      DATASET: ${{ needs.gate.outputs.dataset }}
+      KPUBDATA_BASELINE_BASE: ${{ github.sha }}
+      # A run must not rewrite uv.lock; the change check would refuse it anyway.
+      UV_FROZEN: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      # A branch left by an earlier run (an open pull request, or a push whose pull
+      # request failed) would reject this run's push only after it had recorded.
+      - name: Refuse an existing branch
+        run: |
+          if git ls-remote --exit-code --heads origin "rerecord/https-$DATASET" >/dev/null; then
+            echo "::error::rerecord/https-$DATASET already exists — merge or delete it first"
+            exit 1
+          fi
+
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+
+      - name: Install dependencies
+        run: uv sync --frozen --extra dev --python 3.12
+
+      - name: Switch the spec to https
+        run: uv run python scripts/https_rerecord.py switch "$DATASET"
+
+      - name: Record over https
+        env:
+          KPUBDATA_DATAGO_API_KEY: ${{ secrets.KPUBDATA_DATAGO_API_KEY }}
+        run: make record DATASET="$DATASET"
+
+      - name: Regenerate and verify
+        run: |
+          uv run python scripts/sync_supported_data.py
+          uv run python scripts/gen_dataset_status.py
+          uv run python scripts/gen_docs_examples.py
+          make verify DATASET="$DATASET"
+
+      - name: Check what changed
+        run: uv run python scripts/https_rerecord.py check "$DATASET" --base "$GITHUB_SHA"
+
+      - name: Open the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRANCH="rerecord/https-$DATASET"
+          TITLE="fix(specs): switch $DATASET to https and re-record its fixtures"
+          git config user.name "kpubdata-agent"
+          git config user.email "agent@kpubdata.local"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -m "$TITLE" -m "Refs #893"
+          AUTH=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')
+          echo "::add-mask::$AUTH"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" push origin "$BRANCH"
+          RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          gh pr create --base main --head "$BRANCH" --title "$TITLE" --body "$(printf '%s\n\n%s\n\n%s' \
+            "Moves \`$DATASET\` from http:// to https:// and re-records its fixtures through the https re-record mode of Build Dataset (#893)." \
+            "Recording run: $RUN_URL. This pull request was opened with the workflow token, so no CI started: close and reopen it once that run has finished, and the fixture-authorship check will find a completed run." \
+            "Refs #893")"
