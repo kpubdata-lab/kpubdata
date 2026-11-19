@@ -890,6 +890,17 @@ def _http_spec(spec_id: str, **changes: object):
     return dataclasses.replace(base, endpoint=endpoint)
 
 
+def _unconfirmed_terms_spec(spec_id: str):
+    """A real spec whose licence claims redistribution without the attribution text."""
+    import dataclasses
+
+    from kpubdata.core.spec import LicenseSpec
+
+    base = _spec(spec_id)
+    licence = LicenseSpec(type="공공누리_1유형", redistribution="allowed")
+    return dataclasses.replace(base, license=licence)
+
+
 #: A plain-http base_url, set on a spec by hand: the bundled specs move to https one by
 #: one (#893), so no real spec is relied on to still be on http.
 _HTTP_URL = "http://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev"
@@ -1024,6 +1035,11 @@ def test_a_pure_removal_passes(
         # The real specs move to https one by one (#893); keep the kept entry on http.
         http_specs = [_http_spec(entry, base_url=_HTTP_URL) for entry in entries]
         monkeypatch.setattr(verify_mod, "discover_specs", lambda: http_specs)
+    else:
+        # The real specs have their terms confirmed one by one (#933); keep the kept
+        # entry unconfirmed by hand: allowed, with no attribution text.
+        unconfirmed = [_unconfirmed_terms_spec(entry) for entry in entries]
+        monkeypatch.setattr(verify_mod, "discover_specs", lambda: unconfirmed)
 
     steps = getattr(verify_mod, check_attr)()
 
