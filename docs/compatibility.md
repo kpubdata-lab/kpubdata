@@ -4,7 +4,7 @@
 > 조합의 호환성 **이력과 정책**을 설명합니다. 독립 `kpubdata-engine` 및
 > 비공개 설계 단계 `kpubdata-mcp`의 버전 호환성이나 배포 준비 완료를 보증하지 않습니다.
 > 현재 제품 구조는 [Product Family 아키텍처](product-family-architecture.md),
-> 실제 작업 순서는 [SDK ROADMAP](../ROADMAP.md)을 참고하세요.
+> 실제 작업 순서는 [SDK ROADMAP](https://github.com/kpubdata-lab/kpubdata/blob/main/ROADMAP.md)을 참고하세요.
 
 KPubData Product Family는 세 저장소가 독립적으로 릴리스되지만, 함께 사용될 때의 호환성을 보장하기 위해 다음 규칙을 따른다.
 의존은 **Studio → Builder → KPubData** 한 방향으로만 흐른다([ADR 0007](adrs/0007-independence-rules.md)).
