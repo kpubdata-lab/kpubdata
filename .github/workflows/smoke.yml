@@ -26,9 +26,15 @@ jobs:
       KPUBDATA_DATAGO_API_KEY: ${{ secrets.KPUBDATA_DATAGO_API_KEY }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The runner host is a plain VM: nothing is preinstalled for this job, so uv comes
+      # from the pinned action, as in build-dataset.yml's re-record job.
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
 
       - name: Install dependencies
-        run: uv sync --frozen --extra dev
+        run: uv sync --frozen --extra dev --python 3.12
 
       - name: Run datago live integration tests
         run: |
