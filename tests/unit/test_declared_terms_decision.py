@@ -108,11 +108,14 @@ def test_no_dataset_reports_allowed_without_its_attribution(refs: list[DatasetRe
 def test_every_baseline_spec_reports_unknown_while_its_file_still_says_allowed(
     refs: list[DatasetRef],
 ) -> None:
-    """The ratchet counts what the files declare; a reference reports what was confirmed."""
+    """The ratchet counts what the files declare; a reference reports what was confirmed.
+
+    The baseline shrinks to empty as terms are confirmed (#933); the decision itself is
+    held by the hand-made specs of the tests above, not by any entry still being listed.
+    """
     by_id = {ref.id: ref for ref in refs}
     baseline = _baseline_ids()
 
-    assert baseline
     for dataset_id in baseline:
         spec = find_spec(dataset_id)
         assert spec is not None and spec.license is not None
