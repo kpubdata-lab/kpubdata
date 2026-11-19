@@ -209,23 +209,34 @@ def collect(consecutive_required: int = 2, limit: int = 6) -> DriftReport:
     return report
 
 
+#: Drift issues share this title prefix with the probe's (scripts/drift_detect.py).
+DRIFT_TITLE_PREFIX = "[drift]"
+#: Labels that exist in the repository and that POLICY 2.1 still uses: a drift is a
+#: bug. No `drift` label exists, and `epic:*` is retired (POLICY 2.1.1).
+ISSUE_LABELS = ("type:bug",)
+
+
 def _existing_drift_issue(dataset: str) -> int | None:
     """Find open drift issue number for dataset (one per dataset principle)."""
+    # By title, not by label: a label the repository does not have made every
+    # search empty and every create fail (#896). Both drift reports title their
+    # issues "[drift] <dataset>…" (docs/DATASET_STATUS.md).
     out = _gh(
-        ["issue", "list", "--search", f'"{dataset}" is:open label:drift', "--json", "number,title"]
+        ["issue", "list", "--search", f'"{dataset}" is:open in:title', "--json", "number,title"]
     )
     issues = _json(out, "이슈 검색")
     if not isinstance(issues, list):
         raise UndeterminedError("이슈 검색 응답이 배열이 아님")
     for issue in issues:
-        if isinstance(issue, dict) and dataset in str(issue.get("title", "")):
+        title = str(issue.get("title", "")) if isinstance(issue, dict) else ""
+        if title.startswith(DRIFT_TITLE_PREFIX) and dataset in title:
             return int(issue["number"])
     return None
 
 
 def file_or_update(dataset: str, report: DriftReport, dry_run: bool) -> None:
     """Publish 2 consecutive failure datasets as issue or update existing issue."""
-    title = f"[drift] {dataset} 실API 스모크 연속 실패"
+    title = f"{DRIFT_TITLE_PREFIX} {dataset} 실API 스모크 연속 실패"
     body_lines = [
         f"## 대상\n{dataset}",
         "",
@@ -272,7 +283,10 @@ def file_or_update(dataset: str, report: DriftReport, dry_run: bool) -> None:
             )
             print(f"갱신: #{existing} {dataset}")
             return
-        out = _gh(["issue", "create", "--title", title, "--body", body, "--label", "drift"])
+        args = ["issue", "create", "--title", title, "--body", body]
+        for label in ISSUE_LABELS:
+            args += ["--label", label]
+        out = _gh(args)
     except UndeterminedError as error:
         raise ReportFailedError(f"{dataset}: {error}") from error
     print(f"발행: {out.strip()} {dataset}")

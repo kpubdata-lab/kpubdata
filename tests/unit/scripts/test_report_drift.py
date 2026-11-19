@@ -156,6 +156,11 @@ def test_a_dataset_that_failed_twice_in_a_row_is_drift_and_is_filed(
     assert len(created) == 1 and "datago.village_fcst" in " ".join(created[0])
     # Failed once only: a transient outage, not drift.
     assert "datago.apt_trade" not in " ".join(created[0][: created[0].index("--body")])
+    # Labels the repository has; the search finds issues by title, not by a label.
+    labels = [created[0][i + 1] for i, arg in enumerate(created[0]) if arg == "--label"]
+    assert labels == ["type:bug"]
+    searches = gh.made("issue", "list")
+    assert searches and all("label:" not in " ".join(call) for call in searches)
 
 
 def test_one_failure_after_a_good_run_is_not_drift(
@@ -359,3 +364,50 @@ def test_a_dry_run_says_what_it_found_and_touches_no_issue(
 
     assert _verdict(capsys) == "drift"
     assert gh.made("issue", "list") == [] and gh.made("issue", "create") == []
+
+
+def test_an_open_issue_of_another_kind_is_not_mistaken_for_the_drift_issue(
+    gh: FakeGh, capsys: pytest.CaptureFixture[str]
+) -> None:
+    gh.runs = [_run(2, "failure"), _run(1, "failure")]
+    gh.artifacts = {
+        "2": [_junit("test_datago_village_fcst")],
+        "1": [_junit("test_datago_village_fcst")],
+    }
+    gh.open_issues = [{"number": 7, "title": "docs: datago.village_fcst example"}]
+
+    assert drift.main([]) == 0
+
+    assert gh.made("issue", "comment") == []
+    assert len(gh.made("issue", "create")) == 1
+
+
+def test_an_open_drift_issue_for_the_dataset_is_updated_not_duplicated(
+    gh: FakeGh, capsys: pytest.CaptureFixture[str]
+) -> None:
+    gh.runs = [_run(2, "failure"), _run(1, "failure")]
+    gh.artifacts = {
+        "2": [_junit("test_datago_village_fcst")],
+        "1": [_junit("test_datago_village_fcst")],
+    }
+    gh.open_issues = [
+        {"number": 959, "title": "[drift] datago.village_fcst: live_verified → unstable (UNKNOWN)"}
+    ]
+
+    assert drift.main([]) == 0
+
+    assert gh.made("issue", "create") == []
+    assert len(gh.made("issue", "comment")) == 1
+
+
+def test_every_label_a_drift_issue_carries_is_one_the_repository_uses() -> None:
+    """A label missing from the repository makes `gh issue create` fail (#896).
+
+    `drift` was never created, and `epic:*` is retired (POLICY 2.1.1); both drift
+    reporters may use only labels the repository keeps.
+    """
+    known = {"type:bug", "severity:critical", "severity:major", "severity:minor"}
+    assert set(drift.ISSUE_LABELS) <= known
+    detect = (REPO_ROOT / "scripts" / "drift_detect.py").read_text(encoding="utf-8")
+    assert '"epic:' not in detect
+    assert '"drift"' not in detect

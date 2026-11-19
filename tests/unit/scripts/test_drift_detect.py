@@ -73,7 +73,7 @@ def test_a_schema_change_breaks_immediately() -> None:
     assert event.to_status is dd.DatasetStatus.BROKEN
     assert event.classification is dd.DriftClassification.SCHEMA_CHANGED
     assert dd.issue_worthy(event)
-    assert dd.issue_for(event).labels == ("type:bug", "epic:trust", "severity:major")
+    assert dd.issue_for(event).labels == ("type:bug", "severity:major")
 
 
 def test_the_same_hash_is_not_a_change() -> None:
@@ -89,7 +89,7 @@ def test_transient_failures_need_three_nights() -> None:
     assert len(events) == 1
     assert events[0].to_status is dd.DatasetStatus.UNSTABLE
     assert events[0].streak == 3
-    assert dd.issue_for(events[0]).labels == ("type:bug", "epic:trust", "severity:minor")
+    assert dd.issue_for(events[0]).labels == ("type:bug", "severity:minor")
     assert state["datago.x"].previous_status is dd.DatasetStatus.LIVE_VERIFIED
 
 
@@ -137,7 +137,7 @@ def test_retired_files_an_issue_and_moves_nothing() -> None:
     assert event.from_status is dd.DatasetStatus.LIVE_VERIFIED
     assert event.to_status is dd.DatasetStatus.LIVE_VERIFIED
     assert dd.issue_worthy(event)
-    assert dd.issue_for(event).labels == ("type:bug", "epic:trust", "severity:major")
+    assert dd.issue_for(event).labels == ("type:bug", "severity:major")
     assert dd.history_entry(event) is None
     assert state["datago.x"].status is dd.DatasetStatus.LIVE_VERIFIED
 

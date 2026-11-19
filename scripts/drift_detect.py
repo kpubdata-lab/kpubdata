@@ -293,7 +293,7 @@ def issue_for(event: DriftEvent) -> DriftIssue:
         dataset_id=event.dataset_id,
         title=title,
         body="\n".join(lines),
-        labels=("type:bug", "epic:trust", severity),
+        labels=("type:bug", severity),
     )
 
 
