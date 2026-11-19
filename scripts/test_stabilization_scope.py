@@ -6,6 +6,7 @@ Run: python3 scripts/test_stabilization_scope.py -v
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 
 from check_stabilization_scope import (
     PullUnavailable,
@@ -177,6 +178,38 @@ class CurrentPullTests(unittest.TestCase):
     def test_a_live_payload_without_a_title_is_not_trusted(self) -> None:
         pull = current_pull(STALE, "kpubdata-lab/kpubdata", lambda repo, number: {"number": 7})
         self.assertEqual(pull, STALE)
+
+
+class MainBaseTests(unittest.TestCase):
+    def test_the_diff_base_is_the_events_not_the_live_one(self) -> None:
+        """A re-run keeps its old merge commit; the live base would misattribute main."""
+        import json
+        import os
+        import tempfile
+        from unittest import mock
+
+        import check_stabilization_scope as scope
+
+        with tempfile.TemporaryDirectory() as tmp:
+            event = Path(tmp) / "event.json"
+            event.write_text(json.dumps({"pull_request": STALE}), encoding="utf-8")
+            calls: list[list[str]] = []
+
+            def fake_git(args: list[str]) -> str:
+                calls.append(args)
+                return ""
+
+            env = {"GITHUB_EVENT_PATH": str(event), "GITHUB_REPOSITORY": "kpubdata-lab/kpubdata"}
+            with (
+                mock.patch.dict(os.environ, env),
+                mock.patch.object(scope, "current_pull", lambda pull, repo: LIVE),
+                mock.patch.object(scope, "_git", fake_git),
+            ):
+                scope.main()
+
+        diffs = [args for args in calls if args[0] == "diff"]
+        self.assertTrue(diffs)
+        self.assertTrue(all("a" * 40 in args and "b" * 40 not in args for args in diffs))
 
 
 if __name__ == "__main__":

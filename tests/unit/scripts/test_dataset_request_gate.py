@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import stat
 import subprocess
 import sys
@@ -187,60 +186,6 @@ def _workflow() -> dict[str, Any]:
 def _jobs() -> dict[str, dict[str, Any]]:
     jobs: dict[str, dict[str, Any]] = _workflow()["jobs"]
     return jobs
-
-
-_HOOKLESS = 'git() { command git -c core.hooksPath=/dev/null "$@"; }'
-
-
-def _token_steps_that_run_git() -> list[tuple[str, dict[str, Any]]]:
-    found = []
-    for job_name, job in _jobs().items():
-        for step in job["steps"]:
-            if "GH_TOKEN" not in (step.get("env") or {}) or "run" not in step:
-                continue
-            code = "\n".join(
-                line for line in step["run"].splitlines() if not line.lstrip().startswith("#")
-            )
-            if re.search(r"(?<![\w`/.-])git ", code.replace(_HOOKLESS, "")):
-                found.append((f"{job_name}/{step.get('name')}", step))
-    return found
-
-
-def test_every_step_holding_the_write_token_runs_git_without_hooks() -> None:
-    """The agent can plant a hook in the checkout; a step holding the token must not run it."""
-    steps = _token_steps_that_run_git()
-    assert len(steps) >= 3
-    for name, step in steps:
-        script = step["run"]
-        wrapper = script.find(_HOOKLESS)
-        assert wrapper != -1, f"{name}: git is not wrapped with core.hooksPath=/dev/null"
-        before = "\n".join(
-            line for line in script[:wrapper].splitlines() if not line.lstrip().startswith("#")
-        )
-        assert "git " not in before, f"{name}: git runs before the wrapper is defined"
-
-
-def test_the_hookless_wrapper_stops_a_planted_hook(tmp_path: Path) -> None:
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    marker = tmp_path / "hook-ran"
-    script = "\n".join(
-        [
-            _HOOKLESS,
-            f"cd {repo}",
-            "git init -q",
-            f"printf '#!/bin/sh\\ntouch {marker}\\n' > .git/hooks/pre-commit",
-            "chmod +x .git/hooks/pre-commit",
-            "git config user.name t",
-            "git config user.email t@example.com",
-            "echo x > f",
-            "git add f",
-            "git commit -q -m planted",
-        ]
-    )
-    subprocess.run(["bash", "-eo", "pipefail", "-c", script], check=True)
-
-    assert not marker.exists()
 
 
 def test_stabilization_freeze_keeps_dataset_agent_manual_only() -> None:

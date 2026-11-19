@@ -146,10 +146,11 @@ def current_pull(
 ) -> Mapping[str, object]:
     """Title, body, labels and base of the pull request as it is now.
 
-    A re-run replays the event payload it started with, and an edit or a label change
-    starts no run, so the payload can describe a title, body or label set that no
-    longer exists. The API is asked first; the event is used only when the API cannot be
-    reached, and a payload that lacks the pull request fails the check upstream.
+    A re-run replays the event payload it started with, so the payload can describe a
+    title, body or label set that no longer exists. The API is asked first; the event is
+    used only when the API cannot be reached, and a payload that lacks the pull request
+    fails the check upstream. Only the title, body and labels are taken from the live
+    read: the base commit stays the event's (see ``main``).
     """
     number = event_pull.get("number")
     if not isinstance(number, int):
@@ -185,7 +186,10 @@ def main() -> int:
         title = pull["title"]
         body = pull.get("body") or ""
         labels = {row["name"] for row in pull.get("labels", [])}
-        base = pull["base"]["sha"]
+        # The diff is from the event's base to HEAD, the merge commit this run checked
+        # out. A re-run keeps that old merge commit, so the live base (main has moved
+        # on since) would show main's newer changes, reversed, as part of the PR.
+        base = payload["pull_request"]["base"]["sha"]
         if not re.fullmatch(r"[0-9a-fA-F]{40}", base):
             raise ValueError("invalid PR base SHA")
         if repository not in {

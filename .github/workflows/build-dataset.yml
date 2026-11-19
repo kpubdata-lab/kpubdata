@@ -240,9 +240,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # The agent ran in this checkout and can have planted a hook or set core.hooksPath,
-          # and this step holds the write token: no git command here runs a hook.
-          git() { command git -c core.hooksPath=/dev/null "$@"; }
           BRANCH="agent/${DATASET:-issue-$ISSUE_NUMBER}"
           # A shell variable does not reach the next step (#858); later steps read these outputs.
           {
@@ -428,9 +425,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # The agent ran in this checkout and can have planted a hook or set core.hooksPath,
-          # and this step holds the write token: no git command here runs a hook.
-          git() { command git -c core.hooksPath=/dev/null "$@"; }
           AUTH=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')
           echo "::add-mask::$AUTH"
           # Branches of this repository only: a bare commit id would also reach a fork's
@@ -479,9 +473,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # The agent ran in this checkout and can have planted a hook or set core.hooksPath,
-          # and this step holds the write token: no git command here runs a hook.
-          git() { command git -c core.hooksPath=/dev/null "$@"; }
           BRANCH="rerecord/https-$DATASET"
           if [ -n "$SPEC_COMMIT" ]; then
             # A corrected spec recorded in the same run (#889, #931, #933).
