@@ -69,7 +69,7 @@
 | 스키마만 | 테스트 검증 | - | 법제처 (`law`) | `ordin_search` | 자치법규 검색 | 법제처 `OC` 인증키 | [law.go.kr](https://www.law.go.kr/LSW/openApi/guideResult.do?htmlName=ordinSearchGuide) | 국가법령정보 공동활용 / `lawSearch.do?target=ordin&type=JSON` |
 | 지원 | 실API 검증 | 2026-11-18 | 지방행정인허가 (`localdata`) | `general_restaurant` | 일반음식점 인허가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 행정안전부 제공, service_name 실API 검증 완료 (data.go.kr 이관) |
 | 지원 | 실API 검증 | 2026-11-18 | 지방행정인허가 (`localdata`) | `rest_cafe` | 휴게음식점 인허가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 행정안전부 제공, service_name 실API 검증 완료 |
-| 지원 | 실API 검증 | 2026-11-18 | 지방행정인허가 (`localdata`) | `bakery` | 제과점 인허가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 행정안전부 제공, KSIC I56 |
+| 지원 | 실API 검증 | 2026-11-19 | 지방행정인허가 (`localdata`) | `bakery` | 제과점 인허가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 행정안전부 제공, KSIC I56 |
 | 활용신청 대기 | 테스트 검증 | - | 지방행정인허가 (`localdata`) | `hospital` | 병원 인허가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 행정안전부 제공, KSIC Q86 — 활용신청 필요(2026-09-09 프로브 #409) |
 | 활용신청 대기 | 테스트 검증 | - | 지방행정인허가 (`localdata`) | `clinic` | 의원 인허가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 행정안전부 제공, KSIC Q86 — 활용신청 필요(2026-09-09 프로브 #409) |
 | 활용신청 대기 | 테스트 검증 | - | 지방행정인허가 (`localdata`) | `pharmacy` | 약국 인허가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 행정안전부 제공, KSIC Q86 — 활용신청 필요(2026-09-09 프로브 #409) |
