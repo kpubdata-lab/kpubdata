@@ -390,6 +390,21 @@ These shipped in 0.6.0 but were left under Unreleased until 0.7.0.
 ### Removed
 - Remove the `datago.coop` (cooperative establishment status) dataset — confirmed that no nationwide API exists
 
+## [0.4.0] - 2026-04-23
+
+_Backfilled on 2026-11-19 from the commits between the `v0.3.1` and `v0.4.0` tags (#982); this
+release was published without a CHANGELOG section._
+
+### Added
+- `semas` provider (소상공인시장진흥공단 상가(상권)정보) with 17 datasets: 4 commercial-zone, 10
+  store and 3 industry-category lookups, with unit and contract tests and fixtures
+
+### Changed
+- **BREAKING**: the data.go.kr-based providers `localdata`, `lofin` and `semas` read the shared
+  `KPUBDATA_DATAGO_API_KEY`; `KPUBDATA_LOCALDATA_API_KEY`, `KPUBDATA_LOFIN_API_KEY` and
+  `KPUBDATA_SEMAS_API_KEY` were no longer read. (LOFIN later moved to its own issued key in
+  0.11.0, #986.)
+
 ## [0.3.1] - 2026-04-23
 
 ### Fixed
@@ -444,6 +459,18 @@ These shipped in 0.6.0 but were left under Unreleased until 0.7.0.
 ### Removed
 - Unreachable single-record adapter stubs
 - Single-record access from the provider and dataset public APIs
+
+## [0.1.1] - 2026-04-17
+
+_Backfilled on 2026-11-19 from the commits between the `v0.1.0` and `v0.1.1` tags (#982); this
+release was published without a CHANGELOG section._
+
+### Added
+- `lofin.revenue_by_source` (FIACRV, revenue by source) in the LOFIN catalogue, with a contract
+  test and fixture
+
+### Fixed
+- The publish workflow bumps the version with Python
 
 ## [0.1.0] - 2026-04-17
 
