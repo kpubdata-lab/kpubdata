@@ -90,7 +90,7 @@ Simple, co-located with the data it describes, and inspectable without GitHub AP
 ```
 Example: `[drift] datago.apt_trade: live_verified → broken (SCHEMA_CHANGED)`
 
-Labels: `type:bug`, `epic:trust`, plus `severity:major` for `broken`, `severity:minor` for `unstable`.
+Labels: `type:bug`, plus `severity:major` for `broken`, `severity:minor` for `unstable`. No `epic:*` label: the SDK repository no longer uses them (POLICY 2.1.1).
 
 ### 구현 (#625)
 

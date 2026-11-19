@@ -209,23 +209,49 @@ def collect(consecutive_required: int = 2, limit: int = 6) -> DriftReport:
     return report
 
 
+#: Drift issues share this title prefix with the probe's (scripts/drift_detect.py).
+DRIFT_TITLE_PREFIX = "[drift]"
+#: Labels that exist in the repository and that POLICY 2.1 still uses: a drift is a
+#: bug. No `drift` label exists, and `epic:*` is retired (POLICY 2.1.1).
+ISSUE_LABELS = ("type:bug",)
+
+
+def drift_title_dataset(title: str) -> str | None:
+    """The dataset id a ``[drift] <id>: ...`` title names, compared whole, not as a substring.
+
+    Both reporters write the id first and end it with a colon, so the probe's
+    reader (scripts/drift_detect.py) and this one agree on which dataset an open
+    issue is about.
+    """
+    if not title.startswith(DRIFT_TITLE_PREFIX + " "):
+        return None
+    dataset, separator, _ = title[len(DRIFT_TITLE_PREFIX) + 1 :].partition(":")
+    return dataset.strip() if separator and dataset.strip() else None
+
+
 def _existing_drift_issue(dataset: str) -> int | None:
     """Find open drift issue number for dataset (one per dataset principle)."""
+    # By title, not by label: a label the repository does not have made every
+    # search empty and every create fail (#896). Both drift reports title their
+    # issues "[drift] <dataset>…" (docs/DATASET_STATUS.md).
     out = _gh(
-        ["issue", "list", "--search", f'"{dataset}" is:open label:drift', "--json", "number,title"]
+        ["issue", "list", "--search", f'"{dataset}" is:open in:title', "--json", "number,title"]
     )
     issues = _json(out, "이슈 검색")
     if not isinstance(issues, list):
         raise UndeterminedError("이슈 검색 응답이 배열이 아님")
     for issue in issues:
-        if isinstance(issue, dict) and dataset in str(issue.get("title", "")):
+        title = str(issue.get("title", "")) if isinstance(issue, dict) else ""
+        if drift_title_dataset(title) == dataset:
             return int(issue["number"])
     return None
 
 
 def file_or_update(dataset: str, report: DriftReport, dry_run: bool) -> None:
     """Publish 2 consecutive failure datasets as issue or update existing issue."""
-    title = f"[drift] {dataset} 실API 스모크 연속 실패"
+    # The colon after the id is what the probe parses (drift_detect._open_drift_datasets):
+    # without it the probe would not see this issue and would file a second one.
+    title = f"{DRIFT_TITLE_PREFIX} {dataset}: 실API 스모크 연속 실패"
     body_lines = [
         f"## 대상\n{dataset}",
         "",
@@ -247,7 +273,9 @@ def file_or_update(dataset: str, report: DriftReport, dry_run: bool) -> None:
         f"`{reproduce}`",
         "",
         "## 수리 절차",
-        "drift-fixer 에이전트 절차를 따른다 (fixture는 반드시 make record로 재기록).",
+        "원인을 확인한 뒤 fixture 를 Build Dataset 워크플로로 다시 녹화한다 "
+        "(`https_dataset`, 설명 문구 교정이 함께 필요하면 `spec_commit`). "
+        "fixture 를 손으로 고치지 않는다.",
     ]
     body = "\n".join(body_lines)
 
@@ -272,7 +300,10 @@ def file_or_update(dataset: str, report: DriftReport, dry_run: bool) -> None:
             )
             print(f"갱신: #{existing} {dataset}")
             return
-        out = _gh(["issue", "create", "--title", title, "--body", body, "--label", "drift"])
+        args = ["issue", "create", "--title", title, "--body", body]
+        for label in ISSUE_LABELS:
+            args += ["--label", label]
+        out = _gh(args)
     except UndeterminedError as error:
         raise ReportFailedError(f"{dataset}: {error}") from error
     print(f"발행: {out.strip()} {dataset}")
