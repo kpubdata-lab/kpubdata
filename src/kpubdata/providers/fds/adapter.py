@@ -149,7 +149,7 @@ class FdsAdapter:
         filters: Mapping[str, object] | None = None,
     ) -> str:
         base_url = str(
-            dataset.raw_metadata.get("base_url", "http://openapi.foodsafetykorea.go.kr/api")
+            dataset.raw_metadata.get("base_url", "https://openapi.foodsafetykorea.go.kr/api")
         )
         service_id = service or str(dataset.raw_metadata.get("default_operation", ""))
         key = quote(self._require_api_key(), safe="")

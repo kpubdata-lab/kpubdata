@@ -6,7 +6,7 @@
       "url": "https://www.data.go.kr/data/15059486/openapi.do"
     },
     "name": "의약품 안전사용서비스 DUR 병용금기 품목정보 (DUR Co-use Taboo)",
-    "base_url": "http://apis.data.go.kr/1471000/DURPrdlstInfoService03",
+    "base_url": "https://apis.data.go.kr/1471000/DURPrdlstInfoService03",
     "default_operation": "getUsjntTabooInfoList03",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -35,7 +35,7 @@
       "url": "https://www.data.go.kr/data/15059486/openapi.do"
     },
     "name": "의약품 안전사용서비스 DUR 노인주의 정보조회 (DUR Older Adult Caution)",
-    "base_url": "http://apis.data.go.kr/1471000/DURPrdlstInfoService03",
+    "base_url": "https://apis.data.go.kr/1471000/DURPrdlstInfoService03",
     "default_operation": "getOdsnAtentInfoList03",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -65,7 +65,7 @@
       "url": "https://www.data.go.kr/data/15059486/openapi.do"
     },
     "name": "의약품 안전사용서비스 DUR품목정보 조회 (DUR Product Info)",
-    "base_url": "http://apis.data.go.kr/1471000/DURPrdlstInfoService03",
+    "base_url": "https://apis.data.go.kr/1471000/DURPrdlstInfoService03",
     "default_operation": "getDurPrdlstInfoList03",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -95,7 +95,7 @@
       "url": "https://www.data.go.kr/data/15059486/openapi.do"
     },
     "name": "의약품 안전사용서비스 DUR 특정연령대금기 정보조회 (DUR Age Taboo)",
-    "base_url": "http://apis.data.go.kr/1471000/DURPrdlstInfoService03",
+    "base_url": "https://apis.data.go.kr/1471000/DURPrdlstInfoService03",
     "default_operation": "getSpcifyAgrdeTabooInfoList03",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -125,7 +125,7 @@
       "url": "https://www.data.go.kr/data/15059486/openapi.do"
     },
     "name": "의약품 안전사용서비스 DUR 용량주의 정보조회 (DUR Dosage Caution)",
-    "base_url": "http://apis.data.go.kr/1471000/DURPrdlstInfoService03",
+    "base_url": "https://apis.data.go.kr/1471000/DURPrdlstInfoService03",
     "default_operation": "getCpctyAtentInfoList03",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -155,7 +155,7 @@
       "url": "https://www.data.go.kr/data/15059486/openapi.do"
     },
     "name": "의약품 안전사용서비스 DUR 투여기간주의 정보조회 (DUR Medication Period Caution)",
-    "base_url": "http://apis.data.go.kr/1471000/DURPrdlstInfoService03",
+    "base_url": "https://apis.data.go.kr/1471000/DURPrdlstInfoService03",
     "default_operation": "getMdctnPdAtentInfoList03",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -185,7 +185,7 @@
       "url": "https://www.data.go.kr/data/15059486/openapi.do"
     },
     "name": "의약품 안전사용서비스 DUR 효능군중복 정보조회 (DUR Efficacy Duplication)",
-    "base_url": "http://apis.data.go.kr/1471000/DURPrdlstInfoService03",
+    "base_url": "https://apis.data.go.kr/1471000/DURPrdlstInfoService03",
     "default_operation": "getEfcyDplctInfoList03",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -215,7 +215,7 @@
       "url": "https://www.data.go.kr/data/15059486/openapi.do"
     },
     "name": "의약품 안전사용서비스 DUR 서방정분할주의 정보조회 (DUR ER Tablet Split Caution)",
-    "base_url": "http://apis.data.go.kr/1471000/DURPrdlstInfoService03",
+    "base_url": "https://apis.data.go.kr/1471000/DURPrdlstInfoService03",
     "default_operation": "getSeobangjeongPartitnAtentInfoList03",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -245,7 +245,7 @@
       "url": "https://www.data.go.kr/data/15059486/openapi.do"
     },
     "name": "의약품 안전사용서비스 DUR 임부금기 정보조회 (DUR Pregnancy Taboo)",
-    "base_url": "http://apis.data.go.kr/1471000/DURPrdlstInfoService03",
+    "base_url": "https://apis.data.go.kr/1471000/DURPrdlstInfoService03",
     "default_operation": "getPwnmTabooInfoList03",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -271,7 +271,7 @@
   {
     "dataset_key": "rh_trade",
     "name": "연립다세대 매매 실거래자료 (Row House Trade)",
-    "base_url": "http://apis.data.go.kr/1613000/RTMSDataSvcRHTrade",
+    "base_url": "https://apis.data.go.kr/1613000/RTMSDataSvcRHTrade",
     "default_operation": "getRTMSDataSvcRHTrade",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -553,7 +553,7 @@
       "url": "https://www.data.go.kr/data/15094784/openapi.do"
     },
     "name": "금융위원회 채권시세정보 (Bond Price)",
-    "base_url": "http://apis.data.go.kr/1160100/service/GetBondSecuritiesInfoService",
+    "base_url": "https://apis.data.go.kr/1160100/service/GetBondSecuritiesInfoService",
     "default_operation": "getBondPriceInfo",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -581,7 +581,7 @@
       "url": "https://www.data.go.kr/data/15113986/openapi.do"
     },
     "name": "전국체육시설 정보 (National Sports Facility)",
-    "base_url": "http://apis.data.go.kr/B551014/SRVC_API_SFMS_FACI",
+    "base_url": "https://apis.data.go.kr/B551014/SRVC_API_SFMS_FACI",
     "default_operation": "TODZ_API_SFMS_FACI",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -716,7 +716,7 @@
       "dateCd": "DAY"
     },
     "name": "기상청 종관기상관측 일자료 (ASOS Daily)",
-    "base_url": "http://apis.data.go.kr/1360000/AsosDalyInfoService",
+    "base_url": "https://apis.data.go.kr/1360000/AsosDalyInfoService",
     "default_operation": "getWthrDataList",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -818,7 +818,7 @@
       "dateCd": "HR"
     },
     "name": "기상청 종관기상관측 시간자료 (ASOS Hourly)",
-    "base_url": "http://apis.data.go.kr/1360000/AsosHourlyInfoService",
+    "base_url": "https://apis.data.go.kr/1360000/AsosHourlyInfoService",
     "default_operation": "getWthrDataList",
     "representation": "api_json",
     "service_key_param": "serviceKey",

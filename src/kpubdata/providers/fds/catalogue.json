@@ -2,7 +2,7 @@
   {
     "dataset_key": "traceability_item",
     "name": "식품이력추적 관리품목 등록정보 (Food Traceability Items)",
-    "base_url": "http://openapi.foodsafetykorea.go.kr/api",
+    "base_url": "https://openapi.foodsafetykorea.go.kr/api",
     "default_operation": "I1200",
     "representation": "api_json",
     "description": "Registered food traceability items with barcode, manufacturer, and shelf life",
