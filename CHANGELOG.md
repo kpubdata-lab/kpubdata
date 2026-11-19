@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Highlights
+
+- Every bundled data.go.kr spec now calls the provider over HTTPS, so the service key is no longer sent in the clear; each dataset was re-recorded from a successful recording run (#893).
+- Spec-backed queries reject a missing required filter or an invalid declared enum value before any request is sent (#969).
+- Spec pagination advances correctly for `page_display`, `pindex_psize` and `index_range`, and `Client.close()` keeps closing provider transports after reuse (#973).
+- Licence terms of seven bundled datasets now state what each data.go.kr page says, and three localdata specs no longer hide their declared terms (#933).
+
+### Upgrade notes
+
+- A spec-backed `list()` without a required filter, or with a value outside a declared enum, now raises `InvalidRequestError` before sending; pass every required filter explicitly, as sample values in specs are not defaults (#969).
+- `DatasetRef.license.redistribution` now reports `allowed` for `datago.ultra_srt_fcst`, `datago.ultra_srt_ncst` and localdata `bakery`, `general_restaurant` and `rest_cafe`, which reported `unknown` or nothing before; review any publication rule keyed on it (#933).
+- The licence `type` of `datago.apt_trade` and `datago.apt_rent` changes from `공공누리_1유형` to `이용허락범위_제한없음`; redistribution stays `allowed` (#933).
+
+### Known limitations
+
+- PyPI publication follows a separate approval; if `kpubdata==0.11.1` is not yet on PyPI, install the tagged source with `pip install "kpubdata @ https://github.com/kpubdata-lab/kpubdata/archive/refs/tags/v0.11.1.tar.gz"`.
+- Catalogue (non-spec) entries that still name `http://` endpoints fail before sending a credential instead of calling the provider; how they move to HTTPS is still open (#893).
+- Real-provider smoke runs on a domestic runner by manual dispatch only; offline fixtures and replay do not certify current provider availability (#896).
+- The `pandas` extra supports pandas 2 only (`<3`); pandas 3 is not yet supported.
+
 ### Changed
 
 - SDK entry documentation uses the display name KPubData SDK and focuses on independent Python installation and use (#975). Package, import and CLI names remain `kpubdata`; historical integration records are preserved.
