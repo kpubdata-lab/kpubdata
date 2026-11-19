@@ -309,7 +309,9 @@ def test_an_open_issue_for_the_dataset_is_updated_not_duplicated(
     gh: FakeGh, capsys: pytest.CaptureFixture[str]
 ) -> None:
     _two_failures(gh, "test_datago_village_fcst")
-    gh.open_issues = [{"number": 77, "title": "[drift] datago.village_fcst 실API 스모크 연속 실패"}]
+    gh.open_issues = [
+        {"number": 77, "title": "[drift] datago.village_fcst: 실API 스모크 연속 실패"}
+    ]
 
     assert drift.main([]) == 0
 
@@ -322,7 +324,7 @@ def test_a_comment_that_could_not_be_posted_is_a_failed_report(
     gh: FakeGh, capsys: pytest.CaptureFixture[str]
 ) -> None:
     _two_failures(gh, "test_datago_village_fcst")
-    gh.open_issues = [{"number": 77, "title": "[drift] datago.village_fcst"}]
+    gh.open_issues = [{"number": 77, "title": "[drift] datago.village_fcst: 실API 스모크 연속 실패"}]
     gh.failing = {("issue", "comment")}
 
     assert drift.main([]) == 1
@@ -411,3 +413,37 @@ def test_every_label_a_drift_issue_carries_is_one_the_repository_uses() -> None:
     detect = (REPO_ROOT / "scripts" / "drift_detect.py").read_text(encoding="utf-8")
     assert '"epic:' not in detect
     assert '"drift"' not in detect
+
+
+def test_a_dataset_id_is_matched_whole_not_as_a_substring_of_another(
+    gh: FakeGh, capsys: pytest.CaptureFixture[str]
+) -> None:
+    gh.runs = [_run(2, "failure"), _run(1, "failure")]
+    gh.artifacts = {
+        "2": [_junit("test_datago_apt_rent")],
+        "1": [_junit("test_datago_apt_rent")],
+    }
+    gh.open_issues = [{"number": 8, "title": "[drift] datago.apt_rent_x: 실API 스모크 연속 실패"}]
+
+    assert drift.main([]) == 0
+
+    assert gh.made("issue", "comment") == []
+    assert len(gh.made("issue", "create")) == 1
+
+
+def test_the_smoke_title_is_one_the_probe_reads_back() -> None:
+    """The probe skips a [drift] title without a colon and would file a duplicate."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "drift_detect_for_title", REPO_ROOT / "scripts" / "drift_detect.py"
+    )
+    assert spec is not None and spec.loader is not None
+    detect = importlib.util.module_from_spec(spec)
+    sys.modules["drift_detect_for_title"] = detect
+    spec.loader.exec_module(detect)
+
+    title = f"{drift.DRIFT_TITLE_PREFIX} datago.village_fcst: 실API 스모크 연속 실패"
+    assert drift.drift_title_dataset(title) == "datago.village_fcst"
+    rows = [{"title": title}]
+    assert detect._open_drift_datasets_from(rows) == {"datago.village_fcst"}

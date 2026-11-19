@@ -216,6 +216,19 @@ DRIFT_TITLE_PREFIX = "[drift]"
 ISSUE_LABELS = ("type:bug",)
 
 
+def drift_title_dataset(title: str) -> str | None:
+    """The dataset id a ``[drift] <id>: ...`` title names, compared whole, not as a substring.
+
+    Both reporters write the id first and end it with a colon, so the probe's
+    reader (scripts/drift_detect.py) and this one agree on which dataset an open
+    issue is about.
+    """
+    if not title.startswith(DRIFT_TITLE_PREFIX + " "):
+        return None
+    dataset, separator, _ = title[len(DRIFT_TITLE_PREFIX) + 1 :].partition(":")
+    return dataset.strip() if separator and dataset.strip() else None
+
+
 def _existing_drift_issue(dataset: str) -> int | None:
     """Find open drift issue number for dataset (one per dataset principle)."""
     # By title, not by label: a label the repository does not have made every
@@ -229,14 +242,16 @@ def _existing_drift_issue(dataset: str) -> int | None:
         raise UndeterminedError("이슈 검색 응답이 배열이 아님")
     for issue in issues:
         title = str(issue.get("title", "")) if isinstance(issue, dict) else ""
-        if title.startswith(DRIFT_TITLE_PREFIX) and dataset in title:
+        if drift_title_dataset(title) == dataset:
             return int(issue["number"])
     return None
 
 
 def file_or_update(dataset: str, report: DriftReport, dry_run: bool) -> None:
     """Publish 2 consecutive failure datasets as issue or update existing issue."""
-    title = f"{DRIFT_TITLE_PREFIX} {dataset} 실API 스모크 연속 실패"
+    # The colon after the id is what the probe parses (drift_detect._open_drift_datasets):
+    # without it the probe would not see this issue and would file a second one.
+    title = f"{DRIFT_TITLE_PREFIX} {dataset}: 실API 스모크 연속 실패"
     body_lines = [
         f"## 대상\n{dataset}",
         "",
@@ -258,7 +273,9 @@ def file_or_update(dataset: str, report: DriftReport, dry_run: bool) -> None:
         f"`{reproduce}`",
         "",
         "## 수리 절차",
-        "drift-fixer 에이전트 절차를 따른다 (fixture는 반드시 make record로 재기록).",
+        "원인을 확인한 뒤 fixture 를 Build Dataset 워크플로로 다시 녹화한다 "
+        "(`https_dataset`, 설명 문구 교정이 함께 필요하면 `spec_commit`). "
+        "fixture 를 손으로 고치지 않는다.",
     ]
     body = "\n".join(body_lines)
 

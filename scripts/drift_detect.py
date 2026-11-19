@@ -460,7 +460,11 @@ def _open_drift_datasets(repo: str) -> set[str]:
         text=True,
         check=True,
     )
-    titles = json.loads(completed.stdout)
+    return _open_drift_datasets_from(json.loads(completed.stdout))
+
+
+def _open_drift_datasets_from(titles: object) -> set[str]:
+    """Dataset ids named by ``[drift] <id>: ...`` issue titles (the smoke report's too)."""
     datasets: set[str] = set()
     for row in titles if isinstance(titles, list) else []:
         title = row.get("title") if isinstance(row, dict) else None
