@@ -166,6 +166,16 @@ def is_commit_id(value: str) -> bool:
     return _COMMIT_ID.fullmatch(value) is not None
 
 
+def _loaded(text: str) -> dict[str, object]:
+    """``text`` parsed exactly as the spec loader parses it: a duplicate key's last value wins."""
+    import yaml
+
+    data = yaml.load(text, Loader=getattr(yaml, "CSafeLoader", yaml.SafeLoader))
+    if not isinstance(data, dict):
+        raise ValueError("the spec root is not a mapping")
+    return data
+
+
 def _strict_load(text: str) -> dict[str, object]:
     """``text`` parsed as the spec loader parses it, refusing duplicate mapping keys.
 
@@ -250,7 +260,10 @@ def check_spec_patch(base_spec: str, patched: str) -> list[str]:
     if hidden:
         return [f"the spec patch holds invisible characters a reviewer cannot see: {hidden}"]
     try:
-        before = _strict_load(base_spec)
+        # The dispatch commit's spec is main's and trusted: read it as the spec loader
+        # does, last duplicate key winning, so a patch may remove a duplicate key that
+        # is already there (#933). Only the patch has to parse strictly.
+        before = _loaded(base_spec)
         after = _strict_load(patched)
     except Exception as exc:  # noqa: BLE001 — any parse failure refuses the patch
         return [f"the spec patch does not parse strictly: {' '.join(str(exc).split())}"]

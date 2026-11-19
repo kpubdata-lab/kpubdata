@@ -622,10 +622,30 @@ def test_an_alias_carrying_a_value_into_the_request_is_refused() -> None:
     assert rerecord.check_spec_patch(base, patched)
 
 
-#: Specs with a duplicate ``license`` key (#933): a strict load refuses them, so they
-#: cannot be patched until that duplicate is resolved, which is an owner decision.
+#: Specs that had a duplicate ``license`` key (#933): a strict load refuses the file,
+#: so such a spec can be the base of a patch but never the patch itself.
 _DUPLICATE_LICENSE = {"localdata/bakery.yaml", "localdata/general_restaurant.yaml"}
 _DUPLICATE_LICENSE |= {"localdata/rest_cafe.yaml"}
+
+
+def test_a_patch_may_resolve_a_duplicate_key_already_on_main() -> None:
+    # The localdata specs carry two `license` keys; the loader keeps the second (#933).
+    base = _PATCH_BASE + "license:\n  pii_columns:\n  - TELNO\n"
+    merged = _PATCH_BASE.replace(
+        "license:\n  type: unknown\n",
+        "license:\n  type: kogl_1\n  attribution: x\n  pii_columns:\n  - TELNO\n",
+    )
+    assert rerecord.check_spec_patch(base, merged) == []
+    # The patch itself must still parse strictly: it may not keep or add a duplicate.
+    assert rerecord.check_spec_patch(base, base)
+
+
+def test_a_duplicate_on_main_does_not_let_a_patch_change_the_request() -> None:
+    base = _PATCH_BASE + "license:\n  pii_columns:\n  - TELNO\n"
+    patched = base.replace("RTMSDataSvcAptTrade", "Other").replace(
+        "license:\n  pii_columns:\n  - TELNO\n", ""
+    )
+    assert "endpoint" in rerecord.check_spec_patch(base, patched)[0]
 
 
 def test_every_bundled_spec_loads_strictly() -> None:
@@ -644,7 +664,8 @@ def test_every_bundled_spec_loads_strictly() -> None:
             [],
             ["a spec patch applies only to a spec already on https at a data.go.kr host"],
         ), spec
-    assert refused == _DUPLICATE_LICENSE
+    # The list may only shrink as those duplicates are resolved (#933).
+    assert refused <= _DUPLICATE_LICENSE
 
 
 def _corrected_descriptions(spec: str) -> str:
