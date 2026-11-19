@@ -1,6 +1,5 @@
 name: 문서 개선
 description: 문서 오류, 누락, 개선 사항을 신고합니다
-title: "docs: "
 body:
   - type: input
     id: location
