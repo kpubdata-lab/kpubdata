@@ -1,8 +1,8 @@
 # AGENTS.md
 
 > **[POLICY.md](./docs/governance/POLICY.md) is the single canonical source for
-> project-management and review policy.** Epic, Issue, Priority, Review Level,
-> Verification and Release rules come from there. This file keeps only what is
+> project-management and review policy.** Lean Issue/PR tracking, optional priority,
+> risk-based review, verification and release safeguards come from there. This file keeps only what is
 > specific to this repository — build commands and directory rules. POLICY.md wins
 > any conflict.
 
@@ -143,51 +143,18 @@ starting nothing.
 Say "done" with the command's output. If tests failed, paste the failure. If a step
 was skipped, say it was skipped.
 
-## Labels — what an agent applies
+## Lean Issue and PR workflow
 
-**[POLICY.md](./docs/governance/POLICY.md) sections 2.1, 2.1.1 and 2.1.2 are the label reference.**
-This file deliberately does not copy the table: a second copy goes stale, and the
-first draft of this section already dropped the Severity axis that POLICY defines.
+Follow [POLICY sections 2, 6, 7 and 14](docs/governance/POLICY.md). One Issue records a real independent problem with evidence, scope, acceptance criteria and verification. Search for an existing issue before opening another; add findings to the existing one rather than creating tracker or umbrella issues.
 
-What is specific to agents:
-
-- A new issue carries **at least one `epic:*`**. Its title starts with a
-  Conventional Commits type — `fix(localdata): empty wrapper becomes a phantom row` —
-  and the `type:*` label follows from the title (POLICY 2.1.3). **Never set `type:*`
-  by hand**, and change the title rather than the label when the type was wrong.
-- Pull request titles use the same types; the `PR title` check fails otherwise. The
-  allowed list lives in kpubdata's `scripts/conventional_title.py`, and the rules in
-  [POLICY 2.1.3](docs/governance/POLICY.md) — the one place all three repositories read.
-  Merges are squash-only, so the PR title becomes the commit title on `main`. Do not put
-  an issue number in a PR title; write `Closes #N` in the body.
-- Leave Priority off when there is no evidence for it. POLICY 8 requires
-  `Impact:`, `Blocks:` and `Evidence:` for High and above, and a rating without
-  evidence is a wrong rating.
-- Do not prefix a title with `GOV-01:` or `WH-03:`. Those are serial numbers from
-  a backlog document, not the issue's name. The type is the only prefix.
-- SDK-only owner decision (2026-11-16): `review:R3` and the archived `R3 review`
-  workflow are not mandatory SDK merge requirements (POLICY 14.1 exception).
-  Keep actual-head tests and independent risk review for substantive changes;
-  `CI gate` and `PR title` must pass. No human attestation or synthetic APPROVED
-  review is needed. This does not change other repositories' review checks or
-  authorize releases, publication, secret access or deployment.
-- Write a review or verification level meaning first, code in parentheses:
-  "unit tests (V1)", "replay and contract tests (V2)", "an approval from someone
-  other than the author (R3)" — never a bare code. The glossary is
-  [POLICY 0.2](docs/governance/POLICY.md#codes), and `scripts/check_plain_codes.py`
-  fails CI on a bare code in any tracked Markdown file or issue form (#878). Label,
-  check and script names (`review:R3`, `R3 review`) stay as they are, in code spans.
-
-What an agent does not do:
-
-- Promote to `priority:high` or `priority:critical` — that is a person's judgement
-  (POLICY 8, 14).
-- Create a label that POLICY's table does not list. Adding one goes through
-  `epic:governance`.
-- Lower a `review:*` level.
-- Create an Epic issue. Epic is a label (POLICY 4.1).
-- Substitute `P0`/`P1`/`P2` mechanically for `priority:*`. POLICY 8 requires a
-  re-rating from zero, so that a wrong priority does not survive under a new name.
+- **No Epics, Project board, mandatory type/size/status/review labels.** Do not add `epic:*` labels or create parent tracking issues.
+- Issue titles should describe the problem/goal clearly in English; Conventional Commits is **optional for Issue titles**, and no issue-title label synchronization is performed.
+- PR and squash commit titles **must** follow Conventional Commits and the existing `PR title` check. Put `Closes #N` in the PR body, not the title.
+- Use `priority:*` only when it helps decide scheduling, with evidence for high and critical work. Do not create new labels as a bookkeeping substitute.
+- Preserve `CI gate`, `PR title`, all source-terms, provider-key/security, validation, release and compatibility safeguards; do not bypass required checks.
+- SDK-only owner decision (2026-11-16): `review:R3` and archived `R3 review` are not SDK merge requirements (POLICY 14.1). Record actual-head tests and independent risk-review evidence for substantive changes. Other repositories retain their own review controls.
+- Write review/verification terms meaning-first, with the code in parentheses (POLICY 0.1). `scripts/check_plain_codes.py` remains in CI.
+- Do not approve your own PR, promote critical priorities without evidence, approve secret access, publish or release without authorization, or silently declare a skipped/failed check passed.
 
 ## Dataset publishing
 
