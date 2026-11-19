@@ -212,6 +212,14 @@ when declared. Optional and undeclared filters keep their existing behavior.
 `call_raw()` keeps provider-native parameter handling without enforcing these
 normalized required/enum constraints (#969).
 
+A declared parameter is recognised by its public alias and by its provider name, so
+the provider name cannot be used to skip enum validation. Giving the same parameter
+under both spellings raises `InvalidRequestError`. A spec-backed dataset declares no
+time range, sorting, field selection or cursor paging, so a `list()` that sets
+`start_date`, `end_date`, `sort`, `fields` or `cursor` raises `InvalidRequestError`
+instead of dropping the option. Pass the provider's own date or sort parameters as
+filters under the names the spec declares.
+
 ### List all pages
 
 ```python

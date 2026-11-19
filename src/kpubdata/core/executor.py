@@ -374,6 +374,8 @@ def _normalize_numeric_lexeme(value: object) -> object:
 #: Rejects scientific notation ("1e3"), NaN/inf, and non-integral decimals (#461).
 _PLAIN_INTEGER_RE = re.compile(r"^[+-]?\d+$")
 _INTEGRAL_DECIMAL_RE = re.compile(r"^[+-]?\d+\.0+$")
+#: Strict decimal for ``number``: ASCII digits only, no underscores, nan or inf.
+_PLAIN_NUMBER_RE = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)")
 #: A leading zero before another digit ("06102", "0766") marks a code, not a
 #: quantity. Casting it would drop the zero, so it fails the cast and the
 #: all-or-nothing rule leaves the whole column as text, reported as uncastable —
@@ -423,10 +425,9 @@ def _try_cast_field(value: object, field_type: str) -> tuple[bool, object]:
                 return False, value
             if "e" in value.lower():
                 return False, value
-            try:
-                return True, float(value)
-            except ValueError:
+            if not _PLAIN_NUMBER_RE.fullmatch(value):
                 return False, value
+            return True, float(value)
         return False, value
     return True, value
 
@@ -707,6 +708,18 @@ class SpecExecutor:
             InvalidRequestError: If a declared required filter is absent or None,
                 an enum value is invalid, or pagination configuration is incomplete.
         """
+        unsupported = [
+            name
+            for name in ("cursor", "start_date", "end_date", "fields", "sort")
+            if getattr(query, name) is not None
+        ]
+        if unsupported:
+            raise InvalidRequestError(
+                f"Spec datasets do not support the query option(s): {', '.join(unsupported)}; "
+                "pass provider parameters as filters instead",
+                provider=spec.provider,
+                dataset_id=spec.id,
+            )
         params: dict[str, str] = {}
         self._add_auth_params(spec, params)
 
@@ -747,11 +760,24 @@ class SpecExecutor:
 
         reserved = {key.lower() for key in params}
         declared = {param.exposed_name: param for param in spec.params}
+        by_provider_name = {param.name: param for param in spec.params}
+        for declared_param in spec.params:
+            if (
+                declared_param.exposed_name != declared_param.name
+                and declared_param.exposed_name in query.filters
+                and declared_param.name in query.filters
+            ):
+                raise InvalidRequestError(
+                    f"Filter {declared_param.exposed_name!r} was given under both its public alias "
+                    "and its provider name",
+                    provider=spec.provider,
+                    dataset_id=spec.id,
+                )
         for key, raw_value in query.filters.items():
             # Auth, format, pagination params already filled; don't override with user filters.
             if key.lower() in reserved:
                 continue
-            param_spec = declared.get(key)
+            param_spec = declared.get(key) or by_provider_name.get(key)
             provider_name = param_spec.name if param_spec is not None else key
             encoded = scalar_filter_value(
                 provider_name,

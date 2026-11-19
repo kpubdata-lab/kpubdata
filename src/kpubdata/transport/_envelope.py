@@ -26,6 +26,8 @@ from __future__ import annotations
 import json
 import re
 
+from .decode import sniff_body_kind
+
 #: Codes read as success. Same vocabulary as the executor's check
 #: (``ok_values``, or the integer 0).
 _SUCCESS_CODES = frozenset({"00", "000", "0"})
@@ -138,6 +140,10 @@ def _json_result_code(body: bytes) -> str | None:
 def is_upstream_error_envelope(body: bytes, content_type: str) -> bool:
     """Whether this 200 response is really a refusal. True only when certain."""
     kind = content_type.split(";", 1)[0].strip().casefold()
+    if "json" not in kind and "xml" not in kind:
+        # A gateway error often arrives as text/plain or text/html; classify the body
+        # with the same prefix sniff the decoder uses.
+        kind = sniff_body_kind(body)
     if "json" in kind:
         code = _json_code(body)
         if code is not None:

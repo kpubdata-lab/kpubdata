@@ -366,6 +366,7 @@ def _handle_fetch_command(client: Client, args: argparse.Namespace) -> int:
     """Handle the ``fetch`` command."""
     values = vars(args)
     params = _parse_assignments(cast(list[str], values.get("param", [])), flag_name="-p/--param")
+    _reject_python_parameter_names(params, ("self",))
     list_kwargs: dict[str, object] = dict(params)
     page = cast(int | None, values.get("page"))
     page_size = cast(int | None, values.get("page_size"))
@@ -439,6 +440,7 @@ def _handle_raw_command(client: Client, args: argparse.Namespace) -> int:
     params = _parse_assignments(cast(list[str], values.get("param", [])), flag_name="-p/--param")
     dataset_id = cast(str, values.get("dataset_id"))
     operation = cast(str, values.get("operation"))
+    _reject_python_parameter_names(params, ("self", "operation"))
     output_path = cast(str | None, values.get("output"))
     dataset = client.dataset(dataset_id)
     payload = dataset.call_raw(operation, **params)
@@ -569,6 +571,19 @@ def _parse_assignments(values: Sequence[str], *, flag_name: str) -> dict[str, st
         key, parsed_value = _split_assignment(value, flag_name=flag_name)
         assignments[key] = parsed_value
     return assignments
+
+
+def _reject_python_parameter_names(params: Mapping[str, str], reserved: Sequence[str]) -> None:
+    """Refuse -p keys that collide with a Python parameter of the Dataset method.
+
+    They are sent as keyword arguments, so such a key would otherwise escape as a
+    raw TypeError instead of a canonical error.
+    """
+    clashes = [name for name in reserved if name in params]
+    if clashes:
+        raise InvalidRequestError(
+            f"-p/--param key(s) {', '.join(clashes)} cannot be used as provider parameters here"
+        )
 
 
 def _split_assignment(value: str, *, flag_name: str) -> tuple[str, str]:

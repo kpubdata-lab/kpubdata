@@ -14,6 +14,21 @@ from ..exceptions import ParseError
 logger = logging.getLogger("kpubdata.transport.decode")
 
 
+def sniff_body_kind(body: bytes) -> str:
+    """Classify a body as ``json``, ``xml`` or ``other`` from a bounded prefix."""
+    prefix = body[:256].lstrip(b" \t\r\n\xef\xbb\xbf")
+    lowered = prefix.lower()
+    if prefix.startswith((b"{", b"[")):
+        return "json"
+    if lowered.startswith((b"<!doctype html", b"<html", b"<head", b"<body", b"<script")):
+        return "other"
+    if prefix.startswith(b"<?xml") or lowered.startswith(
+        (b"<response", b"<openapi_serviceresponse", b"<result")
+    ):
+        return "xml"
+    return "other"
+
+
 def detect_content_type(response: httpx.Response) -> str:
     """Classify JSON/XML, sniffing a bounded prefix for ambiguous headers.
 
@@ -30,16 +45,9 @@ def detect_content_type(response: httpx.Response) -> str:
 
     raw_body = getattr(response, "content", None)
     if isinstance(raw_body, bytes):
-        prefix = raw_body[:256].lstrip(b" \t\r\n\xef\xbb\xbf")
-        lowered = prefix.lower()
-        if prefix.startswith((b"{", b"[")):
-            return "json"
-        if lowered.startswith((b"<!doctype html", b"<html", b"<head", b"<body", b"<script")):
-            return "other"
-        if prefix.startswith(b"<?xml") or lowered.startswith(
-            (b"<response", b"<openapi_serviceresponse", b"<result")
-        ):
-            return "xml"
+        sniffed = sniff_body_kind(raw_body)
+        if sniffed != "other":
+            return sniffed
     logger.debug(
         "Unrecognized content-type, defaulting to 'other'",
         extra={"content_type": content_type},

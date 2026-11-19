@@ -10,7 +10,7 @@ import pytest
 
 from kpubdata.catalog import Catalog
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
-from kpubdata.exceptions import DatasetNotFoundError
+from kpubdata.exceptions import AuthError, DatasetNotFoundError
 from kpubdata.registry import ProviderRegistry
 
 
@@ -154,3 +154,16 @@ def test_resolve_wraps_unexpected_adapter_errors_as_dataset_not_found() -> None:
     assert error.provider == "alpha"
     assert error.dataset_id == "alpha.some_dataset"
     assert "Dataset not found" in str(error)
+
+
+def test_resolve_lets_other_public_data_errors_propagate() -> None:
+    """An AuthError from an adapter is not relabelled as an unknown dataset."""
+
+    class _AuthFailingAdapter(_ExplodingAdapter):
+        def get_dataset(self, dataset_key: str) -> DatasetRef:
+            raise AuthError("bad key", provider="alpha")
+
+    registry = ProviderRegistry()
+    registry.register(_AuthFailingAdapter())
+    with pytest.raises(AuthError):
+        _ = Catalog(registry).resolve("alpha.some_dataset")
