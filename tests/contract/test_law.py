@@ -323,7 +323,7 @@ class TestLawAdapterContract(ProviderAdapterContract):
         _ = adapter.query_records(dataset, Query())
 
         request_url = cast(str, transport.calls[0]["url"])
-        assert request_url.startswith("http://www.law.go.kr/DRF/lawSearch.do?")
+        assert request_url.startswith("https://www.law.go.kr/DRF/lawSearch.do?")
         assert "OC=test-law-key" in request_url
         assert "target=law" in request_url
         assert "type=JSON" in request_url
@@ -355,5 +355,5 @@ class TestLawAdapterContract(ProviderAdapterContract):
         request_url = cast(str, transport.calls[0]["url"])
         assert isinstance(raw, dict)
         assert "법령정보" in raw
-        assert request_url.startswith("http://www.law.go.kr/DRF/lawService.do?")
+        assert request_url.startswith("https://www.law.go.kr/DRF/lawService.do?")
         assert "MST=17523" in request_url

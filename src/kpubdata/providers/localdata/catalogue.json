@@ -8,7 +8,7 @@
       "healthcare"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/hospitals",
+    "base_url": "https://apis.data.go.kr/1741000/hospitals",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -103,7 +103,7 @@
       "healthcare"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/clinics",
+    "base_url": "https://apis.data.go.kr/1741000/clinics",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -198,7 +198,7 @@
       "healthcare"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/pharmacies",
+    "base_url": "https://apis.data.go.kr/1741000/pharmacies",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -293,7 +293,7 @@
       "healthcare"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/animal_hospitals",
+    "base_url": "https://apis.data.go.kr/1741000/animal_hospitals",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -388,7 +388,7 @@
       "personal-care"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/optical_shops",
+    "base_url": "https://apis.data.go.kr/1741000/optical_shops",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -483,7 +483,7 @@
       "personal-care"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/public_baths",
+    "base_url": "https://apis.data.go.kr/1741000/public_baths",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -578,7 +578,7 @@
       "personal-care"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/laundries",
+    "base_url": "https://apis.data.go.kr/1741000/laundries",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -673,7 +673,7 @@
       "personal-care"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/barber_shops",
+    "base_url": "https://apis.data.go.kr/1741000/barber_shops",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -768,7 +768,7 @@
       "personal-care"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/beauty_salons",
+    "base_url": "https://apis.data.go.kr/1741000/beauty_salons",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -863,7 +863,7 @@
       "animal"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/pet_grooming",
+    "base_url": "https://apis.data.go.kr/1741000/pet_grooming",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -958,7 +958,7 @@
       "tourism"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/dance_academies",
+    "base_url": "https://apis.data.go.kr/1741000/dance_academies",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -1053,7 +1053,7 @@
       "tourism"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/karaoke_rooms",
+    "base_url": "https://apis.data.go.kr/1741000/karaoke_rooms",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -1148,7 +1148,7 @@
       "tourism"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/singing_bars",
+    "base_url": "https://apis.data.go.kr/1741000/singing_bars",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -1243,7 +1243,7 @@
       "tourism"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/billiard_halls",
+    "base_url": "https://apis.data.go.kr/1741000/billiard_halls",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -1338,7 +1338,7 @@
       "tourism"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/performance_halls",
+    "base_url": "https://apis.data.go.kr/1741000/performance_halls",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -1433,7 +1433,7 @@
       "tourism"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/movie_theaters",
+    "base_url": "https://apis.data.go.kr/1741000/movie_theaters",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -1528,7 +1528,7 @@
       "sports"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/swimming_pools",
+    "base_url": "https://apis.data.go.kr/1741000/swimming_pools",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -1623,7 +1623,7 @@
       "sports"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/fitness_centers",
+    "base_url": "https://apis.data.go.kr/1741000/fitness_centers",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -1718,7 +1718,7 @@
       "sports"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/ice_rinks",
+    "base_url": "https://apis.data.go.kr/1741000/ice_rinks",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -1813,7 +1813,7 @@
       "sports"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/golf_courses",
+    "base_url": "https://apis.data.go.kr/1741000/golf_courses",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -1908,7 +1908,7 @@
       "sports"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/golf_practice_ranges",
+    "base_url": "https://apis.data.go.kr/1741000/golf_practice_ranges",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -2003,7 +2003,7 @@
       "sports"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/horse_riding",
+    "base_url": "https://apis.data.go.kr/1741000/horse_riding",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -2098,7 +2098,7 @@
       "sports"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/ski_resorts",
+    "base_url": "https://apis.data.go.kr/1741000/ski_resorts",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -2193,7 +2193,7 @@
       "healthcare"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/affiliated_medical_institutions",
+    "base_url": "https://apis.data.go.kr/1741000/affiliated_medical_institutions",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -2288,7 +2288,7 @@
       "healthcare"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/postpartum_care",
+    "base_url": "https://apis.data.go.kr/1741000/postpartum_care",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -2383,7 +2383,7 @@
       "healthcare"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/dental_labs",
+    "base_url": "https://apis.data.go.kr/1741000/dental_labs",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -2478,7 +2478,7 @@
       "animal"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/animal_import",
+    "base_url": "https://apis.data.go.kr/1741000/animal_import",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -2573,7 +2573,7 @@
       "livestock"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/slaughterhouses",
+    "base_url": "https://apis.data.go.kr/1741000/slaughterhouses",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -2668,7 +2668,7 @@
       "livestock"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/hatcheries",
+    "base_url": "https://apis.data.go.kr/1741000/hatcheries",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -2763,7 +2763,7 @@
       "tourism"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/youth_game_providers",
+    "base_url": "https://apis.data.go.kr/1741000/youth_game_providers",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -2858,7 +2858,7 @@
       "tourism"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/tourist_performance_halls",
+    "base_url": "https://apis.data.go.kr/1741000/tourist_performance_halls",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -2953,7 +2953,7 @@
       "tourism"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/tourism_businesses",
+    "base_url": "https://apis.data.go.kr/1741000/tourism_businesses",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -3048,7 +3048,7 @@
       "tourism"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/general_amusement_facilities",
+    "base_url": "https://apis.data.go.kr/1741000/general_amusement_facilities",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -3143,7 +3143,7 @@
       "tourism"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/comprehensive_amusement_facilities",
+    "base_url": "https://apis.data.go.kr/1741000/comprehensive_amusement_facilities",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -3238,7 +3238,7 @@
       "tourism"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/video_viewing_rooms",
+    "base_url": "https://apis.data.go.kr/1741000/video_viewing_rooms",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -3333,7 +3333,7 @@
       "tourism"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/tourist_accommodations",
+    "base_url": "https://apis.data.go.kr/1741000/tourist_accommodations",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -3428,7 +3428,7 @@
       "tourism"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/tourist_pensions",
+    "base_url": "https://apis.data.go.kr/1741000/tourist_pensions",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -3523,7 +3523,7 @@
       "tourism"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/online_music_services",
+    "base_url": "https://apis.data.go.kr/1741000/online_music_services",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -3618,7 +3618,7 @@
       "retail"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/door_to_door_sales",
+    "base_url": "https://apis.data.go.kr/1741000/door_to_door_sales",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -3713,7 +3713,7 @@
       "tourism"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/dance_halls",
+    "base_url": "https://apis.data.go.kr/1741000/dance_halls",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -3808,7 +3808,7 @@
       "tourism"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/yacht_marinas",
+    "base_url": "https://apis.data.go.kr/1741000/yacht_marinas",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -3903,7 +3903,7 @@
       "sports"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/comprehensive_sports_facilities",
+    "base_url": "https://apis.data.go.kr/1741000/comprehensive_sports_facilities",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -3998,7 +3998,7 @@
       "food"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/food_vending_machines",
+    "base_url": "https://apis.data.go.kr/1741000/food_vending_machines",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -4093,7 +4093,7 @@
       "milk"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/milk_collection",
+    "base_url": "https://apis.data.go.kr/1741000/milk_collection",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -4188,7 +4188,7 @@
       "livestock"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/livestock_processing",
+    "base_url": "https://apis.data.go.kr/1741000/livestock_processing",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -4283,7 +4283,7 @@
       "livestock"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/livestock_storage",
+    "base_url": "https://apis.data.go.kr/1741000/livestock_storage",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -4378,7 +4378,7 @@
       "tourism"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/entertainment_bars",
+    "base_url": "https://apis.data.go.kr/1741000/entertainment_bars",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -4473,7 +4473,7 @@
       "food-service"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/tourist_restaurants",
+    "base_url": "https://apis.data.go.kr/1741000/tourist_restaurants",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -4568,7 +4568,7 @@
       "food-service"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/tourist_entertainment_restaurants",
+    "base_url": "https://apis.data.go.kr/1741000/tourist_entertainment_restaurants",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -4663,7 +4663,7 @@
       "log"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/log_production",
+    "base_url": "https://apis.data.go.kr/1741000/log_production",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -4758,7 +4758,7 @@
       "sawmill"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/sawmills",
+    "base_url": "https://apis.data.go.kr/1741000/sawmills",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -4853,7 +4853,7 @@
       "energy"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/high_pressure_gas",
+    "base_url": "https://apis.data.go.kr/1741000/high_pressure_gas",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -4948,7 +4948,7 @@
       "environment"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/groundwater_construction",
+    "base_url": "https://apis.data.go.kr/1741000/groundwater_construction",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -5043,7 +5043,7 @@
       "construction"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/water_tank_cleaning",
+    "base_url": "https://apis.data.go.kr/1741000/water_tank_cleaning",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -5138,7 +5138,7 @@
       "business"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/publishers",
+    "base_url": "https://apis.data.go.kr/1741000/publishers",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
@@ -5233,7 +5233,7 @@
       "logistics"
     ],
     "source_url": "https://www.data.go.kr",
-    "base_url": "http://apis.data.go.kr/1741000/logistics_warehouses",
+    "base_url": "https://apis.data.go.kr/1741000/logistics_warehouses",
     "default_operation": "info",
     "representation": "api_json",
     "service_key_param": "serviceKey",
