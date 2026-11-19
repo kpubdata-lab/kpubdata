@@ -29,6 +29,15 @@
 # Its pull request is opened with the workflow token, which starts no CI: close and
 # reopen it once the run has finished. KMA examples are moved to the latest published
 # base_date of their base_time first, since the API answers only for recent releases.
+#
+# Spec patch (#889, #931, #933). Give `spec_commit` — the full id of a pushed commit
+# that corrects the spec — with `https_dataset` to record with that commit's version of
+# the spec file, so a correction to its descriptive text and the recording it voids
+# land in one pull request. Only the title, description, source, fields and license
+# blocks may differ from main; https_rerecord.py refuses a patch to any block that
+# shapes the request or decides where the key goes, both before recording and after,
+# and a second step loads the result with kpubdata's own loader before the key is used.
+# The commit must be on a branch of this repository, not only in a fork.
 name: Build Dataset (agent)
 
 on:
@@ -39,6 +48,9 @@ on:
         required: false
       https_dataset:
         description: "다시 녹화할 spec id — insecure_http_baseline.txt 에 있으면 https 로 옮긴다(#893), 이미 https 인 data.go.kr spec 이면 녹화만 다시 한다(#907)"
+        required: false
+      spec_commit:
+        description: "https_dataset 과 함께: spec 파일을 이 커밋(40자 id)의 것으로 바꿔 녹화한다 — title/description/source/fields/license 만 바뀔 수 있다"
         required: false
 
 # Each job names what it needs.
@@ -66,6 +78,7 @@ jobs:
       agent: ${{ steps.decide.outputs.agent }}
       issue_sha256: ${{ steps.decide.outputs.issue_sha256 }}
       mode: ${{ steps.decide.outputs.mode }}
+      spec_commit: ${{ steps.decide.outputs.spec_commit }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -79,6 +92,7 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.inputs.issue_number || github.event.issue.number }}
           ACTOR: ${{ github.triggering_actor }}
           HTTPS_DATASET: ${{ github.event.inputs.https_dataset }}
+          SPEC_COMMIT: ${{ github.event.inputs.spec_commit }}
         run: |
           PERMISSION=none
           ISSUE_SHA256=
@@ -99,7 +113,8 @@ jobs:
             python3 scripts/https_rerecord.py decide \
               --permission="$PERMISSION" \
               --dataset="$HTTPS_DATASET" \
-              --issue-number="$ISSUE_NUMBER" > "$RUNNER_TEMP/decision.txt"
+              --issue-number="$ISSUE_NUMBER" \
+              --spec-commit="$SPEC_COMMIT" > "$RUNNER_TEMP/decision.txt"
             {
               cat "$RUNNER_TEMP/decision.txt"
               echo "mode=https"
@@ -381,6 +396,8 @@ jobs:
     env:
       # Validated by the gate job against the dispatch commit (baseline entry or https spec).
       DATASET: ${{ needs.gate.outputs.dataset }}
+      # Validated by the gate job as a full commit id; empty when no spec patch was given.
+      SPEC_COMMIT: ${{ needs.gate.outputs.spec_commit }}
       KPUBDATA_BASELINE_BASE: ${{ github.sha }}
       # A run must not rewrite uv.lock; the change check would refuse it anyway.
       UV_FROZEN: "1"
@@ -403,8 +420,36 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen --extra dev --python 3.12
 
+      - name: Fetch the spec commit
+        if: env.SPEC_COMMIT != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          AUTH=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')
+          echo "::add-mask::$AUTH"
+          # Branches of this repository only: a bare commit id would also reach a fork's
+          # pull request head, which anyone can create. Only collaborators push here, and
+          # branches written by automation (the agent, earlier re-records, release-please,
+          # Dependabot) do not count as a person's choice of spec.
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
+            fetch --no-tags --prune --unshallow --filter=blob:none origin \
+            '+refs/heads/*:refs/remotes/origin/*'
+          BRANCHES=$(git branch -r --contains "$SPEC_COMMIT" --format='%(refname:short)' 2>/dev/null \
+            | grep -Ev '^origin/(agent/|rerecord/|release-please--|dependabot/)' || true)
+          if [ -z "$BRANCHES" ]; then
+            echo "::error::spec_commit $SPEC_COMMIT is not on a person's branch of this repository"
+            exit 1
+          fi
+
       - name: Switch the spec to https
-        run: uv run python scripts/https_rerecord.py switch "$DATASET"
+        run: uv run python scripts/https_rerecord.py switch "$DATASET" --spec-commit "$SPEC_COMMIT"
+
+      # A second guard, independent of the switch's: kpubdata's own loader must read the
+      # same request as the dispatch commit's spec, and a data.go.kr host, before the
+      # provider key is handed to the next step.
+      - name: Confirm the request is unchanged
+        if: env.SPEC_COMMIT != ''
+        run: uv run python scripts/https_rerecord.py confirm "$DATASET" --base "$GITHUB_SHA"
 
       - name: Record over https
         env:
@@ -420,14 +465,21 @@ jobs:
           make verify DATASET="$DATASET"
 
       - name: Check what changed
-        run: uv run python scripts/https_rerecord.py check "$DATASET" --base "$GITHUB_SHA"
+        run: >-
+          uv run python scripts/https_rerecord.py check "$DATASET" --base "$GITHUB_SHA"
+          --spec-commit "$SPEC_COMMIT"
 
       - name: Open the pull request
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           BRANCH="rerecord/https-$DATASET"
-          if git diff --quiet "$GITHUB_SHA" -- scripts/insecure_http_baseline.txt; then
+          if [ -n "$SPEC_COMMIT" ]; then
+            # A corrected spec recorded in the same run (#889, #931, #933).
+            TITLE="fix(specs): re-record $DATASET with its corrected spec"
+            WHAT="Takes the spec of \`$DATASET\` from $SPEC_COMMIT — a change to its descriptive blocks only, checked by https_rerecord.py — and re-records its fixtures against it through the re-record mode of Build Dataset. Reviewers: a change to \`license\` (redistribution, attribution) changes what Builder may publish, not only wording."
+            REFS="Refs #907"
+          elif git diff --quiet "$GITHUB_SHA" -- scripts/insecure_http_baseline.txt; then
             # Already on https: only the recording is redone (#907).
             TITLE="fix(fixtures): re-record $DATASET from a successful run"
             WHAT="Re-records the fixtures of \`$DATASET\`, already on https, through the re-record mode of Build Dataset, so its metas name a successful recording run (#907)."

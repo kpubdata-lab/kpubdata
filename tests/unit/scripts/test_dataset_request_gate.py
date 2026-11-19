@@ -439,6 +439,52 @@ def test_the_https_job_runs_fixed_commands_only() -> None:
         "gen_status_page.py",
     ):
         assert f"scripts/{generator}" in regenerate["run"]
+    # A spec patch (#889, #931, #933) is fetched without the provider key and reaches
+    # both the switch and the change check, so the check holds the recording to it.
+    assert job["env"]["SPEC_COMMIT"] == "${{ needs.gate.outputs.spec_commit }}"
+    fetch = next(s for s in job["steps"] if s.get("name") == "Fetch the spec commit")
+    assert "secrets." not in yaml.safe_dump(fetch)
+    assert names.index("Fetch the spec commit") < names.index("Switch the spec to https")
+    assert "refs/heads/*" in fetch["run"]
+    assert "--contains" in fetch["run"]
+    confirm = next(s for s in job["steps"] if s.get("name") == "Confirm the request is unchanged")
+    assert "secrets." not in yaml.safe_dump(confirm)
+    assert (
+        names.index("Switch the spec to https")
+        < names.index("Confirm the request is unchanged")
+        == names.index("Record over https") - 1
+    )
+    for name in ("Switch the spec to https", "Check what changed"):
+        step = next(s for s in job["steps"] if s.get("name") == name)
+        assert '--spec-commit "$SPEC_COMMIT"' in step["run"]
+
+
+_SPEC_COMMIT = "0123456789abcdef0123456789abcdef01234567"
+
+
+def test_the_gate_step_passes_a_full_spec_commit(tmp_path: Path, fake_gh: Path) -> None:
+    outputs, _ = _run_gate(
+        tmp_path,
+        fake_gh,
+        ISSUE_NUMBER="",
+        HTTPS_DATASET=_RERECORDABLE,
+        SPEC_COMMIT=_SPEC_COMMIT,
+    )
+
+    assert outputs["allowed"] == "true"
+    assert outputs["spec_commit"] == _SPEC_COMMIT
+
+
+@pytest.mark.parametrize("commit", ["main", _SPEC_COMMIT[:7], "--help"])
+def test_the_gate_step_refuses_a_spec_commit_that_is_not_a_full_id(
+    tmp_path: Path, fake_gh: Path, commit: str
+) -> None:
+    outputs, _ = _run_gate(
+        tmp_path, fake_gh, ISSUE_NUMBER="", HTTPS_DATASET=_RERECORDABLE, SPEC_COMMIT=commit
+    )
+
+    assert outputs["allowed"] == "false"
+    assert outputs["spec_commit"] == ""
 
 
 def test_the_gate_step_passes_a_spec_already_on_https(tmp_path: Path, fake_gh: Path) -> None:
