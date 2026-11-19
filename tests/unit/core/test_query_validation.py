@@ -91,8 +91,16 @@ _BASE: dict[str, object] = {
         {"params": [{"name": "a", "alias": "k"}, {"name": "b", "alias": "k"}]},
         {"params": [{"name": "k"}, {"name": "b", "alias": "k"}]},
         {"fields": [{"name": "cnt", "type": "int"}]},
+        # One param's provider name is another param's public name (review of #1083).
+        {"params": [{"name": "x", "alias": "y"}, {"name": "z", "alias": "x"}]},
     ],
 )
 def test_loader_rejects_silent_coercions(extra: dict[str, object]) -> None:
     with pytest.raises(InvalidRequestError):
         from_mapping({**_BASE, **extra})
+
+
+def test_a_field_without_a_type_still_loads() -> None:
+    """The field-type rule refuses unknown types, not a missing one."""
+    spec = from_mapping({**_BASE, "fields": [{"name": "cnt"}]})
+    assert [field.name for field in spec.fields] == ["cnt"]

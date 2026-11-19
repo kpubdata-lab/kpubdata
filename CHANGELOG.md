@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Upgrade notes
 
 - A spec-backed `list()`/`list_all()` given `start_date`, `end_date`, `sort`, `fields` or `cursor` now raises `InvalidRequestError`; those options were silently ignored and returned unfiltered data. Remove them, or pass the provider's own date filter that the dataset declares.
+- A spec filter given under its provider name (for example `dataTerm` rather than its alias) is now checked against the declared enum like its alias, and giving both names raises `InvalidRequestError`.
 - A spec-backed `list()` without a required filter, or with a value outside a declared enum, now raises `InvalidRequestError` before sending; pass every required filter explicitly, as sample values in specs are not defaults (#969).
 - `DatasetRef.license.redistribution` now reports `allowed` for `datago.ultra_srt_fcst`, `datago.ultra_srt_ncst` and localdata `bakery`, `general_restaurant` and `rest_cafe`, which reported `unknown` or nothing before; review any publication rule keyed on it (#933).
 - The licence `type` of `datago.apt_trade` and `datago.apt_rent` changes from `공공누리_1유형` to `이용허락범위_제한없음`; redistribution stays `allowed` (#933).

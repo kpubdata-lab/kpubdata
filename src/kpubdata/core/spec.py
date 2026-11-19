@@ -501,6 +501,13 @@ def _parse_params(raw: object, problems: list[str]) -> tuple[ParamSpec, ...]:
         if param.exposed_name in seen_exposed:
             problems.append(f"params: duplicate public name {param.exposed_name!r}")
         seen_exposed.add(param.exposed_name)
+    # A filter is also accepted under its provider name, so one param's provider
+    # name must not be another param's public name: the query could not tell which
+    # param the caller meant.
+    for param in parsed:
+        others = {other.exposed_name for other in parsed if other is not param}
+        if param.name != param.exposed_name and param.name in others:
+            problems.append(f"params: provider name {param.name!r} is another param's public name")
     return tuple(parsed)
 
 
