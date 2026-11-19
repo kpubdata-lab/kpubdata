@@ -28,7 +28,7 @@ flowchart TD
 - **기존 Builder/Studio/Watch**: 아래 구조의 역사적 역할·호환성을 설명하는
   항목으로 유지합니다. Engine으로의 이관과 서비스 운영 상태를 혼동하지 않습니다.
 - **보안·검증**: HTTPS, 사용 허가, 현재 검증 근거 없이 모든 dataset이 AI 조회에
-  적합하다고 주장하지 않습니다. 현재 실행 순서는 [SDK ROADMAP](../ROADMAP.md)이 기준입니다.
+  적합하다고 주장하지 않습니다. 현재 실행 순서는 [SDK ROADMAP](https://github.com/kpubdata-lab/kpubdata/blob/main/ROADMAP.md)이 기준입니다.
 
 ---
 
