@@ -49,6 +49,7 @@ def test_a_maintainer_may_switch_a_baseline_dataset() -> None:
         "allowed": "true",
         "reason": "datago.apt_trade https switch and re-record",
         "dataset": "datago.apt_trade",
+        "spec_commit": "",
     }
 
 
@@ -440,3 +441,373 @@ def test_switch_refreshes_the_example_script(repo: Path) -> None:
     assert "20260908" not in script.read_text(encoding="utf-8")
     checked = _cli(repo, "check", "datago.apt_trade", "--root", str(repo), "--base", base)
     assert checked.returncode == 0, checked.stderr
+
+
+# --- spec patch (#889, #931, #933) -----------------------------------------------------
+
+_COMMIT = "0123456789abcdef0123456789abcdef01234567"
+_PATCH_BASE = (
+    "id: datago.apt_trade\ntitle: Apt\nsource:\n  url: https://www.data.go.kr/data/1/openapi.do\n"
+    "endpoint:\n  base_url: https://apis.data.go.kr/1613000/RTMSDataSvcAptTrade\n"
+    "auth:\n  type: query_param\n  param_name: serviceKey\n"
+    "fields:\n- name: a\n  description: old\n"
+    "license:\n  type: unknown\n"
+    "examples:\n- name: x\n  params:\n    base_date: '20261101'\n    base_time: '0600'\n"
+    'status: active\nlast_verified: "2026-10-01"\n'
+)
+
+
+def test_a_descriptive_patch_is_accepted() -> None:
+    patched = (
+        _PATCH_BASE.replace("data/1/", "data/2/")
+        .replace("description: old", "description: new")
+        .replace("type: unknown", "type: kogl_1")
+        .replace("title: Apt", "title: Apartment")
+        .replace("20261101", "20261119")
+        .replace("2026-10-01", "2026-11-19")
+    )
+    assert rerecord.check_spec_patch(_PATCH_BASE, patched) == []
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "block"),
+    [
+        ("apis.data.go.kr/1613000", "apis.data.go.kr/9999999", "endpoint"),
+        ("param_name: serviceKey", "param_name: key", "auth"),
+        ("name: x\n", "name: y\n", "examples"),
+        ("status: active", "status: broken", "status"),
+    ],
+)
+def test_a_patch_touching_the_request_is_refused(old: str, new: str, block: str) -> None:
+    problems = rerecord.check_spec_patch(_PATCH_BASE, _PATCH_BASE.replace(old, new))
+    assert len(problems) == 1
+    assert block in problems[0]
+
+
+def test_a_patch_moving_the_key_to_another_host_is_refused() -> None:
+    patched = _PATCH_BASE.replace("https://apis.data.go.kr", "https://evil.example")
+    assert rerecord.check_spec_patch(_PATCH_BASE, patched)
+
+
+def test_a_patch_adding_a_request_block_is_refused() -> None:
+    patched = _PATCH_BASE.replace("examples:", "pagination:\n  style: page\nexamples:")
+    assert "pagination" in rerecord.check_spec_patch(_PATCH_BASE, patched)[0]
+
+
+def test_a_patch_cannot_hide_a_request_key_inside_a_descriptive_block() -> None:
+    # An unindented key always opens a new block, so it cannot ride inside `license`.
+    patched = _PATCH_BASE.replace("license:\n  type: unknown\n", "license:\nauth: {}\n")
+    assert rerecord.check_spec_patch(_PATCH_BASE, patched)
+
+
+def test_decide_carries_a_well_formed_spec_commit() -> None:
+    outputs = _decide(dataset="datago.bus_arrival", spec=SPEC_HTTPS, spec_commit=_COMMIT)
+    assert outputs["allowed"] == "true"
+    assert outputs["spec_commit"] == _COMMIT
+
+
+@pytest.mark.parametrize("commit", ["main", _COMMIT[:12], _COMMIT.upper(), _COMMIT + "\nx=y"])
+def test_decide_refuses_a_spec_commit_that_is_not_a_full_id(commit: str) -> None:
+    outputs = _decide(dataset="datago.bus_arrival", spec=SPEC_HTTPS, spec_commit=commit)
+    assert outputs["allowed"] == "false"
+    assert outputs["spec_commit"] == ""
+
+
+def test_decide_refuses_a_spec_patch_on_a_baseline_dataset() -> None:
+    assert _decide(spec_commit=_COMMIT)["allowed"] == "false"
+
+
+def _patch_repo(repo: Path, patched: str) -> tuple[str, str]:
+    """Commit the https base spec, then the patch on a side commit; return both ids."""
+    spec = repo / "src/kpubdata/specs/datago/apt_trade.yaml"
+    (repo / rerecord.INSECURE_BASELINE).write_text("# header\n", encoding="utf-8")
+    spec.write_text(_PATCH_BASE, encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "https")
+    base = _git(repo, "rev-parse", "HEAD")
+    spec.write_text(patched, encoding="utf-8")
+    _git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qam", "patch")
+    patch = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "checkout", "-q", base)
+    return base, patch
+
+
+def test_switch_then_check_records_with_the_patched_spec(repo: Path) -> None:
+    patched = _PATCH_BASE.replace("description: old", "description: new")
+    base, patch = _patch_repo(repo, patched)
+    spec = repo / "src/kpubdata/specs/datago/apt_trade.yaml"
+
+    switched = _cli(repo, "switch", "datago.apt_trade", "--root", str(repo), "--spec-commit", patch)
+    assert switched.returncode == 0, switched.stderr
+    assert "description: new" in spec.read_text(encoding="utf-8")
+
+    args = ("check", "datago.apt_trade", "--root", str(repo), "--base", base)
+    assert _cli(repo, *args, "--spec-commit", patch).returncode == 0
+    # Without the patch the same tree is a spec change beyond the re-record.
+    assert _cli(repo, *args).returncode == 1
+
+
+def test_switch_refuses_a_patch_that_changes_the_endpoint(repo: Path) -> None:
+    patched = _PATCH_BASE.replace("RTMSDataSvcAptTrade", "Other")
+    _, patch = _patch_repo(repo, patched)
+    result = _cli(repo, "switch", "datago.apt_trade", "--root", str(repo), "--spec-commit", patch)
+    assert result.returncode == 1
+    assert "endpoint" in result.stderr
+    assert _git(repo, "status", "--porcelain") == ""
+
+
+def test_check_refuses_a_recorded_spec_that_drifts_from_the_patch(repo: Path) -> None:
+    patched = _PATCH_BASE.replace("description: old", "description: new")
+    base, patch = _patch_repo(repo, patched)
+    spec = repo / "src/kpubdata/specs/datago/apt_trade.yaml"
+    spec.write_text(patched.replace("description: new", "description: other"), encoding="utf-8")
+    args = ("check", "datago.apt_trade", "--root", str(repo), "--base", base)
+    result = _cli(repo, *args, "--spec-commit", patch)
+    assert result.returncode == 1
+    assert "beyond the patched spec" in result.stderr
+
+
+def _loaded_request(text: str) -> tuple[object, object, object]:
+    """What the real spec loader would send: endpoint, auth and params."""
+    import yaml
+
+    data = yaml.load(text, Loader=getattr(yaml, "CSafeLoader", yaml.SafeLoader))
+    return data.get("endpoint"), data.get("auth"), data.get("params")
+
+
+_EVIL_ENDPOINT = "endpoint: {base_url: 'https://evil.example/x', operation: op}"
+
+
+@pytest.mark.parametrize(
+    "patched",
+    [
+        # Line breaks only YAML recognises hide a second endpoint inside `fields`
+        # (independent review of #889: NEL, LS, PS, CR).
+        _PATCH_BASE.replace("fields:\n", f"fields:{sep}{_EVIL_ENDPOINT}{sep}fields:\n")
+        for sep in ("\x85", "\u2028", "\u2029", "\r")
+    ]
+    + [
+        # The last_verified line is erased before a text comparison but loaded by YAML.
+        _PATCH_BASE.replace(
+            'last_verified: "2026-10-01"\n', f'last_verified: "2026-10-01"\u2028{_EVIL_ENDPOINT}\n'
+        ),
+        # A plain duplicate key placed after the real one.
+        _PATCH_BASE + _EVIL_ENDPOINT + "\n",
+        _PATCH_BASE.replace(
+            "license:\n", '"endpoint": {base_url: https://evil.example/}\nlicense:\n'
+        ),
+        "\ufeff" + _PATCH_BASE,
+    ],
+    ids=["nel", "ls", "ps", "cr", "last-verified", "duplicate", "quoted-duplicate", "bom"],
+)
+def test_a_patch_that_redirects_the_key_is_refused(patched: str) -> None:
+    assert rerecord.check_spec_patch(_PATCH_BASE, patched)
+
+
+def test_a_quoted_scalar_cannot_swallow_a_request_block() -> None:
+    # A double-quoted license value continuing at column 0 turns `auth` into text.
+    patched = _PATCH_BASE.replace("auth:\n", 'license: "\nauth:\n', 1).replace(
+        "fields:\n", 'x"\nfields:\n', 1
+    )
+    if _loaded_request(patched)[1] == _loaded_request(_PATCH_BASE)[1]:
+        pytest.skip("this YAML build does not swallow the block")
+    assert rerecord.check_spec_patch(_PATCH_BASE, patched)
+
+
+def test_an_alias_carrying_a_value_into_the_request_is_refused() -> None:
+    base = _PATCH_BASE.replace("  type: unknown\n", "  type: &t unknown\n").replace(
+        "  param_name: serviceKey\n", "  param_name: serviceKey\n  note: *t\n"
+    )
+    patched = base.replace("&t unknown", "&t changed")
+    assert rerecord.check_spec_patch(base, patched)
+
+
+#: Specs with a duplicate ``license`` key (#933): a strict load refuses them, so they
+#: cannot be patched until that duplicate is resolved, which is an owner decision.
+_DUPLICATE_LICENSE = {"localdata/bakery.yaml", "localdata/general_restaurant.yaml"}
+_DUPLICATE_LICENSE |= {"localdata/rest_cafe.yaml"}
+
+
+def test_every_bundled_spec_loads_strictly() -> None:
+    root = REPO_ROOT / "src/kpubdata/specs"
+    specs = sorted(root.glob("*/*.yaml"))
+    assert specs
+    refused: set[str] = set()
+    for spec in specs:
+        text = spec.read_text(encoding="utf-8")
+        assert not rerecord._UNSAFE_CHARACTERS.search(text), spec
+        problems = rerecord.check_spec_patch(text, text)
+        if problems and "duplicate key 'license'" in problems[0]:
+            refused.add(spec.relative_to(root).as_posix())
+            continue
+        assert problems in (
+            [],
+            ["a spec patch applies only to a spec already on https at a data.go.kr host"],
+        ), spec
+    assert refused == _DUPLICATE_LICENSE
+
+
+def test_the_bundled_corrections_pass() -> None:
+    # The three corrections this mode was built for change descriptive text only.
+    spec = (REPO_ROOT / "src/kpubdata/specs/datago/bus_arrival.yaml").read_text(encoding="utf-8")
+    patched = spec.replace("현재 정류장 순번", "남은 정류장 수 (몇 번째 전 정류소)")
+    assert patched != spec
+    assert rerecord.check_spec_patch(spec, patched) == []
+    assert _loaded_request(patched) == _loaded_request(spec)
+
+
+# --- confirm: kpubdata's own loader, right before the key is used ----------------------
+
+_BUS = (REPO_ROOT / "src/kpubdata/specs/datago/bus_arrival.yaml").read_text(encoding="utf-8")
+_BUS_PATH = "src/kpubdata/specs/datago/bus_arrival.yaml"
+
+
+def _bus_repo(repo: Path) -> str:
+    spec = repo / _BUS_PATH
+    spec.write_text(_BUS, encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "bus")
+    return _git(repo, "rev-parse", "HEAD")
+
+
+def test_confirm_passes_a_descriptive_change(repo: Path) -> None:
+    base = _bus_repo(repo)
+    (repo / _BUS_PATH).write_text(
+        _BUS.replace("현재 정류장 순번", "남은 정류장 수"), encoding="utf-8"
+    )
+    assert rerecord.confirm_request("datago.bus_arrival", repo, base) == []
+
+
+@pytest.mark.parametrize(
+    "tail",
+    [
+        # A duplicate key the strict check would refuse; the plain loader keeps the last.
+        "endpoint: {base_url: 'https://evil.example/x', operation: getBusArrivalListv2}\n",
+        "auth: {type: query_param, param_name: other, provider_key: datago}\n",
+    ],
+)
+def test_confirm_refuses_a_spec_whose_loaded_request_differs(repo: Path, tail: str) -> None:
+    base = _bus_repo(repo)
+    (repo / _BUS_PATH).write_text(_BUS + tail, encoding="utf-8")
+    problems = rerecord.confirm_request("datago.bus_arrival", repo, base)
+    assert problems
+    assert "different request" in problems[0] or "cannot be confirmed" in problems[0]
+
+
+def test_confirm_refuses_a_key_host_outside_data_go_kr(repo: Path) -> None:
+    evil = _BUS.replace("https://apis.data.go.kr/", "https://evil.example/")
+    (repo / _BUS_PATH).write_text(evil, encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "evil base")
+    base = _git(repo, "rev-parse", "HEAD")
+    problems = rerecord.confirm_request("datago.bus_arrival", repo, base)
+    assert any("evil.example" in problem for problem in problems)
+
+
+# --- the unconfirmed-terms baseline ------------------------------------------------------
+
+_TERMS = "# header\ndatago.apt_trade\ndatago.other\n"
+
+
+def _evaluate_terms(terms: str, *, patched: bool) -> list[str]:
+    spec = _PATCH_BASE.replace("type: unknown", "type: kogl_1\n  attribution: x")
+    return rerecord.evaluate(
+        "datago.apt_trade",
+        changed=[rerecord.TERMS_BASELINE],
+        base_spec=_PATCH_BASE,
+        spec=spec if patched else _PATCH_BASE,
+        base_insecure="# header\n",
+        insecure="# header\n",
+        base_legacy="",
+        legacy="",
+        spec_patch=spec if patched else None,
+        base_terms=_TERMS,
+        terms=terms,
+    )
+
+
+def test_a_patch_may_drop_exactly_its_own_terms_line() -> None:
+    assert _evaluate_terms("# header\ndatago.other\n", patched=True) == []
+    assert _evaluate_terms("# header\n", patched=True)
+    assert _evaluate_terms(_TERMS + "datago.new\n", patched=True)
+
+
+def test_without_a_patch_the_terms_baseline_may_not_change() -> None:
+    assert _evaluate_terms("# header\ndatago.other\n", patched=False)
+
+
+def test_switch_drops_the_terms_line_when_the_patch_confirms_the_terms(repo: Path) -> None:
+    (repo / rerecord.TERMS_BASELINE).write_text(_TERMS, encoding="utf-8")
+    patched = _PATCH_BASE.replace("type: unknown", "type: kogl_1\n  attribution: x")
+    base, patch = _patch_repo(repo, patched)
+    switched = _cli(repo, "switch", "datago.apt_trade", "--root", str(repo), "--spec-commit", patch)
+    assert switched.returncode == 0, switched.stderr
+    terms = (repo / rerecord.TERMS_BASELINE).read_text(encoding="utf-8")
+    assert terms == "# header\ndatago.other\n"
+    checked = _cli(
+        repo,
+        "check",
+        "datago.apt_trade",
+        "--root",
+        str(repo),
+        "--base",
+        base,
+        "--spec-commit",
+        patch,
+    )
+    assert checked.returncode == 0, checked.stderr
+
+
+# --- second review: base_date values, hidden characters, blank attribution -------------
+
+
+@pytest.mark.parametrize(
+    "value", ["'../../x?serviceKey=leak'", "99999999999", "[1, 2]", "'2026111'"]
+)
+def test_a_base_date_that_is_not_a_date_must_match_exactly(value: str) -> None:
+    patched = _PATCH_BASE.replace("base_date: '20261101'", f"base_date: {value}")
+    assert "examples" in rerecord.check_spec_patch(_PATCH_BASE, patched)[0]
+
+
+def test_another_eight_digit_base_date_is_what_the_refresh_rewrites() -> None:
+    patched = _PATCH_BASE.replace("20261101", "19000101")
+    assert rerecord.check_spec_patch(_PATCH_BASE, patched) == []
+
+
+@pytest.mark.parametrize("hidden", ["\u200b", "\u202e", "\u2066", "\u00ad"])
+def test_a_patch_with_invisible_characters_is_refused(hidden: str) -> None:
+    patched = _PATCH_BASE.replace("description: old", f"description: ne{hidden}w")
+    assert "invisible" in rerecord.check_spec_patch(_PATCH_BASE, patched)[0]
+
+
+def test_a_blank_attribution_does_not_confirm_the_terms() -> None:
+    blank = _PATCH_BASE.replace("type: unknown", "type: kogl_1\n  attribution: ' '")
+    problems = rerecord.evaluate(
+        "datago.apt_trade",
+        changed=[rerecord.TERMS_BASELINE],
+        base_spec=_PATCH_BASE,
+        spec=blank,
+        base_insecure="# header\n",
+        insecure="# header\n",
+        base_legacy="",
+        legacy="",
+        spec_patch=blank,
+        base_terms=_TERMS,
+        terms="# header\ndatago.other\n",
+    )
+    assert any("confirms its terms" in problem for problem in problems)
+
+
+def test_confirm_holds_a_non_date_base_date_to_the_dispatch_commit(repo: Path) -> None:
+    kma = (REPO_ROOT / "src/kpubdata/specs/datago/village_fcst.yaml").read_text(encoding="utf-8")
+    path = repo / "src/kpubdata/specs/datago/village_fcst.yaml"
+    path.write_text(kma, encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "kma")
+    base = _git(repo, "rev-parse", "HEAD")
+    date = rerecord._BASE_DATE.search(kma)
+    assert date is not None
+    path.write_text(kma.replace(date.group(3), "20000101", 1), encoding="utf-8")
+    assert rerecord.confirm_request("datago.village_fcst", repo, base) == []
+    path.write_text(kma.replace(date.group(3), "x?serviceKey=y", 1), encoding="utf-8")
+    assert rerecord.confirm_request("datago.village_fcst", repo, base)
