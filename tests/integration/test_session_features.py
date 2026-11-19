@@ -10,12 +10,21 @@ from kpubdata import Client
 from kpubdata.core.spec import LicenseSpec, discover_specs, find_spec
 
 
+def spec_type(dataset_id: str) -> str | None:
+    """The licence type a bundled spec declares."""
+    spec = find_spec(dataset_id)
+    assert spec is not None and spec.license is not None
+    return spec.license.type
+
+
 class TestLicenseFieldIntegration:
     """Verify license field works throughout pipeline."""
 
     def test_spec_with_license_loads(self) -> None:
         """Spec with license loads correctly."""
-        spec = find_spec("datago.apt_trade")
+        # village_fcst's KOGL type 1 terms are confirmed on its page (#933); apt_trade's
+        # page states no KOGL type at all, so it no longer serves as the example.
+        spec = find_spec("datago.village_fcst")
         assert spec is not None
         assert isinstance(spec.license, LicenseSpec)
         assert spec.license.type == "공공누리_1유형"
@@ -63,9 +72,16 @@ class TestLicenseFieldIntegration:
             spec = find_spec(ds_id)
             assert spec is not None, f"{ds_id} not found"
             assert spec.license is not None, f"{ds_id} has no license"
-            # air_quality's source is KOGL type 3 (attribution, no modification), #719.
-            expected = "공공누리_3유형" if ds_id == "datago.air_quality" else "공공누리_1유형"
-            assert spec.license.type == expected
+            assert spec.license.type, f"{ds_id} declares no licence type"
+            assert spec.license.redistribution == "allowed" or ds_id == "datago.air_quality"
+        # Exact types only where they come from the dataset's own page and are settled:
+        # air_quality is KOGL type 3 (#719), village_fcst type 1. The MOLIT apartment
+        # pages state no KOGL type, and their specs are corrected one re-record at a
+        # time (#933), so their type is not pinned here.
+        assert (spec_type("datago.air_quality"), spec_type("datago.village_fcst")) == (
+            "공공누리_3유형",
+            "공공누리_1유형",
+        )
 
 
 class TestOceanBuoyIntegration:
