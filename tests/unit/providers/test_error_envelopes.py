@@ -153,7 +153,9 @@ def test_law_message_with_oc_substring_is_not_auth_error() -> None:
     assert not isinstance(info.value, AuthError)
 
 
-@pytest.mark.parametrize("msg", ["사용자 인증에 실패했습니다", "invalid OC value", "Bad API key"])
+@pytest.mark.parametrize(
+    "msg", ["사용자 인증에 실패했습니다", "invalid OC value", "Bad API key", "OC값이 없습니다"]
+)
 def test_law_genuine_auth_messages_still_raise_auth_error(msg: str) -> None:
     _, transport = _tr({"resultCode": "99", "resultMsg": msg})
     adapter = LawAdapter(config=_cfg("law"), transport=transport)
@@ -210,10 +212,19 @@ def test_kosis_declares_no_pagination() -> None:
         assert dataset.query_support.max_page_size is None
 
 
-@pytest.mark.parametrize("kwargs", [{"page": 2}, {"page_size": 1}, {"page": 1, "page_size": 5}])
+@pytest.mark.parametrize("kwargs", [{"page": 2}, {"page": 3, "page_size": 5}])
 def test_kosis_refuses_page_options_it_cannot_honour(kwargs: dict[str, int]) -> None:
     adapter, fake = _kosis()
     dataset = adapter.get_dataset("industrial_production")
     with pytest.raises(InvalidRequestError):
         adapter.query_records(dataset, Query(start_date="202401", end_date="202402", **kwargs))
     assert fake.urls == []
+
+
+@pytest.mark.parametrize("kwargs", [{"page": 1, "page_size": 1}, {"page_size": 500}])
+def test_kosis_accepts_page_one_and_a_page_size(kwargs: dict[str, int]) -> None:
+    """A connection test asks for page=1, page_size=1; KOSIS answers its one page."""
+    adapter, fake = _kosis()
+    dataset = adapter.get_dataset("industrial_production")
+    adapter.query_records(dataset, Query(start_date="202401", end_date="202402", **kwargs))
+    assert len(fake.urls) == 1

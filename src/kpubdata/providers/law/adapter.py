@@ -27,7 +27,9 @@ from kpubdata.transport.http import HttpTransport, TransportConfig
 
 logger = logging.getLogger("kpubdata.provider.law")
 
-_OC_WORD = re.compile(r"\boc\b", re.IGNORECASE)
+#: "OC" not inside a Latin word. Hangul counts as a word character for ``\b``, so a
+#: plain word boundary missed messages such as "OC값이 없습니다".
+_OC_WORD = re.compile(r"(?<![A-Za-z])oc(?![A-Za-z])", re.IGNORECASE)
 
 
 def _is_auth_message(message: str) -> bool:

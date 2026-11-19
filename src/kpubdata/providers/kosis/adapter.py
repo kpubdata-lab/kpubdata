@@ -115,22 +115,22 @@ class KosisAdapter:
         """Query records by calling KOSIS API.
 
         KOSIS returns the whole requested period in one response, so the dataset
-        declares no pagination. A page other than 1 or any page size is refused
-        rather than silently ignored.
+        declares no pagination. A page other than 1 is refused: it used to return
+        page 1's rows again. A page size is accepted and has no effect, since the
+        response is never cut into pages; callers such as a connection test that
+        ask for ``page=1, page_size=1`` keep working.
         """
-        if (query.page is not None and query.page != 1) or query.page_size is not None:
+        if query.page is not None and query.page != 1:
             raise InvalidRequestError(
-                "KOSIS does not paginate; omit page and page_size",
+                "KOSIS does not paginate; only page 1 exists",
                 provider="kosis",
                 dataset_id=dataset.id,
             )
-        _page_size = query.page_size or 100
         logger.debug(
             "kosis query_records",
             extra={
                 "dataset_id": dataset.id,
                 "page": query.page,
-                "page_size": _page_size,
                 "start_date": query.start_date,
                 "end_date": query.end_date,
                 "filter_keys": sorted(query.filters.keys()),
@@ -146,7 +146,6 @@ class KosisAdapter:
                 extra={
                     "dataset_id": dataset.id,
                     "page": query.page,
-                    "page_size": _page_size,
                     "total_count": len(items),
                 },
             )
