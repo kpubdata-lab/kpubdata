@@ -128,6 +128,8 @@ def test_a_critical_patch_with_an_issue_passes_either_policy(issue: str) -> None
             last_release=date(2026, 9, 29),
             critical_patch=True,
             critical_issue=issue,
+            repo="kpubdata-lab/kpubdata",
+            lookup=_critical_lookup,
         )
         assert decision.allowed
         assert decision.critical_issue == issue
@@ -135,9 +137,110 @@ def test_a_critical_patch_with_an_issue_passes_either_policy(issue: str) -> None
 
 @pytest.mark.parametrize("issue", ["", "   ", "123", "security fix", "#", "#12a"])
 def test_a_critical_patch_without_an_issue_is_refused(issue: str) -> None:
-    decision = rw.decide("monthly", date(2026, 10, 28), critical_patch=True, critical_issue=issue)
+    decision = rw.decide(
+        "monthly",
+        date(2026, 10, 28),
+        critical_patch=True,
+        critical_issue=issue,
+        lookup=_critical_lookup,
+    )
     assert not decision.allowed
     assert "must name its issue" in decision.reason
+
+
+def _critical_lookup(repo: str, number: int) -> dict[str, object]:
+    return {"labels": [{"name": "severity:critical"}]}
+
+
+def _decide_with(lookup: object, issue: str = "#999999") -> object:
+    return rw.decide(
+        "on-demand",
+        date(2026, 9, 30),
+        last_release=date(2026, 9, 29),
+        critical_patch=True,
+        critical_issue=issue,
+        repo="kpubdata-lab/kpubdata",
+        lookup=lookup,
+    )
+
+
+def test_a_made_up_issue_number_does_not_open_the_bypass() -> None:
+    def missing(repo: str, number: int) -> dict[str, object]:
+        raise rw.LookupFailed("Not Found")
+
+    decision = _decide_with(missing)
+    assert not decision.allowed
+    assert "Not Found" in decision.reason
+
+
+def test_a_critical_patch_cannot_be_checked_without_a_lookup() -> None:
+    decision = rw.decide(
+        "on-demand",
+        date(2026, 9, 30),
+        last_release=date(2026, 9, 29),
+        critical_patch=True,
+        critical_issue="#1",
+    )
+    assert not decision.allowed
+
+
+def test_a_pull_request_is_not_a_critical_issue() -> None:
+    def pull(repo: str, number: int) -> dict[str, object]:
+        return {"labels": [{"name": "priority:critical"}], "pull_request": {"url": "x"}}
+
+    decision = _decide_with(pull)
+    assert not decision.allowed
+    assert "pull request" in decision.reason
+
+
+def test_an_issue_without_a_critical_label_is_refused() -> None:
+    def plain(repo: str, number: int) -> dict[str, object]:
+        return {"labels": [{"name": "bug"}, {"name": "priority:high"}]}
+
+    decision = _decide_with(plain)
+    assert not decision.allowed
+    assert "severity:critical" in decision.reason
+
+
+@pytest.mark.parametrize("label", ["severity:critical", "priority:critical"])
+def test_either_critical_label_qualifies(label: str) -> None:
+    def labelled(repo: str, number: int) -> dict[str, object]:
+        return {"labels": [{"name": label}]}
+
+    assert _decide_with(labelled).allowed
+
+
+def test_an_issue_of_another_repository_is_refused() -> None:
+    calls: list[tuple[str, int]] = []
+
+    def record(repo: str, number: int) -> dict[str, object]:
+        calls.append((repo, number))
+        return {"labels": [{"name": "severity:critical"}]}
+
+    decision = _decide_with(record, "someone/else#5")
+    assert not decision.allowed
+    assert calls == []
+
+
+def test_the_lookup_receives_the_number_of_a_url_reference() -> None:
+    calls: list[tuple[str, int]] = []
+
+    def record(repo: str, number: int) -> dict[str, object]:
+        calls.append((repo, number))
+        return {"labels": [{"name": "priority:critical"}]}
+
+    url = "https://github.com/kpubdata-lab/kpubdata/issues/42"
+    assert _decide_with(record, url).allowed
+    assert calls == [("kpubdata-lab/kpubdata", 42)]
+
+
+def test_the_gh_lookup_fails_closed_when_gh_is_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+    def boom(*args: object, **kwargs: object) -> object:
+        raise FileNotFoundError("gh")
+
+    monkeypatch.setattr(rw.subprocess, "run", boom)
+    with pytest.raises(rw.LookupFailed):
+        rw.gh_issue("kpubdata-lab/kpubdata", 1)
 
 
 def test_dates_are_korean_standard_time() -> None:
@@ -170,7 +273,10 @@ def test_cli_reads_a_github_timestamp(capsys: pytest.CaptureFixture[str]) -> Non
     assert "allowed=true" in capsys.readouterr().out
 
 
-def test_cli_prints_the_critical_issue(capsys: pytest.CaptureFixture[str]) -> None:
+def test_cli_prints_the_critical_issue(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(rw, "gh_issue", _critical_lookup)
     code = rw.main(
         [
             "--policy",
@@ -181,6 +287,8 @@ def test_cli_prints_the_critical_issue(capsys: pytest.CaptureFixture[str]) -> No
             "true",
             "--critical-issue",
             "#9",
+            "--repo",
+            "kpubdata-lab/kpubdata",
         ]
     )
     assert code == 0
@@ -294,6 +402,8 @@ def test_the_0_10_0_pull_request_passed_as_a_declared_critical_patch(tmp_path: P
         last_release=rw.to_kst_date(V0_9_0_PUBLISHED),
         critical_patch=declared["patch"] == "true",
         critical_issue=declared["issue"],
+        repo="kpubdata-lab/kpubdata",
+        lookup=_critical_lookup,
     )
     assert decision.allowed
     assert decision.critical_issue == "#821"

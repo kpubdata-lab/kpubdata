@@ -34,14 +34,82 @@ from __future__ import annotations
 
 import argparse
 import calendar
+import json
+import os
 import re
+import subprocess
 import sys
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta, timezone
 
 KST = timezone(timedelta(hours=9), name="KST")
 THURSDAY = 3
-_ISSUE = re.compile(r"^(?:[\w.-]+/[\w.-]+)?#\d+$|^https://github\.com/[\w.-]+/[\w.-]+/issues/\d+$")
+_ISSUE = re.compile(
+    r"^(?:(?P<slug>[\w.-]+/[\w.-]+))?#(?P<n>\d+)$"
+    r"|^https://github\.com/(?P<url_slug>[\w.-]+/[\w.-]+)/issues/(?P<url_n>\d+)$"
+)
+#: Either label marks an issue as one a critical patch may name.
+CRITICAL_LABELS = frozenset({"severity:critical", "priority:critical"})
+
+
+class LookupFailed(Exception):
+    """The issue could not be read; the critical-patch bypass stays closed."""
+
+
+#: ``(repository, number)`` to the issue's REST payload; raises ``LookupFailed``.
+IssueLookup = Callable[[str, int], Mapping[str, object]]
+
+
+def gh_issue(repo: str, number: int) -> Mapping[str, object]:
+    """The issue ``number`` of ``repo`` from the REST API, or ``LookupFailed``."""
+    try:
+        completed = subprocess.run(
+            ["gh", "api", f"repos/{repo}/issues/{number}"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+        )
+    except OSError as exc:
+        raise LookupFailed(f"gh could not be run ({exc})") from exc
+    if completed.returncode != 0:
+        reason = completed.stderr.strip().splitlines()
+        raise LookupFailed(reason[-1] if reason else f"gh exited {completed.returncode}")
+    try:
+        payload = json.loads(completed.stdout)
+    except ValueError as exc:
+        raise LookupFailed("the API did not return JSON") from exc
+    if not isinstance(payload, dict):
+        raise LookupFailed("the API did not return an issue")
+    return payload
+
+
+def _critical_problem(issue: str, repo: str, lookup: IssueLookup | None) -> str | None:
+    """Why ``issue`` cannot authorise a critical patch, or ``None`` when it can."""
+    match = _ISSUE.match(issue)
+    if match is None:
+        return None
+    slug = match.group("slug") or match.group("url_slug") or repo
+    number = int(match.group("n") or match.group("url_n"))
+    if not repo:
+        return "the repository is unknown, so the issue cannot be verified"
+    if slug.lower() != repo.lower():
+        return f"{issue} is not an issue of {repo}"
+    if lookup is None:
+        return "no issue lookup is available, so the issue cannot be verified"
+    try:
+        payload = lookup(slug, number)
+    except LookupFailed as exc:
+        return f"{issue} could not be verified: {exc}"
+    if "pull_request" in payload:
+        return f"{issue} is a pull request, not an issue"
+    labels = payload.get("labels")
+    rows = labels if isinstance(labels, list) else []
+    names = {row.get("name") for row in rows if isinstance(row, dict)}
+    if not names & CRITICAL_LABELS:
+        return f"{issue} carries neither severity:critical nor priority:critical"
+    return None
 
 
 @dataclass(frozen=True)
@@ -135,6 +203,8 @@ def decide(
     min_interval_days: int = 7,
     critical_patch: bool = False,
     critical_issue: str = "",
+    repo: str = "",
+    lookup: IssueLookup | None = None,
 ) -> Decision:
     """The decision for one release attempt."""
     if critical_patch:
@@ -145,6 +215,9 @@ def decide(
                 "a critical patch must name its issue (e.g. #123 or owner/repo#123); "
                 f"got {issue or 'nothing'}",
             )
+        problem = _critical_problem(issue, repo, lookup)
+        if problem:
+            return Decision(False, f"critical patch refused: {problem}")
         return Decision(True, f"critical patch for {issue}, outside the {policy} rule", issue)
     if policy == "monthly":
         return monthly(today)
@@ -163,6 +236,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--min-interval-days", type=int, default=7)
     parser.add_argument("--critical-patch", default="false", help="true or false")
     parser.add_argument("--critical-issue", default="")
+    parser.add_argument(
+        "--repo",
+        default=os.environ.get("GITHUB_REPOSITORY", ""),
+        help="owner/name the critical issue must belong to (default: GITHUB_REPOSITORY)",
+    )
     parser.add_argument("--report-only", action="store_true")
     args = parser.parse_args(argv)
 
@@ -180,6 +258,8 @@ def main(argv: list[str] | None = None) -> int:
             min_interval_days=args.min_interval_days,
             critical_patch=critical,
             critical_issue=args.critical_issue,
+            repo=args.repo.strip(),
+            lookup=gh_issue,
         )
     except ValueError as exc:
         print(f"::error::{exc}", file=sys.stderr)

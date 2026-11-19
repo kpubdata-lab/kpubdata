@@ -286,3 +286,74 @@ def test_main_writes_state_and_prints_the_summary(
     assert "transitions=1 issues=1" in out
     saved = json.loads(state.read_text(encoding="utf-8"))
     assert saved["datasets"]["datago.x"]["status"] == "broken"
+
+
+def _two_drifts(tmp_path: Path) -> list[str]:
+    current = tmp_path / "current.json"
+    previous = tmp_path / "previous.json"
+    current.write_text(
+        json.dumps(
+            {
+                "results": [
+                    _row("datago.a", schema_hash="aaa"),
+                    _row("datago.b", schema_hash="aaa"),
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    previous.write_text(
+        json.dumps(
+            {
+                "results": [
+                    _row("datago.a", schema_hash="bbb"),
+                    _row("datago.b", schema_hash="bbb"),
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    return [
+        "--current",
+        str(current),
+        "--previous",
+        str(previous),
+        "--state",
+        str(tmp_path / "drift-state.json"),
+        "--today",
+        "2026-10-01",
+        "--create-issues",
+        "true",
+    ]
+
+
+def test_a_failed_issue_creation_fails_the_run_after_trying_the_rest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import subprocess
+
+    attempts: list[str] = []
+
+    def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        title = command[command.index("--title") + 1]
+        attempts.append(title)
+        code = 1 if "datago.a" in title else 0
+        return subprocess.CompletedProcess(command, code, "https://example/1\n", "boom")
+
+    monkeypatch.setattr(dd, "_open_drift_datasets", lambda repo: set())
+    monkeypatch.setattr(dd.subprocess, "run", fake_run)
+
+    assert dd.main(_two_drifts(tmp_path)) == 1
+    assert len(attempts) == 2
+
+
+def test_every_issue_created_exits_zero(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import subprocess
+
+    def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(command, 0, "https://example/1\n", "")
+
+    monkeypatch.setattr(dd, "_open_drift_datasets", lambda repo: set())
+    monkeypatch.setattr(dd.subprocess, "run", fake_run)
+
+    assert dd.main(_two_drifts(tmp_path)) == 0

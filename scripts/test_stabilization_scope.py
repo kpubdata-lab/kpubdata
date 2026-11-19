@@ -6,8 +6,14 @@ Run: python3 scripts/test_stabilization_scope.py -v
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 
-from check_stabilization_scope import check_scope, scope_indicators
+from check_stabilization_scope import (
+    PullUnavailable,
+    check_scope,
+    current_pull,
+    scope_indicators,
+)
 
 SDK = "kpubdata-lab/kpubdata"
 BUILDER = "kpubdata-lab/kpubdata-builder"
@@ -122,6 +128,88 @@ class StabilizationGateTests(unittest.TestCase):
         self.assertTrue(
             check_scope(STUDIO, "fix: screen", "", set(), "A\tsrc/pages/NewPage.tsx", "")
         )
+
+
+STALE = {
+    "number": 7,
+    "title": "fix: old title",
+    "body": "old body",
+    "labels": [{"name": "old"}],
+    "base": {"sha": "a" * 40},
+}
+LIVE = {
+    "number": 7,
+    "title": "feat: new title",
+    "body": "new body",
+    "labels": [{"name": "review:R3"}],
+    "base": {"sha": "b" * 40},
+}
+
+
+class CurrentPullTests(unittest.TestCase):
+    def test_the_live_pull_request_replaces_a_stale_event_payload(self) -> None:
+        pull = current_pull(STALE, "kpubdata-lab/kpubdata", lambda repo, number: LIVE)
+        self.assertEqual(pull["title"], "feat: new title")
+        self.assertEqual(pull["labels"], [{"name": "review:R3"}])
+
+    def test_the_lookup_gets_the_repository_and_number(self) -> None:
+        calls: list[tuple[str, int]] = []
+
+        def fetch(repo: str, number: int) -> dict[str, object]:
+            calls.append((repo, number))
+            return LIVE
+
+        current_pull(STALE, "kpubdata-lab/kpubdata", fetch)
+        self.assertEqual(calls, [("kpubdata-lab/kpubdata", 7)])
+
+    def test_an_unavailable_api_falls_back_to_the_event(self) -> None:
+        def fetch(repo: str, number: int) -> dict[str, object]:
+            raise PullUnavailable("no network")
+
+        self.assertEqual(current_pull(STALE, "kpubdata-lab/kpubdata", fetch), STALE)
+
+    def test_an_event_without_a_number_uses_the_event(self) -> None:
+        def fetch(repo: str, number: int) -> dict[str, object]:
+            raise AssertionError("must not be called")
+
+        event = {key: value for key, value in STALE.items() if key != "number"}
+        self.assertEqual(current_pull(event, "kpubdata-lab/kpubdata", fetch), event)
+
+    def test_a_live_payload_without_a_title_is_not_trusted(self) -> None:
+        pull = current_pull(STALE, "kpubdata-lab/kpubdata", lambda repo, number: {"number": 7})
+        self.assertEqual(pull, STALE)
+
+
+class MainBaseTests(unittest.TestCase):
+    def test_the_diff_base_is_the_events_not_the_live_one(self) -> None:
+        """A re-run keeps its old merge commit; the live base would misattribute main."""
+        import json
+        import os
+        import tempfile
+        from unittest import mock
+
+        import check_stabilization_scope as scope
+
+        with tempfile.TemporaryDirectory() as tmp:
+            event = Path(tmp) / "event.json"
+            event.write_text(json.dumps({"pull_request": STALE}), encoding="utf-8")
+            calls: list[list[str]] = []
+
+            def fake_git(args: list[str]) -> str:
+                calls.append(args)
+                return ""
+
+            env = {"GITHUB_EVENT_PATH": str(event), "GITHUB_REPOSITORY": "kpubdata-lab/kpubdata"}
+            with (
+                mock.patch.dict(os.environ, env),
+                mock.patch.object(scope, "current_pull", lambda pull, repo: LIVE),
+                mock.patch.object(scope, "_git", fake_git),
+            ):
+                scope.main()
+
+        diffs = [args for args in calls if args[0] == "diff"]
+        self.assertTrue(diffs)
+        self.assertTrue(all("a" * 40 in args and "b" * 40 not in args for args in diffs))
 
 
 if __name__ == "__main__":

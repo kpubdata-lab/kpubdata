@@ -13,6 +13,7 @@ import os
 import re
 import subprocess
 import sys
+from collections.abc import Callable, Mapping
 from pathlib import Path
 
 _FEATURE_TITLE = re.compile(r"^feat(?:\([^)\n]+\))?!?:\s")
@@ -112,6 +113,59 @@ def check_scope(
     return () if exception and len(problems) == 1 else tuple(problems)
 
 
+class PullUnavailable(Exception):
+    """The pull request could not be read from the API."""
+
+
+def gh_pull(repository: str, number: int) -> Mapping[str, object]:
+    """The pull request as the REST API serves it now."""
+    try:
+        completed = subprocess.run(
+            ["gh", "api", f"repos/{repository}/pulls/{number}"],
+            check=False,
+            text=True,
+            capture_output=True,
+        )
+    except OSError as exc:
+        raise PullUnavailable(str(exc)) from exc
+    if completed.returncode != 0:
+        raise PullUnavailable(completed.stderr.strip() or f"gh exited {completed.returncode}")
+    try:
+        payload = json.loads(completed.stdout)
+    except ValueError as exc:
+        raise PullUnavailable("the API did not return JSON") from exc
+    if not isinstance(payload, dict):
+        raise PullUnavailable("the API did not return a pull request")
+    return payload
+
+
+def current_pull(
+    event_pull: Mapping[str, object],
+    repository: str,
+    fetch: Callable[[str, int], Mapping[str, object]] = gh_pull,
+) -> Mapping[str, object]:
+    """Title, body, labels and base of the pull request as it is now.
+
+    A re-run replays the event payload it started with, so the payload can describe a
+    title, body or label set that no longer exists. The API is asked first; the event is
+    used only when the API cannot be reached, and a payload that lacks the pull request
+    fails the check upstream. Only the title, body and labels are taken from the live
+    read: the base commit stays the event's (see ``main``).
+    """
+    number = event_pull.get("number")
+    if not isinstance(number, int):
+        return event_pull
+    try:
+        live = fetch(repository, number)
+    except PullUnavailable as exc:
+        print(f"::warning::using the event payload; live read failed: {exc}", file=sys.stderr)
+        return event_pull
+    if not isinstance(live.get("title"), str) or not isinstance(live.get("base"), dict):
+        print("::warning::using the event payload; the live read was incomplete", file=sys.stderr)
+        return event_pull
+    return live
+
+
 def _git(args: list[str]) -> str:
     result = subprocess.run(["git", *args], check=True, text=True, capture_output=True)
     return result.stdout
@@ -127,12 +181,15 @@ def main() -> int:
         return 2
     try:
         payload = json.loads(Path(event_path).read_text(encoding="utf-8"))
-        pull = payload["pull_request"]
+        repository = os.environ.get("GITHUB_REPOSITORY", "")
+        pull = current_pull(payload["pull_request"], repository)
         title = pull["title"]
         body = pull.get("body") or ""
         labels = {row["name"] for row in pull.get("labels", [])}
-        base = pull["base"]["sha"]
-        repository = os.environ.get("GITHUB_REPOSITORY", "")
+        # The diff is from the event's base to HEAD, the merge commit this run checked
+        # out. A re-run keeps that old merge commit, so the live base (main has moved
+        # on since) would show main's newer changes, reversed, as part of the PR.
+        base = payload["pull_request"]["base"]["sha"]
         if not re.fullmatch(r"[0-9a-fA-F]{40}", base):
             raise ValueError("invalid PR base SHA")
         if repository not in {

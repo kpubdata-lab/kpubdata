@@ -68,7 +68,7 @@ runs:
             --limit 1 --json publishedAt --jq '.[0].publishedAt // ""')
         fi
         args=(--policy "${POLICY}" --min-interval-days "${MIN_INTERVAL_DAYS}"
-              --critical-patch "${CRITICAL_PATCH}" --critical-issue "${CRITICAL_ISSUE}"
+              --critical-patch "${CRITICAL_PATCH}" --critical-issue "${CRITICAL_ISSUE}" --repo "${REPO}"
               --last-release "${last}")
         if [ -n "${TODAY}" ]; then args+=(--today "${TODAY}"); fi
         if [ "${REPORT_ONLY}" = "true" ]; then args+=(--report-only); fi
