@@ -1,10 +1,10 @@
 {
  "dataset_id": "datago.ultra_srt_ncst",
- "endpoint": "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst",
+ "endpoint": "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst",
  "example": "seoul_0600",
  "format": "json",
  "params": {
-  "base_date": "20261001",
+  "base_date": "20261119",
   "base_time": "0600",
   "dataType": "json",
   "numOfRows": "10",
@@ -13,10 +13,10 @@
   "pageNo": "1",
   "serviceKey": "[REDACTED]"
  },
- "record_commit": "bcaf5898c787483fce90260df64b87b6ed0d2a3a",
- "recorded_at": "2026-10-01T03:27:14+00:00",
+ "record_commit": "a52eaa97bbd447e565b346fff8cdeb2d058a40f5",
+ "recorded_at": "2026-11-19T00:00:20+00:00",
  "recorded_by": "ci",
- "response_sha256": "d1bfa7c4a64c7b723f0d4de0a4e7102a2853722aff73710aa2676485c5f37b6b",
- "run_ref": "36810413264",
- "spec_sha256": "a06f58394e1575e0fa28f1fae4b8c5d1c79341cd44bd12837f6e477031ae6a34"
+ "response_sha256": "3991d59522efa82ad90cb4ad7c738de61ceb43a4ae0ac85f7db8d227170b04ac",
+ "run_ref": "44425365146",
+ "spec_sha256": "d845fa3f41c0bb1025fe1e797aa48e968964c9e6c457e127a40ffb82a23fdce6"
 }

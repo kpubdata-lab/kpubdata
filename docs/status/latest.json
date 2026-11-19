@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-11-18T23:52:56+00:00",
+  "generated_at": "2026-11-19T00:00:25+00:00",
   "spec_datasets": {
     "total": 25,
     "verified": 24,
     "verified_recent_90d": 24,
-    "recent_reference": "2026-11-18",
+    "recent_reference": "2026-11-19",
     "per_dataset": {
       "datago.air_quality": {
         "last_verified": "2026-11-18",
@@ -87,7 +87,7 @@
         "status": "active"
       },
       "datago.ultra_srt_ncst": {
-        "last_verified": "2026-10-01",
+        "last_verified": "2026-11-19",
         "status": "active"
       },
       "datago.village_fcst": {

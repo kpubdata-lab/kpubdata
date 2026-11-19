@@ -21,7 +21,7 @@ def main() -> None:
 
     dataset = client.dataset("datago.ultra_srt_ncst")
     batch = dataset.list(
-        base_date="20261001", base_time="0600", nx=55, ny=127, page=1, page_size=10
+        base_date="20261119", base_time="0600", nx=55, ny=127, page=1, page_size=10
     )
 
     # 구조 검증: envelope 계약(총건수 보고) + 레코드 형태
