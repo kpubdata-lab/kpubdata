@@ -59,12 +59,12 @@ fields:
   type: integer
   title: 첫 번째 버스 남은 정류장 수
   unit: 정류장
-  description: 첫 번째 버스 현재 정류장 순번
+  description: 첫 번째 버스 남은 정류장 수 (몇 번째 전 정류소)
 - name: locationNo2
   type: integer
   title: 두 번째 버스 남은 정류장 수
   unit: 정류장
-  description: 두 번째 버스 현재 정류장 순번
+  description: 두 번째 버스 남은 정류장 수 (몇 번째 전 정류소)
 - name: lowPlate1
   type: string
   title: 첫 번째 버스 저상버스 여부
@@ -136,11 +136,11 @@ fields:
 - name: stationNm1
   type: string
   title: 첫 번째 버스 현재 정류소명
-  description: 첫 번째 버스 다음 정류장명
+  description: 첫 번째 버스가 현재 위치한 정류소 이름
 - name: stationNm2
   type: string
   title: 두 번째 버스 현재 정류소명
-  description: 두 번째 버스 다음 정류장명
+  description: 두 번째 버스가 현재 위치한 정류소 이름
 - name: taglessCd1
   type: string
   title: 첫 번째 버스 태그리스 단말기 코드

@@ -8,10 +8,10 @@
   "serviceKey": "[REDACTED]",
   "stationId": "200000078"
  },
- "record_commit": "85b8a574abbbdb2f54af749aa6c529020e41dc83",
- "recorded_at": "2026-11-19T03:51:47+00:00",
+ "record_commit": "c58826e17ea0224ee81210b35cbf8f6c8dd9132d",
+ "recorded_at": "2026-11-19T04:45:00+00:00",
  "recorded_by": "ci",
- "response_sha256": "dfd0cf876e660b6499bc67db7c329343dcbc9385e3b1f95fe989167484967889",
- "run_ref": "44454298355",
- "spec_sha256": "fed7a94683a22156f36376de6f65a23ab6ad29e47f8b4b93c3723766f54b0431"
+ "response_sha256": "4276759527db5197ee8e6fe6b9a20390035365d93455beb9ce79e2f8c02550dd",
+ "run_ref": "44460371150",
+ "spec_sha256": "23d37bbec4423360368b7f68e412d1b71a2dfe1889f891e3b3abe320ea725982"
 }
