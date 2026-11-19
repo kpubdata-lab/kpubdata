@@ -28,7 +28,7 @@
 - 네 저장소의 `AGENTS.md`, `CONTRIBUTING.md`는 이 문서를 링크하고, 여기와 충돌하는 규칙을 두지 않는다.
 - 충돌이 생기면 이 문서가 우선한다.
 - 저장소별 문서에는 해당 저장소 고유의 절차(빌드 명령, 디렉터리 규칙)만 남긴다.
-- 이 문서를 바꾸는 변경은 보안·릴리스 영향과 실제 검증 결과를 검토한다. SDK 병합에는 14.1절의 소유자 예외를 적용하고, 다른 저장소의 보호 규칙은 변경하지 않는다.
+- 이 문서를 바꾸는 변경은 보안·릴리스 영향과 실제 검증 결과를 검토한다. 네 저장소의 리뷰 승인 의무는 14.1절의 2026-11-19 소유자 결정에 따르며, 실제 GitHub 브랜치 보호 설정은 별도로 일치시켜야 한다.
 
 <a id="writing-codes"></a>
 
@@ -38,9 +38,8 @@
 뜻을 알 수 없고, 쓰는 사람도 틀린다 — 2026-10-08 새 이슈 4건이 단위 테스트를 `V2` 로
 적었다(정의상 단위 테스트는 V1, V2 는 replay·계약 테스트). 그래서(#878):
 
-- **뜻을 먼저 쓰고, 코드는 괄호에 넣는다.** "단위 테스트(V1)", "작성자가 아닌 사람의
-  승인이 필요(R3)". 영어로는 "unit tests (V1)", "an approval from someone other than
-  the author (R3)".
+- **뜻을 먼저 쓰고, 코드는 괄호에 넣는다.** "단위 테스트(V1)", "위험도 높은 변경의 검증(R3)".
+  영어로는 "unit tests (V1)", "risk-based verification for sensitive changes (R3)".
 - 코드만 쓰고 싶으면 [아래 용어표](#codes)로 링크한다: `[R3](POLICY.md#codes)`.
 - 라벨·체크·스크립트 이름(`review:R3`, `R3 review`, `scripts/r3_review.py`)은 이름이다.
   바꾸지 않고 코드 서식(backtick)으로 쓴다.
@@ -61,7 +60,7 @@
 | R0 | 리뷰 수준 0 — 오타·링크·포맷·생성 파일. 가장 가벼운 확인 | 18.1절 |
 | R1 | 리뷰 수준 1 — 일반 버그 수정·작은 기능 | 18.1절 |
 | R2 | 리뷰 수준 2 — public API·spec·데이터 변환을 바꾸는 변경 | 18.1절 |
-| R3 | 리뷰 수준 3 — BYOK·인증·캐시 격리, 게시 정책·개인정보, 워크플로·CI 근거, 릴리스. **기본은 작성자 외 사람 승인; SDK는 14.1절의 필수 리뷰 제외 적용** | 18.1절, 14.1절 |
+| R3 | 위험도 높은 변경 — BYOK·인증·캐시 격리, 게시 정책·개인정보, 워크플로·CI 근거, 릴리스. **강화된 검증을 뜻하며 독립 사람 승인 의무는 없음** | 18.1절, 14.1절 |
 | V0 | 정적 검사 — lint, 타입 검사, 스키마 검증 | 18절 |
 | V1 | 단위 테스트 | 18절 |
 | V2 | replay·계약 테스트 — 녹화한 fixture 로 돌린다 | 18절 |
@@ -112,7 +111,7 @@ Builder를 깨뜨린다면 제품 관점에서는 완료가 아니다.
 세 저장소의 **현재 제품 범위를 동결**한다. `kpubdata-watch`에는 자동 적용하지 않는다.
 기준은 각각 2026-10-12 착수 당시 `main`의 `590110cd`, `8bedc648`, `8aa85cf1`이다.
 동결은 달력 날짜나 다음 릴리스만으로 끝나지 않는다. 메인테이너가 검증 근거를 확인하고
-이 정책의 변경을 별도 PR로 승인할 때만 해제한다(작성자가 아닌 사람의 승인 필요(R3)).
+이 정책의 변경을 별도 PR로 소유자가 명시적으로 허가할 때만 해제한다. 별도의 독립 리뷰 승인 의무는 없다(14.1절).
 
 **성공의 기준은 기능·Issue·PR의 수가 아니라 기존 사용자 여정의 안정성과 검증 증거다.**
 현재 없는 기능을 새로 만드는 것, 새로운 외부 의존성이나 상시 운영 책임을 만드는 것은
@@ -158,16 +157,14 @@ Builder를 깨뜨린다면 제품 관점에서는 완료가 아니다.
    편의성·향후 확장성·미래 공모전이나 신규 기획은 예외 근거가 아니다.
 2. 예외 PR에는 정확히 `Scope exception: YES`, 구체적인 한 줄
    `Existing flow or risk: ...`, `Refs #N` 또는 `Closes #N`을 적고
-   `review:R3` 라벨을 단다. **PR 작성자 외에 쓰기 권한을 가진 사람이 승인**해야 한다.
-   SDK는 14.1절 예외에 따라 필수 사람 리뷰를 요구하지 않으며, 이 라벨은
-   범위 예외 marker다. 별도 소유자 범위 승인과 독립 위험 검토는 유지한다.
+   `review:R3` 라벨을 위험도·범위 예외 표식으로 단다. **소유자가 범위 확장을 명시적으로 승인**해야 한다.
+   PR 작성자 외 사람의 승인 리뷰는 필수가 아니다(14.1절). 실제 검증 증거와 범위 승인 기록은 유지한다.
    PR 본문의 자기 선언은 범위 승인이 아니다. 없는 승인이나 실행 결과를 만들지 않는다.
 3. 세 저장소의 `scripts/check_stabilization_scope.py`는 `feat` PR 및 새
    Spec/Provider, HTTP 경로, 화면, 워크플로·예약 실행처럼 기계적으로 인지 가능한
-   확장을 **기본 거부**한다. `review:R3`와 위 PR 필드가 없으면 CI가 실패하며,
-   SDK 외 저장소의 기존 `R3 review` 필수 검사는 독립 승인을 강제한다.
-   SDK는 범위 예외 marker와 근거를 유지하되 필수 사람 리뷰는 14.1절 예외를 따른다.
-   스크립트와 그 실행 경로를 바꾸는 PR도 작성자가 아닌 사람의 검토가 필요하다.
+   확장을 **기본 거부**한다. `review:R3`와 위 PR 필드가 없으면 범위 게이트가 실패한다.
+   그러나 `review:R3`는 위험도 표식일 뿐 사람의 승인 리뷰를 요구하지 않는다(14.1절).
+   범위 게이트 및 관련 스크립트를 바꾸는 PR도 실제 테스트 증거와 명시적 소유자 결정을 기록한다.
 4. **한계:** CI가 새 기능의 의미를 완벽하게 이해하지는 못한다. 새 의존성, 새
    데이터 전송 및 숨은 운영 책임은 PR 작성자와 리뷰어가 변경 전후를 직접 비교해
    판단해야 한다. 특히 `fix`로 위장한 확장은 검사를 통과해도 병합하지 않는다.
@@ -238,7 +235,7 @@ triage 단계에서 위 근거를 검토하고, 중복 Issue는 기존 Issue로 
 
 메인테이너는 최소한 현재 사용자 여정의 교차 저장소 E2E, 핵심 CI, 보안 차단,
 백업·복원 리허설, 운영 장애 대응, 릴리스 쌍의 호환성에 관한 실행 증거를 검토한다.
-이후 별도 정책 PR에서 확장 가능 범위를 명시하고 독립 승인을 받아 해제한다.
+이후 별도 정책 PR에서 확장 가능 범위를 명시하고 소유자의 범위 변경 허가를 기록한 후 해제한다.
 그전까지 새 기능 제안은 우선순위가 높아졌다는 이유만으로 착수하지 않는다.
 
 ---
@@ -698,7 +695,7 @@ Agent는 다음을 단독으로 결정하지 않는다.
 - Branch protection 변경
 - Release 수행
 - Secret 접근 승인
-- 자신의 PR 최종 승인
+- 자신의 PR에 타인의 승인 기록을 꾸미거나 허위 리뷰를 제출
 - 자신의 evidence를 신뢰 evidence로 승인
 - 자신의 Issue를 완료 판단하여 close.
   **Required Verification 이 PR 에서 이미 충족된 가벼운 이슈(R0)는 워크플로 자동화가
@@ -706,86 +703,17 @@ Agent는 다음을 단독으로 결정하지 않는다.
   기계적으로 확인하고, 에이전트는 자기 작업의 완료를 선언하지 않는다.
 - Review Level 하향
 
-## 14.1 무거운 변경(R3)은 작성자가 아닌 사람의 승인이 있어야 머지된다 — 2026-10-01 개정
+## 14.1 네 저장소의 의무 독립 리뷰 폐지 — 소유자 결정, 2026-11-19
 
-### SDK-only exception — owner decision, 2026-11-16
+**적용:** `kpubdata`, `kpubdata-builder`, `kpubdata-studio`, `kpubdata-watch`.
+소유자는 네 저장소 모두에서 **PR 작성자 외 인적 `APPROVED` 리뷰를 병합 전제조건으로 요구하지 않기로** 결정했다. 이는 2026-11-16의 SDK-only 예외를 제품군으로 확대한 것이다.
+리뷰는 자발적으로 받을 수 있으나, 독립 리뷰어 부재만으로 병합을 막지 않는다. 에이전트가 사람의 승인 기록을 꾸미거나 자신의 PR에 대한 허위 승인 리뷰를 제출하지 않는다.
 
-For **`kpubdata` only**, the owner explicitly removed mandatory important-change
-human approval (`review:R3`) and the `R3 review` required check. The SDK requires
-`CI gate` and `PR title`; an old `review:R3` label is historical metadata, not a
-merge blocker. No human attestation, replacement review gate or fabricated GitHub
-APPROVED review is needed. Record actual-head test and independent risk-review
-evidence for substantive changes, then merge under the owner's task authorization.
-
-This exception takes precedence over references elsewhere in this document to
-mandatory approval from another person for SDK changes. The SDK's archived
-workflow is inactive. **The shared `scripts/r3_review.py` and composite action are
-unchanged** and still enforce the existing rules when called by Builder, Studio
-or Watch. Their branch protections and release rules are not changed by the SDK
-owner decision. Engine has independent governance.
-
-The stabilization freeze, explicit approval of new product scope, source terms,
-privacy/credential safeguards, required CI/title checks and separate release,
-publication, secret-access and deployment authorization remain effective.
-Removing this SDK gate does not authorize a release or lift the scope freeze.
-
-The remainder of this section describes the still-enforced non-SDK family gate
-and its historical implementation. It must not be read as an active SDK gate.
-
-
-`review:R3` 라벨이 붙은 PR 은 **작성자가 아닌 사람의 승인(APPROVED)이 하나 이상**
-있어야 머지된다. 오너 결정(kpubdata-builder#905, 2026-10-01)이고, 강제 장치는
-`R3 review` required check 다(kpubdata#722). Branch protection 의 승인 수는 0 으로
-두므로 그 라벨이 없는 PR 은 영향이 없다.
-
-- 판정 로직은 하나다: `scripts/r3_review.py` 와 `.github/actions/r3-review` (kpubdata).
-  네 저장소가 `@main` 으로 같은 액션을 부른다.
-- **판정 코드는 PR 의 것이 아니라 기준 브랜치의 것을 쓴다(#861).** kpubdata 의
-  `r3-review.yml` 은 `github.event.pull_request.base.sha` 를 체크아웃한다. PR 의 merge
-  commit 을 체크아웃하면 판정받는 PR 이 `scripts/r3_review.py` 와 액션을 고쳐 스스로를
-  통과시킬 수 있다. 다른 저장소는 액션을 고정 커밋으로 원격 참조하므로 같은 성질을
-  이미 가진다. 판정 로직을 고치는 PR 은 머지된 뒤부터 그 로직으로 판정된다.
-- **남아 있는 구멍: 워크플로 파일 자체.** `pull_request` 와 `pull_request_review` 는
-  PR 쪽의 워크플로 정의로 돈다. PR 이 `r3-review.yml` 의 단계를 지우거나 job 에
-  `if: false` 를 넣으면 그 PR 안에서 check 가 통과하거나 건너뛰어지고, branch
-  protection 은 건너뛴 check 를 통과로 읽는다. 저장소 안의 코드로는 막을 수 없다.
-  막는 방법 셋과 지금 쓰지 않는 이유:
-  - 조직 ruleset 의 필수 워크플로(기준 브랜치의 정의로 돈다) — 조직 ruleset 은 GitHub
-    Team 이상에서만 만들 수 있고, 이 조직은 Free 다(2026-10-11,
-    `gh api orgs/kpubdata-lab --jq .plan.name` → `free`).
-  - `pull_request_target` — 기준 브랜치의 정의로 돌지만 리뷰 이벤트에는 대응하는
-    것이 없어, 승인·dismiss 때의 재판정은 여전히 PR 의 정의로 돈다.
-  - check 를 게시하는 GitHub App — 호스팅하고 관리할 서비스가 하나 생긴다.
-
-  그래서 지금의 방어는 사람의 눈이다: `.github/workflows/` 를 고치는 PR 은 diff 에
-  드러나고 CODEOWNERS 가 소유자를 리뷰어로 부른다. 리뷰어는 `r3-review.yml` 이 바뀐
-  PR 에서 `R3 review` 가 **실행되어 통과했는지**(건너뜀이 아닌지) 확인한다. 조직이
-  Team 이상이 되면 필수 워크플로로 옮긴다.
-- check 는 **모든 PR 에서 돌고, `review:R3` 라벨이 없으면 통과한다.** 일부 PR 에서만 생기는
-  required check 는 그 PR 을 영원히 BLOCKED 로 둔다(18.2절).
-- 라벨 변경(`labeled`/`unlabeled`), push(`synchronize`), 리뷰 제출·dismiss 때마다
-  다시 판정한다.
-- 승인으로 세는 것: 리뷰어마다 마지막 APPROVED·CHANGES_REQUESTED·DISMISSED 리뷰가
-  APPROVED 인 경우. COMMENTED 는 상태를 바꾸지 않는다. 이전 head 에 준 승인도 센다 —
-  branch protection 의 "dismiss stale approvals" 가 꺼져 있는 것과 맞춘다.
-- 세지 않는 것: 작성자 본인, 봇 계정(사람 리뷰가 아니다), 저장소 쓰기 권한이 없는
-  계정 — 공개 저장소에서는 누구나 APPROVED 를 남길 수 있다.
-- **쓰기 권한은 조회해서 확인한다(#860).** 리뷰의 `author_association`
-  (`OWNER`·`MEMBER`·`COLLABORATOR`)은 계정과 저장소의 관계이지 권한이 아니다 — 조직
-  구성원이나 협력자가 읽기·분류(triage) 권한만 가질 수 있다. 그래서 association 이 맞는
-  승인자마다 `GET /repos/{owner}/{repo}/collaborators/{login}/permission` 을 조회해
-  `admin` 또는 `write` 일 때만 센다(이 필드에서 `maintain` 은 `write`, `triage` 는
-  `read` 로 온다). **조회에 실패한 계정의 승인은 세지 않는다.** 한 계정의 조회 실패가
-  다른 승인자의 리뷰를 가리지는 않는다.
-- **권한은 승인한 때가 아니라 check 가 도는 때의 것이다.** 승인한 뒤 쓰기 권한을 잃은
-  사람의 승인은 다음 판정부터 세지 않는다. 다만 권한 변경은 check 를 다시 돌리는
-  이벤트가 아니므로, push·라벨 변경·리뷰로 다시 돌기 전까지는 앞선 결과가 남는다.
-  권한을 회수한 뒤 열려 있는 `review:R3` PR 이 있으면 check 를 다시 돌린다.
-- 라벨을 떼면 check 는 통과한다. 그래서 `review:R3` 를 낮은 수준으로 바꾸는 것은 여전히 사람만 한다(위 목록).
-- 이벤트마다 별도 실행(check suite)이 생기고, branch protection 은 한 suite 에서 실패한
-  check 를 다른 suite 가 통과해도 실패로 본다. 그래서 승인으로 돈 실행이 통과하면 같은
-  head 의 앞선 실패 실행을 `required-check-refresh.yml` 이 다시 돌린다(#759). 다시 도는
-  실행도 라벨·리뷰를 실시간으로 읽는다.
+- `review:R3`는 고위험 변경의 **위험/검증 분류**일 뿐 인적 승인 요건이 아니다. 작성자와 오너는 영향 범위와 검증 근거를 PR에 남긴다.
+- `CI gate`, `PR title`, 보안·비밀정보 검사, 계약·단위·통합 테스트 등 **기존 기계 검증의 필수 통과**는 유지한다. 실패한 필수 검사를 리뷰 면제와 혼동하거나 우회하지 않는다.
+- 본 결정은 새로운 기능 범위의 승인, 개인정보·약관 예외, 릴리스·배포·게시·시크릿 접근 승인, 브랜치 보호의 기타 요구를 변경하지 않는다.
+- 기존 `R3 review` GitHub Actions 필수 상태 검사와 오래된 워크플로/액션은 **실제 GitHub 설정과 코드가 수정되기 전까지 여전히 병합을 막을 수 있다**. 운영 변경은 각 저장소에서 이 레거시 사람-승인 게이트를 제거하거나 항상 중립적으로 통과시키고, 필수 검사 목록도 맞추어야 한다. 필수 검사 이름만 삭제해 영원히 대기하게 만들지 않는다.
+- 오래된 `R3 review` 판정 스크립트와 이전 리뷰 정책 설명은 **과거 기록**이다. 새 병합 정책의 정본은 이 절이다. 병합은 요청된 작업에 대한 소유자의 권한 부여와 해당 PR의 실제 필수 검사 결과에 따른다.
 
 ## 14.2 PR 제목 검사가 머지를 막는다 — 2026-10-01
 
@@ -898,9 +826,7 @@ PR에서는 replay provider 로 도는 제품 E2E(V5-replay)를 사용할 수 �
 | release | R3 | V5-live |
 <!-- plain-codes: on -->
 
-표보다 높은 수준을 요구하는 것은 자유다.
-
-낮추려면 사람의 승인과 사유 기록이 필요하다.
+표보다 높은 검증 수준을 요구하는 것은 자유다. 검증 요건을 낮추려면 소유자의 명시적 결정과 사유 기록이 필요하며, 독립 사람 승인 리뷰를 요구하지 않는다.
 
 ---
 
