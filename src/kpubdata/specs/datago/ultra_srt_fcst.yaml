@@ -3,7 +3,7 @@ provider: datago
 title: 초단기예보 조회
 description: 기상청 초단기예보. 발표 시각(base_time, 30분 간격) 이후 6시간의 격자 단위 예보를 제공한다.
 source:
-  url: https://www.data.go.kr/data/15084292/openapi.do
+  url: https://www.data.go.kr/data/15084084/openapi.do
   verified_at: '2026-09-09'
 endpoint:
   base_url: https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0
@@ -90,9 +90,12 @@ fields:
   title: 예보지점 Y 좌표
   description: 격자 Y
 license:
-  type: "공공누리_1유형"
+  type: 공공누리_1유형
+  commercial_use: true
+  attribution_required: true
+  modification_allowed: true
   redistribution: allowed
-  note: "Terms not yet confirmed — fill from provider page (#524)"
+  attribution: "공공누리 제1유형(출처표시) — 기상청 단기예보 조회서비스"
 examples:
 - name: seoul_0600
   description: 서울(55,127) 06:00 발표 초단기예보
