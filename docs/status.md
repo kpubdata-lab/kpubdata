@@ -1,6 +1,6 @@
 # 데이터셋 검증 상태
 
-> 생성: `2026-11-19T00:03:37+00:00` — `scripts/gen_status_page.py` (직접 편집 금지)
+> 생성: `2026-11-19T00:06:56+00:00` — `scripts/gen_status_page.py` (직접 편집 금지)
 
 ## 요약
 
@@ -55,7 +55,7 @@
 | `datago.tour_kor_location` | 2026-11-18 | active |
 | `datago.ultra_srt_fcst` | 2026-11-19 | active |
 | `datago.ultra_srt_ncst` | 2026-11-19 | active |
-| `datago.village_fcst` | 2026-09-09 | active |
+| `datago.village_fcst` | 2026-11-19 | active |
 | `localdata.bakery` | 2026-11-18 | active |
 | `localdata.general_restaurant` | 2026-11-18 | active |
 | `localdata.rest_cafe` | 2026-11-18 | active |

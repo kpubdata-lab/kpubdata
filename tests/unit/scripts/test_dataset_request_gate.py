@@ -367,15 +367,9 @@ def test_a_malformed_actor_is_not_looked_up(tmp_path: Path, fake_gh: Path) -> No
     assert "collaborators" not in gh_calls
 
 
-#: A dataset still listed in the insecure-http baseline. The list shrinks as specs move
-#: to https (#893), so the tests take whichever entry remains rather than naming one.
-_STILL_HTTP = next(
-    line.strip()
-    for line in (REPO_ROOT / "scripts" / "insecure_http_baseline.txt")
-    .read_text(encoding="utf-8")
-    .splitlines()
-    if line.strip() and not line.startswith("#")
-)
+#: A spec the re-record gate accepts. Once every spec is on https (#893) the baseline is
+#: empty, so this is an already-https data.go.kr spec (re-record only, #907).
+_RERECORDABLE = "datago.bus_arrival"
 
 
 def test_a_plain_request_runs_in_agent_mode(tmp_path: Path, fake_gh: Path) -> None:
@@ -385,11 +379,11 @@ def test_a_plain_request_runs_in_agent_mode(tmp_path: Path, fake_gh: Path) -> No
 
 
 def test_an_https_dataset_passes_without_reading_an_issue(tmp_path: Path, fake_gh: Path) -> None:
-    outputs, gh_calls = _run_gate(tmp_path, fake_gh, ISSUE_NUMBER="", HTTPS_DATASET=_STILL_HTTP)
+    outputs, gh_calls = _run_gate(tmp_path, fake_gh, ISSUE_NUMBER="", HTTPS_DATASET=_RERECORDABLE)
 
     assert outputs["allowed"] == "true"
     assert outputs["mode"] == "https"
-    assert outputs["dataset"] == _STILL_HTTP
+    assert outputs["dataset"] == _RERECORDABLE
     assert outputs["agent"] == ""
     assert outputs["issue_number"] == ""
     assert "/issues/" not in gh_calls
@@ -400,8 +394,8 @@ def test_an_https_dataset_passes_without_reading_an_issue(tmp_path: Path, fake_g
     [
         {"HTTPS_DATASET": "datago.no_such_dataset"},  # neither in the baseline nor a spec
         {"HTTPS_DATASET": "--help"},
-        {"HTTPS_DATASET": _STILL_HTTP, "ISSUE_NUMBER": "42"},
-        {"HTTPS_DATASET": _STILL_HTTP, "FAKE_PERMISSION": "read"},
+        {"HTTPS_DATASET": _RERECORDABLE, "ISSUE_NUMBER": "42"},
+        {"HTTPS_DATASET": _RERECORDABLE, "FAKE_PERMISSION": "read"},
     ],
     ids=["not-in-baseline", "option-like", "with-issue", "read-only"],
 )
