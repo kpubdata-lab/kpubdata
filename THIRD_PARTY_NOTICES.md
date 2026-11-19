@@ -75,7 +75,7 @@ optional extra; `dev` only for development and documentation.
 | mergedeep | 1.3.4 | extra:docs | UNKNOWN | needs review | https://github.com/clarketm/mergedeep |
 | mkdocs-get-deps | 0.2.2 | extra:docs | MIT | recorded | https://github.com/mkdocs/get-deps |
 | mkdocs-material-extensions | 1.3.1 | extra:docs | MIT | recorded | https://github.com/facelessuser/mkdocs-material-extensions |
-| mkdocs-material | 9.7.7 | extra:docs | MIT | recorded | https://github.com/squidfunk/mkdocs-material |
+| mkdocs-material | 9.8.1 | extra:docs | MIT | recorded | https://github.com/squidfunk/mkdocs-material |
 | mkdocs | 1.6.1 | extra:docs | BSD-2-Clause | recorded | https://github.com/mkdocs/mkdocs |
 | multipledispatch | 1.0.0 | extra:krx | BSD | recorded | http://github.com/mrocklin/multipledispatch/ |
 | mypy-extensions | 1.1.0 | dev | MIT | recorded | https://github.com/python/mypy_extensions |

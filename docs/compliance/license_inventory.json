@@ -328,12 +328,12 @@
       "basis": "installed",
       "status": "recorded"
     },
-    "mkdocs-material==9.7.7": {
-      "version": "9.7.7",
+    "mkdocs-material==9.8.1": {
+      "version": "9.8.1",
       "scope": "extra:docs",
       "license": "MIT",
       "source": "https://github.com/squidfunk/mkdocs-material",
-      "basis": "installed",
+      "basis": "other-version",
       "status": "recorded"
     },
     "mkdocs==1.6.1": {
