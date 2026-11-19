@@ -3,7 +3,7 @@ provider: datago
 title: 아파트 전월세 실거래자료 (Apartment Rent)
 description: MOLIT apartment rent real transaction data
 source:
-  url: https://www.data.go.kr
+  url: https://www.data.go.kr/data/15126474/openapi.do
 endpoint:
   base_url: https://apis.data.go.kr/1613000/RTMSDataSvcAptRent
   operation: getRTMSDataSvcAptRent
@@ -159,11 +159,11 @@ examples:
   page: 1
   page_size: 10
 status: active
-last_verified: "2026-11-18"
+last_verified: "2026-11-19"
 license:
-  type: 공공누리_1유형
+  type: "이용허락범위_제한없음"
   commercial_use: true
-  attribution_required: true
   modification_allowed: true
   redistribution: allowed
-  attribution: "공공누리 제1유형(출처표시) — 국토교통부 아파트 전월세"
+  attribution: "이용허락범위 제한 없음 — 국토교통부 아파트 전월세 실거래가 자료"
+  note: "data.go.kr page 15126474 states 이용허락범위 제한 없음 (no KOGL type), checked 2026-11-19 (#933)"
