@@ -477,10 +477,15 @@ def _open_drift_datasets_from(titles: object) -> set[str]:
     return datasets
 
 
-def create_issues(issues: list[DriftIssue], *, repo: str) -> list[str]:
-    """File the issues with gh, skipping datasets that already have an open one."""
+def create_issues(issues: list[DriftIssue], *, repo: str) -> tuple[list[str], list[str]]:
+    """File the issues with gh, skipping datasets that already have an open one.
+
+    Returns the created issues' URLs and the titles that could not be filed. Every issue
+    is attempted, so one failure does not hide the rest.
+    """
     already_open = _open_drift_datasets(repo)
     created: list[str] = []
+    failed: list[str] = []
     for issue in issues:
         if issue.dataset_id in already_open:
             print(f"open drift issue exists, skipping: {issue.dataset_id}")
@@ -505,9 +510,10 @@ def create_issues(issues: list[DriftIssue], *, repo: str) -> list[str]:
         if completed.returncode != 0:
             print(f"::warning::could not file: {issue.title}", file=sys.stderr)
             print(completed.stderr.strip(), file=sys.stderr)
+            failed.append(issue.title)
             continue
         created.append(completed.stdout.strip())
-    return created
+    return created, failed
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -554,10 +560,14 @@ def main(argv: list[str] | None = None) -> int:
     for issue in issues:
         print(issue.title)
 
+    failed: list[str] = []
     if args.create_issues.strip().lower() in {"true", "1", "yes"}:
-        create_issues(issues, repo=args.repo)
+        _, failed = create_issues(issues, repo=args.repo)
 
     print(f"transitions={len(events)} issues={len(issues)}")
+    if failed:
+        print(f"::error::{len(failed)} drift issue(s) could not be filed", file=sys.stderr)
+        return 1
     return 0
 
 

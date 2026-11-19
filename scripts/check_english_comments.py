@@ -77,7 +77,7 @@ def _python_files(roots: list[str] | tuple[str, ...]) -> set[Path]:
     return found
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("roots", nargs="*", default=list(DEFAULT_ROOTS))
     parser.add_argument(
@@ -85,9 +85,17 @@ def main() -> int:
         action="store_true",
         help="print per-file counts instead of every finding",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
-    files = sorted(_python_files(args.roots or DEFAULT_ROOTS))
+    roots = args.roots or list(DEFAULT_ROOTS)
+    missing = [root for root in roots if not Path(root).exists()]
+    if missing:
+        print(f"error: path does not exist: {', '.join(missing)}", file=sys.stderr)
+        return 2
+    files = sorted(_python_files(roots))
+    if not files:
+        print(f"error: no Python files found under {', '.join(roots)}", file=sys.stderr)
+        return 2
 
     total = 0
     for path in files:

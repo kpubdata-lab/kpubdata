@@ -7,7 +7,12 @@ from __future__ import annotations
 
 import unittest
 
-from check_stabilization_scope import check_scope, scope_indicators
+from check_stabilization_scope import (
+    PullUnavailable,
+    check_scope,
+    current_pull,
+    scope_indicators,
+)
 
 SDK = "kpubdata-lab/kpubdata"
 BUILDER = "kpubdata-lab/kpubdata-builder"
@@ -122,6 +127,56 @@ class StabilizationGateTests(unittest.TestCase):
         self.assertTrue(
             check_scope(STUDIO, "fix: screen", "", set(), "A\tsrc/pages/NewPage.tsx", "")
         )
+
+
+STALE = {
+    "number": 7,
+    "title": "fix: old title",
+    "body": "old body",
+    "labels": [{"name": "old"}],
+    "base": {"sha": "a" * 40},
+}
+LIVE = {
+    "number": 7,
+    "title": "feat: new title",
+    "body": "new body",
+    "labels": [{"name": "review:R3"}],
+    "base": {"sha": "b" * 40},
+}
+
+
+class CurrentPullTests(unittest.TestCase):
+    def test_the_live_pull_request_replaces_a_stale_event_payload(self) -> None:
+        pull = current_pull(STALE, "kpubdata-lab/kpubdata", lambda repo, number: LIVE)
+        self.assertEqual(pull["title"], "feat: new title")
+        self.assertEqual(pull["labels"], [{"name": "review:R3"}])
+
+    def test_the_lookup_gets_the_repository_and_number(self) -> None:
+        calls: list[tuple[str, int]] = []
+
+        def fetch(repo: str, number: int) -> dict[str, object]:
+            calls.append((repo, number))
+            return LIVE
+
+        current_pull(STALE, "kpubdata-lab/kpubdata", fetch)
+        self.assertEqual(calls, [("kpubdata-lab/kpubdata", 7)])
+
+    def test_an_unavailable_api_falls_back_to_the_event(self) -> None:
+        def fetch(repo: str, number: int) -> dict[str, object]:
+            raise PullUnavailable("no network")
+
+        self.assertEqual(current_pull(STALE, "kpubdata-lab/kpubdata", fetch), STALE)
+
+    def test_an_event_without_a_number_uses_the_event(self) -> None:
+        def fetch(repo: str, number: int) -> dict[str, object]:
+            raise AssertionError("must not be called")
+
+        event = {key: value for key, value in STALE.items() if key != "number"}
+        self.assertEqual(current_pull(event, "kpubdata-lab/kpubdata", fetch), event)
+
+    def test_a_live_payload_without_a_title_is_not_trusted(self) -> None:
+        pull = current_pull(STALE, "kpubdata-lab/kpubdata", lambda repo, number: {"number": 7})
+        self.assertEqual(pull, STALE)
 
 
 if __name__ == "__main__":

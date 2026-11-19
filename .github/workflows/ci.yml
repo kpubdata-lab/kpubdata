@@ -5,12 +5,17 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    # `edited`, `labeled` and `unlabeled` rerun CI so the stabilization scope gate sees a
+    # changed title, body or label. The gate reads the live pull request, not the event.
+    types: [opened, reopened, synchronize, edited, labeled, unlabeled]
 
 permissions:
   contents: read
   # The evidence-authorship gate reads run records to verify a recorder's
   # run_ref (#729); gh run view needs this on the default token.
   actions: read
+  # The stabilization scope gate reads the pull request's current title, body and labels.
+  pull-requests: read
 
 concurrency:
   # A newer push to a pull request makes the older run pointless, so a pull request's
@@ -72,6 +77,8 @@ jobs:
 
       - name: Stabilization scope gate
         if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: python3 scripts/check_stabilization_scope.py
 
       - name: Validate dataset specs
