@@ -20,6 +20,8 @@ from typing import TypedDict
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 _DRIFT_ISSUE_LIMIT = 1000
+#: Both drift reporters title their issues "[drift] <dataset>: ..." (docs/DATASET_STATUS.md).
+_DRIFT_TITLE_PREFIX = "[drift] "
 
 
 class DriftIssue(TypedDict):
@@ -66,14 +68,14 @@ def collect_drift_issues(month: str) -> list[DriftIssue]:
         [
             "issue",
             "list",
-            "--label",
-            "drift",
             "--state",
             "all",
             "--limit",
             str(_DRIFT_ISSUE_LIMIT),
             "--search",
-            f"created:{month}",
+            # By title, not by a `drift` label: that label never existed, so the
+            # filter returned nothing and every month read as "no drift" (#899).
+            f'created:{month} in:title "[drift]"',
             "--json",
             "number,title,state",
         ]
@@ -99,7 +101,9 @@ def collect_drift_issues(month: str) -> list[DriftIssue]:
             or state.lower() not in {"open", "closed"}
         ):
             raise RuntimeError("Drift issue evidence is invalid")
-        issues.append({"number": number, "title": title, "state": state})
+        # The search matches the word anywhere in a title; keep drift issues only.
+        if title.startswith(_DRIFT_TITLE_PREFIX):
+            issues.append({"number": number, "title": title, "state": state})
     return issues
 
 
