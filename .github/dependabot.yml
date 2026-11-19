@@ -14,3 +14,9 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(ci)"
+    # CodeQL init/analyze must use the same release and SHA in a single run.
+    # Dependabot treats each sub-action as a separate dependency otherwise.
+    groups:
+      codeql-action:
+        patterns:
+          - "github/codeql-action*"
