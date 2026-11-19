@@ -136,10 +136,9 @@ This allows different keys for different contexts and protects against fork PRs.
 
 ## Fork PR Behavior
 
-Fork PRs cannot access secrets. The workflow:
-1. Detects `github.event.pull_request.head.repo.fork == true`
-2. Sets `KPUBDATA_PROBE_MODE=fixture-only`
-3. Skips live calls entirely; only fixture-based tests run
+Fork PRs cannot access secrets, and they never reach the probe: `live-probe.yml`
+runs only on its schedule and on a manual dispatch, never on a pull request.
+Pull requests run the fixture-based CI only (`ci.yml`).
 
 ## Failure Classification
 
