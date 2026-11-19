@@ -5,6 +5,33 @@
 > [빠른 시작](quickstart.md)을 따릅니다. 아래 통합 관계는 유지보수를 위한 기록으로
 > 보존하며, SDK는 독립 설치·실행·릴리스됩니다.
 
+## 현재의 최소 제품 경계 (2026-11-19)
+
+아래의 Builder/Studio/Watch 토폴로지는 **기존 통합 제품의 이력·호환성 참고**입니다.
+새 SDK 또는 AI 사용자가 이를 모두 배포해야 한다는 뜻이 아닙니다. 현재 권장 제품 경계는:
+
+```mermaid
+flowchart TD
+    Client["Local AI / MCP client"] --> MCP["kpubdata-mcp (v0.1 계획, 미구현)"]
+    MCP -->|"Live: SDK public API only"| SDK["kpubdata Python SDK"]
+    SDK --> Provider["Official provider APIs"]
+    Engine["kpubdata-engine (independent MVP)"] -->|"collect via public API"| SDK
+    Engine -. "later: approved immutable snapshot + manifest" .-> Gold["Gold artifact"]
+    MCP -. "v0.2 only: explicit Gold read" .-> Gold
+```
+
+- **SDK**: 공공기관 API 접근·인증·정규화. MCP 또는 Engine 설치가 필요하지 않습니다.
+- **MCP v0.1**: 별도 비공개 설계 저장소이며 구현·릴리스 승인은 없습니다.
+  Live 조회만 사용하고 Engine/Studio/Watch에 런타임 의존하지 않습니다.
+- **Engine**: SDK를 쓰는 독립 Build/Run/Export/Publish MVP입니다. 검증된 Gold
+  아티팩트의 외부 계약이 확립된 뒤 MCP v0.2에 읽기 경로를 제공합니다.
+- **기존 Builder/Studio/Watch**: 아래 구조의 역사적 역할·호환성을 설명하는
+  항목으로 유지합니다. Engine으로의 이관과 서비스 운영 상태를 혼동하지 않습니다.
+- **보안·검증**: HTTPS, 사용 허가, 현재 검증 근거 없이 모든 dataset이 AI 조회에
+  적합하다고 주장하지 않습니다. 현재 실행 순서는 [SDK ROADMAP](https://github.com/kpubdata-lab/kpubdata/blob/main/ROADMAP.md)이 기준입니다.
+
+---
+
 KPubData 는 한국 공공데이터 접근을 위한 **독립 Python SDK** 입니다. KPubData Builder, KPubData Studio, KPubData Watch 는 KPubData 위에 만들어진 **관련 프로젝트**이며, KPubData 는 이들 없이도 단독으로 설치·사용·릴리스됩니다. 이 문서는 네 제품을 함께 쓸 때의 관계를 설명합니다. 제품 이름과 저장소·패키지 이름은 다르다 — 저장소는 바꾸지 않는다([BRAND.md](brand/BRAND.md)).
 
 의존은 한 방향으로만 흐릅니다: **Studio → Builder → KPubData**, 그리고 **Watch → KPubData**. Watch 는 Builder 의 하위 단계가 아니라 Builder 와 나란한 **형제 제품**이며 Builder·Studio 에 의존하지 않습니다([ADR 0007](adrs/0007-independence-rules.md) §5). KPubData 는 Builder·Studio·Watch 를 알지 못하고, 함께 사용할 때에만 공공데이터의 전체 생명주기가 하나의 흐름으로 이어집니다.

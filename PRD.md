@@ -6,21 +6,22 @@
 - Product type: Python data access framework / SDK
 - Target runtime: Python 3.11+
 - Primary users: Python developers, backend developers, data engineers, agent/MCP developers
-- Product stage: active development — current release `v0.9.0` (see §2-current status)
+- Product stage: active development — package version is defined in `pyproject.toml` (see §2-current status)
 
-## 2-current. 현재 제품 상태 (Current status — v0.9.0)
+## 2-current. 현재 제품 상태 (Current status)
 
-> 이 절은 현재 실제로 출시된 제품 계약을 요약한다. 원래 초기 계획(§13 릴리스 계획의 v0.1)은 역사적 기록으로 보존하되, 아래 내용이 현재 기준이다.
+> 이 절은 구현된 SDK의 인터페이스와 범위를 요약합니다. 패키지 버전은 `pyproject.toml`, 실제 공개 릴리스는 [GitHub Releases](https://github.com/kpubdata-lab/kpubdata/releases)가 정본입니다. 초기 계획(§13)은 이력으로 보존합니다.
 
-- **현재 버전**: `v0.9.0` (`pyproject.toml` 기준). PRD 초안이 가정한 "architecture and bootstrap" 단계를 이미 넘어섰다.
-  - 이것은 **SDK 자신의 버전**이다. Builder·Studio 와 함께 검증된 **지원 조합**은 별개이며 [docs/compatibility.md](./docs/compatibility.md) 1절과 `compatibility.json` 이 단일 출처다. 지원 조합은 Builder·Studio 릴리스 때에만 바뀌므로 SDK 버전이 그보다 앞서 있는 것이 정상이다.
+- **SDK 버전**: 2026-11-19 `main`의 `pyproject.toml`은 `0.11.0`입니다(릴리스 PR의 미병합 버전은 출시로 계산하지 않음). Builder·Studio의 **기존 릴리스 지원 조합**은 [docs/compatibility.md](./docs/compatibility.md) 및 `compatibility.json`에서 별도로 확인하며, 독립 Engine/MCP에 자동 적용하지 않습니다.
 - **지원 provider**: 내장 provider는 `bok`, `datago`, `fds`, `kipris`, `korean`, `kosis`, `krx`, `law`, `localdata`, `lofin`, `neis`, `semas`, `seoul`, `sgis` 14개이며(`src/kpubdata/providers/manifest.py`), 하나의 공개 인터페이스 아래 통합되어 있다. 정확한 데이터셋 수와 검증 수준은 [SUPPORTED_DATA.md](./SUPPORTED_DATA.md)를 단일 출처로 참조한다.
 - **핵심 API**: `Client` / `Client.from_env()`, `client.datasets.list()/search()`, `client.dataset(...)`, `dataset.list()/list_all()/schema()/call_raw()`, `client.probe()/probe_all()`, `DatasetRef`(+`status`, `to_dict()`), `RecordBatch`(+`validation`, `to_pandas()`).
 - **CLI**: `kpubdata` 명령이 함께 설치되며 `datasets list/show`, `fetch`, `raw`, `probe`, `scaffold provider` 서브커맨드를 제공한다.
 - **부가 기능**: 디스크 기반 응답 캐시(TTL), pandas 변환(`kpubdata[pandas]`), 전체 페이지 자동 순회(`list_all()`).
-- **여전히 유효한 비목표**: async 지원 없음, MCP/HTTP 서비스 레이어는 코어에 미포함(별도 레포로 분리 예정).
+- **여전히 유효한 비목표**: async 지원 없음. MCP/HTTP 서비스 레이어는 코어에 미포함입니다. 별도 비공개 `kpubdata-mcp`는 설계만 준비됐으며 기능 구현/출시는 승인되지 않았습니다. Engine은 데이터 빌드와 검증된 Gold 산출물 생성을 담당하고, MCP Live v0.1의 실행 의존성이 아닙니다.
 
-> 향후 계획은 [ROADMAP.md](./ROADMAP.md), 버전별 변경 이력은 CHANGELOG를 단일 출처로 참조한다.
+> 향후 우선순위와 보안·이용조건 게이트는 [ROADMAP.md](./ROADMAP.md)를 따릅니다. 현재 번들 spec의 HTTPS 전환이 완료됐더라도 catalogue-only HTTP 경로와 terms 증거는 개별 검증해야 합니다([#893](https://github.com/kpubdata-lab/kpubdata/issues/893), [#933](https://github.com/kpubdata-lab/kpubdata/issues/933)).
+> 버전별 변경 이력은 [CHANGELOG.md](./CHANGELOG.md)를 참조합니다.
+
 ## 2. Problem statement
 
 Korean public-data APIs are difficult to use consistently because they vary by provider and service family in:
@@ -348,5 +349,7 @@ client.getRTMSDataSvcAptTradeDev(...)
 ### KPubData Product Family
 | 저장소 | 문서 | 설명 |
 | :--- | :--- | :--- |
-| [kpubdata-builder](https://github.com/kpubdata-lab/kpubdata-builder) | [PRD.md](https://github.com/kpubdata-lab/kpubdata-builder/blob/main/PRD.md) | Builder 제품 요구사항 |
+| [kpubdata-engine](https://github.com/kpubdata-lab/kpubdata-engine) | [PRD.md](https://github.com/kpubdata-lab/kpubdata-engine/blob/main/PRD.md) | 독립 Engine MVP, 빌드/검증/Gold 산출물 |
+| [kpubdata-mcp](https://github.com/kpubdata-lab/kpubdata-mcp) | [PRD.md](https://github.com/kpubdata-lab/kpubdata-mcp/blob/main/PRD.md) | 독립 MCP 설계(비공개, 구현 전) |
+| [kpubdata-builder](https://github.com/kpubdata-lab/kpubdata-builder) | [PRD.md](https://github.com/kpubdata-lab/kpubdata-builder/blob/main/PRD.md) | Builder 레거시 제품 요구사항/호환성 이력 |
 | [kpubdata-studio](https://github.com/kpubdata-lab/kpubdata-studio) | [PRD.md](https://github.com/kpubdata-lab/kpubdata-studio/blob/main/PRD.md) | Studio 제품 요구사항 |
