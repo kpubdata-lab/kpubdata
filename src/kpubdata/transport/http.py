@@ -230,7 +230,7 @@ class HttpTransport:
         config: TransportConfig | None = None,
         requirements: TransportRequirements | None = None,
         cache: ResponseCache | None = None,
-        cache_ttl_seconds: int = 86400,
+        cache_ttl_seconds: int | None = None,
         sleep: Callable[[float], None] | None = None,
     ) -> None:
         """Initialize the transport layer with optional explicit configuration."""
@@ -238,7 +238,7 @@ class HttpTransport:
         self._requirements: TransportRequirements | None = requirements
         self._cache: ResponseCache | None = self._config.cache if cache is None else cache
         self._cache_ttl_seconds: int = (
-            self._config.cache_ttl_seconds if cache_ttl_seconds == 86400 else cache_ttl_seconds
+            self._config.cache_ttl_seconds if cache_ttl_seconds is None else cache_ttl_seconds
         )
         # Retry sleep function (#270): default is time.sleep at call time (module-patchable);
         # tests and async embedding inject explicitly.
@@ -247,6 +247,9 @@ class HttpTransport:
         # Guards the lazily built client: two threads that both found none each built
         # one, and the one that lost the assignment was never closed (#823).
         self._client_lock = threading.Lock()
+        # Bumped by close(): a retry loop that began before a close() must not rebuild
+        # the pool, while a later request on a closed transport still builds a new one.
+        self._close_epoch = 0
 
     @classmethod
     def with_requirements(
@@ -322,6 +325,7 @@ class HttpTransport:
         """Close the client if initialized."""
         with self._client_lock:
             client, self._client = self._client, None
+            self._close_epoch += 1
         if client is not None:
             client.close()
 
@@ -529,8 +533,17 @@ class HttpTransport:
         identity_retry_used = False
 
         attempt = 0
+        epoch = self._close_epoch
         while attempt < total_attempts:
             attempt += 1
+            if self._close_epoch != epoch:
+                closed_error = TransportError(
+                    f"Transport was closed during the request: {method} {log_url}",
+                    provider=provider,
+                    dataset_id=dataset_id,
+                )
+                _mark_credential_bearing(closed_error, credential_in_request)
+                raise closed_error
             retry_delay: float | None = None
             try:
                 logger.debug(
@@ -586,8 +599,22 @@ class HttpTransport:
                 )
                 # httpx logs the request line inside this call; the filter on its logger
                 # masks by these values as well as by name (#821).
-                with _sending(secret_values, provider=provider, dataset_id=dataset_id):
-                    response = client.send(request, stream=True, follow_redirects=follow_redirects)
+                try:
+                    with _sending(secret_values, provider=provider, dataset_id=dataset_id):
+                        response = client.send(
+                            request, stream=True, follow_redirects=follow_redirects
+                        )
+                except RuntimeError as exc:
+                    if not client.is_closed:
+                        raise
+                    # close() raced this request: httpx reports it as a bare RuntimeError.
+                    closed_error = TransportError(
+                        f"Transport was closed during the request: {method} {log_url}",
+                        provider=provider,
+                        dataset_id=dataset_id,
+                    )
+                    _mark_credential_bearing(closed_error, credential_in_request)
+                    raise closed_error from (None if credential_in_request else exc)
                 if response.is_redirect and not follow_redirects:
                     # Not followed: the key would go to wherever the answer points (#812).
                     # Only the host is named; the location may itself carry the key.
@@ -611,6 +638,8 @@ class HttpTransport:
                         max_response_bytes=self._config.max_response_bytes,
                         method=method,
                         url=log_url,
+                        provider=provider,
+                        dataset_id=dataset_id,
                     )
                 except Exception:
                     response.close()
@@ -691,7 +720,9 @@ class HttpTransport:
                 )
                 if attempt >= total_attempts:
                     timeout_error = TransportTimeoutError(
-                        f"Request timed out after {attempt} attempts: {method} {log_url}"
+                        f"Request timed out after {attempt} attempts: {method} {log_url}",
+                        provider=provider,
+                        dataset_id=dataset_id,
                     )
                     _mark_credential_bearing(timeout_error, credential_in_request)
                     raise timeout_error from (None if credential_in_request else exc)
@@ -710,7 +741,9 @@ class HttpTransport:
                     )
                     continue
                 decoding_error = TransportError(
-                    f"Response decoding failed after identity retry: {method} {log_url}"
+                    f"Response decoding failed after identity retry: {method} {log_url}",
+                    provider=provider,
+                    dataset_id=dataset_id,
                 )
                 _mark_credential_bearing(decoding_error, credential_in_request)
                 raise decoding_error from (None if credential_in_request else exc)
@@ -758,7 +791,9 @@ class HttpTransport:
                 )
                 if attempt >= total_attempts:
                     request_error = TransportError(
-                        f"Request failed after {attempt} attempts: {method} {log_url}"
+                        f"Request failed after {attempt} attempts: {method} {log_url}",
+                        provider=provider,
+                        dataset_id=dataset_id,
                     )
                     _mark_credential_bearing(request_error, credential_in_request)
                     raise request_error from (None if credential_in_request else exc)
@@ -771,7 +806,8 @@ class HttpTransport:
                 # immediately instead, letting the caller choose when to retry.
                 max_delay = self._config.max_retry_delay
                 if max_delay is not None and retry_delay > max_delay:
-                    raise RateLimitError(
+                    capped_error_type = _STATUS_ERROR_TYPES.get(status_code, TransportError)
+                    raise capped_error_type(
                         f"server asked to retry after {retry_delay:.0f}s, "
                         f"beyond the {max_delay:.0f}s cap: {method} {log_url}",
                         provider=provider,
@@ -813,7 +849,20 @@ class HttpTransport:
             return None
         if _contains_sensitive_headers(headers):
             return None
-        return make_cache_key(method, url, params, _cache_headers_subset(headers))
+        # Credentials set on the config or the provider requirements travel on every
+        # request but are not in ``headers``; fingerprint them into the key too, so
+        # transports sharing a cache directory under different credentials stay apart.
+        configured = {
+            name: value
+            for source in (
+                self._config.headers,
+                None if self._requirements is None else self._requirements.headers,
+            )
+            if source is not None
+            for name, value in source.items()
+            if _contains_sensitive_headers({name: value})
+        }
+        return make_cache_key(method, url, params, {**configured, **_cache_headers_subset(headers)})
 
 
 #: The methods a failed attempt is repeated for: the idempotent ones (RFC 9110 §9.2.2).
@@ -832,6 +881,8 @@ def _read_limited_response(
     max_response_bytes: int | None,
     method: str,
     url: str,
+    provider: str | None,
+    dataset_id: str | None,
 ) -> httpx.Response:
     """Read response body within size limit; return as content-loaded Response."""
     if max_response_bytes is not None:
@@ -840,7 +891,11 @@ def _read_limited_response(
             content_length, max_response_bytes
         ):
             raise TransportError(
-                f"Response body exceeded max_response_bytes={max_response_bytes}: {method} {url}"
+                f"Response body exceeded max_response_bytes={max_response_bytes}: {method} {url}",
+                provider=provider,
+                dataset_id=dataset_id,
+                status_code=response.status_code,
+                retryable=False,
             )
 
     body = bytearray()
@@ -848,7 +903,11 @@ def _read_limited_response(
         body.extend(chunk)
         if max_response_bytes is not None and len(body) > max_response_bytes:
             raise TransportError(
-                f"Response body exceeded max_response_bytes={max_response_bytes}: {method} {url}"
+                f"Response body exceeded max_response_bytes={max_response_bytes}: {method} {url}",
+                provider=provider,
+                dataset_id=dataset_id,
+                status_code=response.status_code,
+                retryable=False,
             )
 
     return httpx.Response(
