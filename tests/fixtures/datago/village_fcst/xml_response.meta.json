@@ -1,10 +1,10 @@
 {
  "dataset_id": "datago.village_fcst",
- "endpoint": "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst",
+ "endpoint": "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst",
  "example": "xml_response",
  "format": "xml",
  "params": {
-  "base_date": "20260908",
+  "base_date": "20261118",
   "base_time": "2300",
   "dataType": "XML",
   "numOfRows": "100",
@@ -13,7 +13,10 @@
   "pageNo": "1",
   "serviceKey": "[REDACTED]"
  },
- "recorded_at": "2026-09-09T09:02:36+00:00",
- "recorded_by": "batch-agent",
- "response_sha256": "637fbd1ee1be852f54a4c8445ee5b0148a077fc05c75abb56876fc1603cfee9c"
+ "record_commit": "2364568df2613889917d2ec70a31473cad028d2f",
+ "recorded_at": "2026-11-19T00:06:54+00:00",
+ "recorded_by": "ci",
+ "response_sha256": "3d54ee4c358a23a24d3c43bdf760cef4e25c9f329c97cd186e9fb237242f15bf",
+ "run_ref": "44426257842",
+ "spec_sha256": "2d7944b111013e6bc2c7b6cb36ab139a330ca33b767ca17437ded872a3440f8e"
 }
