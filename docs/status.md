@@ -1,6 +1,6 @@
 # 데이터셋 검증 상태
 
-> 생성: `2026-11-19T05:05:18+00:00` — `scripts/gen_status_page.py` (직접 편집 금지)
+> 생성: `2026-11-19T10:24:01+00:00` — `scripts/gen_status_page.py` (직접 편집 금지)
 
 ## 요약
 
@@ -38,7 +38,7 @@
 | `datago.air_station` | 2026-11-18 | active |
 | `datago.airkorea_forecast` | 2026-11-18 | active |
 | `datago.apt_rent` | 2026-11-18 | active |
-| `datago.apt_trade` | 2026-11-18 | active |
+| `datago.apt_trade` | 2026-11-19 | active |
 | `datago.bus_arrival` | 2026-11-19 | active |
 | `datago.hospital_info` | 2026-11-18 | active |
 | `datago.metro_fare` | 2026-11-18 | active |

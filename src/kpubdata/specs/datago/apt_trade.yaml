@@ -3,7 +3,7 @@ provider: datago
 title: 아파트매매 실거래가
 description: 국토교통부에서 제공하는 아파트 매매 실거래 데이터입니다. 지역코드와 거래연월을 필수 조건으로 조회합니다.
 source:
-  url: https://www.data.go.kr
+  url: https://www.data.go.kr/data/15126468/openapi.do
   verified_at: '2026-04-21'
 endpoint:
   base_url: https://apis.data.go.kr/1613000/RTMSDataSvcAptTradeDev
@@ -198,11 +198,11 @@ examples:
   page: 1
   page_size: 1000
 status: active
-last_verified: "2026-11-18"
+last_verified: "2026-11-19"
 license:
-  type: 공공누리_1유형
+  type: "이용허락범위_제한없음"
   commercial_use: true
-  attribution_required: true
   modification_allowed: true
   redistribution: allowed
-  attribution: "공공누리 제1유형(출처표시) — 국토교통부 아파트 실거래가"
+  attribution: "이용허락범위 제한 없음 — 국토교통부 아파트 매매 실거래가 상세 자료"
+  note: "data.go.kr page 15126468 states 이용허락범위 제한 없음 (no KOGL type), checked 2026-11-19 (#933)"

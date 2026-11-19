@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-19T05:05:18+00:00",
+  "generated_at": "2026-11-19T10:24:01+00:00",
   "spec_datasets": {
     "total": 25,
     "verified": 24,
@@ -23,7 +23,7 @@
         "status": "active"
       },
       "datago.apt_trade": {
-        "last_verified": "2026-11-18",
+        "last_verified": "2026-11-19",
         "status": "active"
       },
       "datago.bus_arrival": {

@@ -34,7 +34,7 @@
 
 | 상태 | 검증 | 실API 최종 검증일 | Provider | Dataset ID | 데이터셋명 | 인증 | 공식 문서 | 비고 |
 |---|---|---|---|---|---|---|---|---|
-| 지원 | 실API 검증 | 2026-11-18 | 공공데이터포털 (`datago`) | `apt_trade` | 아파트매매 실거래가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) — **spec 단일원천 전환 완료**(catalogue 제거, #378 청소) | 국토교통부 제공 |
+| 지원 | 실API 검증 | 2026-11-19 | 공공데이터포털 (`datago`) | `apt_trade` | 아파트매매 실거래가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) — **spec 단일원천 전환 완료**(catalogue 제거, #378 청소) | 국토교통부 제공 |
 | 지원 | 실API 검증 | 2026-11-18 | 공공데이터포털 (`datago`) | `apt_rent` | 아파트 전월세 실거래가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 국토교통부 제공 |
 | 지원 | 실API 검증 | 2026-11-18 | 공공데이터포털 (`datago`) | `offi_trade` | 오피스텔 매매 실거래가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 국토교통부 제공 |
 | 지원 | 실API 검증 | 2026-11-18 | 공공데이터포털 (`datago`) | `offi_rent` | 오피스텔 전월세 실거래가 | [공공데이터포털](https://www.data.go.kr) 서비스키 | [data.go.kr](https://www.data.go.kr) | 국토교통부 제공 |
