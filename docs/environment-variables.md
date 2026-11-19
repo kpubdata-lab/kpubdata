@@ -21,7 +21,7 @@ not proof the dataset is authorized or verified**.
 | `bok` | `KPUBDATA_BOK_API_KEY` | [Bank of Korea ECOS](https://ecos.bok.or.kr/api/) |
 | `kosis` | `KPUBDATA_KOSIS_API_KEY` | KOSIS |
 | `seoul` | `KPUBDATA_SEOUL_API_KEY` | Seoul Open Data |
-| `sgis` | `KPUBDATA_SGIS_API_KEY` + `KPUBDATA_SGIS_CONSUMER_SECRET` | The first value is SGIS's consumer key; both values are required for the default two-part token exchange |
+| `sgis` | `KPUBDATA_SGIS_API_KEY` + `KPUBDATA_SGIS_CONSUMER_SECRET` | The first value is SGIS's consumer key; both values are required for the default two-part token exchange. Without `KPUBDATA_SGIS_CONSUMER_SECRET`, a key written as `key:secret` is split at the first `:`; with it set, the key is used whole, colon included |
 | `law`, `kipris`, `korean` | `KPUBDATA_LAW_API_KEY`, `KPUBDATA_KIPRIS_API_KEY`, `KPUBDATA_KOREAN_API_KEY` | Each provider's own credential issuer |
 | `krx` | None | This optional backend does not require an SDK API key |
 
@@ -54,9 +54,12 @@ must not be mistaken for verification of another user's key.
 
 | Name | Meaning | Current value and default |
 | --- | --- | --- |
-| `KPUBDATA_CACHE` | Enable the response cache when using `Client.from_env()` | `1` enables; otherwise off by default |
-| `KPUBDATA_CACHE_DIR` | Local response-cache directory | Optional; only used when cache is enabled via the environment |
-| `KPUBDATA_CACHE_TTL` | Cache lifetime **in seconds** | Integer, default `86400` (24 hours) |
+| `KPUBDATA_CACHE` | Enable the response cache when using `Client.from_env()` | Exactly `1` enables it; any other value, including `true` or `yes`, leaves it off (the default) |
+| `KPUBDATA_CACHE_DIR` | Local response-cache directory | Optional; ignored unless `KPUBDATA_CACHE=1` |
+| `KPUBDATA_CACHE_TTL` | Cache lifetime **in seconds** | Integer, default `86400` (24 hours); an empty value means the default, a non-integer raises `ConfigError` |
+
+These three are read only by `Client.from_env()`. A plain `Client()` ignores them,
+and an explicit `cache` or `cache_ttl_seconds` argument wins over them.
 
 The API constructor has corresponding explicit arguments such as
 `cache_ttl_seconds`. The environment variable retains its current
@@ -80,8 +83,11 @@ See [host allowlists](host-allowlist.md).
   flag. Set it only after the particular real-estate service has approved the
   operator's API key. It does **not** grant permission.
 - `KPUBDATA_MODE=replay` is used by the recorded-response examples and
-  verification tooling; it is not a switch that guarantees every ordinary
-  `Client` call is offline.
+  verification tooling. The SDK reads it on every request: a request whose
+  dataset and URL have a recording under `KPUBDATA_REPLAY_DIR` is answered from it
+  (or fails with `InvalidRequestError` if no recording matches its parameters),
+  and **any other request still goes to the live API**. It is not a switch that
+  makes every `Client` call offline.
 - `KPUBDATA_REPLAY_DIR` overrides the recorded-response fixture root used by
   replay mode. Its value is a directory path; the default is `tests/fixtures`
   relative to the current working directory. This does not enable replay by itself.
