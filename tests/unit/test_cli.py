@@ -1061,3 +1061,21 @@ def test_fetch_all_refuses_partial_as_a_parameter(
     assert "error: InvalidRequestError: partial is not a parameter of fetch --all" in captured.err
     assert fake_client.dataset_stub.list_calls == []
     assert fake_client.closed is True
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["raw", "bok.base_rate", "list", "-p", "operation=x"],
+        ["raw", "bok.base_rate", "list", "-p", "self=x"],
+        ["fetch", "bok.base_rate", "-p", "self=x"],
+        ["fetch", "bok.base_rate", "--all", "-p", "self=x"],
+    ],
+)
+def test_param_keys_named_like_python_parameters_are_refused(
+    fake_client: FakeClient, capsys: pytest.CaptureFixture[str], argv: list[str]
+) -> None:
+    """A -p key that is a Python parameter name exits 2, not with a raw TypeError."""
+    assert main(argv) == 2
+    assert "InvalidRequestError" in capsys.readouterr().err
+    assert fake_client.dataset_stub.list_calls == []

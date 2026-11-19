@@ -11,7 +11,7 @@ from difflib import SequenceMatcher
 
 from kpubdata.core.models import DatasetRef
 from kpubdata.core.protocol import ProviderAdapter
-from kpubdata.exceptions import DatasetNotFoundError
+from kpubdata.exceptions import DatasetNotFoundError, PublicDataError
 from kpubdata.registry import ProviderRegistry
 
 logger = logging.getLogger("kpubdata.catalog")
@@ -296,6 +296,9 @@ class Catalog:
                 "Catalog resolve failed: dataset not found",
                 extra={"dataset_id": dataset_id, "provider": provider_name},
             )
+            raise
+        except PublicDataError:
+            # AuthError, ConfigError and the like are not "unknown dataset".
             raise
         except Exception as exc:
             logger.debug(
