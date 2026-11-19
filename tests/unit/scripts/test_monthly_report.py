@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -127,12 +128,41 @@ def test_issue_limit_is_explicit_and_saturated_results_are_rejected(
 
 
 def test_nonempty_issue_evidence_is_preserved(monkeypatch: pytest.MonkeyPatch) -> None:
+    title = "[drift] datago.hospital_info: live_verified → unstable (UNKNOWN)"
     monkeypatch.setattr(
-        report, "_gh", lambda args: '[{"number": 943, "title": "drift", "state": "OPEN"}]'
+        report, "_gh", lambda args: json.dumps([{"number": 943, "title": title, "state": "OPEN"}])
     )
     assert report.collect_drift_issues("2026-10") == [
-        {"number": 943, "title": "drift", "state": "OPEN"}
+        {"number": 943, "title": title, "state": "OPEN"}
     ]
+
+
+def test_drift_issues_are_found_by_title_not_by_a_missing_label(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """No `drift` label exists; filtering on it made every month read as no drift (#899)."""
+    arguments: list[str] = []
+
+    def answer(args: list[str]) -> str:
+        arguments.extend(args)
+        return json.dumps(
+            [
+                {
+                    "number": 951,
+                    "title": "[drift] datago.bus_arrival: x → y (Z)",
+                    "state": "CLOSED",
+                },
+                {"number": 7, "title": "docs: explain drift detection", "state": "OPEN"},
+            ]
+        )
+
+    monkeypatch.setattr(report, "_gh", answer)
+    issues = report.collect_drift_issues("2026-10")
+
+    assert [issue["number"] for issue in issues] == [951]
+    assert "--label" not in arguments
+    search = arguments[arguments.index("--search") + 1]
+    assert "created:2026-10" in search and "in:title" in search
 
 
 def test_missing_local_inputs_are_not_zero_measurements(monkeypatch: pytest.MonkeyPatch) -> None:
