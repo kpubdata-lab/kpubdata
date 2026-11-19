@@ -405,6 +405,8 @@ class BokAdapter:
             AuthError, RateLimitError, ServiceUnavailableError: When error codes
                 in RESULT field.
         """
+        if self._is_no_data_result(payload):
+            return {}, []
         self._raise_for_result(payload, dataset_id)
 
         body_obj = payload.get("StatisticSearch")
@@ -418,6 +420,12 @@ class BokAdapter:
         body_dict = cast(dict[str, object], body_obj)
         items = self._normalize_rows(body_dict.get("row"))
         return body_dict, items
+
+    @staticmethod
+    def _is_no_data_result(payload: Mapping[str, object]) -> bool:
+        """Return True for ``RESULT.CODE == "INFO-200"``: no matching data, not a failure."""
+        result_obj = payload.get("RESULT")
+        return isinstance(result_obj, dict) and result_obj.get("CODE") == "INFO-200"
 
     def _raise_for_result(self, payload: Mapping[str, object], dataset_id: str) -> None:
         """Check BOK ECOS API response RESULT field and raise exception on errors.
@@ -461,6 +469,10 @@ class BokAdapter:
             AuthError, RateLimitError, ServiceUnavailableError, InvalidRequestError,
             or ProviderResponseError (always raises, does not return).
         """
+        if code == "ERROR-602":
+            raise RateLimitError(
+                msg, provider="bok", provider_code=code, dataset_id=dataset_id or None
+            )
         normalized_msg = msg.casefold()
         if "인증키" in msg or "api key" in normalized_msg or "auth" in normalized_msg:
             raise AuthError(msg, provider="bok", provider_code=code, dataset_id=dataset_id or None)

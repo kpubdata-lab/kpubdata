@@ -18,6 +18,7 @@ from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescripto
 from kpubdata.exceptions import (
     AuthError,
     DatasetNotFoundError,
+    InvalidRequestError,
     ParseError,
     ProviderResponseError,
 )
@@ -382,8 +383,12 @@ class LofinAdapter:
 
     def _raise_for_result_code(self, code: str, msg: str, dataset_id: str) -> NoReturn:
         """Analyze LOFIN error code and raise exception."""
-        if code in {"ERROR-290", "ERROR-300"}:
+        if code == "ERROR-290":
             raise AuthError(
+                msg, provider="lofin", provider_code=code, dataset_id=dataset_id or None
+            )
+        if code == "ERROR-300":
+            raise InvalidRequestError(
                 msg, provider="lofin", provider_code=code, dataset_id=dataset_id or None
             )
         if code.startswith("ERROR-"):
