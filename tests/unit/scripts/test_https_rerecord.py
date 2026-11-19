@@ -647,10 +647,21 @@ def test_every_bundled_spec_loads_strictly() -> None:
     assert refused == _DUPLICATE_LICENSE
 
 
+def _corrected_descriptions(spec: str) -> str:
+    """``spec`` with every field description amended, through a YAML round trip."""
+    import yaml
+
+    data = yaml.safe_load(spec)
+    for field in data["fields"]:
+        field["description"] = f"{field.get('description') or ''} (corrected)"
+    return str(yaml.safe_dump(data, allow_unicode=True, sort_keys=False))
+
+
 def test_the_bundled_corrections_pass() -> None:
     # The three corrections this mode was built for change descriptive text only.
     spec = (REPO_ROOT / "src/kpubdata/specs/datago/bus_arrival.yaml").read_text(encoding="utf-8")
-    patched = spec.replace("현재 정류장 순번", "남은 정류장 수 (몇 번째 전 정류소)")
+    # Every field description changed: independent of the wording any one carries.
+    patched = _corrected_descriptions(spec)
     assert patched != spec
     assert rerecord.check_spec_patch(spec, patched) == []
     assert _loaded_request(patched) == _loaded_request(spec)
@@ -672,9 +683,7 @@ def _bus_repo(repo: Path) -> str:
 
 def test_confirm_passes_a_descriptive_change(repo: Path) -> None:
     base = _bus_repo(repo)
-    (repo / _BUS_PATH).write_text(
-        _BUS.replace("현재 정류장 순번", "남은 정류장 수"), encoding="utf-8"
-    )
+    (repo / _BUS_PATH).write_text(_corrected_descriptions(_BUS), encoding="utf-8")
     assert rerecord.confirm_request("datago.bus_arrival", repo, base) == []
 
 
