@@ -1,6 +1,5 @@
 name: 데이터셋 추가 요청
 description: spec 기반으로 추가할 공공데이터셋을 요청한다
-title: "feat(datasets): "
 labels: [dataset-request]
 body:
   - type: markdown
@@ -43,16 +42,6 @@ body:
         - law
         - sgis
         - krx
-    validations:
-      required: true
-  - type: dropdown
-    id: priority
-    attributes:
-      label: 우선순위
-      options:
-        - p0 (지금 필요)
-        - p1 (가까운 미래)
-        - p2 (여유 있을 때)
     validations:
       required: true
   - type: textarea
