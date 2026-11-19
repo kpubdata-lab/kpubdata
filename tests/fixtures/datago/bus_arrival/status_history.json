@@ -1,0 +1,9 @@
+[
+  {
+    "from": "live_verified",
+    "to": "broken",
+    "reason": "SCHEMA_CHANGED",
+    "streak": 1,
+    "at": "2026-10-24"
+  }
+]
