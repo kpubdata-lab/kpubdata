@@ -28,7 +28,7 @@ from kpubdata.transport.http import HttpTransport, TransportConfig
 logger = logging.getLogger("kpubdata.provider.law")
 
 #: "OC" not inside a Latin word. Hangul counts as a word character for ``\b``, so a
-#: plain word boundary missed messages such as "OC값이 없습니다".
+#: plain word boundary missed an OC message followed directly by Korean text.
 _OC_WORD = re.compile(r"(?<![A-Za-z])oc(?![A-Za-z])", re.IGNORECASE)
 
 

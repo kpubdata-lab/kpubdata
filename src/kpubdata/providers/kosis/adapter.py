@@ -126,11 +126,14 @@ class KosisAdapter:
                 provider="kosis",
                 dataset_id=dataset.id,
             )
+        # Logged as before for the debug records' consumers; it does not reach KOSIS.
+        _page_size = query.page_size or 100
         logger.debug(
             "kosis query_records",
             extra={
                 "dataset_id": dataset.id,
                 "page": query.page,
+                "page_size": _page_size,
                 "start_date": query.start_date,
                 "end_date": query.end_date,
                 "filter_keys": sorted(query.filters.keys()),
@@ -146,6 +149,7 @@ class KosisAdapter:
                 extra={
                     "dataset_id": dataset.id,
                     "page": query.page,
+                    "page_size": _page_size,
                     "total_count": len(items),
                 },
             )
