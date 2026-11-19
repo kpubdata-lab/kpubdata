@@ -33,7 +33,14 @@ What follows from it, and where it is enforced:
 
 ## Legend
 
-- **Redistribution**: `allowed` / `non_commercial` / `forbidden` / `unknown`
+- **Redistribution**: `allowed` / `non_commercial` / `forbidden` / `unknown`. It answers
+  one question: **may the output KPubData produces — normalized records, with columns
+  renamed and values cast — be redistributed?** That output is a modification of the
+  provider's data, so a licence that forbids modification (KOGL type 3 and 4) is
+  `forbidden` here even though the licence itself lets the *unmodified* original be
+  redistributed. Builder publishes that normalized output and reads only this field
+  (#933). `tests/unit/test_declared_terms_decision.py` fails a spec that declares
+  `modification_allowed: false` together with `redistribution: allowed`.
 - **Commercial**: `yes` / `no` / `unknown`
 - **Modification**: `yes` / `no` / `unknown`
 - **KOGL**: 공공누리 (Korea Open Government License) type
@@ -42,20 +49,20 @@ What follows from it, and where it is enforced:
 
 data.go.kr datasets carry a KOGL type per service. The type determines everything.
 
-| KOGL Type | Redistribution | Commercial | Modification | Attribution |
-|---|---|---|---|---|
-| 제1유형 (Type 1) | allowed | yes | yes | 출처표시 (source attribution) |
-| 제2유형 (Type 2) | allowed | non-commercial | yes | 출처표시 |
-| 제3유형 (Type 3) | allowed | yes | **no** | 출처표시 + 변경금지 표시 |
-| 제4유형 (Type 4) | allowed | non-commercial | **no** | 출처표시 + 변경금지 표시 |
-| 이용허락범위 제한 없음 (no KOGL type) | allowed | yes | yes | none stated on the page |
+| KOGL Type | The licence lets the original be redistributed | Redistribution (KPubData output) | Commercial | Modification | Attribution |
+|---|---|---|---|---|---|
+| 제1유형 (Type 1) | yes | allowed | yes | yes | 출처표시 (source attribution) |
+| 제2유형 (Type 2) | yes, non-commercial | non_commercial | non-commercial | yes | 출처표시 |
+| 제3유형 (Type 3) | yes, unmodified | **forbidden** (변경금지) | yes | **no** | 출처표시 + 변경금지 표시 |
+| 제4유형 (Type 4) | yes, unmodified and non-commercial | **forbidden** (변경금지) | non-commercial | **no** | 출처표시 + 변경금지 표시 |
+| 이용허락범위 제한 없음 (no KOGL type) | yes | allowed | yes | yes | none stated on the page |
 
 ### Per-dataset breakdown (spec-backed)
 
 | Dataset | KOGL | Redistribution | Commercial | Modification | Attribution Format | Source URL | Checked |
 |---|---|---|---|---|---|---|---|
-| `apt_trade` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 국토교통부 | [link](https://www.data.go.kr/data/15126468/openapi.do) | 2026-10-13 |
-| `apt_rent` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 국토교통부 | [link](https://www.data.go.kr/data/15126474/openapi.do) | 2026-10-13 |
+| `apt_trade` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 국토교통부 | [link](https://www.data.go.kr/data/15126468/openapi.do) | 2026-11-19 |
+| `apt_rent` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 국토교통부 | [link](https://www.data.go.kr/data/15126474/openapi.do) | 2026-11-19 |
 | `offi_trade` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 국토교통부 | [link](https://www.data.go.kr/data/15126464/openapi.do) | 2026-10-13 |
 | `offi_rent` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 국토교통부 | [link](https://www.data.go.kr/data/15126475/openapi.do) | 2026-10-13 |
 | `rh_rent` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 국토교통부 | [link](https://www.data.go.kr/data/15126473/openapi.do) | 2026-10-13 |
@@ -74,21 +81,17 @@ data.go.kr datasets carry a KOGL type per service. The type determines everythin
 | `tour_kor_festival` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 한국관광공사 | [link](https://www.data.go.kr/data/15101578/openapi.do) | 2026-10-13 |
 | `tour_kor_keyword` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 한국관광공사 | [link](https://www.data.go.kr/data/15101578/openapi.do) | 2026-10-13 |
 | `tour_kor_location` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 한국관광공사 | [link](https://www.data.go.kr/data/15101578/openapi.do) | 2026-10-13 |
-| `localdata.bakery` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 행정안전부 | [link](https://www.data.go.kr/data/15155252/openapi.do) | 2026-10-13 |
-| `localdata.general_restaurant` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 행정안전부 | [link](https://www.data.go.kr/data/15154916/openapi.do) | 2026-10-13 |
-| `localdata.rest_cafe` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 행정안전부 | [link](https://www.data.go.kr/data/15154921/openapi.do) | 2026-10-13 |
+| `localdata.bakery` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 행정안전부 | [link](https://www.data.go.kr/data/15155252/openapi.do) | 2026-11-19 |
+| `localdata.general_restaurant` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 행정안전부 | [link](https://www.data.go.kr/data/15154916/openapi.do) | 2026-11-19 |
+| `localdata.rest_cafe` | 제한 없음 | allowed | yes | yes | 이용허락범위 제한 없음 — 행정안전부 | [link](https://www.data.go.kr/data/15154921/openapi.do) | 2026-11-19 |
 
-Rows checked 2026-10-13 were read from the page of the service the spec's
-`endpoint.base_url` calls, without a key (#933). "제한 없음" is the page's own
-이용허락범위 text: such a service carries no KOGL type. Where a spec still differs from
-its row:
-
-- `apt_trade`, `apt_rent` declare `공공누리_1유형` (with attribution); the page states
-  제한 없음. Redistribution reads `allowed` either way.
-- `localdata.bakery`, `general_restaurant` and `rest_cafe` carry two `license:` keys; the
-  second (only `pii_columns`) replaces the first, so they declare no redistribution.
-- `ultra_srt_fcst`, `ultra_srt_ncst` remain unconfirmed in their specs: their recorded
-  fixtures are bound to the spec digest, so the licence lands with a re-recording.
+Rows were read from the page of the service the spec's `endpoint.base_url` calls,
+without a key (#933); rows dated 2026-11-19 were read again that day. "제한 없음" is the
+page's own 이용허락범위 text: such a service carries no KOGL type. Every spec now agrees
+with its row: `apt_trade` and `apt_rent` were corrected to 제한 없음, the three localdata
+specs' duplicate `license` keys were merged, and `ultra_srt_fcst` and `ultra_srt_ncst`
+declare their confirmed type 1 terms — each re-recorded with its spec (#1059, #1060,
+#1065–#1069).
 
 ### Call quota (data.go.kr family)
 

@@ -137,3 +137,29 @@ def test_a_confirmed_dataset_still_reports_allowed(refs: list[DatasetRef]) -> No
 
     # If none were left, every assertion above would hold with the feature broken.
     assert "datago.apt_trade" in confirmed
+
+
+def test_a_spec_that_forbids_modification_does_not_allow_redistribution() -> None:
+    """KPubData redistributes normalized output, which is a modification (#933).
+
+    KOGL type 3 and 4 let the unmodified original travel but forbid changing it, so a
+    spec declaring ``modification_allowed: false`` must not declare its redistribution
+    ``allowed``: Builder would publish the normalized records on that word alone.
+    """
+    from kpubdata.core.spec import discover_specs
+
+    offending = sorted(
+        spec.id
+        for spec in discover_specs()
+        if spec.license is not None
+        and spec.license.modification_allowed is False
+        and spec.license.redistribution in {"allowed", "non_commercial"}
+    )
+    assert offending == []
+
+
+def test_the_matrix_says_what_redistribution_means() -> None:
+    text = _DOC.read_text(encoding="utf-8")
+
+    assert "may the output KPubData produces" in text
+    assert "| 제3유형 (Type 3) | yes, unmodified | **forbidden** (변경금지) |" in text
