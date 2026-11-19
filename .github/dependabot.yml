@@ -7,6 +7,15 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(deps)"
+    # The pandas extra promises pandas>=2.2,<3, and pykrx (the krx extra) does not run
+    # on pandas 3: the bump in #1013 resolved it by downgrading pykrx to 1.0.51, which
+    # broke the KRX provider. Supporting pandas 3 is a compatibility change of its own,
+    # not a lock bump; minor and patch updates still come through.
+    ignore:
+      - dependency-name: "pandas"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "pandas-stubs"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
