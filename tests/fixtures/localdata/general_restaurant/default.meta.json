@@ -9,10 +9,10 @@
   "serviceKey": "[REDACTED]",
   "type": "json"
  },
- "record_commit": "467ebd900fb2ac178f5f0b9a9c808a55be5b20e2",
- "recorded_at": "2026-11-18T23:36:26+00:00",
+ "record_commit": "27ba9d04a966ea1bc6ecf556430a0a3d23554370",
+ "recorded_at": "2026-11-19T10:34:50+00:00",
  "recorded_by": "ci",
- "response_sha256": "43035729a32a76f741a4fb0af1cefd2162dc50c5b8f5c2914698f728761e5983",
- "run_ref": "44421875913",
- "spec_sha256": "4bfe710c9093f658e13a11330d77551771c58fb74d15adfd9fa43cbfcab47105"
+ "response_sha256": "1a8bc8a0fec0e2c7edfd9e513a0dd1421df1da522a8bbf085904727e54f67bd0",
+ "run_ref": "44506859138",
+ "spec_sha256": "bffa4a6907a6b9929cea725dd69e650fe8d8ebc656c17d79d7db6110b26fb72b"
 }

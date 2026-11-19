@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-19T10:31:13+00:00",
+  "generated_at": "2026-11-19T10:34:52+00:00",
   "spec_datasets": {
     "total": 25,
     "verified": 24,
@@ -99,7 +99,7 @@
         "status": "active"
       },
       "localdata.general_restaurant": {
-        "last_verified": "2026-11-18",
+        "last_verified": "2026-11-19",
         "status": "active"
       },
       "localdata.rest_cafe": {
