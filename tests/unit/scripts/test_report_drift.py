@@ -324,7 +324,9 @@ def test_a_comment_that_could_not_be_posted_is_a_failed_report(
     gh: FakeGh, capsys: pytest.CaptureFixture[str]
 ) -> None:
     _two_failures(gh, "test_datago_village_fcst")
-    gh.open_issues = [{"number": 77, "title": "[drift] datago.village_fcst: 실API 스모크 연속 실패"}]
+    gh.open_issues = [
+        {"number": 77, "title": "[drift] datago.village_fcst: 실API 스모크 연속 실패"}
+    ]
     gh.failing = {("issue", "comment")}
 
     assert drift.main([]) == 1
