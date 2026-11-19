@@ -1,10 +1,10 @@
 # 데이터셋 검증 상태
 
-> 생성: `2026-11-18T23:52:56+00:00` — `scripts/gen_status_page.py` (직접 편집 금지)
+> 생성: `2026-11-19T00:00:25+00:00` — `scripts/gen_status_page.py` (직접 편집 금지)
 
 ## 요약
 
-- spec 데이터셋: **25종** (검증 24종, 최신 검증일 2026-11-18 기준 90일 이내 24종)
+- spec 데이터셋: **25종** (검증 24종, 최신 검증일 2026-11-19 기준 90일 이내 24종)
 - catalogue 데이터셋: 131종 (bok 4, datago 25, fds 1, kipris 1, korean 1, kosis 2, krx 3, law 3, localdata 56, lofin 6, neis 2, semas 17, seoul 7, sgis 3)
 - SUPPORTED_DATA 행 분포: {'지원': 24, '활용신청 대기': 94, '스키마만': 36, '폐기': 1, '진행 중': 1, '예정': 1} (합계 157)
 
@@ -54,7 +54,7 @@
 | `datago.tour_kor_keyword` | 2026-11-18 | active |
 | `datago.tour_kor_location` | 2026-11-18 | active |
 | `datago.ultra_srt_fcst` | 2026-10-01 | active |
-| `datago.ultra_srt_ncst` | 2026-10-01 | active |
+| `datago.ultra_srt_ncst` | 2026-11-19 | active |
 | `datago.village_fcst` | 2026-09-09 | active |
 | `localdata.bakery` | 2026-11-18 | active |
 | `localdata.general_restaurant` | 2026-11-18 | active |
