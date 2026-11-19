@@ -7,13 +7,17 @@ the public contract.
 
 from __future__ import annotations
 
+import json
+from collections.abc import Callable
 from datetime import datetime, timedelta
+from importlib.resources import files
 from zoneinfo import ZoneInfo
 
 import pytest
 
 from kpubdata.client import Client
 from kpubdata.core.models import RecordBatch
+from kpubdata.exceptions import AuthError
 
 
 def _yesterday_kst_ymd() -> str:
@@ -27,6 +31,39 @@ def _yesterday_kst_ymd() -> str:
         Exceptions from internal implementation or dependencies may propagate.
     """
     return (datetime.now(ZoneInfo("Asia/Seoul")) - timedelta(days=1)).strftime("%Y%m%d")
+
+
+def _awaiting_application(dataset_id: str) -> bool:
+    """Whether ``dataset_metadata.json`` records the dataset as awaiting its usage application."""
+    metadata = json.loads(files("kpubdata").joinpath("dataset_metadata.json").read_text("utf-8"))
+    entry = metadata.get(dataset_id, {})
+    return isinstance(entry, dict) and entry.get("level") == "application_required"
+
+
+def _list_or_await_application(dataset_id: str, call: Callable[[], RecordBatch]) -> RecordBatch:
+    """Run ``call``; a 403 is an expected failure while the metadata says we await approval.
+
+    A dataset recorded as ``application_required`` has no access for this key yet, so its
+    403 is the known state rather than a regression, and must not fail the smoke run
+    (#896). The moment the provider answers, the record is stale: the test then fails and
+    asks for ``dataset_metadata.json`` to be updated, so an approval cannot go unnoticed.
+    A 403 for any other dataset still fails.
+    """
+    awaiting = _awaiting_application(dataset_id)
+    try:
+        result = call()
+    except AuthError:
+        if awaiting:
+            pytest.xfail(
+                f"{dataset_id} awaits its data.go.kr usage application for this key (application_required)"
+            )
+        raise
+    if awaiting:
+        pytest.fail(
+            f"{dataset_id} answered, so its usage application was approved: move its level in "
+            "dataset_metadata.json off application_required and run the sync scripts"
+        )
+    return result
 
 
 def _latest_mid_fcst_kst() -> str:
@@ -106,7 +143,10 @@ def test_datago_mid_fcst(require_datago_key: None, live_client: Client) -> None:
     _ = require_datago_key
     ds = live_client.dataset("datago.mid_fcst")
 
-    result = ds.list(stnId="109", tmFc=_latest_mid_fcst_kst(), page_size=1)
+    result = _list_or_await_application(
+        "datago.mid_fcst",
+        lambda: ds.list(stnId="109", tmFc=_latest_mid_fcst_kst(), page_size=1),
+    )
 
     assert isinstance(result, RecordBatch)
     assert len(result.items) > 0
@@ -361,7 +401,9 @@ def test_datago_rh_trade(
     _ = require_realestate_key
     ds = live_client.dataset("datago.rh_trade")
 
-    result = ds.list(LAWD_CD="11110", DEAL_YMD="202401")
+    result = _list_or_await_application(
+        "datago.rh_trade", lambda: ds.list(LAWD_CD="11110", DEAL_YMD="202401")
+    )
 
     assert isinstance(result, RecordBatch)
     assert isinstance(result.items, list)
