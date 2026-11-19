@@ -448,6 +448,10 @@ def _parse_license(raw: object, problems: list[str]) -> LicenseSpec | None:
     )
 
 
+#: Field types ``schema.json`` allows for ``fields[].type``.
+_FIELD_TYPES = ("string", "integer", "number", "boolean")
+
+
 def _parse_params(raw: object, problems: list[str]) -> tuple[ParamSpec, ...]:
     """Convert params[] section to ParamSpec tuple."""
     if raw is None:
@@ -468,13 +472,18 @@ def _parse_params(raw: object, problems: list[str]) -> tuple[ParamSpec, ...]:
         if not isinstance(enum_raw, list):
             problems.append(f"params[{index}].enum은(는) 리스트여야 합니다.")
             enum_raw = []
+        elif not all(isinstance(v, str) for v in enum_raw):
+            problems.append(f"params[{index}].enum must contain only strings")
+        required_raw = item.get("required", False)
+        if not isinstance(required_raw, bool):
+            problems.append(f"params[{index}].required must be a boolean")
         raw_max_age = item.get("max_age_days")
         parsed.append(
             ParamSpec(
                 name=name,
                 type=item.get("type", "string") if isinstance(item.get("type"), str) else "string",
                 alias=item.get("alias") if isinstance(item.get("alias"), str) else None,
-                required=bool(item.get("required", False)),
+                required=required_raw is True,
                 enum=tuple(v for v in enum_raw if isinstance(v, str)),
                 description=item.get("description")
                 if isinstance(item.get("description"), str)
@@ -487,6 +496,11 @@ def _parse_params(raw: object, problems: list[str]) -> tuple[ParamSpec, ...]:
                 else None,
             )
         )
+    seen_exposed: set[str] = set()
+    for param in parsed:
+        if param.exposed_name in seen_exposed:
+            problems.append(f"params: duplicate public name {param.exposed_name!r}")
+        seen_exposed.add(param.exposed_name)
     return tuple(parsed)
 
 
@@ -673,6 +687,10 @@ def from_mapping(data: dict[str, object]) -> SpecDefinition:
         for item in fields_list:
             if isinstance(item, dict):
                 problems.extend(field_conflicts(dict(item)))
+                if item.get("type", "string") not in _FIELD_TYPES:
+                    problems.append(
+                        f"fields.{item.get('name')}: type must be one of {', '.join(_FIELD_TYPES)}"
+                    )
 
     if problems:
         raise InvalidRequestError(
