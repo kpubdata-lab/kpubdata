@@ -20,11 +20,15 @@ from collections.abc import Mapping, Sequence
 from urllib.parse import urlencode
 
 from kpubdata.config import KPubDataConfig
+from kpubdata.core._result_code import is_no_data_code, result_code_text
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
 from kpubdata.exceptions import (
+    AuthError,
     DatasetNotFoundError,
     InvalidRequestError,
     ProviderResponseError,
+    RateLimitError,
+    ServiceUnavailableError,
 )
 from kpubdata.providers._common import build_schema_from_metadata, load_catalogue
 from kpubdata.transport.decode import decode_json
@@ -228,6 +232,7 @@ class KiprisAdapter:
                 provider="kipris",
                 dataset_id=dataset_id,
             )
+        self._raise_for_header_code(response.get("header"), dataset_id)
         body = response.get("body")
         if not isinstance(body, dict):
             raise ProviderResponseError(
@@ -246,6 +251,47 @@ class KiprisAdapter:
         if not isinstance(items_raw, list):
             return []
         return [item for item in items_raw if isinstance(item, dict)]
+
+    @staticmethod
+    def _raise_for_header_code(header: object, dataset_id: str) -> None:
+        """Map a non-success ``response.header.resultCode`` to a canonical error.
+
+        The mapping matches the data.go.kr one: "no data" and every spelling of
+        zero pass, a missing header or code is left to the body checks.
+        """
+        if not isinstance(header, dict):
+            return
+        code = result_code_text(header.get("resultCode"))
+        if code is None or is_no_data_code(code):
+            return
+        try:
+            if int(code) == 0:
+                return
+        except ValueError:
+            pass
+        raw_msg = header.get("resultMsg")
+        msg = raw_msg if isinstance(raw_msg, str) and raw_msg else "Provider returned error"
+        if code in {"30", "31", "20", "32"}:
+            raise AuthError(msg, provider="kipris", dataset_id=dataset_id, provider_code=code)
+        if code == "22":
+            raise RateLimitError(
+                msg, provider="kipris", dataset_id=dataset_id, provider_code=code, retryable=False
+            )
+        if code == "10":
+            raise InvalidRequestError(
+                msg, provider="kipris", dataset_id=dataset_id, provider_code=code
+            )
+        if code == "12":
+            raise DatasetNotFoundError(
+                msg, provider="kipris", dataset_id=dataset_id, provider_code=code
+            )
+        if code in {"01", "02"}:
+            raise ServiceUnavailableError(
+                msg, provider="kipris", dataset_id=dataset_id, provider_code=code
+            )
+        raise ProviderResponseError(
+            msg, provider="kipris", dataset_id=dataset_id, provider_code=code
+        )
 
     def _load_default_catalogue(self) -> tuple[DatasetRef, ...]:
         return tuple(load_catalogue(_CATALOGUE_PACKAGE, "kipris"))
