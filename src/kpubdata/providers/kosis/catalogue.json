@@ -12,8 +12,7 @@
     "source_url": "https://kosis.kr/openapi/Param/statisticsParameterData.do",
     "operations": ["list", "raw"],
     "query_support": {
-      "pagination": "offset",
-      "max_page_size": 1000
+      "pagination": "none"
     },
     "fields": [
       {"name": "PRD_DE", "title": "기간", "type": "string"},
@@ -43,8 +42,7 @@
     "source_url": "https://kosis.kr/openapi/Param/statisticsParameterData.do",
     "operations": ["list", "raw"],
     "query_support": {
-      "pagination": "offset",
-      "max_page_size": 1000
+      "pagination": "none"
     },
     "fields": [
       {"name": "PRD_DE", "title": "기간", "type": "string"},

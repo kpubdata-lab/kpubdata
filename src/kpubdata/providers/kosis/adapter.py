@@ -112,7 +112,18 @@ class KosisAdapter:
         )
 
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
-        """Query records by calling KOSIS API."""
+        """Query records by calling KOSIS API.
+
+        KOSIS returns the whole requested period in one response, so the dataset
+        declares no pagination. A page other than 1 or any page size is refused
+        rather than silently ignored.
+        """
+        if (query.page is not None and query.page != 1) or query.page_size is not None:
+            raise InvalidRequestError(
+                "KOSIS does not paginate; omit page and page_size",
+                provider="kosis",
+                dataset_id=dataset.id,
+            )
         _page_size = query.page_size or 100
         logger.debug(
             "kosis query_records",

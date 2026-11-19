@@ -8,6 +8,7 @@ as public API, transport layer, or provider adapter.
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Mapping, Sequence
 from typing import cast
 from urllib.parse import urlencode
@@ -25,6 +26,19 @@ from kpubdata.transport.decode import decode_json
 from kpubdata.transport.http import HttpTransport, TransportConfig
 
 logger = logging.getLogger("kpubdata.provider.law")
+
+_OC_WORD = re.compile(r"\boc\b", re.IGNORECASE)
+
+
+def _is_auth_message(message: str) -> bool:
+    """Return True when a provider message reports a key / OC authentication failure.
+
+    ``OC`` is the law API's key parameter, so it only counts as a whole word: a bare
+    substring test treated "procedure" or "document" as an auth failure.
+    """
+    return (
+        "인증" in message or "api key" in message.casefold() or _OC_WORD.search(message) is not None
+    )
 
 
 class LawAdapter:
@@ -254,18 +268,15 @@ class LawAdapter:
         if isinstance(result_code, str) and result_code and result_code not in {"00", "OK"}:
             self._raise_provider_error(result_code, result_msg, dataset_id)
 
-        if isinstance(result_msg, str):
-            lowered = result_msg.casefold()
-            if "인증" in result_msg or "oc" in lowered or "api key" in lowered:
-                self._raise_provider_error("AUTH", result_msg, dataset_id)
+        if isinstance(result_msg, str) and _is_auth_message(result_msg):
+            self._raise_provider_error("AUTH", result_msg, dataset_id)
 
     def _raise_provider_error(self, code: str, message: object, dataset_id: str) -> None:
         """Raise provider error."""
         resolved_message = (
             message if isinstance(message, str) and message else "Provider returned error"
         )
-        lowered = resolved_message.casefold()
-        if "인증" in resolved_message or "oc" in lowered or "api key" in lowered:
+        if _is_auth_message(resolved_message):
             raise AuthError(
                 resolved_message,
                 provider="law",

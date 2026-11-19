@@ -328,6 +328,7 @@ class DataGoFamilyAdapter:
         self, payload: dict[str, object], dataset_id: str = ""
     ) -> tuple[dict[str, object], list[dict[str, object]]]:
         """Validate envelope format and extract required values."""
+        self._raise_for_gateway_error(payload, dataset_id)
         response_obj = payload.get("response")
         if not isinstance(response_obj, dict):
             raise ProviderResponseError(
@@ -379,6 +380,28 @@ class DataGoFamilyAdapter:
 
         items = self._normalize_items(body_dict.get("items"))
         return body_dict, items
+
+    def _raise_for_gateway_error(self, payload: dict[str, object], dataset_id: str) -> None:
+        """Map a data.go.kr gateway refusal (``cmmMsgHeader``) like the datago adapter does."""
+        gateway = payload.get("OpenAPI_ServiceResponse")
+        if not isinstance(gateway, dict):
+            return
+        header = cast(dict[str, object], gateway).get("cmmMsgHeader")
+        if not isinstance(header, dict):
+            return
+        header_dict = cast(dict[str, object], header)
+        code_raw = header_dict.get("returnReasonCode")
+        if code_raw is None:
+            return
+        code = str(code_raw).strip()
+        for key in ("returnAuthMsg", "errMsg"):
+            value = header_dict.get(key)
+            if isinstance(value, str) and value.strip():
+                msg = value.strip()
+                break
+        else:
+            msg = f"data.go.kr gateway rejected the request (returnReasonCode={code})"
+        self._raise_for_result_code(code, msg, dataset_id)
 
     def _raise_for_result_code(self, code: str, msg: str, dataset_id: str) -> NoReturn:
         """Raise exception for result code."""
