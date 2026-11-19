@@ -365,7 +365,7 @@ def test_unknown_dataset_raises() -> None:
 # # test from env creates client scenario
 def test_from_env_creates_client(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify test from env creates client scenario."""
-    monkeypatch.setenv("KPUBDATA_TIMEOUT", "15")
+    monkeypatch.delenv("KPUBDATA_CACHE", raising=False)
     client = Client.from_env()
     fake = FakeAdapter()
 
