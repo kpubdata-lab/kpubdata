@@ -6,7 +6,7 @@ source:
   url: https://www.data.go.kr/data/15084292/openapi.do
   verified_at: '2026-09-09'
 endpoint:
-  base_url: http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0
+  base_url: https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0
   operation: getUltraSrtFcst
   method: GET
   format_param:
@@ -97,7 +97,7 @@ examples:
 - name: seoul_0600
   description: 서울(55,127) 06:00 발표 초단기예보
   params:
-    base_date: '20261001'
+    base_date: '20261119'
     base_time: '0600'
     nx: 55
     ny: 127
@@ -106,11 +106,11 @@ examples:
 - name: seoul_0600_full_page
   description: 동일 조건 100건
   params:
-    base_date: '20261001'
+    base_date: '20261119'
     base_time: '0600'
     nx: 55
     ny: 127
   page: 1
   page_size: 100
 status: active
-last_verified: "2026-10-01"
+last_verified: "2026-11-19"

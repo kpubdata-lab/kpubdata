@@ -287,7 +287,7 @@ def main() -> None:
 
     dataset = client.dataset("datago.ultra_srt_fcst")
     batch = dataset.list(
-        base_date="20261001", base_time="0600", nx=55, ny=127, page=1, page_size=50
+        base_date="20261119", base_time="0600", nx=55, ny=127, page=1, page_size=50
     )
 
     # 의미 있는 검증: 초단기 카테고리 구조 + 예보 필드
