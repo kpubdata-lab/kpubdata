@@ -346,3 +346,5 @@ def test_get_access_token_non_json_body_names_provider() -> None:
 
     assert excinfo.value.provider == "sgis"
     assert transport.calls[0]["provider"] == "sgis"
+    assert transport.calls[0]["no_store"] is True
+    assert transport.calls[0]["secret_values"] == ("consumer-key", "consumer-secret")
