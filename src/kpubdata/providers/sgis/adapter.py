@@ -198,6 +198,8 @@ class SgisAdapter:
             "GET",
             url,
             params=dict(params),
+            dataset_id=dataset_id,
+            provider=_SGIS_PROVIDER,
             secret_values=_token_of(params),
         )
 
@@ -226,9 +228,16 @@ class SgisAdapter:
                 "GET",
                 url,
                 params=refreshed,
+                dataset_id=dataset_id,
+                provider=_SGIS_PROVIDER,
                 secret_values=_token_of(refreshed),
             )
-            decoded_retry = decode_json(response_retry.content)
+            try:
+                decoded_retry = decode_json(response_retry.content)
+            except ParseError as exc:
+                exc.provider = _SGIS_PROVIDER
+                exc.dataset_id = dataset_id
+                raise
             if not isinstance(decoded_retry, dict):
                 raise ProviderResponseError(
                     "SGIS response must be a JSON object",

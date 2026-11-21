@@ -16,7 +16,7 @@ from typing import cast
 import pytest
 
 from kpubdata.config import KPubDataConfig
-from kpubdata.exceptions import AuthError, ConfigError, ProviderResponseError
+from kpubdata.exceptions import AuthError, ConfigError, ParseError, ProviderResponseError
 from kpubdata.providers.sgis.auth import SgisAuthClient
 from kpubdata.transport.http import HttpTransport
 
@@ -321,3 +321,30 @@ def test_access_token_is_cached_beyond_60_second_window() -> None:
     assert auth_client.get_access_token() == "still-valid"
     assert auth_client.get_access_token() == "still-valid"
     assert len(transport.calls) == 1
+
+
+# The token request names the provider to transport and on a non-JSON body (#1080).
+def test_get_access_token_non_json_body_names_provider() -> None:
+    """"""
+
+    class _RawResponse:
+        """A response whose body is not JSON."""
+
+        def __init__(self) -> None:
+            """"""
+            self.headers: dict[str, str] = {"content-type": "text/html"}
+            self.content: bytes = b"<html>maintenance</html>"
+            self.text: str = self.content.decode("utf-8")
+
+    auth_client, transport = _build_auth_client(
+        [cast(_FakeResponse, cast(object, _RawResponse()))],
+        provider_key="consumer-key:consumer-secret",
+    )
+
+    with pytest.raises(ParseError) as excinfo:
+        _ = auth_client.get_access_token()
+
+    assert excinfo.value.provider == "sgis"
+    assert transport.calls[0]["provider"] == "sgis"
+    assert transport.calls[0]["no_store"] is True
+    assert transport.calls[0]["secret_values"] == ("consumer-key", "consumer-secret")
