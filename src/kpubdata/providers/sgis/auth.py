@@ -16,7 +16,13 @@ from datetime import UTC, datetime, timedelta
 from typing import NoReturn, cast
 
 from kpubdata.config import KPubDataConfig
-from kpubdata.exceptions import AuthError, ConfigError, InvalidRequestError, ProviderResponseError
+from kpubdata.exceptions import (
+    AuthError,
+    ConfigError,
+    InvalidRequestError,
+    ParseError,
+    ProviderResponseError,
+)
 from kpubdata.transport.decode import decode_json
 from kpubdata.transport.http import HttpTransport
 
@@ -80,11 +86,16 @@ class SgisAuthClient:
             _AUTH_ENDPOINT,
             params={"consumer_key": consumer_key, "consumer_secret": consumer_secret},
             no_store=True,
+            provider=_SGIS_PROVIDER,
             # By value as well as by parameter name (#805).
             secret_values=(consumer_key, consumer_secret),
         )
 
-        decoded = decode_json(response.content)
+        try:
+            decoded = decode_json(response.content)
+        except ParseError as exc:
+            exc.provider = _SGIS_PROVIDER
+            raise
         if not isinstance(decoded, dict):
             raise ProviderResponseError(
                 "SGIS auth response must be a JSON object",

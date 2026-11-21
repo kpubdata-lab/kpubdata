@@ -18,7 +18,7 @@ import pytest
 from kpubdata.config import KPubDataConfig
 from kpubdata.core.models import DatasetRef, Query
 from kpubdata.core.protocol import ProviderAdapter
-from kpubdata.exceptions import AuthError, DatasetNotFoundError, InvalidRequestError
+from kpubdata.exceptions import AuthError, DatasetNotFoundError, InvalidRequestError, ParseError
 from kpubdata.transport.http import HttpTransport
 
 
@@ -342,3 +342,54 @@ def test_schema_returns_descriptor_for_boundary_dataset() -> None:
 
     assert schema is not None
     assert len(schema.fields) >= 5
+
+
+class _RawResponse:
+    """A response whose body is not JSON."""
+
+    def __init__(self, body: bytes) -> None:
+        """"""
+        self.headers: dict[str, str] = {"content-type": "text/html"}
+        self.content: bytes = body
+        self.text: str = body.decode("utf-8", errors="replace")
+
+
+# Transport errors from both requests name the provider and dataset (#1080).
+def test_query_records_passes_provider_context_to_transport() -> None:
+    """"""
+    auth_client = _FakeAuthClient(["expired-token", "fresh-token"])
+    adapter, transport = _build_adapter(
+        [
+            _FakeResponse(_load_fixture("error_invalid_token.json")),
+            _FakeResponse(_load_fixture("sido_boundary.geojson")),
+        ],
+        auth_client=auth_client,
+    )
+    dataset = adapter.get_dataset("boundary.sido")
+
+    _ = adapter.query_records(dataset, Query())
+
+    assert len(transport.calls) == 2
+    for call in transport.calls:
+        assert call["provider"] == "sgis"
+        assert call["dataset_id"] == dataset.id
+
+
+# A non-JSON body on the refreshed request still carries provider context (#1080).
+def test_query_records_retry_parse_error_names_provider() -> None:
+    """"""
+    auth_client = _FakeAuthClient(["expired-token", "fresh-token"])
+    adapter, _ = _build_adapter(
+        [
+            _FakeResponse(_load_fixture("error_invalid_token.json")),
+            cast(_FakeResponse, cast(object, _RawResponse(b"<html>gateway</html>"))),
+        ],
+        auth_client=auth_client,
+    )
+    dataset = adapter.get_dataset("boundary.sido")
+
+    with pytest.raises(ParseError) as excinfo:
+        _ = adapter.query_records(dataset, Query())
+
+    assert excinfo.value.provider == "sgis"
+    assert excinfo.value.dataset_id == dataset.id
