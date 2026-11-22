@@ -235,3 +235,18 @@ result = ds.list(start_date="202401", end_date="202401")
 - [KOSIS Open API 공식 홈페이지](https://kosis.kr/openapi/index/index.jsp)
 - [KOSIS 개발자 가이드](https://kosis.kr/openapi/devGuide/devGuide_0203List.do)
 - [SUPPORTED_DATA.md](https://github.com/kpubdata-lab/kpubdata/blob/main/SUPPORTED_DATA.md)
+
+## 결과 코드
+
+KOSIS 는 오류를 HTTP 200 과 `{"err": "<코드>", "errMsg": "..."}` 본문으로 돌려줍니다. 코드의 뜻은 공공데이터포털(data.go.kr)과 다르며, KOSIS 공유서비스의 [자주 묻는 질문](https://kosis.kr/openapi/community/community_0401List.do)과 개발가이드를 따릅니다.
+
+| 코드 | KOSIS 의 뜻 | SDK 동작 |
+|---|---|---|
+| 10, 11, 12 | 인증키 누락 · 잘못된 인증키(활용신청 전 포함) · 사용 기간 만료 | `AuthError` |
+| 20, 21 | 필수 요청변수 누락 · 허용되지 않은 값 | `InvalidRequestError` |
+| 30 | 조회 결과 없음 | 빈 `RecordBatch` (`call_raw` 는 응답을 그대로 돌려줌) |
+| 31, 41 | 40,000건 초과 · 설정된 데이터 수 초과 | `InvalidRequestError` |
+| 40 | 호출 건수 초과 | `RateLimitError` (`retryable=False`) |
+| 42 | 이용이 제한된 IP 또는 인증키 | `AuthError` |
+| 50 | 일시적인 시스템·네트워크 문제 | `ServiceUnavailableError` |
+

@@ -26,12 +26,50 @@ from kpubdata.exceptions import (
     InvalidRequestError,
     ParseError,
     ProviderResponseError,
+    PublicDataError,
+    RateLimitError,
+    ServiceUnavailableError,
 )
 from kpubdata.providers._common import build_schema_from_metadata, load_catalogue
 from kpubdata.transport.decode import decode_json
 from kpubdata.transport.http import HttpTransport, TransportConfig
 
 logger = logging.getLogger("kpubdata.provider.kosis")
+
+#: KOSIS's own result codes, from its OpenAPI developer guide and FAQ
+#: (kosis.kr/openapi, community_0401List). They differ from data.go.kr's: there
+#: 30 is an unregistered key, here it is "no data for this request".
+_NO_DATA_CODE = "30"
+_ERROR_CLASSES: dict[str, type[PublicDataError]] = {
+    "10": AuthError,  # the key is missing
+    "11": AuthError,  # the key is invalid or not registered for use
+    "12": AuthError,  # the key has expired
+    "20": InvalidRequestError,  # a required request variable is missing
+    "21": InvalidRequestError,  # a request variable is empty or not allowed
+    "31": InvalidRequestError,  # the result exceeds 40,000 records
+    "40": RateLimitError,  # the call count exceeds the permitted number
+    "41": InvalidRequestError,  # the data volume exceeds the permitted amount
+    "42": AuthError,  # the IP address or key is restricted
+    "50": ServiceUnavailableError,  # a temporary system or network problem
+}
+#: A quota that is used up does not come back by resending at once.
+_NOT_RETRYABLE = frozenset({"40"})
+
+
+def _is_no_data(payload: Mapping[str, object]) -> bool:
+    """Whether ``payload`` is KOSIS's "no data" reply, which is an empty result."""
+    return _result_code(payload) == _NO_DATA_CODE
+
+
+def _result_code(payload: Mapping[str, object]) -> str | None:
+    """The ``err`` code as text; KOSIS documents strings, an integer is read the same."""
+    code = payload.get("err")
+    if isinstance(code, bool):
+        return None
+    if isinstance(code, int):
+        return str(code)
+    return code if isinstance(code, str) else None
+
 
 _KOSIS_DEFAULT_QUERY_PARAM_KEYS: tuple[str, ...] = (
     "objL1",
@@ -179,7 +217,7 @@ class KosisAdapter:
         )
         url = self._build_raw_url(dataset, operation, params)
         payload = self._request_and_decode(url, dataset.id)
-        if isinstance(payload, dict):
+        if isinstance(payload, dict) and not _is_no_data(cast(dict[str, object], payload)):
             self._raise_for_error_payload(cast(dict[str, object], payload), dataset.id)
         return payload
 
@@ -332,6 +370,8 @@ class KosisAdapter:
     def _extract_items(self, payload: object, dataset_id: str) -> list[dict[str, object]]:
         """Extract items from KOSIS API response."""
         if isinstance(payload, dict):
+            if _is_no_data(cast(dict[str, object], payload)):
+                return []
             self._raise_for_error_payload(cast(dict[str, object], payload), dataset_id)
 
         if not isinstance(payload, list):
@@ -354,7 +394,7 @@ class KosisAdapter:
         if code_raw is None:
             return  # "err" field missing = success response
         message_raw = payload.get("errMsg")
-        code = code_raw if isinstance(code_raw, str) else None
+        code = _result_code(payload)
         message = message_raw if isinstance(message_raw, str) else "KOSIS returned an error"
 
         logger.debug(
@@ -362,29 +402,17 @@ class KosisAdapter:
             extra={"dataset_id": dataset_id, "code": code, "message": message},
         )
 
-        if code == "30":
-            raise AuthError(
-                message,
-                provider="kosis",
-                dataset_id=dataset_id,
-                provider_code=code,
-                detail=dict(payload),
-            )
-        if code == "10":
-            raise InvalidRequestError(
-                message,
-                provider="kosis",
-                dataset_id=dataset_id,
-                provider_code=code,
-                detail=dict(payload),
-            )
-        raise ProviderResponseError(
+        error_class = _ERROR_CLASSES.get(code or "", ProviderResponseError)
+        error = error_class(
             message,
             provider="kosis",
             dataset_id=dataset_id,
             provider_code=code,
             detail=dict(payload),
         )
+        if code in _NOT_RETRYABLE:
+            error.retryable = False
+        raise error
 
     @staticmethod
     def _require_dataset_metadata(dataset: DatasetRef, field_name: str) -> str:
