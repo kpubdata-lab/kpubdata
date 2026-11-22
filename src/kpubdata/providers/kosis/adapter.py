@@ -214,7 +214,9 @@ class KosisAdapter:
                 response_format=("format", "jsonVD"),
                 provider="kosis",
                 dataset_id=dataset.id,
-            )
+            ),
+            provider="kosis",
+            dataset_id=dataset.id,
         )
         params = self._build_base_params(dataset)
         params["startPrdDe"] = start_date
