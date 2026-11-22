@@ -63,6 +63,7 @@ def test_building_every_builtin_provider_creates_no_untracked_transport(
     for provider_name in list(client._registry):
         client._registry.get(provider_name)
 
+    assert created, "no adapter built a transport, so the check below would pass vacuously"
     tracked = {id(client._transport), *(id(t) for t in client._provider_transports)}
     untracked = [transport for transport in created if id(transport) not in tracked]
     assert untracked == [], "an adapter built its own transport that close() never reaches"
