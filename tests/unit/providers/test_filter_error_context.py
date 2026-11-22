@@ -49,7 +49,9 @@ def test_custom_adapter_value_refusal_names_provider_and_dataset(name: str) -> N
     assert transport.calls == []
 
 
-def _family(name: str, transport: RecordingTransport) -> DataGoAdapter | SemasAdapter:
+def _family(
+    name: str, transport: RecordingTransport
+) -> DataGoAdapter | SemasAdapter | LocaldataAdapter:
     config = KPubDataConfig(provider_keys={name: "k"})
     http = cast(HttpTransport, cast(object, transport))
     if name == "datago":
