@@ -530,7 +530,7 @@ def _verify_fixtures(spec: SpecDefinition) -> list[StepResult]:
 
         # A first page that reports rows but yields none means items_path does not reach
         # the records (datago.airkorea_forecast recorded 0 of 714 this way).
-        if not items and isinstance(total, int) and total > 0:
+        if not items and type(total) is int and total > 0:
             results.append(
                 StepResult(
                     f"replay[{example}] 레코드 추출",
