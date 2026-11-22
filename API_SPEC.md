@@ -112,6 +112,13 @@ client = Client.from_env()
 - `KPUBDATA_CACHE_DIR=/custom/cache/path`
 - `KPUBDATA_CACHE_TTL=3600`
 
+### Closing
+
+- `client.close()` closes the transport resources the client uses. It is idempotent;
+  a client used again after `close()` rebuilds its connection pools lazily.
+- `Client` is a context manager: `with Client.from_env() as client:` calls `close()`
+  on exit.
+
 ## 3. Discovery API
 
 ```python
@@ -130,7 +137,9 @@ client.dataset("datago.apt_trade")
 **description**, **tags**, **id**, **dataset_key**, and **provider**. Results are
 returned in descending relevance order.
 
-- **Exact substring** match in any field → score 1.0 (always included).
+- **Exact substring** match in any field → score 1.0, so it is included for any
+  *threshold* up to 1.0. A *threshold* above 1.0 excludes everything
+  (`search("apt_trade", threshold=1.01)` returns `[]`).
 - **Fuzzy match** via `difflib.SequenceMatcher` → included if score ≥ *threshold*.
 - **threshold** default is `0.5`.  Raise it (e.g. `0.8`) for stricter results,
   lower it (e.g. `0.2`) for broader recall.
@@ -170,7 +179,9 @@ fields above plus `query_support`, `request_parameters`, `application` and
 entry `dataset_metadata.json` records for it (#902). Every key is always present and
 ``None`` means "nothing declared". The key list is in
 [`docs/compatibility.md`](./docs/compatibility.md) §3; `kpubdata datasets list
---format json` and `datasets show --format json` print the same dict.
+--format json` and `datasets show --format json` print the same dict, except that `datasets show` adds
+`capabilities` (a copy of `query_support` under its older name) and
+`raw_metadata_keys` (the sorted keys of the provider metadata `to_dict()` leaves out).
 
 ### Spec definitions
 
@@ -328,6 +339,11 @@ schema = dataset.schema()
 raw = dataset.call_raw(operation="list", LAWD_CD="11680", DEAL_YMD="202503")
 ```
 
+A **spec-backed** dataset has one request, so it ignores the `operation` argument:
+any value sends the spec's request with `params`. Spec-backed datasets are the ones
+defined by a YAML file under `src/kpubdata/specs/`; for the other datasets the
+adapter decides what `operation` selects.
+
 For **spec-backed** datasets, the raw escape hatch uses the same provider
 credential and host allowlist rules as normalized queries. Credentials come
 from `Client(provider_keys=...)` or the permitted SDK environment fallback,
@@ -438,6 +454,10 @@ Returns a generator of `RecordBatch` values, one per page.
 
 Returns `SchemaDescriptor | None`.
 
+`schema()` is not gated by `DatasetRef.operations`: a dataset without `Operation.SCHEMA`
+may still return a schema, and it does not raise `UnsupportedCapabilityError`. `None` means
+the schema is unknown, not that the dataset has no fields.
+
 `SchemaDescriptor.fields` contains `FieldDescriptor` objects. Each `FieldDescriptor` may carry a `constraints: FieldConstraints | None` with structured metadata:
 
 | Attribute | Type | Description |
@@ -488,7 +508,7 @@ does not change with the message, so map on it rather than on the text.
 | `ConfigError` | `config_error` | a missing key or invalid configuration |
 | `UnsupportedCapabilityError` | `unsupported_capability` | an operation the dataset does not have |
 | `ProviderNotRegisteredError` | `provider_not_registered` | a provider absent from the registry |
-| `CapabilityContractError` | `capability_contract_error` | an adapter whose declared and actual capabilities disagree |
+| `CapabilityContractError` | `capability_contract_error` | an adapter whose declared and actual capabilities disagree; import it from `kpubdata.exceptions` (it is not in `kpubdata.__all__`) |
 | `IncompleteListError` | `incomplete_list` | `list_all(partial=True)` stopped after yielding `pages` pages; `__cause__` is the failure |
 
 `RateLimitError`, `ServiceUnavailableError` and `TransportTimeoutError` are

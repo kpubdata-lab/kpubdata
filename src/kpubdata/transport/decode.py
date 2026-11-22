@@ -80,6 +80,15 @@ def decode_json(data: str | bytes) -> object:
         )
         msg = "Failed to decode JSON payload"
         raise ParseError(msg) from exc
+    except (ValueError, RecursionError) as exc:
+        # json.loads also raises a plain ValueError (an integer longer than
+        # the interpreter's digit limit) and RecursionError (nesting too deep).
+        logger.debug(
+            "JSON parse failed",
+            extra={"char_length": len(payload), "error_type": type(exc).__name__},
+        )
+        msg = "Failed to decode JSON payload"
+        raise ParseError(msg) from exc
 
 
 def decode_xml(data: str | bytes) -> dict[str, object]:

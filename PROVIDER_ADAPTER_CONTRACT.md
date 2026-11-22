@@ -267,7 +267,7 @@ def supports_query_records_all(self, dataset_key: str) -> bool: ...
 
 - declare only operations the adapter truly supports in `DatasetRef.operations`
 - describe pagination, filter, sort, time-range, and page-size support in `DatasetRef.query_support`
-- if an operation is unavailable, raise `UnsupportedCapabilityError`
+- if an operation is unavailable, raise `UnsupportedCapabilityError`; `Dataset.schema()` is the exception: it is not gated by `operations`, and `None` means the schema is unknown
 - do not silently emulate unsupported semantics unless documented
 
 ## 9. Raw rules

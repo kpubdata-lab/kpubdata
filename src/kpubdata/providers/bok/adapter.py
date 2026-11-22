@@ -378,6 +378,7 @@ class BokAdapter:
             decoded_obj: object = decode_json(response.content)
         except ParseError as exc:
             exc.provider = "bok"
+            exc.dataset_id = dataset_id or None
             logger.debug("BOK ECOS response parsing failed", extra={"dataset_id": dataset_id})
             raise
 
@@ -385,7 +386,9 @@ class BokAdapter:
             return cast(dict[str, object], decoded_obj)
 
         logger.debug("BOK ECOS decoded payload invalid type", extra={"dataset_id": dataset_id})
-        raise ParseError("Decoded payload is not an object", provider="bok")
+        raise ParseError(
+            "Decoded payload is not an object", provider="bok", dataset_id=dataset_id or None
+        )
 
     def _validate_envelope(
         self, payload: dict[str, object], dataset_id: str = ""
