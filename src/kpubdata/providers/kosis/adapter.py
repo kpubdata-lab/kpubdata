@@ -58,7 +58,17 @@ _NOT_RETRYABLE = frozenset({"40"})
 
 def _is_no_data(payload: Mapping[str, object]) -> bool:
     """Whether ``payload`` is KOSIS's "no data" reply, which is an empty result."""
-    return payload.get("err") == _NO_DATA_CODE
+    return _result_code(payload) == _NO_DATA_CODE
+
+
+def _result_code(payload: Mapping[str, object]) -> str | None:
+    """The ``err`` code as text; KOSIS documents strings, an integer is read the same."""
+    code = payload.get("err")
+    if isinstance(code, bool):
+        return None
+    if isinstance(code, int):
+        return str(code)
+    return code if isinstance(code, str) else None
 
 
 _KOSIS_DEFAULT_QUERY_PARAM_KEYS: tuple[str, ...] = (
@@ -384,7 +394,7 @@ class KosisAdapter:
         if code_raw is None:
             return  # "err" field missing = success response
         message_raw = payload.get("errMsg")
-        code = code_raw if isinstance(code_raw, str) else None
+        code = _result_code(payload)
         message = message_raw if isinstance(message_raw, str) else "KOSIS returned an error"
 
         logger.debug(

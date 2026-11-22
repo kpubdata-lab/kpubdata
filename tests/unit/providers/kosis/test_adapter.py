@@ -412,3 +412,13 @@ def test_raise_for_error_payload_raises_provider_response_error_on_unknown_code(
     adapter, dataset, _ = _build_adapter_with_transport([])
     with pytest.raises(ProviderResponseError):
         adapter._raise_for_error_payload({"err": "99", "errMsg": "기타 오류"}, dataset.id)
+
+
+def test_an_integer_no_data_code_is_read_like_the_string() -> None:
+    """"""
+    payload = {"err": 30, "errMsg": "데이터가 존재하지 않습니다."}
+    adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(payload)])
+
+    batch = adapter.query_records(dataset, Query(start_date="202401", end_date="202401"))
+
+    assert batch.items == []
