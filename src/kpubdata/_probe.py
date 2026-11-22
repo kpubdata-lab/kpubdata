@@ -326,7 +326,13 @@ def probe_dataset(
     A spec dataset is called through the spec executor; a catalogue dataset of a
     data.go.kr adapter through the adapter itself (#916). None for any other
     dataset, which the probe cannot classify honestly.
+
+    The provider part of the id is matched case-insensitively, as the catalog
+    matches it.
     """
+    provider_part, dot, dataset_key = dataset_id.partition(".")
+    if dot:
+        dataset_id = f"{provider_part.strip().lower()}.{dataset_key}"
     spec = find_spec(dataset_id)
     if spec is None:
         return _probe_catalogue_dataset(dataset_id, config=config, transport=transport)
@@ -549,8 +555,9 @@ def probe_all(
     """Probe every dataset in scope.
 
     One fast-fail transport is shared by the whole run and closed at the end,
-    unless the caller passed its own.
+    unless the caller passed its own. ``provider`` is matched case-insensitively.
     """
+    wanted_provider = provider.strip().lower() if provider else None
     resolved_config = config or KPubDataConfig.from_env()
     owned = transport is None
     resolved_transport = transport if transport is not None else new_probe_transport()
@@ -561,7 +568,7 @@ def probe_all(
 
         results: list[ProbeResult] = []
         for spec in discover_specs():
-            if provider and spec.provider != provider:
+            if wanted_provider and spec.provider != wanted_provider:
                 continue
             one = probe_dataset(spec.id, config=resolved_config, transport=resolved_transport)
             if one is not None:

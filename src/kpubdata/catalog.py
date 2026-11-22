@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import builtins
 import logging
+import math
 import re
 import unicodedata
 from dataclasses import dataclass
@@ -11,7 +12,7 @@ from difflib import SequenceMatcher
 
 from kpubdata.core.models import DatasetRef
 from kpubdata.core.protocol import ProviderAdapter
-from kpubdata.exceptions import DatasetNotFoundError, PublicDataError
+from kpubdata.exceptions import DatasetNotFoundError, InvalidRequestError, PublicDataError
 from kpubdata.registry import ProviderRegistry
 
 logger = logging.getLogger("kpubdata.catalog")
@@ -200,6 +201,7 @@ class Catalog:
         """Return the discoverable datasets, optionally filtered by provider.
 
         Raises:
+            InvalidRequestError: ``provider`` is not a str.
             ProviderNotRegisteredError: ``provider`` was given but is unknown.
         """
 
@@ -236,9 +238,21 @@ class Catalog:
         whose score meets *threshold* (0.0–1.0) are included.
 
         Raises:
+            InvalidRequestError: ``text``, ``provider`` or ``threshold`` has the
+                wrong type, or ``threshold`` is not a finite number.
             ProviderNotRegisteredError: ``provider`` was given but is unknown.
         """
 
+        if not isinstance(text, str):
+            raise InvalidRequestError(f"search text must be a str, got {type(text).__name__}")
+        if (
+            isinstance(threshold, bool)
+            or not isinstance(threshold, int | float)
+            or not math.isfinite(threshold)
+        ):
+            raise InvalidRequestError(
+                f"search threshold must be a finite number, got {threshold!r}"
+            )
         logger.debug(
             "Catalog search",
             extra={"text": text, "provider_filter": provider, "threshold": threshold},
@@ -318,11 +332,19 @@ class Catalog:
     def _get_adapter(self, provider: str) -> ProviderAdapter:
         """Fetch a provider adapter from the registry or raise the canonical exception."""
 
+        if not isinstance(provider, str):
+            raise InvalidRequestError(f"provider must be a str, got {type(provider).__name__}")
+
         return self._registry.get(provider)
 
     @staticmethod
     def _split_dataset_id(dataset_id: str) -> tuple[str, str]:
         """Split a canonical dataset id into ``(provider, dataset_key)``."""
+
+        if not isinstance(dataset_id, str):
+            raise DatasetNotFoundError(
+                f"Invalid dataset id: expected a str, got {type(dataset_id).__name__}"
+            )
 
         parts = dataset_id.split(".", 1)
         if len(parts) != 2 or not parts[0] or not parts[1]:
