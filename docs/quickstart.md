@@ -179,7 +179,7 @@ for batch in ds.list_all(start_date="202401", end_date="202412"):
 ## 9단계: pandas로 데이터 분석하기
 
 ```bash
-pip install kpubdata[pandas]
+pip install "kpubdata[pandas]"
 ```
 
 ```python
