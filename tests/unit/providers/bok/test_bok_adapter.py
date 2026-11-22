@@ -320,3 +320,43 @@ def test_the_bok_request_url_still_carries_the_key_in_its_path() -> None:
     adapter.query_records(dataset, Query(page_size=1, start_date="202401", end_date="202403"))
 
     assert "/test-key/" in str(transport.calls[0]["url"])
+
+
+@pytest.mark.parametrize(
+    ("name", "query"),
+    [
+        ("start_date", Query(start_date="..", end_date="202403")),
+        ("end_date", Query(start_date="202401", end_date=".")),
+        ("start_date", Query(start_date="2024\n01", end_date="202403")),
+        ("frequency", Query(start_date="202401", end_date="202403", filters={"frequency": ".."})),
+    ],
+)
+def test_dot_segment_or_control_path_value_is_refused(name: str, query: Query) -> None:
+    """bok puts these values in the URL path, so a dot segment would rewrite the request."""
+    adapter, dataset, transport = _build_adapter_with_transport([])
+
+    with pytest.raises(InvalidRequestError, match=f"Path parameter {name!r}") as excinfo:
+        adapter.query_records(dataset, query)
+
+    assert excinfo.value.provider == "bok"
+    assert excinfo.value.dataset_id == dataset.id
+    assert transport.calls == []
+
+
+def test_slash_in_a_path_value_is_encoded() -> None:
+    """A ``/`` in a date used to add a path segment; it is now percent-encoded."""
+    payload = _success_payload(items=[{"id": 1}], total_count=1)
+    adapter, dataset, transport = _build_adapter_with_transport([FakeResponse(payload)])
+
+    adapter.query_records(dataset, Query(page_size=1, start_date="2024/01", end_date="202403"))
+
+    assert "/M/2024%2F01/202403/" in str(transport.calls[0]["url"])
+
+
+def test_normal_path_values_keep_the_same_url() -> None:
+    payload = _success_payload(items=[{"id": 1}], total_count=1)
+    adapter, dataset, transport = _build_adapter_with_transport([FakeResponse(payload)])
+
+    adapter.query_records(dataset, Query(page_size=1, start_date="202401", end_date="202403"))
+
+    assert str(transport.calls[0]["url"]).endswith("/1/1/722Y001/M/202401/202403/0101000")

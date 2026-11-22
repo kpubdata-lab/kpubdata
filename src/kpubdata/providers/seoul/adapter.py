@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from typing import cast
-from urllib.parse import quote
 
 from kpubdata.config import KPubDataConfig
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
@@ -23,6 +22,7 @@ from kpubdata.providers._common import (
     build_schema_from_metadata,
     coerce_int,
     load_catalogue,
+    path_segment,
     reported_total,
 )
 from kpubdata.providers.seoul.envelope import validate_envelope
@@ -195,7 +195,10 @@ class SeoulAdapter:
         """Build Seoul API request URL."""
         base_url = self._require_dataset_metadata(dataset, "base_url")
         service_name = self._service_name(dataset, operation=operation)
-        path_suffix = "/".join(quote(value, safe="") for value in path_params.values())
+        path_suffix = "/".join(
+            path_segment(name, value, provider="seoul", dataset_id=dataset.id)
+            for name, value in path_params.items()
+        )
         base_path = (
             f"{base_url}/{self._require_api_key()}/json/{service_name}/{start_index}/{end_index}"
         )

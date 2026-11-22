@@ -32,6 +32,7 @@ from kpubdata.providers._common import (
     capped_page_size,
     coerce_int,
     load_catalogue,
+    path_segment,
     reported_total,
 )
 from kpubdata.transport.decode import decode_json
@@ -346,6 +347,15 @@ class BokAdapter:
 
         stat_code = self._require_dataset_metadata(dataset, "stat_code")
         item_code1 = self._require_dataset_metadata(dataset, "item_code1")
+        # Caller values go into the path, so each is encoded and dot segments are refused.
+        frequency, start_date, end_date = (
+            path_segment(name, value, provider="bok", dataset_id=dataset.id)
+            for name, value in (
+                ("frequency", frequency),
+                ("start_date", start_date),
+                ("end_date", end_date),
+            )
+        )
         api_key = self._require_api_key()
         return (
             f"{base_url_raw}/{api_key}/json/{selected_operation}/"

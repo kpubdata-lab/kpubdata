@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import unicodedata
 from collections.abc import Mapping
 from importlib.resources import files
 from types import MappingProxyType
 from typing import cast
+from urllib.parse import quote
 
 from kpubdata.core.capability import Operation, PaginationMode, QuerySupport
 from kpubdata.core.models import (
@@ -16,7 +18,7 @@ from kpubdata.core.models import (
     SchemaDescriptor,
 )
 from kpubdata.core.representation import Representation
-from kpubdata.exceptions import ConfigError
+from kpubdata.exceptions import ConfigError, InvalidRequestError
 
 #: The message for a data.go.kr gateway 403, which datago and the data.go.kr
 #: family adapters (semas, localdata) all raise as ``AuthError``: the gateway
@@ -298,6 +300,29 @@ def capped_page_size(dataset: DatasetRef, requested: int | None, default: int = 
     return page_size
 
 
+def path_segment(name: str, value: str, *, provider: str, dataset_id: str) -> str:
+    """Percent-encode a caller value for one URL path segment, or refuse it.
+
+    ``quote(value, safe="")`` encodes ``/`` but leaves ``.`` and ``..`` as they
+    are, and httpx resolves those dot segments, so ``..`` would climb over the
+    segments the SDK set (service name, start and end index). An empty value,
+    a dot segment, a backslash (which some servers treat as ``/``) or a control
+    character is refused before any request.
+    """
+    if (
+        value in {"", ".", ".."}
+        or "\\" in value
+        or any(unicodedata.category(char) == "Cc" for char in value)
+    ):
+        raise InvalidRequestError(
+            f"Path parameter {name!r} must be a non-empty value that is not '.' or '..' "
+            "and has no backslash or control characters",
+            provider=provider,
+            dataset_id=dataset_id,
+        )
+    return quote(value, safe="")
+
+
 def require_string_field(entry: Mapping[str, object], field_name: str, provider: str) -> str:
     """Extract required non-empty string field from catalogue entry."""
     value = entry.get(field_name)
@@ -315,6 +340,7 @@ __all__ = [
     "capped_page_size",
     "coerce_int",
     "load_catalogue",
+    "path_segment",
     "reported_total",
     "require_string_field",
 ]
