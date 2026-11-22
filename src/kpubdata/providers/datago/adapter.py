@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 
 from kpubdata._hosts import host_is_allowed
 from kpubdata.config import KPubDataConfig
-from kpubdata.core._params import scalar_filter_value
+from kpubdata.core._params import scalar_filter_value, sdk_param_error
 from kpubdata.core.models import (
     DatasetRef,
     Query,
@@ -196,9 +196,9 @@ class DataGoAdapter:
             # configured credential and fixed parameters from the catalogue, so a
             # filter under either name is still dropped.
             if key.lower() in sdk_param_names:
-                raise InvalidRequestError(
-                    f"Filter {key!r} is a paging or format parameter the SDK sets; "
-                    "use list(page=..., page_size=...) instead of passing it as a filter",
+                raise sdk_param_error(
+                    key,
+                    paging=key.lower() in {page_param.lower(), page_size_param.lower()},
                     provider="datago",
                     dataset_id=dataset.id,
                 )

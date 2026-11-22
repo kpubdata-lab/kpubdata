@@ -13,7 +13,7 @@ from typing import cast
 from urllib.parse import urlencode
 
 from kpubdata.config import KPubDataConfig
-from kpubdata.core._params import scalar_filters
+from kpubdata.core._params import drop_or_refuse_sdk_params, scalar_filters
 from kpubdata.core.models import (
     DatasetRef,
     Query,
@@ -207,7 +207,15 @@ class KosisAdapter:
                 dataset_id=dataset.id,
             )
 
-        filters = scalar_filters(query.filters)
+        filters = scalar_filters(
+            drop_or_refuse_sdk_params(
+                query.filters,
+                credential=("apiKey",),
+                response_format=("format", "jsonVD"),
+                provider="kosis",
+                dataset_id=dataset.id,
+            )
+        )
         params = self._build_base_params(dataset)
         params["startPrdDe"] = start_date
         params["endPrdDe"] = end_date

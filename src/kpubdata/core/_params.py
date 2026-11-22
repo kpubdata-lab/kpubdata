@@ -8,10 +8,13 @@ wire format. Provider-specific formatting stays outside this shared policy.
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from decimal import Decimal
+from typing import TypeVar
 
 from kpubdata.exceptions import InvalidRequestError
+
+_V = TypeVar("_V")
 
 
 def scalar_filter_value(name: str, value: object, *, allow_bool: bool = False) -> str | None:
@@ -55,3 +58,52 @@ def scalar_filters(filters: Mapping[str, object]) -> dict[str, str]:
         if text is not None:
             encoded[key] = text
     return encoded
+
+
+def drop_or_refuse_sdk_params(
+    filters: Mapping[str, _V],
+    *,
+    credential: Iterable[str] = (),
+    paging: Iterable[str] = (),
+    response_format: Iterable[str] = (),
+    provider: str,
+    dataset_id: str,
+) -> dict[str, _V]:
+    """Apply the SDK-set parameter rule to ``list()`` filters, matching names case-insensitively.
+
+    A filter named like the credential parameter is dropped: the credential always
+    comes from the configured key and is never sent or echoed from a filter. A
+    filter named like a paging or response-format parameter the adapter sets raises
+    ``InvalidRequestError`` naming the filter (never its value) before any request.
+    """
+    credential_names = {name.lower() for name in credential}
+    paging_names = {name.lower() for name in paging}
+    format_names = {name.lower() for name in response_format}
+    kept: dict[str, _V] = {}
+    for key, value in filters.items():
+        folded = key.lower()
+        if folded in credential_names:
+            continue
+        if folded in paging_names:
+            raise sdk_param_error(key, paging=True, provider=provider, dataset_id=dataset_id)
+        if folded in format_names:
+            raise sdk_param_error(key, paging=False, provider=provider, dataset_id=dataset_id)
+        kept[key] = value
+    return kept
+
+
+def sdk_param_error(
+    name: str, *, paging: bool, provider: str, dataset_id: str
+) -> InvalidRequestError:
+    """The refusal for a filter named like a paging or response-format parameter."""
+    if paging:
+        message = (
+            f"Filter {name!r} is a paging parameter the SDK sets; "
+            "use list(page=..., page_size=...) instead of passing it as a filter"
+        )
+    else:
+        message = (
+            f"Filter {name!r} is a response-format parameter the SDK sets; "
+            "the response format is fixed by the adapter and cannot be changed through a filter"
+        )
+    return InvalidRequestError(message, provider=provider, dataset_id=dataset_id)

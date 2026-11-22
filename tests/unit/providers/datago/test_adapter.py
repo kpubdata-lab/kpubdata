@@ -896,12 +896,15 @@ class TestDataGoAdapterQueryRecords:
         assert params["numOfRows"] == "100"
         assert params["x"] == "ok"
 
-    @pytest.mark.parametrize("name", ["pageNo", "numOfRows", "dataType"])
-    def test_query_records_refuses_reserved_paging_filter(self, name: str) -> None:
+    @pytest.mark.parametrize(
+        ("name", "hint"),
+        [("pageNo", "page_size"), ("numOfRows", "page_size"), ("dataType", "format is fixed")],
+    )
+    def test_query_records_refuses_reserved_paging_filter(self, name: str, hint: str) -> None:
         """A paging or format parameter passed as a filter is refused before HTTP."""
         adapter, dataset, transport = _build_adapter_with_transport([])
 
-        with pytest.raises(InvalidRequestError, match="page_size") as excinfo:
+        with pytest.raises(InvalidRequestError, match=hint) as excinfo:
             _ = adapter.query_records(dataset, Query(filters={name: "secret-999", "x": "ok"}))
 
         assert name in str(excinfo.value)

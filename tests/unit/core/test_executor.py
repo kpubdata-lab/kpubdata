@@ -183,6 +183,23 @@ def test_build_params_refuses_reserved_paging_filter(apt_spec: SpecDefinition, n
     assert transport.calls == []
 
 
+@pytest.mark.parametrize("name", ["resultType", "RESULTTYPE"])
+def test_build_params_refuses_format_filter_with_a_format_hint(
+    apt_spec: SpecDefinition, name: str
+) -> None:
+    """A format parameter passed as a filter is refused, and the hint is not about paging."""
+    transport = FakeTransport()
+    executor = _make_executor(transport)
+    query = Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401", name: "xml"})
+
+    with pytest.raises(InvalidRequestError, match="format is fixed") as excinfo:
+        executor.query(apt_spec, _ref(apt_spec), query)
+
+    assert name in str(excinfo.value)
+    assert "page_size" not in str(excinfo.value)
+    assert transport.calls == []
+
+
 def test_build_params_rejects_invalid_enum_before_network(apt_spec: SpecDefinition) -> None:
     """An aliased declared enum must reject invalid values before the provider call."""
     params = (

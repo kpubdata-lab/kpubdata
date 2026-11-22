@@ -22,7 +22,7 @@ from collections.abc import Mapping, Sequence
 from typing import ClassVar, NoReturn, cast
 
 from kpubdata.config import KPubDataConfig
-from kpubdata.core._params import scalar_filter_value
+from kpubdata.core._params import scalar_filter_value, sdk_param_error
 from kpubdata.core._result_code import is_no_data_code, result_code_text
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
 from kpubdata.exceptions import (
@@ -162,9 +162,9 @@ class DataGoFamilyAdapter:
             if key.lower() == service_key_param.lower():
                 continue
             if key.lower() in reserved:
-                raise InvalidRequestError(
-                    f"Filter {key!r} is a paging or format parameter the SDK sets; "
-                    "use list(page=..., page_size=...) instead of passing it as a filter",
+                raise sdk_param_error(
+                    key,
+                    paging=key.lower() in {"pageno", "numofrows"},
                     provider=self.provider_name,
                     dataset_id=dataset.id,
                 )

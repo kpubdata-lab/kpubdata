@@ -20,7 +20,7 @@ from collections.abc import Mapping, Sequence
 from urllib.parse import urlencode
 
 from kpubdata.config import KPubDataConfig
-from kpubdata.core._params import scalar_filters
+from kpubdata.core._params import drop_or_refuse_sdk_params, scalar_filters
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
 from kpubdata.exceptions import (
     AuthError,
@@ -91,7 +91,16 @@ class NeisAdapter:
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
         page = query.page or 1
         page_size = min(query.page_size or _MAX_PAGE_SIZE, _MAX_PAGE_SIZE)
-        filters = scalar_filters(query.filters)
+        filters = scalar_filters(
+            drop_or_refuse_sdk_params(
+                query.filters,
+                credential=("KEY",),
+                paging=("pIndex", "pSize"),
+                response_format=("Type",),
+                provider="neis",
+                dataset_id=dataset.id,
+            )
+        )
         required = self._required_filters(dataset)
         missing = [name for name in required if not filters.get(name, "").strip()]
         if missing:
@@ -147,7 +156,8 @@ class NeisAdapter:
             )
         request_params: dict[str, str] = {"KEY": self._require_api_key(), "Type": "json"}
         for key, value in params.items():
-            if str(value).strip():
+            # The configured key always wins over a raw parameter under its name.
+            if key.lower() != "key" and str(value).strip():
                 request_params[str(key)] = str(value)
         base_url = dataset.raw_metadata.get("base_url", "")
         url = f"{base_url}/{operation}?{urlencode(request_params)}"
