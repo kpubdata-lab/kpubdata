@@ -53,6 +53,7 @@ from kpubdata.exceptions import (
     DatasetNotFoundError,
     IncompleteListError,
     InvalidRequestError,
+    ParseError,
     ProviderResponseError,
     PublicDataError,
     RateLimitError,
@@ -922,6 +923,10 @@ class SpecExecutor:
                 decoded: object = decode_xml(response.content)
             else:
                 decoded = decode_json(response.content)
+        except ParseError as exc:
+            exc.provider = spec.provider
+            exc.dataset_id = spec.id
+            raise
         except ImportError as exc:
             msg = "XML 응답을 파싱하려면 선택 의존성이 필요합니다: pip install kpubdata[xml]"
             raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id) from exc
