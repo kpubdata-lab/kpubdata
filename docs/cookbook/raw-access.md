@@ -39,19 +39,30 @@ print(raw)
 
 ## 범용 엔드포인트 (datago)
 
-카탈로그에 등록되지 않은 data.go.kr API도 `datago.generic`으로 호출 가능합니다:
+카탈로그에 등록되지 않은 data.go.kr API도 `datago.generic`으로 호출할 수
+있습니다. **해당 서비스의 이용승인과 실제 HTTPS 요청 경로를 먼저 확인해야
+하며**, 카탈로그 미등록 API의 안전성·응답 계약을 SDK가 검증했다는 뜻은 아닙니다.
+다음은 URL 구성 예시이며, 실제 키를 사용한 호출은 수행하지 않았습니다:
 
 ```python
 ds = client.dataset("datago.generic")
 raw = ds.call_raw(
     "getUltraSrtFcst",
-    _base_url="http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0",
+    _base_url="https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0",
     base_date="20250401",
     base_time="0600",
     nx="55",
     ny="127",
 )
 ```
+
+요청에 포함된 인증정보를 `http://`로 전송하려 하면 SDK 전송 계층이
+**fail closed**로 거부합니다. `datago.generic`의 허용 호스트도 제한되며
+`_base_url`을 임의의 사용자 입력이나 검증되지 않은 호스트로 바꾸지 마세요.
+`call_raw()`는 정규화·페이지네이션·데이터셋 검증 근거를 제공하지 않습니다.
+인증키를 URL, 로그 또는 코드에 직접 붙이지 말고 `Client.from_env()` 등으로
+관리하세요. [수동 실API 검증 절차](../manual-live-smoke.md)와
+[호스트 제한](../host-allowlist.md)을 함께 참고하세요.
 
 ## 언제 Raw를 쓰나요?
 
