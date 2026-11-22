@@ -20,6 +20,7 @@ from collections.abc import Mapping, Sequence
 from urllib.parse import urlencode
 
 from kpubdata.config import KPubDataConfig
+from kpubdata.core._params import scalar_filters
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
 from kpubdata.exceptions import (
     AuthError,
@@ -91,8 +92,9 @@ class KoreanAdapter:
         page = query.page or 1
         page_size = min(query.page_size or _MAX_PAGE_SIZE, _MAX_PAGE_SIZE)
 
+        filters = scalar_filters(query.filters)
         required = self._required_filters(dataset)
-        missing = [name for name in required if not str(query.filters.get(name, "")).strip()]
+        missing = [name for name in required if not filters.get(name, "").strip()]
         if missing:
             raise InvalidRequestError(
                 f"korean {dataset.dataset_key} queries require filter(s): {', '.join(missing)}",
@@ -107,9 +109,9 @@ class KoreanAdapter:
             "start": str((page - 1) * page_size + 1),
             "num": str(page_size),
         }
-        for key, value in query.filters.items():
-            if str(value).strip():
-                params[str(key)] = str(value)
+        for key, value in filters.items():
+            if value.strip():
+                params[key] = value
 
         url = self._build_url(dataset, params)
         payload = self._request_and_decode(url, dataset.id)

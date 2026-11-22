@@ -21,6 +21,7 @@ from typing import cast
 from urllib.parse import quote
 
 from kpubdata.config import KPubDataConfig
+from kpubdata.core._params import scalar_filters
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
 from kpubdata.exceptions import (
     AuthError,
@@ -94,7 +95,9 @@ class FdsAdapter:
         start_idx = (page - 1) * page_size + 1
         end_idx = page * page_size
 
-        url = self._build_request_url(dataset, start_idx, end_idx, filters=query.filters)
+        url = self._build_request_url(
+            dataset, start_idx, end_idx, filters=scalar_filters(query.filters)
+        )
         payload = self._request_and_decode(url, dataset.id)
         service = str(dataset.raw_metadata.get("default_operation", ""))
         items, total_count = self._parse_fds_envelope(payload, dataset.id, service)

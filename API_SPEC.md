@@ -200,7 +200,15 @@ lowercase `true`/`false`). Lists, mappings, datetime objects and other
 unsupported objects raise `InvalidRequestError` **before an HTTP request**.
 Date/period formats are provider-specific: pass the required format as a
 string, rather than relying on an implicit conversion. Existing text and
-numeric filter strings are not reformatted (#968).
+numeric filter strings are not reformatted (#968). This applies to every
+provider's `list()`, spec-backed or custom adapter; custom adapters declare no
+boolean parameters, so they refuse boolean values.
+
+For spec-backed and data.go.kr catalogue datasets, a filter named like a paging
+or format parameter the SDK sets for the dataset (for example `pageNo`,
+`numOfRows`, `pIndex`, `pSize` or the format parameter) raises `InvalidRequestError` naming the filter; use `page` and `page_size`
+instead. A filter named like the credential parameter is still dropped, because
+the credential always comes from the configured key.
 
 For spec-backed normalized queries, every declared required filter must be
 present after authentication, format and pagination parameters are assembled.

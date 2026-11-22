@@ -14,6 +14,7 @@ from typing import NoReturn, cast
 from urllib.parse import quote, urlencode
 
 from kpubdata.config import KPubDataConfig
+from kpubdata.core._params import scalar_filters
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
 from kpubdata.exceptions import (
     AuthError,
@@ -146,7 +147,7 @@ class LofinAdapter:
         )
 
         url = self._build_request_url(
-            dataset, page=page, page_size=page_size, filters=query.filters
+            dataset, page=page, page_size=page_size, filters=scalar_filters(query.filters)
         )
         payload = self._request_and_decode(url, dataset.id)
 
@@ -220,7 +221,7 @@ class LofinAdapter:
         *,
         page: int,
         page_size: int,
-        filters: dict[str, object] | None = None,
+        filters: Mapping[str, object] | None = None,
     ) -> str:
         """Build LOFIN API request URL."""
         base_url_raw = dataset.raw_metadata.get("base_url")

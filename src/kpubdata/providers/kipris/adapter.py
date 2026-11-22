@@ -20,6 +20,7 @@ from collections.abc import Mapping, Sequence
 from urllib.parse import urlencode
 
 from kpubdata.config import KPubDataConfig
+from kpubdata.core._params import scalar_filters
 from kpubdata.core._result_code import is_no_data_code, result_code_text
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
 from kpubdata.exceptions import (
@@ -94,8 +95,9 @@ class KiprisAdapter:
         page = query.page or 1
         page_size = min(query.page_size or _MAX_PAGE_SIZE, _MAX_PAGE_SIZE)
 
+        filters = scalar_filters(query.filters)
         required = self._required_filters(dataset)
-        missing = [name for name in required if not str(query.filters.get(name, "")).strip()]
+        missing = [name for name in required if not filters.get(name, "").strip()]
         if missing:
             raise InvalidRequestError(
                 f"kipris {dataset.dataset_key} queries require filter(s): {', '.join(missing)}",
@@ -106,7 +108,7 @@ class KiprisAdapter:
         params: dict[str, str] = {
             "serviceKey": self._require_api_key(),
             "_type": "json",
-            "applicationNumber": str(query.filters["applicationNumber"]),
+            "applicationNumber": filters["applicationNumber"],
             # The page asked for was never sent (#837): every "next page" was the same
             # request, so a full page made list_all fetch it again until its page limit.
             "pageNo": str(page),

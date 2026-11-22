@@ -8,6 +8,7 @@ wire format. Provider-specific formatting stays outside this shared policy.
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
 from decimal import Decimal
 
 from kpubdata.exceptions import InvalidRequestError
@@ -40,3 +41,17 @@ def scalar_filter_value(name: str, value: object, *, allow_bool: bool = False) -
     raise InvalidRequestError(
         f"Filter {name!r} requires a string or numeric scalar, not {type(value).__name__}"
     )
+
+
+def scalar_filters(filters: Mapping[str, object]) -> dict[str, str]:
+    """Encode user filters with ``scalar_filter_value``, omitting ``None`` values.
+
+    For adapters without a spec: no parameter is declared boolean, so a boolean
+    value is refused like any other unsupported object.
+    """
+    encoded: dict[str, str] = {}
+    for key, value in filters.items():
+        text = scalar_filter_value(key, value)
+        if text is not None:
+            encoded[key] = text
+    return encoded

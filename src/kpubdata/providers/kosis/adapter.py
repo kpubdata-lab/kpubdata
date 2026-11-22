@@ -13,6 +13,7 @@ from typing import cast
 from urllib.parse import urlencode
 
 from kpubdata.config import KPubDataConfig
+from kpubdata.core._params import scalar_filters
 from kpubdata.core.models import (
     DatasetRef,
     Query,
@@ -206,7 +207,7 @@ class KosisAdapter:
                 dataset_id=dataset.id,
             )
 
-        filters: dict[str, object] = dict(query.filters)
+        filters = scalar_filters(query.filters)
         params = self._build_base_params(dataset)
         params["startPrdDe"] = start_date
         params["endPrdDe"] = end_date
@@ -214,11 +215,11 @@ class KosisAdapter:
         reserved = {key.casefold() for key in params}
         for key in _KOSIS_DEFAULT_QUERY_PARAM_KEYS:
             if key in filters:
-                params[key] = str(filters.pop(key))
+                params[key] = filters.pop(key)
 
         for key, value in filters.items():
             if key.casefold() not in reserved:
-                params[key] = str(value)
+                params[key] = value
 
         return self._compose_url(dataset, params)
 

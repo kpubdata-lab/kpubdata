@@ -92,7 +92,7 @@ kpubdata fetch bok.base_rate \
 JSON 출력:
 
 ```bash
-kpubdata fetch datago.air_quality -p sidoName=서울 -p numOfRows=5 --format json
+kpubdata fetch datago.air_quality -p sidoName=서울 --page-size 5 --format json
 ```
 
 페이지 옵션:

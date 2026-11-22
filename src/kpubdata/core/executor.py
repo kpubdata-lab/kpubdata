@@ -759,6 +759,11 @@ class SpecExecutor:
             raise NotImplementedError(msg)
 
         reserved = {key.lower() for key in params}
+        credential_names: set[str] = set()
+        if spec.auth.type == "query_param" and spec.auth.param_name:
+            credential_names.add(spec.auth.param_name.lower())
+        elif spec.auth.type == "path_segment":
+            credential_names.add(_path_key_slot(spec).lower())
         declared = {param.exposed_name: param for param in spec.params}
         by_provider_name = {param.name: param for param in spec.params}
         for declared_param in spec.params:
@@ -774,9 +779,18 @@ class SpecExecutor:
                     dataset_id=spec.id,
                 )
         for key, raw_value in query.filters.items():
-            # Auth, format, pagination params already filled; don't override with user filters.
-            if key.lower() in reserved:
+            # A credential comes from the configured key, never from a filter, so a
+            # filter under its name is dropped. Format and paging parameters are set
+            # by the SDK; refuse them instead of silently sending the SDK's value.
+            if key.lower() in credential_names:
                 continue
+            if key.lower() in reserved:
+                raise InvalidRequestError(
+                    f"Filter {key!r} is a paging or format parameter the SDK sets; "
+                    "use list(page=..., page_size=...) instead of passing it as a filter",
+                    provider=spec.provider,
+                    dataset_id=spec.id,
+                )
             param_spec = declared.get(key) or by_provider_name.get(key)
             provider_name = param_spec.name if param_spec is not None else key
             encoded = scalar_filter_value(
