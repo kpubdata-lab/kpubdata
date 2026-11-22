@@ -50,10 +50,13 @@ file from that commit instead of the dispatch commit. Only a spec already on htt
 be patched, and every other top-level block — ``endpoint``, ``auth``, ``params``,
 ``response``, ``pagination``, ``examples``, ``status`` and anything else — must match
 the dispatch commit's exactly, so a patch cannot change what is requested or where the
-key is sent. ``switch`` refuses a patch that touches them, and ``check`` holds the
-recorded spec to the patched one instead of to the dispatch commit's. A patch that confirms
-the licence terms (adds ``attribution``) also takes the dataset's line out of
-``scripts/unconfirmed_terms_baseline.txt``, the one other file it may change.
+key is sent. The one exception is ``response.items_path``, where the records sit in the
+answer: it is read only after the response arrives, so a patch may correct its value to
+another dotted path, but not add or remove it. ``switch`` refuses a patch that touches
+anything else, and ``check`` holds the recorded spec to the patched one instead of to
+the dispatch commit's. A patch that confirms the licence terms (adds ``attribution``)
+also takes the dataset's line out of ``scripts/unconfirmed_terms_baseline.txt``, the
+one other file it may change.
 
 The script uses the standard library only: the gate job runs it on a bare runner.
 
@@ -128,6 +131,11 @@ _HIDDEN = frozenset({"Cf", "Zl", "Zp"})
 #: The top-level blocks a spec patch may change: they describe what is recorded and
 #: never shape the request. Everything else must stay as the dispatch commit has it.
 DESCRIPTIVE_BLOCKS = frozenset({"title", "description", "source", "fields", "license"})
+#: The one key inside ``response`` a patch may change: where the records sit in the
+#: answer. It is read only after the response arrives and never shapes the request.
+PARSING_KEY = "items_path"
+#: What a patched ``response.items_path`` must look like: dotted identifier segments.
+_DOTTED_PATH = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*")
 #: How long after its base_time a KMA release is safely published.
 _RELEASE_MARGIN = timedelta(hours=1)
 
@@ -221,7 +229,32 @@ def _request_view(data: dict[str, object]) -> dict[str, object]:
                 example = {**example, "params": undate(example["params"])}
             normalised.append(example)
         view["examples"] = normalised
+    response = view.get("response")
+    if isinstance(response, dict):
+        view["response"] = {key: value for key, value in response.items() if key != PARSING_KEY}
     return view
+
+
+def _items_path_problems(before: dict[str, object], after: dict[str, object]) -> list[str]:
+    """Problems with how a patch changes ``response.items_path``; empty when it may.
+
+    :func:`_request_view` leaves the key out of the comparison, so it is held here: a
+    patch may correct its value, never add or remove it, and the new value must be a
+    plain dotted path.
+    """
+    old, new = before.get("response"), after.get("response")
+    old_has = isinstance(old, dict) and PARSING_KEY in old
+    new_has = isinstance(new, dict) and PARSING_KEY in new
+    if old_has != new_has:
+        return [f"the spec patch adds or removes response.{PARSING_KEY}"]
+    if not (isinstance(old, dict) and isinstance(new, dict) and new_has):
+        return []
+    value = new[PARSING_KEY]
+    if value == old[PARSING_KEY]:
+        return []
+    if not isinstance(value, str) or _DOTTED_PATH.fullmatch(value) is None:
+        return [f"the patched response.{PARSING_KEY} is not a dotted path: {value!r}"]
+    return []
 
 
 def undate(params: dict[str, object]) -> dict[str, object]:
@@ -269,14 +302,19 @@ def check_spec_patch(base_spec: str, patched: str) -> list[str]:
         return [f"the spec patch does not parse strictly: {' '.join(str(exc).split())}"]
     if _key_host(before) not in _KEY_HOSTS or _key_host(after) not in _KEY_HOSTS:
         return ["a spec patch applies only to a spec already on https at a data.go.kr host"]
+    problems = _items_path_problems(before, after)
     old_view, new_view = _request_view(before), _request_view(after)
     if old_view == new_view:
-        return []
+        return problems
     changed = sorted(
         str(key) for key in set(old_view) | set(new_view) if old_view.get(key) != new_view.get(key)
     )
     allowed = ", ".join(sorted(DESCRIPTIVE_BLOCKS))
-    return [f"the spec patch changes {', '.join(changed)}; only {allowed} may change"]
+    return [
+        f"the spec patch changes {', '.join(changed)};"
+        f" only {allowed} and response.{PARSING_KEY} may change",
+        *problems,
+    ]
 
 
 # --- decide ---------------------------------------------------------------------------
@@ -649,7 +687,8 @@ def confirm_request(dataset: str, root: Path, base: str) -> list[str]:
     self-hosted job right before the one step that holds the provider key, and parses
     with :func:`kpubdata.core.spec.load_spec_file` — the loader ``make record`` uses —
     rather than this script's own. Every part of the spec that shapes the request must
-    equal the dispatch commit's, example ``base_date`` values aside, and the key may go
+    equal the dispatch commit's, example ``base_date`` values and ``response.items_path``
+    aside, and the key may go
     only to a data.go.kr gateway over https.
     """
     import tempfile
@@ -671,7 +710,8 @@ def confirm_request(dataset: str, root: Path, base: str) -> list[str]:
             spec.provider,
             spec.endpoint,
             spec.auth,
-            spec.response,
+            # Where the records sit in the answer is read after it arrives (PARSING_KEY).
+            replace(spec.response, items_path=None),
             spec.pagination,
             spec.status,
             spec.params,
