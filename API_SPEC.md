@@ -106,15 +106,8 @@ client = Client.from_env()
 - `KPUBDATA_CACHE_DIR=/custom/cache/path`
 - `KPUBDATA_CACHE_TTL=3600`
 
-### Registering providers and closing
+### Closing
 
-These methods exist on `Client` today; this section only documents them.
-
-- `client.register_provider(adapter)` registers a provider adapter on this client's
-  registry. It raises `TypeError` when the adapter does not satisfy the adapter
-  protocol and `ValueError` when that provider is already registered.
-- `client.iter_authenticated_providers()` returns a tuple of the registered adapters
-  that require an API key.
 - `client.close()` closes the transport resources the client uses. It is idempotent;
   a client used again after `close()` rebuilds its connection pools lazily.
 - `Client` is a context manager: `with Client.from_env() as client:` calls `close()`
@@ -336,8 +329,9 @@ raw = dataset.call_raw(operation="list", LAWD_CD="11680", DEAL_YMD="202503")
 ```
 
 A **spec-backed** dataset has one request, so it ignores the `operation` argument:
-any value sends the spec's request with `params`. Only a custom adapter chooses
-between operations by that name.
+any value sends the spec's request with `params`. Spec-backed datasets are the ones
+defined by a YAML file under `src/kpubdata/specs/`; for the other datasets the
+adapter decides what `operation` selects.
 
 For **spec-backed** datasets, the raw escape hatch uses the same provider
 credential and host allowlist rules as normalized queries. Credentials come
