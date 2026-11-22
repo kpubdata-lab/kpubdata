@@ -166,13 +166,34 @@ _GATEWAY_ENVELOPE_MAX_BYTES = 8192
 #: ``<OpenAPI_ServiceResponse><cmmMsgHeader>`` holding only flat, attribute-free
 #: text elements. ``&`` is refused outright, so no entity or character
 #: reference is ever expanded, and a DOCTYPE cannot appear anywhere.
+#: XML whitespace only: Python's ``\s`` also matches Unicode separators that
+#: an XML parser would reject between elements.
+_GATEWAY_WS = r"[ \t\r\n]*"
+#: Element text: no markup, no reference, and none of the control characters
+#: XML 1.0 forbids, so a body ``decode_xml`` would refuse is not read here either.
+_GATEWAY_TEXT = r"[^<&\x00-\x08\x0b\x0c\x0e-\x1f\ufffe\uffff]"
 _GATEWAY_ENVELOPE = re.compile(
-    r"\A﻿?\s*(?:<\?xml[^<>]{0,200}\?>\s*)?"
-    r"<OpenAPI_ServiceResponse>\s*<cmmMsgHeader>\s*"
-    r"((?:<([A-Za-z_]{1,40})>[^<&]{0,2048}</\2>\s*|<[A-Za-z_]{1,40}\s?/>\s*)*)"
-    r"</cmmMsgHeader>\s*</OpenAPI_ServiceResponse>\s*\Z"
+    r"\A\ufeff?(?:<\?xml[^<>]{0,200}\?>)?"
+    + _GATEWAY_WS
+    + r"<OpenAPI_ServiceResponse>"
+    + _GATEWAY_WS
+    + r"<cmmMsgHeader>"
+    + _GATEWAY_WS
+    + r"((?:<([A-Za-z_]{1,40})>"
+    + _GATEWAY_TEXT
+    + r"{0,2048}</\2>"
+    + _GATEWAY_WS
+    + r"|<[A-Za-z_]{1,40}[ \t\r\n]?/>"
+    + _GATEWAY_WS
+    + r")*)</cmmMsgHeader>"
+    + _GATEWAY_WS
+    + r"</OpenAPI_ServiceResponse>"
+    + _GATEWAY_WS
+    + r"\Z"
 )
-_GATEWAY_FIELD = re.compile(r"<([A-Za-z_]{1,40})>([^<&]*)</\1>|<([A-Za-z_]{1,40})\s?/>")
+_GATEWAY_FIELD = re.compile(
+    r"<([A-Za-z_]{1,40})>(" + _GATEWAY_TEXT + r"*)</\1>|<([A-Za-z_]{1,40})[ \t\r\n]?/>"
+)
 
 
 def decode_gateway_envelope(data: bytes) -> dict[str, object] | None:
@@ -199,7 +220,8 @@ def decode_gateway_envelope(data: bytes) -> dict[str, object] | None:
         if name in header:
             # xmltodict would turn a repeated element into a list; do not guess.
             return None
-        value = (field.group(2) or "").strip()
+        # An XML parser normalises line endings to a bare newline.
+        value = (field.group(2) or "").replace("\r\n", "\n").replace("\r", "\n").strip()
         header[name] = value or None
     return {"OpenAPI_ServiceResponse": {"cmmMsgHeader": header}}
 

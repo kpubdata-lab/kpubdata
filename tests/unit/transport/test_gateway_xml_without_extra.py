@@ -184,6 +184,11 @@ _NOT_A_GATEWAY_REFUSAL = {
         b"<OpenAPI_ServiceResponse><cmmMsgHeader><returnReasonCode>30</returnReasonCode>"
         b"<errMsg>\xff\xfe</errMsg></cmmMsgHeader></OpenAPI_ServiceResponse>"
     ),
+    "whitespace_before_declaration": b"\n" + _gateway_body("30"),
+    "control_character_in_text": _gateway_body("30", auth_msg="KEY\x01ERROR"),
+    "unicode_separator_between_elements": _gateway_body("30").replace(
+        b"<cmmMsgHeader>", "<cmmMsgHeader>\u3000".encode()
+    ),
 }
 
 
@@ -245,3 +250,15 @@ def test_hostile_input_returns_promptly() -> None:
         started = time.perf_counter()
         assert decode_gateway_envelope(body) is None
         assert time.perf_counter() - started < 0.5
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "\ufeff".encode() + _gateway_body("30"),
+        _gateway_body("30", auth_msg="LINE ONE\r\nLINE TWO\rLINE THREE"),
+    ],
+    ids=["byte_order_mark", "carriage_returns"],
+)
+def test_bom_and_line_endings_decode_as_xmltodict_does(body: bytes) -> None:
+    assert decode_gateway_envelope(body) == decode_xml(body)
