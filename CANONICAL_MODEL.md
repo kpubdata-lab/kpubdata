@@ -281,7 +281,7 @@ Notes:
 
 - `id` is the stable bound identifier, e.g. `molit.apartment_trades`
 - `representation` matters because the same logical dataset may be offered in more than one form
-- `operations` is the honest set of supported canonical actions
+- `operations` is the honest set of supported canonical actions, except that `Dataset.schema()` is not gated by it: a dataset without `Operation.SCHEMA` may still return a schema, and `None` means the schema is unknown
 - `query_support` describes pagination, filtering, sorting, time-range, and max page-size metadata when known
 - `description` is a human-readable summary of what the dataset provides
 - `tags` are categorization keywords for discovery (e.g. `("weather", "forecast")`)
@@ -489,7 +489,12 @@ class ProviderNotRegisteredError(PublicDataError): ...
 
 
 class CapabilityContractError(PublicDataError): ...
+
+
+class IncompleteListError(PublicDataError): ...
 ```
+
+`CapabilityContractError` is imported from `kpubdata.exceptions`; it is not in `kpubdata.__all__`. `IncompleteListError` is raised by `list_all(partial=True)` (see [`API_SPEC.md`](./API_SPEC.md)).
 
 ## 5. Bound Dataset object
 
@@ -503,7 +508,7 @@ class Dataset:
 
     def list(self, **kwargs) -> RecordBatch: ...
     def list_all(
-        self, *, max_pages: int | None = None, **kwargs
+        self, *, max_pages: int | None = None, partial: bool = False, **kwargs
     ) -> Generator[RecordBatch, None, None]: ...
     def schema(self) -> SchemaDescriptor | None: ...
     def call_raw(self, operation: str, **params) -> object: ...

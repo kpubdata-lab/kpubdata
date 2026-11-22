@@ -540,41 +540,6 @@ ds = client.dataset("datago.metro_fare")
 raw = ds.call_raw("getRltmFare2", numOfRows="5", pageNo="1")
 ```
 
-### metro_path (서울교통공사 최단경로 이동정보)
-
-두 지하철역 간 최단 경로(환승·소요시간 등)를 조회합니다 (`getShtrmPath`).
-
-- 제공 기관: 서울교통공사
-- 데이터 ID: [15143842](https://www.data.go.kr/data/15143842/openapi.do)
-- 주요 파라미터: `numOfRows`, `pageNo`
-
-```python
-ds = client.dataset("datago.metro_path")
-raw = ds.call_raw("getShtrmPath", numOfRows="5", pageNo="1")
-```
-
-### g2b_contract (나라장터 조달계약정보)
-
-조달청(나라장터)에서 제공하는 물품 조달 계약 정보입니다. 수요기관, 품목, 계약금액, 공급업체 등을 조회할 수 있습니다.
-
-- 제공 기관: 조달청
-- 데이터 ID: [15129427](https://www.data.go.kr/data/15129427/openapi.do)
-- 주요 파라미터: `inqryBgnDt` (조회시작일), `inqryEndDt` (조회종료일), `dmndInsttNm` (수요기관명)
-
-| 파라미터 | 필수 | 설명 | 예시 |
-|---|---|---|---|
-| inqryBgnDt | 선택 | 조회 시작 연월 (YYYYMM) | "202201" |
-| inqryEndDt | 선택 | 조회 종료 연월 (YYYYMM) | "202512" |
-| dmndInsttNm | 선택 | 수요기관명 | "한국환경공단" |
-
-```python
-from kpubdata import Client
-
-client = Client.from_env()
-ds = client.dataset("datago.g2b_contract")
-raw = ds.call_raw("getCntrctInfoListThng", inqryBgnDt="202201", inqryEndDt="202512", numOfRows="10")
-```
-
 ### social_enterprise (사회적기업 인증현황)
 
 고용노동부에서 제공하는 사회적기업 인증 현황 정보입니다. 기업명, 소재지, 업종, 인증일 등을 조회할 수 있습니다.

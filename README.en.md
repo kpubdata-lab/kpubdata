@@ -50,7 +50,7 @@ from kpubdata import Client
 
 client = Client()  # reads KPUBDATA_DATAGO_API_KEY
 batch = client.dataset("datago.apt_trade").list(LAWD_CD="11110", DEAL_YMD="202501")
-print(batch.records[0])
+print(batch.items[0])
 ```
 
 Issuing an API key and setting the environment variables is covered in

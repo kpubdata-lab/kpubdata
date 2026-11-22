@@ -31,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The quick start in `README.md` and `README.en.md` reads `batch.items[0]`; `RecordBatch` has no `records` attribute, so the old line raised `AttributeError`.
+- The datago provider page no longer shows `metro_path` and `g2b_contract`, which are not in the catalog and raised `DatasetNotFoundError`.
+- The contract documents state that `Dataset.schema()` is not gated by `operations`, that `CapabilityContractError` is imported from `kpubdata.exceptions`, that spec-backed datasets ignore `call_raw`'s `operation`, that `list_all` takes `partial`, and how `Client.close()` and the context manager behave.
 - SDK entry documentation uses the display name KPubData SDK and focuses on independent Python installation and use (#975). Package, import and CLI names remain `kpubdata`; historical integration records are preserved.
 - The SDK's production-grade criteria (`docs/PRODUCTION_GRADE.md`, `docs/production_grade.yaml`) no longer carry a Studio-only tier, and the Builder conversion work queue is no longer listed in the public documentation navigation (#975). The file stays in the repository; the machine-checked base criteria are unchanged.
 

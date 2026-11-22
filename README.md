@@ -48,7 +48,7 @@ from kpubdata import Client
 
 client = Client()  # KPUBDATA_DATAGO_API_KEY 를 읽는다
 batch = client.dataset("datago.apt_trade").list(LAWD_CD="11110", DEAL_YMD="202501")
-print(batch.records[0])
+print(batch.items[0])
 ```
 
 API 키 발급과 환경 변수 설정은 [빠른 시작](docs/quickstart.md), 실제로 사용하는
