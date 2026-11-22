@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-11-19T10:38:33+00:00",
+  "generated_at": "2026-11-22T01:47:38+00:00",
   "spec_datasets": {
     "total": 25,
     "verified": 24,
     "verified_recent_90d": 24,
-    "recent_reference": "2026-11-19",
+    "recent_reference": "2026-11-22",
     "per_dataset": {
       "datago.air_quality": {
         "last_verified": "2026-11-18",
@@ -15,7 +15,7 @@
         "status": "active"
       },
       "datago.airkorea_forecast": {
-        "last_verified": "2026-11-18",
+        "last_verified": "2026-11-22",
         "status": "active"
       },
       "datago.apt_rent": {
