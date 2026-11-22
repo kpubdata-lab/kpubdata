@@ -841,3 +841,141 @@ def test_confirm_holds_a_non_date_base_date_to_the_dispatch_commit(repo: Path) -
     assert rerecord.confirm_request("datago.village_fcst", repo, base) == []
     path.write_text(kma.replace(date.group(3), "x?serviceKey=y", 1), encoding="utf-8")
     assert rerecord.confirm_request("datago.village_fcst", repo, base)
+
+
+# --- response.items_path: the one parsing key a patch may correct ------------------------
+
+_RESPONSE = (
+    "response:\n  format: json\n  envelope: datago_standard\n"
+    "  items_path: response.body.items.item\n  total_count_path: response.body.totalCount\n"
+)
+_ITEMS_BASE = _PATCH_BASE.replace("fields:\n", _RESPONSE + "fields:\n")
+
+
+def test_a_patch_may_correct_response_items_path() -> None:
+    patched = _ITEMS_BASE.replace("items.item\n", "items\n")
+    assert rerecord.check_spec_patch(_ITEMS_BASE, patched) == []
+
+
+def test_the_airkorea_forecast_correction_passes() -> None:
+    spec = (REPO_ROOT / "src/kpubdata/specs/datago/airkorea_forecast.yaml").read_text(
+        encoding="utf-8"
+    )
+    old = "items_path: response.body.items.item\n"
+    assert old in spec
+    patched = spec.replace(old, "items_path: response.body.items\n")
+    assert rerecord.check_spec_patch(spec, patched) == []
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        ("format: json", "format: xml"),
+        ("envelope: datago_standard", "envelope: gyeonggi"),
+        ("response.body.totalCount", "response.body.total"),
+    ],
+)
+def test_items_path_with_another_response_change_is_refused(old: str, new: str) -> None:
+    patched = _ITEMS_BASE.replace("items.item\n", "items\n").replace(old, new)
+    problems = rerecord.check_spec_patch(_ITEMS_BASE, patched)
+    assert problems
+    assert "response" in problems[0]
+
+
+def test_another_response_key_cannot_be_added() -> None:
+    patched = _ITEMS_BASE.replace("fields:\n", "  error: {style: http_status}\nfields:\n")
+    assert "response" in rerecord.check_spec_patch(_ITEMS_BASE, patched)[0]
+
+
+def test_removing_response_items_path_is_refused() -> None:
+    patched = _ITEMS_BASE.replace("  items_path: response.body.items.item\n", "")
+    problems = rerecord.check_spec_patch(_ITEMS_BASE, patched)
+    assert any("adds or removes response.items_path" in problem for problem in problems)
+
+
+def test_adding_response_items_path_is_refused() -> None:
+    base = _ITEMS_BASE.replace("  items_path: response.body.items.item\n", "")
+    problems = rerecord.check_spec_patch(base, _ITEMS_BASE)
+    assert any("adds or removes response.items_path" in problem for problem in problems)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "''",
+        "' '",
+        "response.body items",
+        "response..items",
+        ".response.body",
+        "response.body.",
+        "response.body[0]",
+        "'response.body.items\\n'",
+        '"response.body.items\\u2028x"',
+        "1items",
+        "null",
+        "42",
+        "[response, body]",
+        "{a: b}",
+        "!!binary cmVzcG9uc2U=",
+        "*undefined_alias",
+        "|\n    response.body.items",
+    ],
+)
+def test_an_items_path_that_is_not_a_dotted_path_is_refused(value: str) -> None:
+    patched = _ITEMS_BASE.replace("response.body.items.item\n", f"{value}\n")
+    assert rerecord.check_spec_patch(_ITEMS_BASE, patched)
+
+
+def test_the_refusal_names_response_items_path_as_allowed() -> None:
+    patched = _ITEMS_BASE.replace("status: active", "status: broken")
+    assert "response.items_path may change" in rerecord.check_spec_patch(_ITEMS_BASE, patched)[0]
+
+
+def test_an_items_path_change_does_not_let_the_request_change() -> None:
+    patched = _ITEMS_BASE.replace("items.item\n", "items\n").replace(
+        "param_name: serviceKey", "param_name: key"
+    )
+    assert "auth" in rerecord.check_spec_patch(_ITEMS_BASE, patched)[0]
+
+
+def test_confirm_passes_an_items_path_correction(repo: Path) -> None:
+    base = _bus_repo(repo)
+    old = "items_path: response.msgBody.busArrivalList"
+    assert old in _BUS
+    (repo / _BUS_PATH).write_text(_BUS.replace(old, f"{old}.item"), encoding="utf-8")
+    assert rerecord.confirm_request("datago.bus_arrival", repo, base) == []
+
+
+def test_confirm_still_compares_the_rest_of_the_response(repo: Path) -> None:
+    base = _bus_repo(repo)
+    old = "code_path: response.msgHeader.resultCode"
+    assert old in _BUS
+    (repo / _BUS_PATH).write_text(_BUS.replace(old, f"{old}X"), encoding="utf-8")
+    problems = rerecord.confirm_request("datago.bus_arrival", repo, base)
+    assert any("different request" in problem for problem in problems)
+
+
+def test_an_items_path_longer_than_the_limit_is_refused() -> None:
+    long_path = ".".join(["a"] * 101)
+    assert len(long_path) > 200
+    patched = _ITEMS_BASE.replace("response.body.items.item\n", f"{long_path}\n")
+    assert rerecord.check_spec_patch(_ITEMS_BASE, patched)
+
+
+# confirm_request is a second, independent guard: it holds items_path to the same rule.
+@pytest.mark.parametrize("value", ["$.response.msgBody", "{operation}.list"])
+def test_confirm_refuses_an_items_path_that_is_not_a_dotted_path(repo: Path, value: str) -> None:
+    base = _bus_repo(repo)
+    old = "items_path: response.msgBody.busArrivalList"
+    (repo / _BUS_PATH).write_text(_BUS.replace(old, f"items_path: '{value}'"), encoding="utf-8")
+    problems = rerecord.confirm_request("datago.bus_arrival", repo, base)
+    assert any("items_path" in problem for problem in problems)
+
+
+def test_confirm_refuses_a_removed_items_path(repo: Path) -> None:
+    base = _bus_repo(repo)
+    old = "  items_path: response.msgBody.busArrivalList\n"
+    assert old in _BUS
+    (repo / _BUS_PATH).write_text(_BUS.replace(old, ""), encoding="utf-8")
+    problems = rerecord.confirm_request("datago.bus_arrival", repo, base)
+    assert any("items_path" in problem for problem in problems)

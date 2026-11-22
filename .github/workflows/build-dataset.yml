@@ -34,7 +34,8 @@
 # that corrects the spec — with `https_dataset` to record with that commit's version of
 # the spec file, so a correction to its descriptive text and the recording it voids
 # land in one pull request. Only the title, description, source, fields and license
-# blocks may differ from main; https_rerecord.py refuses a patch to any block that
+# blocks, and the value of response.items_path (where the records sit in the answer,
+# read after it arrives), may differ from main; https_rerecord.py refuses a patch to any block that
 # shapes the request or decides where the key goes, both before recording and after,
 # and a second step loads the result with kpubdata's own loader before the key is used.
 # The commit must be on a branch of this repository, not only in a fork.
@@ -50,7 +51,7 @@ on:
         description: "다시 녹화할 spec id — insecure_http_baseline.txt 에 있으면 https 로 옮긴다(#893), 이미 https 인 data.go.kr spec 이면 녹화만 다시 한다(#907)"
         required: false
       spec_commit:
-        description: "https_dataset 과 함께: spec 파일을 이 커밋(40자 id)의 것으로 바꿔 녹화한다 — title/description/source/fields/license 만 바뀔 수 있다"
+        description: "https_dataset 과 함께: spec 파일을 이 커밋(40자 id)의 것으로 바꿔 녹화한다 — title/description/source/fields/license 와 response.items_path 값만 바뀔 수 있다"
         required: false
 
 # Each job names what it needs.
@@ -477,7 +478,7 @@ jobs:
           if [ -n "$SPEC_COMMIT" ]; then
             # A corrected spec recorded in the same run (#889, #931, #933).
             TITLE="fix(specs): re-record $DATASET with its corrected spec"
-            WHAT="Takes the spec of \`$DATASET\` from $SPEC_COMMIT — a change to its descriptive blocks only, checked by https_rerecord.py — and re-records its fixtures against it through the re-record mode of Build Dataset. Reviewers: a change to \`license\` (redistribution, attribution) changes what Builder may publish, not only wording."
+            WHAT="Takes the spec of \`$DATASET\` from $SPEC_COMMIT — a change to its descriptive blocks and response.items_path only, checked by https_rerecord.py — and re-records its fixtures against it through the re-record mode of Build Dataset. Reviewers: a change to \`license\` (redistribution, attribution) changes what Builder may publish, not only wording."
             REFS="Refs #907"
           elif git diff --quiet "$GITHUB_SHA" -- scripts/insecure_http_baseline.txt; then
             # Already on https: only the recording is redone (#907).
