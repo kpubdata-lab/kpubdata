@@ -65,7 +65,8 @@ def _family(
 def test_datago_family_list_refusal_names_provider_and_dataset(name: str) -> None:
     transport = RecordingTransport()
     adapter = _family(name, transport)
-    dataset = adapter.get_dataset("generic") if name == "datago" else adapter.list_datasets()[0]
+    # A queryable catalogue dataset: datago.generic refuses list() before filters.
+    dataset = next(d for d in adapter.list_datasets() if not d.id.endswith(".generic"))
 
     with pytest.raises(InvalidRequestError) as excinfo:
         _ = adapter.query_records(dataset, Query(filters={"zzfilter": [1]}))
