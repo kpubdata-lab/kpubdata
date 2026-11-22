@@ -569,13 +569,15 @@ Avoid turning the public API into:
 Preferred:
 
 ```python
-client.dataset("seoul.subway_realtime_arrival").list(station_name="강남")
+client.dataset("seoul.subway_realtime_arrival").list(stationName="강남")
 ```
 
 Acceptable advanced usage:
 
 ```python
-client.dataset("seoul.subway_realtime_arrival").call_raw(operation="list", stationNm="강남")
+client.dataset("seoul.subway_realtime_arrival").call_raw(
+    "realtimeStationArrival", stationName="강남"
+)
 ```
 
 Discouraged as the main public entry point:
