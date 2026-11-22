@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import logging
+import math
+import numbers
 import os
+from collections.abc import Mapping
 from typing import cast
 
 from kpubdata import _probe
@@ -13,7 +16,7 @@ from kpubdata.catalog import Catalog
 from kpubdata.config import KPubDataConfig
 from kpubdata.core.dataset import Dataset
 from kpubdata.core.protocol import ProviderAdapter
-from kpubdata.exceptions import ConfigError
+from kpubdata.exceptions import ConfigError, InvalidRequestError, ProviderNotRegisteredError
 from kpubdata.registry import ProviderRegistry
 from kpubdata.transport.cache import ResponseCache
 from kpubdata.transport.http import HttpTransport, TransportConfig
@@ -52,8 +55,21 @@ class Client:
         An unknown keyword argument is a ``TypeError`` (#781). It used to be
         accepted and dropped, so a typo, or an option this version does not
         have, passed for a setting that was applied.
+
+        An option of the wrong type or out of range is a ``ConfigError`` here,
+        at construction, rather than a raw error at the first call. In
+        particular ``env_keys`` must be a real ``bool``: the string ``"no"`` is
+        truthy and would have turned the environment fallback on.
         """
 
+        _validate_options(
+            provider_keys=provider_keys,
+            timeout=timeout,
+            max_retries=max_retries,
+            cache=cache,
+            cache_ttl_seconds=cache_ttl_seconds,
+            env_keys=env_keys,
+        )
         self._config: KPubDataConfig = KPubDataConfig(
             provider_keys=provider_keys or {},
             timeout=timeout,
@@ -191,7 +207,15 @@ class Client:
         one-record ``list`` call. Returns ``None`` for any other dataset — an
         unknown id, a raw-only dataset such as ``datago.generic``, or another
         provider's catalogue dataset, whose error codes are not data.go.kr's.
+
+        The provider part of the id is matched case-insensitively, as
+        ``dataset`` matches it.
+
+        Raises:
+            InvalidRequestError: ``dataset_id`` is not a str.
         """
+        if not isinstance(dataset_id, str):
+            raise InvalidRequestError(f"dataset_id must be a str, got {type(dataset_id).__name__}")
         logger.debug("Probing dataset", extra={"dataset_id": dataset_id})
         return _probe.probe_dataset(dataset_id, config=self._config)
 
@@ -199,8 +223,18 @@ class Client:
         """Probe every spec-defined dataset, or those of one ``provider``.
 
         One call per dataset, as in ``probe``; the run shares a single
-        fast-fail transport that is closed before returning.
+        fast-fail transport that is closed before returning. ``provider`` is
+        matched case-insensitively, as ``datasets.list`` matches it.
+
+        Raises:
+            InvalidRequestError: ``provider`` is not a str.
+            ProviderNotRegisteredError: ``provider`` was given but is unknown.
         """
+        if provider is not None:
+            if not isinstance(provider, str):
+                raise InvalidRequestError(f"provider must be a str, got {type(provider).__name__}")
+            if provider not in self._registry:
+                raise ProviderNotRegisteredError(f"Provider '{provider}' is not registered")
         logger.debug("Probing datasets", extra={"provider": provider})
         return _probe.probe_all(provider=provider, config=self._config)
 
@@ -255,6 +289,63 @@ def _requires_api_key(adapter: ProviderAdapter) -> bool:
     return cast(bool, getattr(adapter, "requires_api_key", True))
 
 
+def _validate_options(
+    *,
+    provider_keys: object,
+    timeout: object,
+    max_retries: object,
+    cache: object,
+    cache_ttl_seconds: object,
+    env_keys: object,
+) -> None:
+    """Refuse a constructor option of the wrong type or out of range with ConfigError."""
+    if provider_keys is not None:
+        if not isinstance(provider_keys, Mapping):
+            raise ConfigError(
+                f"provider_keys must be a dict of str to str, got {type(provider_keys).__name__}"
+            )
+        for name, value in cast(Mapping[object, object], provider_keys).items():
+            # A None value counts as absent, as it always has: the key is then
+            # looked up from the environment (when allowed) at call time.
+            if not isinstance(name, str) or not isinstance(value, str | None):
+                raise ConfigError(
+                    "provider_keys must be a dict of str to str, got an entry of "
+                    f"{type(name).__name__} to {type(value).__name__}"
+                )
+    # None and an infinite timeout both mean "no timeout" to httpx, and worked before.
+    if timeout is not None and (
+        isinstance(timeout, bool)
+        or not isinstance(timeout, numbers.Real)
+        or math.isnan(timeout)
+        or timeout <= 0
+    ):
+        raise ConfigError(
+            f"timeout must be a positive number or None, got {type(timeout).__name__}"
+        )
+    if (
+        isinstance(max_retries, bool)
+        or not isinstance(max_retries, numbers.Integral)
+        or max_retries < 0
+    ):
+        raise ConfigError(
+            f"max_retries must be an integer >= 0, got {type(max_retries).__name__}"
+            + (f" {max_retries}" if isinstance(max_retries, numbers.Integral) else "")
+        )
+    if not isinstance(cache, bool | ResponseCache):
+        raise ConfigError(f"cache must be a bool or a ResponseCache, got {type(cache).__name__}")
+    if (
+        isinstance(cache_ttl_seconds, bool)
+        or not isinstance(cache_ttl_seconds, numbers.Integral)
+        or cache_ttl_seconds < 0
+    ):
+        raise ConfigError(
+            f"cache_ttl_seconds must be an integer >= 0, got {type(cache_ttl_seconds).__name__}"
+            + (f" {cache_ttl_seconds}" if isinstance(cache_ttl_seconds, numbers.Integral) else "")
+        )
+    if not isinstance(env_keys, bool):
+        raise ConfigError(f"env_keys must be True or False, got {type(env_keys).__name__}")
+
+
 def _resolve_cache(cache: bool | ResponseCache) -> ResponseCache | None:
     """Normalize the cache argument into a ResponseCache instance or None."""
     if cache is False:
@@ -284,6 +375,9 @@ def _resolve_cache_ttl(ttl_override: object) -> int:
     if raw_ttl is None or raw_ttl == "":
         return 86400
     try:
-        return int(raw_ttl)
+        ttl = int(raw_ttl)
     except ValueError as exc:
         raise ConfigError(f"KPUBDATA_CACHE_TTL must be an integer, got {raw_ttl!r}") from exc
+    if ttl < 0:
+        raise ConfigError(f"KPUBDATA_CACHE_TTL must be an integer >= 0, got {raw_ttl!r}")
+    return ttl

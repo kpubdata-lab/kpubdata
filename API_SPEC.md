@@ -93,6 +93,12 @@ client = Client(
 
 Any other keyword argument is a `TypeError` (#781): an option is applied or
 refused, never silently dropped.
+An option of the wrong type or out of range is a `ConfigError` at construction:
+`env_keys` must be a real `bool` (a string such as `"no"` is refused, not read as
+true), `cache` a `bool` or a `ResponseCache`, `max_retries` and
+`cache_ttl_seconds` integers `>= 0` (a `bool` is not an integer here), `timeout`
+a positive number or `None`, and `provider_keys` a dict of str to str (a `None`
+value counts as absent).
 
 ### Environment construction
 
@@ -137,6 +143,11 @@ returned in descending relevance order.
 - **Fuzzy match** via `difflib.SequenceMatcher` → included if score ≥ *threshold*.
 - **threshold** default is `0.5`.  Raise it (e.g. `0.8`) for stricter results,
   lower it (e.g. `0.2`) for broader recall.
+
+Discovery refuses arguments of the wrong type with canonical errors:
+`client.dataset()` given a non-str id raises `DatasetNotFoundError`;
+`datasets.list()` and `datasets.search()` given a non-str `provider`, a non-str
+`text` or a `threshold` that is not a finite number raise `InvalidRequestError`.
 
 Each `DatasetRef` returned by discovery exposes:
 - `id`, `provider`, `dataset_key`, `name`, `representation`, `operations`
@@ -377,6 +388,11 @@ every: list[ProbeResult] = client.probe_all(provider="datago")
 - `Client.probe_all(*, provider=None) -> list[ProbeResult]` — every
   spec-defined dataset, or those of one provider. It does not enumerate
   catalogue datasets; probe those one at a time with `probe`.
+- Provider names are matched case-insensitively, as in `dataset()` and
+  `datasets.list()`. `probe_all` raises `ProviderNotRegisteredError` for an
+  unknown `provider`, as `datasets.list` does; `probe` still returns `None` for
+  an unknown id. A non-str `dataset_id` or `provider` raises
+  `InvalidRequestError`.
 - A failed call is the verdict, not an exception.
 - Probing uses its own fast-fail transport (15 s timeout, zero retries, no
   cache), not the client's `timeout`, `max_retries` or `cache`.
