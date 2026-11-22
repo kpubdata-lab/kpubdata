@@ -235,12 +235,15 @@ class LawAdapter:
             decoded_obj: object = decode_json(response.content)
         except ParseError as exc:
             exc.provider = "law"
+            exc.dataset_id = dataset_id or None
             logger.debug("Law response parsing failed", extra={"dataset_id": dataset_id})
             raise
 
         if not isinstance(decoded_obj, dict):
             logger.debug("Law decoded payload invalid type", extra={"dataset_id": dataset_id})
-            raise ParseError("Decoded payload is not an object", provider="law")
+            raise ParseError(
+                "Decoded payload is not an object", provider="law", dataset_id=dataset_id or None
+            )
 
         payload = cast(dict[str, object], decoded_obj)
         self._raise_for_error_payload(payload, dataset_id)

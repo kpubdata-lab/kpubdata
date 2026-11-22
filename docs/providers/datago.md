@@ -69,14 +69,28 @@ data.go.kr은 **계정용 공통 인증키 1개만 있으면 끝나는 구조가
 
 ### 6단계: 활성화 확인
 
-키가 활성화되었는지 확인하려면 다음과 같이 테스트합니다:
+**해당 API에 대한 활용신청·승인이 완료되고 HTTPS 호출 경로가 확인된 경우에만** 실제
+요청을 수행하세요. 앞서 환경변수에 설정한 키를 사용하여 SDK의 단일 데이터셋
+도달성 검사를 실행할 수 있습니다(실제 제공기관 호출이며 키·사용량이 필요합니다).
 
-```bash
-# curl로 직접 테스트 (단기예보 API 예시)
-curl "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=YOUR_KEY&dataType=json&numOfRows=1&pageNo=1&base_date=20250401&base_time=0500&nx=55&ny=127"
+```python
+from kpubdata import Client
+
+with Client.from_env() as client:
+    result = client.probe("datago.village_fcst")
+    print(result.status if result is not None else "not_probeable")
 ```
 
-정상 응답이 오면 활성화가 완료된 것입니다. `403 Forbidden`, `SERVICE_KEY_IS_NOT_REGISTERED_ERROR`, 또는 인증 관련 오류가 나오면 활용신청 여부와 승인 대기 시간을 다시 확인하세요.
+`available`은 이 시점의 단일 probe 결과일 뿐 모든 페이지·데이터셋의 실API
+검증을 뜻하지 않습니다. `application_required`나 인증 관련 오류가 나오면
+해당 서비스의 활용신청·승인 상태를 확인하세요. 키가 없으면 `auth_unknown`으로
+분류될 수 있으며, 이 경우 실제 요청이 전송되지 않습니다.
+
+**HTTP URL에 `serviceKey`를 붙인 `curl` 명령을 실행하지 마세요.**
+평문 전송 위험뿐 아니라 셸 기록과 프로세스 인자에도 키가 남을 수 있습니다.
+미확인 URL은 호출하지 말고 [수동 실API 검증 절차](../manual-live-smoke.md)를
+따르세요. SDK의 인증정보 포함 HTTP 요청은 전송 전에 거부되며, 이 거부를
+데이터셋 정상 작동이나 활용신청 승인 증거로 간주해서는 안 됩니다.
 
 ## KPubData에서 신청해야 할 API 목록
 
@@ -354,7 +368,9 @@ result = ds.list(LAWD_CD="11110", DEAL_YMD="202401")
 
 ### generic (범용 엔드포인트)
 
-KPubData에 정식 등록되지 않은 임의의 data.go.kr 엔드포인트를 호출할 수 있는 비상구입니다. 카탈로그가 없는 API를 즉시 사용해야 할 때 활용하세요.
+카탈로그에 없는 data.go.kr 엔드포인트를 위한 원본 응답 비상구입니다. 공식 서비스의
+**활용 승인과 HTTPS 지원을 별도로 확인한 경우에만** 사용하세요. `generic`이 해당
+엔드포인트의 정상 작동·이용허락·실API 검증을 보증하지는 않습니다.
 
 - 제공 기관: data.go.kr (모든 기관)
 - 호출 방식: `call_raw(operation, _base_url=..., **params)` 만 지원합니다. `list()`는 지원하지 않습니다.
@@ -373,7 +389,7 @@ ds = client.dataset("datago.generic")
 # 예: 동네예보 API를 generic으로 호출
 result = ds.call_raw(
     "getVilageFcst",
-    _base_url="http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0",
+    _base_url="https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0",
     base_date="20250401",
     base_time="0500",
     nx="55",
@@ -385,13 +401,19 @@ result = ds.call_raw(
 # 비표준 envelope 응답을 받는 엔드포인트
 result = ds.call_raw(
     "getCustomData",
-    _base_url="http://apis.data.go.kr/XXXXXXX/SomeService",
+    _base_url="https://apis.data.go.kr/XXXXXXX/SomeService",
     _envelope=False,
     someParam="value",
 )
 ```
 
-> 주의: generic은 정규화된 `RecordBatch`를 반환하지 않고 원본 응답(dict)을 그대로 돌려줍니다. 페이지네이션·필드 정규화·타입 변환은 호출자가 직접 처리해야 합니다. 자주 사용하는 데이터셋이라면 정식 카탈로그 등록(`기여자를 위한 새 데이터셋 추가 가이드` 참고)을 권장합니다.
+> 주의: generic은 정규화된 `RecordBatch`를 반환하지 않고 원본 응답(dict)을
+그대로 돌려줍니다. 페이지네이션·필드 정규화·타입 변환은 호출자가 직접 처리해야
+합니다. 인증정보를 포함한 HTTP 요청은 SDK가 **전송 전에 거부**합니다.
+실제로 확인되지 않은 HTTPS 전환·HTTP 우회·인증키 포함 URL 작성은 금지하며,
+검증되지 않은 엔드포인트는 지원 완료로 표시하지 않습니다.
+새 데이터셋 등록은 [안정화 동결 정책](https://github.com/kpubdata-lab/kpubdata/issues/918)의
+별도 범위 승인이 있을 때만 검토합니다.
 
 ### tour_kor_area (한국관광공사 지역기반 관광정보)
 
@@ -516,41 +538,6 @@ raw = ds.call_raw(
 ```python
 ds = client.dataset("datago.metro_fare")
 raw = ds.call_raw("getRltmFare2", numOfRows="5", pageNo="1")
-```
-
-### metro_path (서울교통공사 최단경로 이동정보)
-
-두 지하철역 간 최단 경로(환승·소요시간 등)를 조회합니다 (`getShtrmPath`).
-
-- 제공 기관: 서울교통공사
-- 데이터 ID: [15143842](https://www.data.go.kr/data/15143842/openapi.do)
-- 주요 파라미터: `numOfRows`, `pageNo`
-
-```python
-ds = client.dataset("datago.metro_path")
-raw = ds.call_raw("getShtrmPath", numOfRows="5", pageNo="1")
-```
-
-### g2b_contract (나라장터 조달계약정보)
-
-조달청(나라장터)에서 제공하는 물품 조달 계약 정보입니다. 수요기관, 품목, 계약금액, 공급업체 등을 조회할 수 있습니다.
-
-- 제공 기관: 조달청
-- 데이터 ID: [15129427](https://www.data.go.kr/data/15129427/openapi.do)
-- 주요 파라미터: `inqryBgnDt` (조회시작일), `inqryEndDt` (조회종료일), `dmndInsttNm` (수요기관명)
-
-| 파라미터 | 필수 | 설명 | 예시 |
-|---|---|---|---|
-| inqryBgnDt | 선택 | 조회 시작 연월 (YYYYMM) | "202201" |
-| inqryEndDt | 선택 | 조회 종료 연월 (YYYYMM) | "202512" |
-| dmndInsttNm | 선택 | 수요기관명 | "한국환경공단" |
-
-```python
-from kpubdata import Client
-
-client = Client.from_env()
-ds = client.dataset("datago.g2b_contract")
-raw = ds.call_raw("getCntrctInfoListThng", inqryBgnDt="202201", inqryEndDt="202512", numOfRows="10")
 ```
 
 ### social_enterprise (사회적기업 인증현황)
@@ -725,9 +712,8 @@ KPubData는 `catalogue.json`의 `provider_family: "odcloud"` 필드를 통해 �
 
 증상: API 키를 발급받았으나 호출 시 401 에러 또는 "SERVICE_KEY_IS_NOT_REGISTERED_ERROR" 메시지가 반환됩니다.
 
-**실제 에러 예시 (Terminal/curl):**
+**오류 응답 형식 예시 (민감정보 없는 설명용, 실API 재현 기록 아님):**
 ```text
-$ curl "http://apis.data.go.kr/..."
 HTTP/1.1 401 Unauthorized
 Content-Type: text/xml
 ...
@@ -787,10 +773,14 @@ kpubdata.exceptions.AuthError: SERVICE_KEY_IS_NOT_REGISTERED_ERROR (30)
 
 ### SSL/TLS 관련 에러
 
-일부 API에서 `https`로 호출할 때 SSL 에러가 발생할 수 있습니다.
+TLS 연결 또는 인증서 검증이 실패하면 해당 경로를 **미검증·이용 불가**로
+분류하고 공식 제공기관의 HTTPS 지원을 확인하세요. 검증을 비활성화하거나
+`http://`로 되돌려서 인증키를 전송하지 마세요.
 
-- KPubData의 catalogue.json에 정의된 base_url은 `http`를 사용합니다.
-- 로컬 테스트 환경에서 SSL 에러가 발생하면 `http` 프로토콜로 호출되는지 확인합니다.
+일부 기존 catalogue-only 항목에는 HTTP URL이 남아 있습니다. 이런 경로에서
+자격 증명을 포함한 요청은 SDK가 전송 전에 거부하므로, URL이 선언되어 있다는
+사실만으로 실제 호출 가능 또는 실API 검증 완료라고 판단하면 안 됩니다.
+번들 HTTPS spec과 catalogue-only 항목의 검증 범위는 별개입니다.
 
 ### 심의 승인 대기 중
 
@@ -802,7 +792,11 @@ kpubdata.exceptions.AuthError: SERVICE_KEY_IS_NOT_REGISTERED_ERROR (30)
 
 ## 기여자를 위한 새 데이터셋 추가 가이드
 
-공공데이터포털에는 수천 개의 Open API가 존재합니다. 새로운 datago 데이터셋을 KPubData에 추가하려면 다음 절차를 따릅니다.
+공공데이터포털에는 수천 개의 Open API가 존재합니다. 다만 SDK는 현재
+[안정화 전용 개발 모드](https://github.com/kpubdata-lab/kpubdata/issues/918)이므로
+신규 데이터셋 구현은 별도의 소유자 범위 승인 전에는 착수하지 않습니다.
+아래는 승인 후에 적용할 검증 원칙이며, HTTP API·미확인 라이선스를 허용하는
+절차가 아닙니다.
 
 ### 1. API 선정 및 이슈 등록
 
@@ -818,19 +812,20 @@ kpubdata.exceptions.AuthError: SERVICE_KEY_IS_NOT_REGISTERED_ERROR (30)
 
 1. 위 "API 키 발급 방법" 절차를 따라 해당 API에 대한 활용신청을 완료합니다.
 2. 키 활성화까지 1~2시간 대기합니다.
-3. curl 또는 브라우저에서 API 호출이 성공하는지 확인합니다.
+3. 승인된 HTTPS 경로와 해당 서비스의 이용조건을 확인합니다. 인증키를 URL이나
+   브라우저 주소창/셸 명령으로 직접 전달하지 말고 SDK의 승인된 검증 경로를 사용합니다.
 
-### 3. Fixture 저장
+### 3. Fixture 기록 계획 (spec 정의 후)
 
-API의 실제 응답을 fixture 파일로 저장합니다.
-
-```bash
-# API를 직접 호출하여 응답을 fixture로 저장
-curl "http://apis.data.go.kr/[SERVICE_PATH]/[OPERATION]?serviceKey=YOUR_KEY&..." > tests/fixtures/datago/[dataset_name].json
-```
-
-- 저장 위치: `tests/fixtures/datago/[dataset_name].json`
-- JSON과 XML 응답 모두 저장하는 것을 권장합니다.
+`curl`로 응답을 직접 저장한 파일은 공식 fixture provenance가 아니며,
+평문 HTTP와 URL 인자에 키를 남길 수 있으므로 **사용하지 마세요**.
+별도 범위·서비스 이용 승인 후 spec을 정의한 경우에만 기존 기록 절차인
+`make record DATASET=datago.<dataset_key>`를 사용합니다. 키/국내 네트워크/HTTPS
+조건과 녹화자·근거 검사를 모두 충족해야 하며, `make verify`가 재생 계약을 검증합니다.
+**이 명령들은 이 문서 작성 과정에서 실행하지 않았습니다.**
+상세 조건은 [실API 기록 절차](../manual-live-smoke.md)와
+[데이터셋 검증 규칙](../PRODUCTION_GRADE.md)을 확인하세요.
+기존 catalogue-only 선언만으로는 spec용 기록 절차가 적용되지 않습니다.
 
 ### 4. catalogue.json에 데이터셋 등록
 
@@ -840,7 +835,7 @@ curl "http://apis.data.go.kr/[SERVICE_PATH]/[OPERATION]?serviceKey=YOUR_KEY&..."
 {
   "dataset_key": "your_dataset",
   "name": "데이터셋 한글명 (English Name)",
-  "base_url": "http://apis.data.go.kr/[SERVICE_PATH]",
+  "base_url": "https://apis.data.go.kr/[SERVICE_PATH]",
   "default_operation": "[DEFAULT_OPERATION]",
   "representation": "api_json",
   "service_key_param": "serviceKey",
@@ -856,7 +851,9 @@ curl "http://apis.data.go.kr/[SERVICE_PATH]/[OPERATION]?serviceKey=YOUR_KEY&..."
 
 주의 사항:
 - `format_param`은 API마다 다릅니다 (`resultType`, `dataType`, `returnType`, `_type` 등). API 문서를 확인하세요.
-- `base_url`은 API 상세 페이지의 End Point를 참고합니다.
+- `base_url`은 공식 API 상세 페이지의 **실제로 지원되는 HTTPS** End Point를
+  확인한 뒤 사용합니다. HTTPS가 검증되지 않으면 인증키를 이용한 호출을
+  진행하거나 정상 동작을 주장하지 않습니다.
 
 ### 5. 테스트 작성
 
@@ -876,15 +873,12 @@ curl "http://apis.data.go.kr/[SERVICE_PATH]/[OPERATION]?serviceKey=YOUR_KEY&..."
 
 ## Integration 테스트 실행
 
-datago의 실 API 테스트를 실행하려면:
-
-```bash
-# 환경변수 설정
-export KPUBDATA_DATAGO_API_KEY="your-key"
-
-# datago integration 테스트만 실행
-uv run pytest tests/integration/test_datago_live.py -m integration -ra -v
-```
+실제 제공기관 테스트는 **서비스 활용 승인·검증된 HTTPS 요청 경로·신뢰할 수
+있는 국내 실행 환경**을 확보한 경우에만 수행하세요. 기본 pytest 실행에는
+integration 제외 설정이 있으며, 캐시·replay를 끄고 하나 이상의 실제 성공
+케이스를 증빙해야 합니다. 실행 방법과 결과 기록 기준은
+[수동 실API 검증 절차](../manual-live-smoke.md)를 따릅니다. 이 문서의 예시는
+실제 API 호출 또는 검증 성공의 증거가 아닙니다.
 
 ## 검증 현황
 

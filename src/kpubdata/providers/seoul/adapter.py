@@ -208,6 +208,7 @@ class SeoulAdapter:
             decoded: object = decode_json(response.content)
         except ParseError as exc:
             exc.provider = "seoul"
+            exc.dataset_id = dataset_id or None
             raise
 
         if isinstance(decoded, dict):

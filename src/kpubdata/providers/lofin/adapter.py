@@ -267,9 +267,11 @@ class LofinAdapter:
 
         try:
             decoded_obj: object = decode_json(response.content)
-        except ValueError as exc:
+        except ParseError as exc:
+            exc.provider = "lofin"
+            exc.dataset_id = dataset_id or None
             logger.debug("LOFIN response parsing failed", extra={"dataset_id": dataset_id})
-            raise ParseError("Failed to parse LOFIN response", provider="lofin") from exc
+            raise
 
         if isinstance(decoded_obj, dict):
             payload = cast(dict[str, object], decoded_obj)
@@ -277,7 +279,9 @@ class LofinAdapter:
             return payload
 
         logger.debug("LOFIN decoded payload invalid type", extra={"dataset_id": dataset_id})
-        raise ParseError("Decoded payload is not an object", provider="lofin")
+        raise ParseError(
+            "Decoded payload is not an object", provider="lofin", dataset_id=dataset_id or None
+        )
 
     def _validate_envelope(
         self, payload: dict[str, object], dataset: DatasetRef

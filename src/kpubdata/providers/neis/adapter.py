@@ -26,6 +26,7 @@ from kpubdata.exceptions import (
     AuthError,
     DatasetNotFoundError,
     InvalidRequestError,
+    ParseError,
     ProviderResponseError,
 )
 from kpubdata.providers._common import build_schema_from_metadata, load_catalogue
@@ -176,7 +177,12 @@ class NeisAdapter:
             # and on the sensitive list today, and the value holds if that changes.
             secret_values=(self._require_api_key(),),
         )
-        decoded: object = decode_json(response.content)
+        try:
+            decoded: object = decode_json(response.content)
+        except ParseError as exc:
+            exc.provider = "neis"
+            exc.dataset_id = dataset_id
+            raise
         if not isinstance(decoded, dict):
             raise ProviderResponseError(
                 "NEIS response is not a JSON object",

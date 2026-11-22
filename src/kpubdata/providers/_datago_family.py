@@ -319,13 +319,16 @@ class DataGoFamilyAdapter:
                 decoded = decode_json(response.content)
         except ParseError as exc:
             exc.provider = self.provider_name
+            exc.dataset_id = dataset_id or None
             self._logger.debug(
                 f"{self._label} response parsing failed", extra={"dataset_id": dataset_id}
             )
             raise
         except ImportError as exc:
             raise ParseError(
-                f"Failed to parse {self.provider_name} response", provider=self.provider_name
+                f"Failed to parse {self.provider_name} response",
+                provider=self.provider_name,
+                dataset_id=dataset_id or None,
             ) from exc
 
         if isinstance(decoded, dict):
@@ -334,7 +337,11 @@ class DataGoFamilyAdapter:
         self._logger.debug(
             f"{self._label} decoded payload invalid type", extra={"dataset_id": dataset_id}
         )
-        raise ParseError("Decoded payload is not an object", provider=self.provider_name)
+        raise ParseError(
+            "Decoded payload is not an object",
+            provider=self.provider_name,
+            dataset_id=dataset_id or None,
+        )
 
     def _validate_envelope(
         self, payload: dict[str, object], dataset_id: str = ""
@@ -418,13 +425,27 @@ class DataGoFamilyAdapter:
     def _raise_for_result_code(self, code: str, msg: str, dataset_id: str) -> NoReturn:
         """Raise exception for result code."""
         if code in {"30", "31", "20", "32"}:
-            raise AuthError(msg, provider=self.provider_name, provider_code=code)
+            raise AuthError(
+                msg,
+                provider=self.provider_name,
+                provider_code=code,
+                dataset_id=dataset_id or None,
+            )
         if code == "22":
             raise RateLimitError(
-                msg, provider=self.provider_name, provider_code=code, retryable=False
+                msg,
+                provider=self.provider_name,
+                provider_code=code,
+                retryable=False,
+                dataset_id=dataset_id or None,
             )
         if code == "10":
-            raise InvalidRequestError(msg, provider=self.provider_name, provider_code=code)
+            raise InvalidRequestError(
+                msg,
+                provider=self.provider_name,
+                provider_code=code,
+                dataset_id=dataset_id or None,
+            )
         if code == "12":
             raise DatasetNotFoundError(
                 msg,
@@ -433,8 +454,18 @@ class DataGoFamilyAdapter:
                 dataset_id=dataset_id,
             )
         if code in {"01", "02"}:
-            raise ServiceUnavailableError(msg, provider=self.provider_name, provider_code=code)
-        raise ProviderResponseError(msg, provider=self.provider_name, provider_code=code)
+            raise ServiceUnavailableError(
+                msg,
+                provider=self.provider_name,
+                provider_code=code,
+                dataset_id=dataset_id or None,
+            )
+        raise ProviderResponseError(
+            msg,
+            provider=self.provider_name,
+            provider_code=code,
+            dataset_id=dataset_id or None,
+        )
 
     def _normalize_items(self, items_wrapper: object) -> list[dict[str, object]]:
         """Normalize and return items."""

@@ -302,6 +302,7 @@ class KosisAdapter:
             decoded: object = decode_json(response.content)
         except ParseError as exc:
             exc.provider = "kosis"
+            exc.dataset_id = dataset_id or None
             logger.debug("KOSIS response parsing failed", extra={"dataset_id": dataset_id})
             raise
 
@@ -311,7 +312,11 @@ class KosisAdapter:
             return cast(dict[str, object], decoded)
 
         logger.debug("KOSIS response parsing failed", extra={"dataset_id": dataset_id})
-        raise ParseError("Decoded payload is neither an object nor an array", provider="kosis")
+        raise ParseError(
+            "Decoded payload is neither an object nor an array",
+            provider="kosis",
+            dataset_id=dataset_id or None,
+        )
 
     def _extract_items(self, payload: object, dataset_id: str) -> list[dict[str, object]]:
         """Extract items from KOSIS API response."""

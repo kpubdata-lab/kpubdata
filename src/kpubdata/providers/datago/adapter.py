@@ -272,8 +272,9 @@ class DataGoAdapter:
           * ``_format_param`` (str): overrides the response format
             parameter name.
 
-        When ``_base_url`` does not point at a ``*.data.go.kr`` host, a
-        warning is logged. The call proceeds — this is a relaxed check.
+        When ``_base_url`` does not point at an allowlisted ``*.data.go.kr``
+        host (extendable via ``KPUBDATA_DATAGO_EXTRA_HOSTS``), the call is
+        refused with ``InvalidRequestError`` before any request is sent.
         """
 
         logger.debug(
@@ -537,10 +538,15 @@ class DataGoAdapter:
                 decoded = decode_json(response.content)
         except ParseError as exc:
             exc.provider = "datago"
+            exc.dataset_id = dataset_id or None
             logger.debug("Datago response parsing failed", extra={"dataset_id": dataset_id})
             raise
         except ImportError as exc:
-            raise ParseError("Failed to parse data.go.kr response", provider="datago") from exc
+            raise ParseError(
+                "Failed to parse data.go.kr response",
+                provider="datago",
+                dataset_id=dataset_id or None,
+            ) from exc
 
         if isinstance(decoded, dict):
             return cast(dict[str, object], decoded)
@@ -549,7 +555,9 @@ class DataGoAdapter:
             "Datago decoded payload invalid type",
             extra={"dataset_id": dataset_id},
         )
-        raise ParseError("Decoded payload is not an object", provider="datago")
+        raise ParseError(
+            "Decoded payload is not an object", provider="datago", dataset_id=dataset_id or None
+        )
 
     @staticmethod
     def _is_http_403(exc: TransportError) -> bool:

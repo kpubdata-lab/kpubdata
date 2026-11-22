@@ -27,6 +27,7 @@ from kpubdata.exceptions import (
     AuthError,
     DatasetNotFoundError,
     InvalidRequestError,
+    ParseError,
     ProviderResponseError,
     RateLimitError,
     ServiceUnavailableError,
@@ -200,7 +201,12 @@ class KiprisAdapter:
             # and on the sensitive list today, and the value holds if that changes.
             secret_values=(self._require_api_key(),),
         )
-        decoded: object = decode_json(response.content)
+        try:
+            decoded: object = decode_json(response.content)
+        except ParseError as exc:
+            exc.provider = "kipris"
+            exc.dataset_id = dataset_id
+            raise
         if not isinstance(decoded, dict):
             raise ProviderResponseError(
                 "kipris response is not a JSON object",
