@@ -60,7 +60,12 @@ from kpubdata.exceptions import (
     ServiceUnavailableError,
     TransportError,
 )
-from kpubdata.transport.decode import decode_json, decode_xml, detect_content_type
+from kpubdata.transport.decode import (
+    decode_gateway_envelope,
+    decode_json,
+    decode_xml,
+    detect_content_type,
+)
 from kpubdata.transport.http import HttpTransport
 
 logger = logging.getLogger("kpubdata.core.executor")
@@ -945,8 +950,13 @@ class SpecExecutor:
             exc.dataset_id = spec.id
             raise
         except ImportError as exc:
-            msg = "XML 응답을 파싱하려면 선택 의존성이 필요합니다: pip install kpubdata[xml]"
-            raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id) from exc
+            # A gateway refusal arrives as XML even on JSON endpoints; read it without
+            # the extra so the key error is not reported as a missing package (#1101).
+            gateway = decode_gateway_envelope(response.content)
+            if gateway is None:
+                msg = "XML 응답을 파싱하려면 선택 의존성이 필요합니다: pip install kpubdata[xml]"
+                raise InvalidRequestError(msg, provider=spec.provider, dataset_id=spec.id) from exc
+            decoded = gateway
 
         if isinstance(decoded, dict):
             provenance = _build_provenance(response, params, spec, secret_values)

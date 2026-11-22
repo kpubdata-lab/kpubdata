@@ -160,4 +160,48 @@ def decode_xml(data: str | bytes) -> dict[str, object]:
     raise ParseError(msg)
 
 
+#: A gateway refusal is a few hundred bytes; anything far larger is not one.
+_GATEWAY_ENVELOPE_MAX_BYTES = 8192
+#: The whole document: an optional declaration, then exactly
+#: ``<OpenAPI_ServiceResponse><cmmMsgHeader>`` holding only flat, attribute-free
+#: text elements. ``&`` is refused outright, so no entity or character
+#: reference is ever expanded, and a DOCTYPE cannot appear anywhere.
+_GATEWAY_ENVELOPE = re.compile(
+    r"\A﻿?\s*(?:<\?xml[^<>]{0,200}\?>\s*)?"
+    r"<OpenAPI_ServiceResponse>\s*<cmmMsgHeader>\s*"
+    r"((?:<([A-Za-z_]{1,40})>[^<&]{0,2048}</\2>\s*|<[A-Za-z_]{1,40}\s?/>\s*)*)"
+    r"</cmmMsgHeader>\s*</OpenAPI_ServiceResponse>\s*\Z"
+)
+_GATEWAY_FIELD = re.compile(r"<([A-Za-z_]{1,40})>([^<&]*)</\1>|<([A-Za-z_]{1,40})\s?/>")
+
+
+def decode_gateway_envelope(data: bytes) -> dict[str, object] | None:
+    """Read a data.go.kr gateway refusal without ``xmltodict``; ``None`` for anything else.
+
+    The gateway answers a rejected key with ``OpenAPI_ServiceResponse/cmmMsgHeader``
+    XML even on JSON endpoints, so on a base install the refusal used to surface as
+    "install the xml extra" instead of the auth or quota error it is (#1101). This
+    recognises that one envelope with a bounded, anchored regular expression and
+    returns the dict ``decode_xml`` would, so the existing gateway mapping reads it.
+    """
+    if len(data) > _GATEWAY_ENVELOPE_MAX_BYTES:
+        return None
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+    envelope = _GATEWAY_ENVELOPE.match(text)
+    if envelope is None:
+        return None
+    header: dict[str, object] = {}
+    for field in _GATEWAY_FIELD.finditer(envelope.group(1)):
+        name = field.group(1) or field.group(3)
+        if name in header:
+            # xmltodict would turn a repeated element into a list; do not guess.
+            return None
+        value = (field.group(2) or "").strip()
+        header[name] = value or None
+    return {"OpenAPI_ServiceResponse": {"cmmMsgHeader": header}}
+
+
 __all__ = ["decode_json", "decode_xml", "detect_content_type"]

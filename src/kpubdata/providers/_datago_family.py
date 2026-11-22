@@ -42,7 +42,12 @@ from kpubdata.providers._common import (
     load_catalogue,
     reported_total,
 )
-from kpubdata.transport.decode import decode_json, decode_xml, detect_content_type
+from kpubdata.transport.decode import (
+    decode_gateway_envelope,
+    decode_json,
+    decode_xml,
+    detect_content_type,
+)
 from kpubdata.transport.http import HttpTransport, TransportConfig
 
 #: Module-level logger. Instances use per-provider logger via ``self._logger``
@@ -330,11 +335,15 @@ class DataGoFamilyAdapter:
             )
             raise
         except ImportError as exc:
-            raise ParseError(
-                f"Failed to parse {self.provider_name} response",
-                provider=self.provider_name,
-                dataset_id=dataset_id or None,
-            ) from exc
+            # The gateway's XML refusal must not need the xml extra (#1101).
+            gateway = decode_gateway_envelope(response.content)
+            if gateway is None:
+                raise ParseError(
+                    f"Failed to parse {self.provider_name} response",
+                    provider=self.provider_name,
+                    dataset_id=dataset_id or None,
+                ) from exc
+            decoded = gateway
 
         if isinstance(decoded, dict):
             return cast(dict[str, object], decoded)

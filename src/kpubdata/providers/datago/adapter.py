@@ -33,7 +33,12 @@ from kpubdata.providers._common import (
     reported_total,
 )
 from kpubdata.providers.datago.envelope import DataGoEnvelopeParser
-from kpubdata.transport.decode import decode_json, decode_xml, detect_content_type
+from kpubdata.transport.decode import (
+    decode_gateway_envelope,
+    decode_json,
+    decode_xml,
+    detect_content_type,
+)
 from kpubdata.transport.http import HttpTransport, TransportConfig
 
 logger = logging.getLogger("kpubdata.provider.datago")
@@ -543,11 +548,15 @@ class DataGoAdapter:
             logger.debug("Datago response parsing failed", extra={"dataset_id": dataset_id})
             raise
         except ImportError as exc:
-            raise ParseError(
-                "Failed to parse data.go.kr response",
-                provider="datago",
-                dataset_id=dataset_id or None,
-            ) from exc
+            # The gateway's XML refusal must not need the xml extra (#1101).
+            gateway = decode_gateway_envelope(response.content)
+            if gateway is None:
+                raise ParseError(
+                    "Failed to parse data.go.kr response",
+                    provider="datago",
+                    dataset_id=dataset_id or None,
+                ) from exc
+            decoded = gateway
 
         if isinstance(decoded, dict):
             return cast(dict[str, object], decoded)
