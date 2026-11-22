@@ -205,3 +205,24 @@ def test_html_body_is_not_json() -> None:
     """Guard: the body used above really fails to decode as JSON."""
     with pytest.raises(json.JSONDecodeError):
         json.loads(_HTML)
+
+
+# A JSON integer past the interpreter's digit limit made json.loads raise a bare
+# ValueError; it must reach callers as ParseError with provider context.
+@pytest.mark.parametrize(("provider", "factory", "dataset_id", "operation", "params"), _CASES)
+def test_an_oversized_json_integer_names_provider_and_dataset(
+    provider: str,
+    factory: _AdapterFactory,
+    dataset_id: str,
+    operation: str,
+    params: dict[str, object],
+) -> None:
+    body = b'{"a": ' + b"1" * 5000 + b"}"
+    adapter = _adapter(provider, factory, body, "application/json")
+    dataset = adapter.get_dataset(dataset_id.split(".", 1)[1])
+
+    with pytest.raises(ParseError) as excinfo:
+        adapter.call_raw(dataset, operation, dict(params))
+
+    assert excinfo.value.provider == provider
+    assert excinfo.value.dataset_id == dataset.id

@@ -55,3 +55,16 @@ def test_decode_xml_raises_when_parser_returns_non_dict(monkeypatch: pytest.Monk
 
     with pytest.raises(ParseError, match="did not decode into a dictionary"):
         _ = decode_xml("<root />")
+
+
+# json.loads raises a plain ValueError past the integer digit limit (Python 3.11+)
+# and RecursionError for deep nesting; both must surface as ParseError.
+@pytest.mark.parametrize(
+    "body",
+    [b'{"a": ' + b"1" * 5000 + b"}", b"[" * 100000],
+    ids=["integer-digit-limit", "deep-nesting"],
+)
+def test_decode_json_raises_parse_error_for_non_decode_failures(body: bytes) -> None:
+    """"""
+    with pytest.raises(ParseError):
+        _ = decode_json(body)
