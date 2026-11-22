@@ -38,6 +38,7 @@ from kpubdata.exceptions import (
 from kpubdata.providers._common import (
     DATAGO_403_HINT,
     build_schema_from_metadata,
+    capped_page_size,
     load_catalogue,
     reported_total,
 )
@@ -136,7 +137,7 @@ class DataGoFamilyAdapter:
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
         """Execute query_records operation."""
         page = query.page or 1
-        page_size = query.page_size or 100
+        page_size = capped_page_size(dataset, query.page_size)
         self._logger.debug(
             f"{self.provider_name} query_records",
             extra={

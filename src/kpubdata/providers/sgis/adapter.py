@@ -108,7 +108,19 @@ class SgisAdapter:
         )
 
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
-        """Perform record query."""
+        """Perform record query.
+
+        SGIS returns every boundary of the requested area in one response, so the
+        dataset declares no pagination. A page other than 1 is refused: it used to
+        return page 1's rows again. A page size is accepted and has no effect, since
+        the response is never cut into pages.
+        """
+        if query.page is not None and query.page != 1:
+            raise InvalidRequestError(
+                "SGIS does not paginate; only page 1 exists",
+                provider=_SGIS_PROVIDER,
+                dataset_id=dataset.id,
+            )
         endpoint = self._dataset_endpoint(dataset)
         filters = drop_or_refuse_sdk_params(
             query.filters,

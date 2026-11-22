@@ -90,6 +90,13 @@ class KoreanAdapter:
         )
 
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
+        """Query the dictionary, one record per sense of each headword.
+
+        The provider pages by headword (entry): ``num`` headwords per page, and its
+        ``total`` counts headwords. ``total_count`` is that count as reported, so it
+        is not the number of records, which is one per sense. The next page follows
+        from the headwords received, not from the flattened records.
+        """
         page = query.page or 1
         page_size = min(query.page_size or _MAX_PAGE_SIZE, _MAX_PAGE_SIZE)
 
@@ -127,10 +134,13 @@ class KoreanAdapter:
 
         url = self._build_url(dataset, params)
         payload = self._request_and_decode(url, dataset.id)
-        items, total_count = self._parse_stdict_envelope(payload, dataset.id)
+        items, total_count, headwords = self._parse_stdict_envelope(payload, dataset.id)
 
         next_page: int | None = None
-        if total_count and page * page_size < total_count:
+        if (total_count and page * page_size < total_count) or (
+            not total_count and headwords == page_size
+        ):
+            # Without a total, a full page of headwords means another may follow.
             next_page = page + 1
 
         return RecordBatch(
@@ -216,13 +226,14 @@ class KoreanAdapter:
 
     def _parse_stdict_envelope(
         self, payload: Mapping[str, object], dataset_id: str
-    ) -> tuple[list[dict[str, object]], int | None]:
-        """Extract ``(items, total_count)`` from the stdict channel envelope.
+    ) -> tuple[list[dict[str, object]], int | None, int]:
+        """Extract ``(items, total_count, headwords)`` from the stdict channel envelope.
 
         A polysemous headword carries several `sense` entries. They are
         flattened to one record per sense, because headword plus definition is
-        the unit callers work with. Errors map from `statusCode`; `019`
-        is an authentication failure and becomes AuthError.
+        the unit callers work with; ``headwords`` is how many entries arrived
+        before flattening, the unit the provider pages by. Errors map from
+        `statusCode`; `019` is an authentication failure and becomes AuthError.
         """
         status_code = payload.get("statusCode")
         if isinstance(status_code, str) and status_code != "000":
@@ -256,11 +267,13 @@ class KoreanAdapter:
             total_count = total_raw
 
         items: list[dict[str, object]] = []
+        headwords = 0
         raw_items = channel.get("item")
         if isinstance(raw_items, list):
             for entry in raw_items:
                 if not isinstance(entry, dict):
                     continue
+                headwords += 1
                 senses = entry.get("sense")
                 if isinstance(senses, list):
                     for sense in senses:
@@ -268,7 +281,7 @@ class KoreanAdapter:
                             items.append({**entry, "sense": sense})
                 else:
                     items.append(entry)
-        return items, total_count
+        return items, total_count, headwords
 
     def _load_default_catalogue(self) -> tuple[DatasetRef, ...]:
         return tuple(load_catalogue(_CATALOGUE_PACKAGE, "korean"))
