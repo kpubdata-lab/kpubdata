@@ -14,7 +14,14 @@ import pytest
 
 from kpubdata.config import KPubDataConfig
 from kpubdata.core.models import DatasetRef, Query
-from kpubdata.exceptions import AuthError, InvalidRequestError, ProviderResponseError
+from kpubdata.exceptions import (
+    AuthError,
+    InvalidRequestError,
+    ProviderResponseError,
+    PublicDataError,
+    RateLimitError,
+    ServiceUnavailableError,
+)
 from kpubdata.providers._common import build_dataset_ref
 from kpubdata.providers.kosis.adapter import KosisAdapter
 from kpubdata.transport.http import HttpTransport
@@ -339,26 +346,61 @@ def test_raise_for_error_payload_returns_none_when_err_field_absent() -> None:
     assert result is None
 
 
-# test raise for error payload raises auth error on code 30 Describes the scenario verified by the test.
-def test_raise_for_error_payload_raises_auth_error_on_code_30() -> None:
-    """test_raise_for_error_payload_raises_auth_error_on_code_30
-
-    Validates the scenario described by the test name.
-    """
+# KOSIS's own result codes (developer guide / FAQ, kosis.kr/openapi): they are not
+# data.go.kr's. 30 means "no data for this request", not an unregistered key.
+@pytest.mark.parametrize(
+    ("code", "error_class"),
+    [
+        ("10", AuthError),
+        ("11", AuthError),
+        ("12", AuthError),
+        ("20", InvalidRequestError),
+        ("21", InvalidRequestError),
+        ("31", InvalidRequestError),
+        ("40", RateLimitError),
+        ("41", InvalidRequestError),
+        ("42", AuthError),
+        ("50", ServiceUnavailableError),
+    ],
+)
+def test_raise_for_error_payload_maps_kosis_result_codes(
+    code: str, error_class: type[PublicDataError]
+) -> None:
+    """"""
     adapter, dataset, _ = _build_adapter_with_transport([])
-    with pytest.raises(AuthError):
-        adapter._raise_for_error_payload({"err": "30", "errMsg": "인증키 오류"}, dataset.id)
+    with pytest.raises(error_class) as excinfo:
+        adapter._raise_for_error_payload({"err": code, "errMsg": "오류"}, dataset.id)
+    assert type(excinfo.value) is error_class
+    assert excinfo.value.provider_code == code
+    assert excinfo.value.dataset_id == dataset.id
 
 
-# test raise for error payload raises invalid request error on code 10 Describes the scenario verified by the test.
-def test_raise_for_error_payload_raises_invalid_request_error_on_code_10() -> None:
-    """test_raise_for_error_payload_raises_invalid_request_error_on_code_10
-
-    Validates the scenario described by the test name.
-    """
+def test_exhausted_call_quota_is_not_retryable() -> None:
+    """"""
     adapter, dataset, _ = _build_adapter_with_transport([])
-    with pytest.raises(InvalidRequestError):
-        adapter._raise_for_error_payload({"err": "10", "errMsg": "잘못된 요청"}, dataset.id)
+    with pytest.raises(RateLimitError) as excinfo:
+        adapter._raise_for_error_payload({"err": "40", "errMsg": "호출 건수 초과"}, dataset.id)
+    assert excinfo.value.retryable is False
+
+
+def test_no_data_code_30_is_an_empty_result() -> None:
+    """"""
+    payload = {"err": "30", "errMsg": "데이터가 존재하지 않습니다."}
+    adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(payload)])
+
+    batch = adapter.query_records(dataset, Query(start_date="202401", end_date="202401"))
+
+    assert batch.items == []
+    assert batch.total_count == 0
+    assert batch.raw == payload
+
+
+def test_call_raw_returns_the_no_data_payload_unchanged() -> None:
+    """"""
+    payload = {"err": "30", "errMsg": "데이터가 존재하지 않습니다."}
+    adapter, dataset, _ = _build_adapter_with_transport([FakeResponse(payload)])
+
+    assert adapter.call_raw(dataset, "", {}) == payload
 
 
 # test raise for error payload raises provider response error on unknown code Describes the scenario verified by the test.

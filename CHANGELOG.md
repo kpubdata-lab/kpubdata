@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Upgrade notes
 
+- KOSIS result code `30` (no data for the request) is now an empty `RecordBatch` instead of `AuthError`, and code `10` (the key is missing) is now `AuthError` instead of `InvalidRequestError`; code `11`, `12` and `42` are `AuthError` too. Code that caught `AuthError` to detect an empty KOSIS period should check for an empty batch instead.
 - A spec-backed `list()`/`list_all()` given `start_date`, `end_date`, `sort`, `fields` or `cursor` now raises `InvalidRequestError`; those options were silently ignored and returned unfiltered data. Remove them, or pass the provider's own date filter that the dataset declares.
 - A spec filter given under its provider name (for example `dataTerm` rather than its alias) is now checked against the declared enum like its alias, and giving both names raises `InvalidRequestError`.
 - A spec-backed `list()` without a required filter, or with a value outside a declared enum, now raises `InvalidRequestError` before sending; pass every required filter explicitly, as sample values in specs are not defaults (#969).
@@ -44,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- KOSIS errors follow KOSIS's own result codes from its developer guide, not data.go.kr's: `30` (no data) is an empty result, `10`–`12` and `42` are `AuthError`, `20`, `21`, `31` and `41` are `InvalidRequestError`, `40` is a `RateLimitError` that is not retried, and `50` is `ServiceUnavailableError`. The adapter treated `30` as an unregistered key, as data.go.kr does, so an empty period raised `AuthError`.
 - `InvalidRequestError` raised for a non-scalar filter value now carries `provider` and `dataset_id` on spec datasets and on every adapter that checks filter values (datago, localdata, semas, fds, kipris, korean, kosis, law, lofin, neis, sgis) in `list()`, and in `call_raw` on spec datasets and datago, localdata and semas; it used to name neither.
 - lofin `call_raw` matches `pIndex`, `pSize`, `page`, `page_size` and `Type` case-insensitively: `PINDEX=9` sets the page instead of being sent after the SDK's `pIndex=1`, and `type` no longer goes out next to `Type=json`.
 - All 22 bundled specs that still called `http://apis.data.go.kr` now call it over HTTPS, so the data.go.kr service key is no longer sent in the clear (#893): datago `air_quality`, `air_station`, `airkorea_forecast`, `apt_rent`, `apt_trade`, `hospital_info`, `metro_fare`, `offi_rent`, `offi_trade`, `rh_rent`, `sh_rent`, `sh_trade`, `tour_kor_area`, `tour_kor_festival`, `tour_kor_keyword`, `tour_kor_location`, `ultra_srt_fcst`, `ultra_srt_ncst`, `village_fcst`, and localdata `bakery`, `general_restaurant`, `rest_cafe`. Each was re-recorded from a successful run of the recording workflow, and the insecure-http baseline is now empty. The KMA examples' `base_date` moved to a recent release, because that API answers only for recent dates. Dataset IDs, parameters and record shapes are unchanged.
