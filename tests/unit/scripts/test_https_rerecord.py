@@ -953,3 +953,29 @@ def test_confirm_still_compares_the_rest_of_the_response(repo: Path) -> None:
     (repo / _BUS_PATH).write_text(_BUS.replace(old, f"{old}X"), encoding="utf-8")
     problems = rerecord.confirm_request("datago.bus_arrival", repo, base)
     assert any("different request" in problem for problem in problems)
+
+
+def test_an_items_path_longer_than_the_limit_is_refused() -> None:
+    long_path = ".".join(["a"] * 101)
+    assert len(long_path) > 200
+    patched = _ITEMS_BASE.replace("response.body.items.item\n", f"{long_path}\n")
+    assert rerecord.check_spec_patch(_ITEMS_BASE, patched)
+
+
+# confirm_request is a second, independent guard: it holds items_path to the same rule.
+@pytest.mark.parametrize("value", ["$.response.msgBody", "{operation}.list"])
+def test_confirm_refuses_an_items_path_that_is_not_a_dotted_path(repo: Path, value: str) -> None:
+    base = _bus_repo(repo)
+    old = "items_path: response.msgBody.busArrivalList"
+    (repo / _BUS_PATH).write_text(_BUS.replace(old, f"items_path: '{value}'"), encoding="utf-8")
+    problems = rerecord.confirm_request("datago.bus_arrival", repo, base)
+    assert any("items_path" in problem for problem in problems)
+
+
+def test_confirm_refuses_a_removed_items_path(repo: Path) -> None:
+    base = _bus_repo(repo)
+    old = "  items_path: response.msgBody.busArrivalList\n"
+    assert old in _BUS
+    (repo / _BUS_PATH).write_text(_BUS.replace(old, ""), encoding="utf-8")
+    problems = rerecord.confirm_request("datago.bus_arrival", repo, base)
+    assert any("items_path" in problem for problem in problems)

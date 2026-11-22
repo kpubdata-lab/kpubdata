@@ -136,6 +136,19 @@ DESCRIPTIVE_BLOCKS = frozenset({"title", "description", "source", "fields", "lic
 PARSING_KEY = "items_path"
 #: What a patched ``response.items_path`` must look like: dotted identifier segments.
 _DOTTED_PATH = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*")
+#: A corrected items path long enough to hide something from the PR's reviewer is refused.
+_DOTTED_PATH_MAX = 200
+
+
+def _is_dotted_path(value: object) -> bool:
+    """Whether ``value`` is a short dotted identifier path such as ``response.body.items``."""
+    return (
+        isinstance(value, str)
+        and len(value) <= _DOTTED_PATH_MAX
+        and _DOTTED_PATH.fullmatch(value) is not None
+    )
+
+
 #: How long after its base_time a KMA release is safely published.
 _RELEASE_MARGIN = timedelta(hours=1)
 
@@ -252,8 +265,8 @@ def _items_path_problems(before: dict[str, object], after: dict[str, object]) ->
     value = new[PARSING_KEY]
     if value == old[PARSING_KEY]:
         return []
-    if not isinstance(value, str) or _DOTTED_PATH.fullmatch(value) is None:
-        return [f"the patched response.{PARSING_KEY} is not a dotted path: {value!r}"]
+    if not _is_dotted_path(value):
+        return [f"the patched response.{PARSING_KEY} is not a dotted identifier path: {value!r}"]
     return []
 
 
@@ -730,6 +743,11 @@ def confirm_request(dataset: str, root: Path, base: str) -> list[str]:
     problems: list[str] = []
     if request(current) != request(dispatched):
         problems.append(f"{path} sends a different request from the dispatch commit's spec")
+    # The items path is left out of request(); hold it here to the same rule the patch
+    # check applies, so this guard stays independent of that one.
+    now, then = current.response.items_path, dispatched.response.items_path
+    if (now is None) != (then is None) or (now != then and not _is_dotted_path(now)):
+        problems.append(f"{path} changes response.{PARSING_KEY} beyond a dotted-path correction")
     parts = urlsplit(current.endpoint.base_url)
     if parts.scheme != "https" or parts.hostname not in _KEY_HOSTS:
         problems.append(f"{path} would send the key to {parts.scheme}://{parts.hostname}")
