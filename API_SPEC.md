@@ -359,7 +359,10 @@ Other kwargs are passed as provider-specific filters to the adapter. For example
   `query_support.max_page_size` is cut to that maximum before it is sent, so
   `list_all()` advances by the size the provider honours instead of skipping rows
   (datago, localdata, semas, bok, lofin, law; neis, korean, kipris and fds already
-  capped). Seoul refuses a `page_size` above 1000 instead.
+  capped). Seoul refuses a `page_size` above 1000 instead. A single `list()` therefore
+  returns at most `max_page_size` rows, with `next_page` set when more remain; use
+  `list_all()` to read everything. The cap is only as good as the declared maximum,
+  and the datago, bok and semas values are not yet checked against each service.
 - A dataset whose `query_support.pagination` is `none` (kosis, krx, sgis) answers
   in one response: a `page` other than 1 raises `InvalidRequestError`, and
   `page_size` is accepted with no effect.
