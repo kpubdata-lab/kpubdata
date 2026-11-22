@@ -381,3 +381,43 @@ def test_query_records_parses_citydata_top_level_response() -> None:
     assert len(batch.items) == 1
     assert batch.items[0]["AREA_NM"] == "광화문·덕수궁"
     assert batch.total_count == 1
+
+
+@pytest.mark.parametrize("value", [".", "..", "a\nb", "a\x00b", "a\x7fb"])
+def test_dot_segment_or_control_path_parameter_is_refused(value: str) -> None:
+    """A path parameter httpx would resolve as a dot segment is refused before any request."""
+    adapter, transport = _build_adapter([])
+    dataset = adapter.get_dataset("bike_rent_month")
+
+    with pytest.raises(InvalidRequestError, match="Path parameter 'RENT_NM'") as excinfo:
+        _ = adapter.query_records(dataset, Query(filters={"RENT_NM": value}))
+
+    assert excinfo.value.provider == "seoul"
+    assert excinfo.value.dataset_id == dataset.id
+    assert transport.calls == []
+
+
+def test_call_raw_refuses_dot_segment_path_parameter() -> None:
+    """``..`` must not climb over the index window or the service name in call_raw either."""
+    adapter, transport = _build_adapter([])
+    dataset = adapter.get_dataset("bike_rent_month")
+
+    with pytest.raises(InvalidRequestError, match="Path parameter 'RENT_NM'"):
+        _ = adapter.call_raw(dataset, "tbCycleRentUseMonthInfo", {"RENT_NM": ".."})
+
+    assert transport.calls == []
+
+
+def test_path_parameter_with_dots_inside_is_encoded_not_refused() -> None:
+    """Only a whole dot segment is refused; dots inside a value and slashes stay encoded."""
+    adapter, transport = _build_adapter(
+        [FakeResponse(_load_fixture("bike_rent_month_success.json"))]
+    )
+    dataset = adapter.get_dataset("bike_rent_month")
+
+    _ = adapter.query_records(dataset, Query(filters={"RENT_NM": "2024.01/../x"}, page_size=10))
+
+    assert transport.calls[0]["url"] == (
+        "http://openapi.seoul.go.kr:8088/test-seoul-key/json/tbCycleRentUseMonthInfo/1/10/"
+        "2024.01%2F..%2Fx"
+    )
