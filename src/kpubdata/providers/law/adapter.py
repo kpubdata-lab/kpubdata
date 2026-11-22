@@ -127,7 +127,10 @@ class LawAdapter:
             dataset_id=dataset.id,
         )
         url = self._build_request_url(
-            dataset, params=scalar_filters(filters), page=page, page_size=page_size
+            dataset,
+            params=scalar_filters(filters, provider="law", dataset_id=dataset.id),
+            page=page,
+            page_size=page_size,
         )
         payload = self._request_and_decode(url, dataset.id)
         items = self._extract_items(payload, dataset)

@@ -99,7 +99,9 @@ class NeisAdapter:
                 response_format=("Type",),
                 provider="neis",
                 dataset_id=dataset.id,
-            )
+            ),
+            provider="neis",
+            dataset_id=dataset.id,
         )
         required = self._required_filters(dataset)
         missing = [name for name in required if not filters.get(name, "").strip()]

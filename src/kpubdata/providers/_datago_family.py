@@ -168,7 +168,9 @@ class DataGoFamilyAdapter:
                     provider=self.provider_name,
                     dataset_id=dataset.id,
                 )
-            value = scalar_filter_value(key, raw_value)
+            value = scalar_filter_value(
+                key, raw_value, provider=self.provider_name, dataset_id=dataset.id
+            )
             if value is not None:
                 params[key] = value
 
@@ -224,7 +226,9 @@ class DataGoFamilyAdapter:
         service_key_param = str(dataset.raw_metadata.get("service_key_param", "serviceKey"))
         for key, value in params.items():
             if key != service_key_param:
-                encoded = scalar_filter_value(key, value)
+                encoded = scalar_filter_value(
+                    key, value, provider=self.provider_name, dataset_id=dataset.id
+                )
                 if encoded is not None:
                     request_params[key] = encoded
 

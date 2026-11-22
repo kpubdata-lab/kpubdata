@@ -252,7 +252,12 @@ and kosis's `orgId`/`tblId`/`startPrdDe`/`endPrdDe` keep their existing handling
 path, so no filter can reach them. `call_raw` keeps provider-native parameter
 handling, except that on neis, korean, kipris, kosis, law, lofin, localdata and
 semas a parameter named like the credential, in any case, never replaces or
-duplicates the configured key.
+duplicates the configured key. lofin `call_raw` also reads `pIndex`/`pSize` (and
+`page`/`page_size`) in any case as the page values and never sends a second `Type`,
+`pIndex` or `pSize`: a `Type` other than `json`, or one name given twice in
+different cases, raises `InvalidRequestError` before any HTTP request. Every
+`InvalidRequestError` from these filter and parameter checks carries `provider` and
+`dataset_id`.
 
 For spec-backed normalized queries, every declared required filter must be
 present after authentication, format and pagination parameters are assembled.

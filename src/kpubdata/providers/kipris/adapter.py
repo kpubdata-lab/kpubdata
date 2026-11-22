@@ -104,7 +104,9 @@ class KiprisAdapter:
                 response_format=("_type",),
                 provider="kipris",
                 dataset_id=dataset.id,
-            )
+            ),
+            provider="kipris",
+            dataset_id=dataset.id,
         )
         required = self._required_filters(dataset)
         missing = [name for name in required if not filters.get(name, "").strip()]
