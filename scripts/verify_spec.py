@@ -528,6 +528,21 @@ def _verify_fixtures(spec: SpecDefinition) -> list[StepResult]:
             )
             continue
 
+        # A first page that reports rows but yields none means items_path does not reach
+        # the records (datago.airkorea_forecast recorded 0 of 714 this way).
+        if not items and isinstance(total, int) and total > 0:
+            results.append(
+                StepResult(
+                    f"replay[{example}] 레코드 추출",
+                    passed=False,
+                    detail=(
+                        f"총건수 {total} 인데 레코드 0건 — response.items_path 가 레코드에 "
+                        "닿지 않습니다 (spec 확인 후 재녹화)"
+                    ),
+                )
+            )
+            continue
+
         lost = _lost_leading_zeros(spec, items)
         if lost:
             results.append(

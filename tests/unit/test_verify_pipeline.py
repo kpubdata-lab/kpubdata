@@ -12,11 +12,13 @@ import json
 import sys
 from datetime import date
 from pathlib import Path
+from typing import cast
 
 import httpx
 import pytest
 
 from kpubdata import Client
+from kpubdata.transport.http import HttpTransport
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = REPO_ROOT / "scripts"
@@ -527,6 +529,42 @@ def test_verify_fails_when_spec_field_changed(
     )
     steps = verify_mod._verify_fixtures(tampered)
     assert not all(step.passed for step in steps)
+
+
+def test_verify_fails_when_items_path_misses_the_records(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A recording with a total but no rows fails, even when expected agrees with it."""
+    import shutil
+
+    spec_root = tmp_path / "specs"
+    shutil.copytree(SPECS_DIR / "datago", spec_root / "datago")
+    spec_file = spec_root / "datago" / "apt_trade.yaml"
+    text = spec_file.read_text(encoding="utf-8")
+    line = next(row for row in text.splitlines() if row.strip().startswith("items_path:"))
+    spec_file.write_text(
+        text.replace(line, "  items_path: response.body.items.missing"), encoding="utf-8"
+    )
+    fixtures = tmp_path / "fixtures"
+    record_mod.record_dataset(
+        "datago.apt_trade",
+        fixtures_root=fixtures,
+        spec_root=spec_root,
+        config=FakeLiveConfig(),
+        transport=cast(HttpTransport, cast(object, FakeLiveTransport())),
+        recorded_by="test",
+    )
+    # The snapshot agrees with what the wrong path extracts, as it did for
+    # datago.airkorea_forecast: no rows, a positive total.
+    for expected_file in (fixtures / "datago" / "apt_trade").glob("*.expected.json"):
+        snapshot = json.loads(expected_file.read_text(encoding="utf-8"))
+        expected_file.write_text(json.dumps({**snapshot, "items": []}), encoding="utf-8")
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", fixtures)
+    monkeypatch.setattr(verify_mod, "SPEC_ROOT", spec_root)
+    from kpubdata.core.spec import load_spec_file
+
+    steps = verify_mod._verify_fixtures(load_spec_file(spec_file))
+    assert any("레코드 추출" in step.name and not step.passed for step in steps)
 
 
 def _spec(dataset_id: str):

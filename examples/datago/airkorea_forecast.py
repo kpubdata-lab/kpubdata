@@ -26,6 +26,8 @@ def main() -> None:
     assert batch.total_count is not None, "totalCount가 보고되어야 한다"
     assert isinstance(batch.items, list), "items는 리스트여야 한다"
     assert all(isinstance(item, dict) for item in batch.items), "레코드는 dict여야 한다"
+    # 총건수가 있으면 첫 페이지에 레코드가 있어야 한다 — items_path 가 틀리면 0건이 된다.
+    assert batch.items or not batch.total_count, "총건수가 있는데 레코드가 0건이다"
 
     print(f"datago.airkorea_forecast: {len(batch.items)}건 / 전체 {batch.total_count}건")
 
