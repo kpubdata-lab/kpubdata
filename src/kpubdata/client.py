@@ -42,7 +42,9 @@ class Client:
         """Initialize the client with explicit provider/transport settings.
 
         Credentials are passed directly via ``provider_keys``; transport
-        behavior is configured through ``timeout`` and ``max_retries``.
+        behavior is configured through ``timeout`` and ``max_retries``, and
+        response caching through ``cache`` (``False`` off, ``True`` the
+        default disk cache, or a ``ResponseCache``) and ``cache_ttl_seconds``.
         Every built-in provider is registered lazily: its adapter is
         imported and built the first time it is used.
 
