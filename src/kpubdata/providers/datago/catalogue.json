@@ -444,11 +444,13 @@
       {
         "name": "stnId",
         "required": true,
+        "type": "string",
         "description": "중기전망 지점코드"
       },
       {
         "name": "tmFc",
         "required": true,
+        "type": "string",
         "description": "발표시각"
       }
     ],
@@ -666,12 +668,14 @@
       {
         "name": "stationName",
         "required": true,
+        "type": "string",
         "description": "측정소 이름",
         "example": "종로구"
       },
       {
         "name": "dataTerm",
         "required": true,
+        "type": "string",
         "description": "요청 데이터기간 (DAILY, MONTH, 3MONTH)",
         "example": "DAILY"
       }
@@ -745,16 +749,19 @@
       {
         "name": "startDt",
         "required": true,
+        "type": "date_yyyymmdd",
         "description": "조회 시작일(YYYYMMDD)"
       },
       {
         "name": "endDt",
         "required": true,
+        "type": "date_yyyymmdd",
         "description": "조회 종료일(YYYYMMDD)"
       },
       {
         "name": "stnIds",
         "required": true,
+        "type": "string",
         "description": "ASOS 지점번호"
       }
     ],
@@ -848,26 +855,31 @@
       {
         "name": "startDt",
         "required": true,
+        "type": "date_yyyymmdd",
         "description": "조회 시작일(YYYYMMDD)"
       },
       {
         "name": "startHh",
         "required": true,
+        "type": "string",
         "description": "조회 시작시각(HH)"
       },
       {
         "name": "endDt",
         "required": true,
+        "type": "date_yyyymmdd",
         "description": "조회 종료일(YYYYMMDD)"
       },
       {
         "name": "endHh",
         "required": true,
+        "type": "string",
         "description": "조회 종료시각(HH)"
       },
       {
         "name": "stnIds",
         "required": true,
+        "type": "string",
         "description": "ASOS 지점번호"
       }
     ],

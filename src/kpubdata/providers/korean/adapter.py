@@ -108,7 +108,9 @@ class KoreanAdapter:
                 response_format=("req_type",),
                 provider="korean",
                 dataset_id=dataset.id,
-            )
+            ),
+            provider="korean",
+            dataset_id=dataset.id,
         )
         required = self._required_filters(dataset)
         missing = [name for name in required if not filters.get(name, "").strip()]

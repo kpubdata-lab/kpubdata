@@ -128,7 +128,9 @@ class SgisAdapter:
             provider=_SGIS_PROVIDER,
             dataset_id=dataset.id,
         )
-        request_params = self._build_boundary_params(dataset, scalar_filters(filters))
+        request_params = self._build_boundary_params(
+            dataset, scalar_filters(filters, provider=_SGIS_PROVIDER, dataset_id=dataset.id)
+        )
         payload = self._request_geojson(
             endpoint=endpoint, params=request_params, dataset_id=dataset.id
         )

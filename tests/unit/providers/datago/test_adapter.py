@@ -1082,6 +1082,7 @@ class TestDataGoAdapterCatalogueOperations:
         assert by_name["dataTerm"] == {
             "name": "dataTerm",
             "required": True,
+            "type": "string",
             "description": "요청 데이터기간 (DAILY, MONTH, 3MONTH)",
             "example": "DAILY",
         }

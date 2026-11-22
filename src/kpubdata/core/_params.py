@@ -17,36 +17,57 @@ from kpubdata.exceptions import InvalidRequestError
 _V = TypeVar("_V")
 
 
-def scalar_filter_value(name: str, value: object, *, allow_bool: bool = False) -> str | None:
+def scalar_filter_value(
+    name: str,
+    value: object,
+    *,
+    allow_bool: bool = False,
+    provider: str | None = None,
+    dataset_id: str | None = None,
+) -> str | None:
     """Return a safe scalar query value, or None for a missing optional filter.
 
     A spec may explicitly declare a boolean parameter. Only those boolean
     parameters use lowercase JSON-style true/false values. Other API filters
     accept strings and numeric scalars without changing their spelling.
     Dates, lists, mappings and custom objects need provider-specific handling.
+    A refusal names ``provider`` and ``dataset_id`` so the caller can tell which
+    dataset refused the filter.
     """
     if value is None:
         return None
     if isinstance(value, bool):
         if allow_bool:
             return "true" if value else "false"
-        raise InvalidRequestError(f"Filter {name!r} does not accept a boolean value")
+        raise InvalidRequestError(
+            f"Filter {name!r} does not accept a boolean value",
+            provider=provider,
+            dataset_id=dataset_id,
+        )
     if isinstance(value, str | int):
         return str(value)
     if isinstance(value, float):
         if math.isfinite(value):
             return str(value)
-        raise InvalidRequestError(f"Filter {name!r} requires a finite number")
+        raise InvalidRequestError(
+            f"Filter {name!r} requires a finite number", provider=provider, dataset_id=dataset_id
+        )
     if isinstance(value, Decimal):
         if value.is_finite():
             return str(value)
-        raise InvalidRequestError(f"Filter {name!r} requires a finite number")
+        raise InvalidRequestError(
+            f"Filter {name!r} requires a finite number", provider=provider, dataset_id=dataset_id
+        )
     raise InvalidRequestError(
-        f"Filter {name!r} requires a string or numeric scalar, not {type(value).__name__}"
+        f"Filter {name!r} requires a string or numeric scalar, not {type(value).__name__}",
+        provider=provider,
+        dataset_id=dataset_id,
     )
 
 
-def scalar_filters(filters: Mapping[str, object]) -> dict[str, str]:
+def scalar_filters(
+    filters: Mapping[str, object], *, provider: str | None = None, dataset_id: str | None = None
+) -> dict[str, str]:
     """Encode user filters with ``scalar_filter_value``, omitting ``None`` values.
 
     For adapters without a spec: no parameter is declared boolean, so a boolean
@@ -54,7 +75,7 @@ def scalar_filters(filters: Mapping[str, object]) -> dict[str, str]:
     """
     encoded: dict[str, str] = {}
     for key, value in filters.items():
-        text = scalar_filter_value(key, value)
+        text = scalar_filter_value(key, value, provider=provider, dataset_id=dataset_id)
         if text is not None:
             encoded[key] = text
     return encoded

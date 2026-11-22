@@ -799,6 +799,8 @@ class SpecExecutor:
                 provider_name,
                 raw_value,
                 allow_bool=param_spec is not None and param_spec.type == "boolean",
+                provider=spec.provider,
+                dataset_id=spec.id,
             )
             if encoded is None:
                 if param_spec is not None and param_spec.required:
@@ -1144,6 +1146,8 @@ class SpecExecutor:
                 key,
                 value,
                 allow_bool=param_spec is not None and param_spec.type == "boolean",
+                provider=spec.provider,
+                dataset_id=spec.id,
             )
             if encoded is not None:
                 string_params[key] = encoded

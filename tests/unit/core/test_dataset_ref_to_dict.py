@@ -114,3 +114,16 @@ def test_nothing_declared_is_none_not_an_empty_value() -> None:
     assert payload["verified_at"] is None
     # Provider metadata outside the declared keys stays out.
     assert "http://internal" not in json.dumps(payload)
+
+
+def test_every_request_parameter_declares_name_required_and_type(client: Client) -> None:
+    """``docs/compatibility.md`` promises all three keys on every parameter item."""
+    missing = [
+        (ref.id, param.get("name"), key)
+        for ref in client.datasets.list()
+        for param in ref.to_dict()["request_parameters"] or []
+        for key in ("name", "required", "type")
+        if key not in param
+    ]
+
+    assert missing == []
