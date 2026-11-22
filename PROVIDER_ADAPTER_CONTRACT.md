@@ -275,6 +275,7 @@ def supports_query_records_all(self, dataset_key: str) -> bool: ...
 - every adapter must expose a raw path
 - raw paths may be inconvenient; they must still be available
 - raw payloads should not be lossy-normalized
+- known exception: `krx.investor_flow` fills `RecordBatch.raw` with the SDK's merged buy/sell rows (plus an `index` key), not with pykrx's frame; see `docs/providers/krx.md`
 
 ## 10. Discovery rules
 

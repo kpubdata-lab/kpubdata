@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `API_SPEC.md` section 9 usage examples for `seoul.subway_realtime_arrival` now run (`list(stationName=...)`, `call_raw("realtimeStationArrival", ...)`); the old ones raised `InvalidRequestError` or used `operation` as the service name. The provider pages now document the `krx.investor_flow` `RecordBatch.raw` exception and the nested `geometry` of `sgis` boundary items.
 - The quick start in `README.md` and `README.en.md` reads `batch.items[0]`; `RecordBatch` has no `records` attribute, so the old line raised `AttributeError`.
 - The datago provider page no longer shows `metro_path` and `g2b_contract`, which are not in the catalog and raised `DatasetNotFoundError`.
 - The contract documents state that `Dataset.schema()` is not gated by `operations`, that `CapabilityContractError` is imported from `kpubdata.exceptions`, that spec-backed datasets ignore `call_raw`'s `operation`, that `list_all` takes `partial`, and how `Client.close()` and the context manager behave.
@@ -44,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Twelve request parameters of the `datago` catalogue datasets `mid_fcst`, `airkorea_station_realtime`, `asos_daily` and `asos_hourly` now declare a `type`, so every `request_parameters` item of `DatasetRef.to_dict()` has `name`, `required` and `type` as `docs/compatibility.md` promises.
 - `InvalidRequestError` raised for a non-scalar filter value now carries `provider` and `dataset_id` on spec datasets and on every adapter that checks filter values (datago, localdata, semas, fds, kipris, korean, kosis, law, lofin, neis, sgis) in `list()`, and in `call_raw` on spec datasets and datago, localdata and semas; it used to name neither.
 - lofin `call_raw` matches `pIndex`, `pSize`, `page`, `page_size` and `Type` case-insensitively: `PINDEX=9` sets the page instead of being sent after the SDK's `pIndex=1`, and `type` no longer goes out next to `Type=json`.
 - All 22 bundled specs that still called `http://apis.data.go.kr` now call it over HTTPS, so the data.go.kr service key is no longer sent in the clear (#893): datago `air_quality`, `air_station`, `airkorea_forecast`, `apt_rent`, `apt_trade`, `hospital_info`, `metro_fare`, `offi_rent`, `offi_trade`, `rh_rent`, `sh_rent`, `sh_trade`, `tour_kor_area`, `tour_kor_festival`, `tour_kor_keyword`, `tour_kor_location`, `ultra_srt_fcst`, `ultra_srt_ncst`, `village_fcst`, and localdata `bakery`, `general_restaurant`, `rest_cafe`. Each was re-recorded from a successful run of the recording workflow, and the insecure-http baseline is now empty. The KMA examples' `base_date` moved to a recent release, because that API answers only for recent dates. Dataset IDs, parameters and record shapes are unchanged.
