@@ -29,7 +29,11 @@ from kpubdata.exceptions import (
     ParseError,
     ProviderResponseError,
 )
-from kpubdata.providers._common import build_schema_from_metadata, load_catalogue
+from kpubdata.providers._common import (
+    build_schema_from_metadata,
+    load_catalogue,
+    reported_total,
+)
 from kpubdata.transport.decode import decode_json
 from kpubdata.transport.http import HttpTransport, TransportConfig
 
@@ -237,10 +241,12 @@ class NeisAdapter:
                 head = block.get("head")
                 if isinstance(head, list):
                     for entry in head:
-                        if isinstance(entry, dict) and isinstance(
-                            entry.get("list_total_count"), int
-                        ):
-                            total_count = entry["list_total_count"]
+                        if not isinstance(entry, dict):
+                            continue
+                        # A count sent as a string is still a count.
+                        count = reported_total(entry.get("list_total_count"))
+                        if count is not None:
+                            total_count = count
                 row = block.get("row")
                 if isinstance(row, list):
                     items.extend(item for item in row if isinstance(item, dict))

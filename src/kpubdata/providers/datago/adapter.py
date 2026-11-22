@@ -28,6 +28,7 @@ from kpubdata.exceptions import (
 from kpubdata.providers._common import (
     DATAGO_403_HINT,
     build_schema_from_metadata,
+    capped_page_size,
     load_catalogue,
     reported_total,
 )
@@ -150,7 +151,7 @@ class DataGoAdapter:
             )
 
         page = query.page or 1
-        page_size = query.page_size or 100
+        page_size = capped_page_size(dataset, query.page_size)
         is_odcloud = self._is_odcloud(dataset)
         logger.debug(
             "datago query_records",

@@ -27,6 +27,8 @@ export KPUBDATA_KOREAN_API_KEY="your-key"
 - 검색어로 시작하는 어휘 조회 (`q` 파라미터)
 - 다의어는 sense 단위로 전개됨 (예: "나무" 2 senses + "나무꾼" 1 sense = 3 records)
 - 페이지네이션: Page 기반. `list(page=, page_size=)` 가 `start`, `num` 으로 바뀌어 전달되며, `start`·`num` 을 필터로 직접 넘기면 `InvalidRequestError` 입니다.
+- 페이지는 **표제어(entry) 단위**입니다. `page_size=10` 이면 표제어 10개가 오고, sense 로 전개된 레코드 수는 그보다 많을 수 있습니다.
+- `total_count` 는 제공기관이 보낸 `total` 그대로이며 **표제어 수**를 셉니다. 레코드(sense) 수가 아닙니다. 제공기관이 `total` 을 보내지 않으면 `None` 이고, 표제어가 `page_size` 만큼 꽉 찬 페이지면 `next_page` 가 다음 페이지를 가리킵니다.
 
 ```python
 ds = client.dataset("korean.dict_search")

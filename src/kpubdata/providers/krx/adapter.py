@@ -210,7 +210,19 @@ class KrxAdapter:
         )
 
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
-        """Perform record query."""
+        """Perform record query.
+
+        KRX returns the whole requested date range in one response, so the dataset
+        declares no pagination. A page other than 1 is refused: it used to return
+        page 1's rows again. A page size is accepted and has no effect, since the
+        response is never cut into pages.
+        """
+        if query.page is not None and query.page != 1:
+            raise InvalidRequestError(
+                "KRX does not paginate; only page 1 exists",
+                provider="krx",
+                dataset_id=dataset.id,
+            )
         resolved_dataset = self.get_dataset(dataset.dataset_key)
         frame = self._dispatch_dataframe(
             resolved_dataset,

@@ -29,6 +29,7 @@ from kpubdata.exceptions import (
 )
 from kpubdata.providers._common import (
     build_schema_from_metadata,
+    capped_page_size,
     coerce_int,
     load_catalogue,
     reported_total,
@@ -153,7 +154,7 @@ class BokAdapter:
             ServiceUnavailableError: When BOK ECOS service is under maintenance.
         """
         page = query.page or 1
-        page_size = query.page_size or 100
+        page_size = capped_page_size(dataset, query.page_size)
         frequency = self._resolve_frequency(query)
         start_date = query.start_date or self._resolve_string_param(query, "start_date")
         end_date = query.end_date or self._resolve_string_param(query, "end_date")

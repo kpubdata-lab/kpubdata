@@ -19,6 +19,7 @@ from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescripto
 from kpubdata.exceptions import AuthError, DatasetNotFoundError, ParseError, ProviderResponseError
 from kpubdata.providers._common import (
     build_schema_from_metadata,
+    capped_page_size,
     coerce_int,
     load_catalogue,
     reported_total,
@@ -107,7 +108,9 @@ class LawAdapter:
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
         """Execute query_records operation."""
         page = query.page or 1
-        page_size = query.page_size or self._default_page_size(dataset)
+        page_size = capped_page_size(
+            dataset, query.page_size, default=self._default_page_size(dataset)
+        )
         logger.debug(
             "law query_records",
             extra={

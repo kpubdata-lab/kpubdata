@@ -40,6 +40,10 @@ constitute a successful authenticated live SGIS verification.
 [SUPPORTED_DATA.md](https://github.com/kpubdata-lab/kpubdata/blob/main/SUPPORTED_DATA.md) 의 `sgis` 행을 본다 — 상태·검증
 수준·활용신청 필요 여부가 거기 있다.
 
+## 페이지네이션
+
+SGIS 는 요청한 지역의 경계를 한 응답에 모두 돌려주므로 데이터셋은 페이지네이션을 선언하지 않습니다(`query_support.pagination` = `none`). `page` 가 1 이 아니면 `InvalidRequestError` 입니다. 예전에는 1페이지 행을 다시 돌려줬습니다. `page_size` 는 받아들이지만 효과가 없습니다.
+
 ## 관련
 
 - [빠른 시작](../quickstart.md)
