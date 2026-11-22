@@ -69,14 +69,28 @@ data.go.kr은 **계정용 공통 인증키 1개만 있으면 끝나는 구조가
 
 ### 6단계: 활성화 확인
 
-키가 활성화되었는지 확인하려면 다음과 같이 테스트합니다:
+**해당 API에 대한 활용신청·승인이 완료되고 HTTPS 호출 경로가 확인된 경우에만** 실제
+요청을 수행하세요. 앞서 환경변수에 설정한 키를 사용하여 SDK의 단일 데이터셋
+도달성 검사를 실행할 수 있습니다(실제 제공기관 호출이며 키·사용량이 필요합니다).
 
-```bash
-# curl로 직접 테스트 (단기예보 API 예시)
-curl "http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=YOUR_KEY&dataType=json&numOfRows=1&pageNo=1&base_date=20250401&base_time=0500&nx=55&ny=127"
+```python
+from kpubdata import Client
+
+with Client.from_env() as client:
+    result = client.probe("datago.village_fcst")
+    print(result.status if result is not None else "not_probeable")
 ```
 
-정상 응답이 오면 활성화가 완료된 것입니다. `403 Forbidden`, `SERVICE_KEY_IS_NOT_REGISTERED_ERROR`, 또는 인증 관련 오류가 나오면 활용신청 여부와 승인 대기 시간을 다시 확인하세요.
+`available`은 이 시점의 단일 probe 결과일 뿐 모든 페이지·데이터셋의 실API
+검증을 뜻하지 않습니다. `application_required`나 인증 관련 오류가 나오면
+해당 서비스의 활용신청·승인 상태를 확인하세요. 키가 없으면 `auth_unknown`으로
+분류될 수 있으며, 이 경우 실제 요청이 전송되지 않습니다.
+
+**HTTP URL에 `serviceKey`를 붙인 `curl` 명령을 실행하지 마세요.**
+평문 전송 위험뿐 아니라 셸 기록과 프로세스 인자에도 키가 남을 수 있습니다.
+미확인 URL은 호출하지 말고 [수동 실API 검증 절차](../manual-live-smoke.md)를
+따르세요. SDK의 인증정보 포함 HTTP 요청은 전송 전에 거부되며, 이 거부를
+데이터셋 정상 작동이나 활용신청 승인 증거로 간주해서는 안 됩니다.
 
 ## KPubData에서 신청해야 할 API 목록
 
