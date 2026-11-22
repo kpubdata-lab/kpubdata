@@ -243,7 +243,8 @@ class KosisAdapter:
         if selected_operation and selected_operation != "statisticsParameterData":
             request_params["operation"] = selected_operation
         for key, value in params.items():
-            if key != "apiKey":
+            # The configured key wins, whatever case the caller used.
+            if key.lower() != "apikey":
                 request_params[key] = str(value)
         return self._compose_url(dataset, request_params)
 

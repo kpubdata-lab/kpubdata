@@ -250,8 +250,9 @@ from the configured key. data.go.kr fixed catalogue parameters, law's `target`
 and kosis's `orgId`/`tblId`/`startPrdDe`/`endPrdDe` keep their existing handling
 (the SDK's value is sent), and korean's `type_search` may still be set by a filter. fds, bok and seoul put the key and paging in the URL
 path, so no filter can reach them. `call_raw` keeps provider-native parameter
-handling, except that on neis, korean, kipris, lofin, localdata and semas a
-parameter named like the credential never replaces the configured key.
+handling, except that on neis, korean, kipris, kosis, law, lofin, localdata and
+semas a parameter named like the credential, in any case, never replaces or
+duplicates the configured key.
 
 For spec-backed normalized queries, every declared required filter must be
 present after authentication, format and pagination parameters are assembled.

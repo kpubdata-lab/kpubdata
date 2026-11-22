@@ -221,7 +221,15 @@ class LawAdapter:
 
         if params:
             for key, value in params.items():
-                if value is None or key in {"OC", "target", "type", "display", "page", "page_size"}:
+                # Matched case-insensitively so an "oc" cannot add a second key.
+                if value is None or key.lower() in {
+                    "oc",
+                    "target",
+                    "type",
+                    "display",
+                    "page",
+                    "page_size",
+                }:
                     continue
                 request_params[key] = str(value)
 

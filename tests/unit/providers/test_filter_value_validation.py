@@ -307,17 +307,19 @@ class _RawAdapter:
         raise NotImplementedError
 
 
-@pytest.mark.parametrize("upper", [False, True], ids=["as-named", "upper-case"])
-@pytest.mark.parametrize("name", ["kipris", "korean", "lofin", "neis"])
+@pytest.mark.parametrize("case", ["as-named", "upper", "lower"])
+@pytest.mark.parametrize("name", ["kipris", "korean", "kosis", "law", "lofin", "neis"])
 def test_call_raw_never_lets_a_credential_named_param_replace_the_configured_key(
-    name: str, upper: bool
+    name: str, case: str
 ) -> None:
     """call_raw merged caller params over the key, so ``KEY=attacker`` replaced it."""
     credential = _CREDENTIAL[name]
     transport = RecordingTransport()
     adapter = cast(_RawAdapter, _build(name, transport))
     dataset = adapter.list_datasets()[0]
-    param_name = credential.upper() if upper else credential
+    param_name = {"as-named": credential, "upper": credential.upper(), "lower": credential.lower()}[
+        case
+    ]
 
     with pytest.raises(_Stop):
         _ = adapter.call_raw(dataset, "op", {param_name: "attacker-999"})
