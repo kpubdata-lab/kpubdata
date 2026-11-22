@@ -97,7 +97,8 @@ An option of the wrong type or out of range is a `ConfigError` at construction:
 `env_keys` must be a real `bool` (a string such as `"no"` is refused, not read as
 true), `cache` a `bool` or a `ResponseCache`, `max_retries` and
 `cache_ttl_seconds` integers `>= 0` (a `bool` is not an integer here), `timeout`
-a positive finite number, and `provider_keys` a dict of str to str.
+a positive number or `None`, and `provider_keys` a dict of str to str (a `None`
+value counts as absent).
 
 ### Environment construction
 

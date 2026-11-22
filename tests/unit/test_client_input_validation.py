@@ -85,7 +85,6 @@ def test_probe_all_with_non_str_provider_is_invalid_request(client: Client) -> N
         ("timeout", True),
         ("timeout", 0),
         ("timeout", -1.0),
-        ("timeout", float("inf")),
         ("timeout", float("nan")),
         ("cache_ttl_seconds", "60"),
         ("cache_ttl_seconds", False),
@@ -124,6 +123,32 @@ def test_client_still_accepts_genuine_option_values(tmp_path: object) -> None:
     )
     client.close()
     Client(cache=True, timeout=1.5).close()
+
+
+# Values that worked before validation was added keep working (review of #1089).
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"timeout": None},
+        {"timeout": float("inf")},
+        {"provider_keys": {"datago": None}},
+    ],
+    ids=["timeout-none", "timeout-inf", "provider-key-none"],
+)
+def test_client_still_accepts_values_that_worked_before(kwargs: dict[str, object]) -> None:
+    Client(env_keys=False, **kwargs).close()
+
+
+def test_negative_cache_ttl_env_names_the_variable(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("KPUBDATA_CACHE_TTL", "-5")
+    with pytest.raises(ConfigError, match="KPUBDATA_CACHE_TTL"):
+        _ = Client.from_env()
+
+
+def test_option_error_does_not_echo_a_string_value() -> None:
+    with pytest.raises(ConfigError) as excinfo:
+        _ = Client(env_keys=cast(bool, "SECRETVAL"))
+    assert "SECRETVAL" not in str(excinfo.value)
 
 
 def test_probe_matches_the_provider_case_insensitively(client: Client) -> None:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import math
+import numbers
 import os
 from collections.abc import Mapping
 from typing import cast
@@ -304,30 +305,45 @@ def _validate_options(
                 f"provider_keys must be a dict of str to str, got {type(provider_keys).__name__}"
             )
         for name, value in cast(Mapping[object, object], provider_keys).items():
-            if not isinstance(name, str) or not isinstance(value, str):
+            # A None value counts as absent, as it always has: the key is then
+            # looked up from the environment (when allowed) at call time.
+            if not isinstance(name, str) or not isinstance(value, str | None):
                 raise ConfigError(
                     "provider_keys must be a dict of str to str, got an entry of "
                     f"{type(name).__name__} to {type(value).__name__}"
                 )
-    if (
+    # None and an infinite timeout both mean "no timeout" to httpx, and worked before.
+    if timeout is not None and (
         isinstance(timeout, bool)
-        or not isinstance(timeout, int | float)
-        or not math.isfinite(timeout)
+        or not isinstance(timeout, numbers.Real)
+        or math.isnan(timeout)
         or timeout <= 0
     ):
-        raise ConfigError(f"timeout must be a positive finite number, got {timeout!r}")
-    if isinstance(max_retries, bool) or not isinstance(max_retries, int) or max_retries < 0:
-        raise ConfigError(f"max_retries must be an integer >= 0, got {max_retries!r}")
+        raise ConfigError(
+            f"timeout must be a positive number or None, got {type(timeout).__name__}"
+        )
+    if (
+        isinstance(max_retries, bool)
+        or not isinstance(max_retries, numbers.Integral)
+        or max_retries < 0
+    ):
+        raise ConfigError(
+            f"max_retries must be an integer >= 0, got {type(max_retries).__name__}"
+            + (f" {max_retries}" if isinstance(max_retries, numbers.Integral) else "")
+        )
     if not isinstance(cache, bool | ResponseCache):
         raise ConfigError(f"cache must be a bool or a ResponseCache, got {type(cache).__name__}")
     if (
         isinstance(cache_ttl_seconds, bool)
-        or not isinstance(cache_ttl_seconds, int)
+        or not isinstance(cache_ttl_seconds, numbers.Integral)
         or cache_ttl_seconds < 0
     ):
-        raise ConfigError(f"cache_ttl_seconds must be an integer >= 0, got {cache_ttl_seconds!r}")
+        raise ConfigError(
+            f"cache_ttl_seconds must be an integer >= 0, got {type(cache_ttl_seconds).__name__}"
+            + (f" {cache_ttl_seconds}" if isinstance(cache_ttl_seconds, numbers.Integral) else "")
+        )
     if not isinstance(env_keys, bool):
-        raise ConfigError(f"env_keys must be True or False, got {env_keys!r}")
+        raise ConfigError(f"env_keys must be True or False, got {type(env_keys).__name__}")
 
 
 def _resolve_cache(cache: bool | ResponseCache) -> ResponseCache | None:
@@ -359,6 +375,9 @@ def _resolve_cache_ttl(ttl_override: object) -> int:
     if raw_ttl is None or raw_ttl == "":
         return 86400
     try:
-        return int(raw_ttl)
+        ttl = int(raw_ttl)
     except ValueError as exc:
         raise ConfigError(f"KPUBDATA_CACHE_TTL must be an integer, got {raw_ttl!r}") from exc
+    if ttl < 0:
+        raise ConfigError(f"KPUBDATA_CACHE_TTL must be an integer >= 0, got {raw_ttl!r}")
+    return ttl
