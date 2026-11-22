@@ -172,8 +172,35 @@ _GATEWAY_WS = r"[ \t\r\n]*"
 #: Element text: no markup, no reference, and none of the control characters
 #: XML 1.0 forbids, so a body ``decode_xml`` would refuse is not read here either.
 _GATEWAY_TEXT = r"[^<&\x00-\x08\x0b\x0c\x0e-\x1f\ufffe\uffff]"
+#: The XML declaration in the shape expat accepts: ``version`` first, then the
+#: optional ``encoding`` and ``standalone`` in that order, each separated by XML
+#: whitespace and quoted with matching quotes. The bytes are read as UTF-8, so
+#: only a UTF-8 encoding is accepted; a parser would decode any other declared
+#: encoding with that codec and could read different text, or refuse it.
+_GATEWAY_DECL_SEP = r"[ \t\r\n]{1,64}"
+_GATEWAY_DECL_EQ = r"[ \t\r\n]{0,64}=[ \t\r\n]{0,64}"
+_GATEWAY_DECLARATION = (
+    r"<\?xml"
+    + _GATEWAY_DECL_SEP
+    + r"version"
+    + _GATEWAY_DECL_EQ
+    + r"(?:\"1\.[0-9]{1,3}\"|'1\.[0-9]{1,3}')"
+    + r"(?:"
+    + _GATEWAY_DECL_SEP
+    + r"encoding"
+    + _GATEWAY_DECL_EQ
+    + r"(?:\"(?i:utf-8)\"|'(?i:utf-8)'))?"
+    + r"(?:"
+    + _GATEWAY_DECL_SEP
+    + r"standalone"
+    + _GATEWAY_DECL_EQ
+    + r"(?:\"(?:yes|no)\"|'(?:yes|no)'))?"
+    + r"[ \t\r\n]{0,64}\?>"
+)
 _GATEWAY_ENVELOPE = re.compile(
-    r"\A\ufeff?(?:<\?xml[^<>]{0,200}\?>)?"
+    r"\A\ufeff?(?:"
+    + _GATEWAY_DECLARATION
+    + r")?"
     + _GATEWAY_WS
     + r"<OpenAPI_ServiceResponse>"
     + _GATEWAY_WS
@@ -210,6 +237,9 @@ def decode_gateway_envelope(data: bytes) -> dict[str, object] | None:
     try:
         text = data.decode("utf-8")
     except UnicodeDecodeError:
+        return None
+    if "]]>" in text:
+        # XML forbids ``]]>`` in character data; expat refuses the document.
         return None
     envelope = _GATEWAY_ENVELOPE.match(text)
     if envelope is None:
