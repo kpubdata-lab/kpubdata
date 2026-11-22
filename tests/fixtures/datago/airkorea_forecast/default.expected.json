@@ -1,4 +1,45 @@
 {
- "items": [],
- "total_count": 714
+ "items": [
+  {
+   "dataTime": "2026-11-22",
+   "informCode": "PM25"
+  },
+  {
+   "dataTime": "2026-11-22",
+   "informCode": "PM10"
+  },
+  {
+   "dataTime": "2026-11-22",
+   "informCode": "PM10"
+  },
+  {
+   "dataTime": "2026-11-22",
+   "informCode": "PM25"
+  },
+  {
+   "dataTime": "2026-11-21",
+   "informCode": "PM10"
+  },
+  {
+   "dataTime": "2026-11-21",
+   "informCode": "PM25"
+  },
+  {
+   "dataTime": "2026-11-21",
+   "informCode": "PM25"
+  },
+  {
+   "dataTime": "2026-11-21",
+   "informCode": "PM25"
+  },
+  {
+   "dataTime": "2026-11-21",
+   "informCode": "PM10"
+  },
+  {
+   "dataTime": "2026-11-21",
+   "informCode": "PM10"
+  }
+ ],
+ "total_count": 672
 }

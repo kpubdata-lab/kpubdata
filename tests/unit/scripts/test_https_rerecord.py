@@ -8,6 +8,7 @@ pinned here, and one hermetic git repository runs ``switch`` then ``check`` end 
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from collections.abc import Sequence
@@ -858,13 +859,16 @@ def test_a_patch_may_correct_response_items_path() -> None:
 
 
 def test_the_airkorea_forecast_correction_passes() -> None:
+    # Built from the real spec but independent of its current items_path, so the
+    # test keeps passing once the correction itself has landed on main.
     spec = (REPO_ROOT / "src/kpubdata/specs/datago/airkorea_forecast.yaml").read_text(
         encoding="utf-8"
     )
-    old = "items_path: response.body.items.item\n"
-    assert old in spec
-    patched = spec.replace(old, "items_path: response.body.items\n")
-    assert rerecord.check_spec_patch(spec, patched) == []
+    line = re.compile(r"^  items_path: .*$", re.MULTILINE)
+    assert len(line.findall(spec)) == 1
+    before = line.sub("  items_path: response.body.items.item", spec)
+    patched = line.sub("  items_path: response.body.items", spec)
+    assert rerecord.check_spec_patch(before, patched) == []
 
 
 @pytest.mark.parametrize(

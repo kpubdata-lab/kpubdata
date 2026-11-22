@@ -21,7 +21,7 @@ params: []
 response:
   format: json
   envelope: datago_standard
-  items_path: response.body.items.item
+  items_path: response.body.items
   total_count_path: response.body.totalCount
   error:
     style: header_result_code
@@ -50,4 +50,4 @@ examples:
   page: 1
   page_size: 10
 status: active
-last_verified: "2026-11-18"
+last_verified: "2026-11-22"

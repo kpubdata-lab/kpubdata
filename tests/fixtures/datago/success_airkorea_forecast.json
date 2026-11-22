@@ -5,32 +5,30 @@
       "resultMsg": "NORMAL SERVICE."
     },
     "body": {
-      "items": {
-        "item": [
-          {
-            "dataTime": "2026-04-01 05시 발표",
-            "informCode": "PM10",
-            "informOverall": "○[미세먼지] 수도권·강원영서: '나쁨' 예상, 그 밖의 지역: '보통'",
-            "informGrade": "서울: 나쁨, 인천: 나쁨, 경기: 나쁨, 강원: 보통",
-            "informCause": "○[미세먼지] 대기 정체로 인한 미세먼지 축적",
-            "actionKnack": "○ 미세먼지가 높은 때에는 외출을 자제",
-            "imageUrl1": "",
-            "imageUrl2": "",
-            "imageUrl3": ""
-          },
-          {
-            "dataTime": "2026-04-01 05시 발표",
-            "informCode": "O3",
-            "informOverall": "○[오존] 전 권역 '좋음' 예상",
-            "informGrade": "서울: 좋음, 부산: 좋음",
-            "informCause": "○[오존] 기온이 낮게 형성",
-            "actionKnack": "○ 오존 발생 시 실외활동 주의",
-            "imageUrl1": "",
-            "imageUrl2": "",
-            "imageUrl3": ""
-          }
-        ]
-      },
+      "items": [
+        {
+          "dataTime": "2026-04-01 05시 발표",
+          "informCode": "PM10",
+          "informOverall": "○[미세먼지] 수도권·강원영서: '나쁨' 예상, 그 밖의 지역: '보통'",
+          "informGrade": "서울: 나쁨, 인천: 나쁨, 경기: 나쁨, 강원: 보통",
+          "informCause": "○[미세먼지] 대기 정체로 인한 미세먼지 축적",
+          "actionKnack": "○ 미세먼지가 높은 때에는 외출을 자제",
+          "imageUrl1": "",
+          "imageUrl2": "",
+          "imageUrl3": ""
+        },
+        {
+          "dataTime": "2026-04-01 05시 발표",
+          "informCode": "O3",
+          "informOverall": "○[오존] 전 권역 '좋음' 예상",
+          "informGrade": "서울: 좋음, 부산: 좋음",
+          "informCause": "○[오존] 기온이 낮게 형성",
+          "actionKnack": "○ 오존 발생 시 실외활동 주의",
+          "imageUrl1": "",
+          "imageUrl2": "",
+          "imageUrl3": ""
+        }
+      ],
       "numOfRows": 2,
       "pageNo": 1,
       "totalCount": 2

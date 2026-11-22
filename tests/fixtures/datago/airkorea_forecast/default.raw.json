@@ -3,49 +3,49 @@
   "body": {
    "items": [
     {
-     "dataTime": "2026-11-18",
-     "informCode": "PM10"
-    },
-    {
-     "dataTime": "2026-11-18",
-     "informCode": "PM10"
-    },
-    {
-     "dataTime": "2026-11-18",
+     "dataTime": "2026-11-22",
      "informCode": "PM25"
     },
     {
-     "dataTime": "2026-11-18",
-     "informCode": "PM25"
-    },
-    {
-     "dataTime": "2026-11-18",
+     "dataTime": "2026-11-22",
      "informCode": "PM10"
     },
     {
-     "dataTime": "2026-11-18",
+     "dataTime": "2026-11-22",
      "informCode": "PM10"
     },
     {
-     "dataTime": "2026-11-18",
+     "dataTime": "2026-11-22",
      "informCode": "PM25"
     },
     {
-     "dataTime": "2026-11-18",
-     "informCode": "PM25"
-    },
-    {
-     "dataTime": "2026-11-18",
+     "dataTime": "2026-11-21",
      "informCode": "PM10"
     },
     {
-     "dataTime": "2026-11-18",
+     "dataTime": "2026-11-21",
+     "informCode": "PM25"
+    },
+    {
+     "dataTime": "2026-11-21",
+     "informCode": "PM25"
+    },
+    {
+     "dataTime": "2026-11-21",
+     "informCode": "PM25"
+    },
+    {
+     "dataTime": "2026-11-21",
+     "informCode": "PM10"
+    },
+    {
+     "dataTime": "2026-11-21",
      "informCode": "PM10"
     }
    ],
    "numOfRows": 10,
    "pageNo": 1,
-   "totalCount": 714
+   "totalCount": 672
   },
   "header": {
    "resultCode": "00",
