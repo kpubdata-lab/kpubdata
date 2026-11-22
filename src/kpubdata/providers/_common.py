@@ -306,12 +306,17 @@ def path_segment(name: str, value: str, *, provider: str, dataset_id: str) -> st
     ``quote(value, safe="")`` encodes ``/`` but leaves ``.`` and ``..`` as they
     are, and httpx resolves those dot segments, so ``..`` would climb over the
     segments the SDK set (service name, start and end index). An empty value,
-    a dot segment or a control character is refused before any request.
+    a dot segment, a backslash (which some servers treat as ``/``) or a control
+    character is refused before any request.
     """
-    if value in {"", ".", ".."} or any(unicodedata.category(char) == "Cc" for char in value):
+    if (
+        value in {"", ".", ".."}
+        or "\\" in value
+        or any(unicodedata.category(char) == "Cc" for char in value)
+    ):
         raise InvalidRequestError(
             f"Path parameter {name!r} must be a non-empty value that is not '.' or '..' "
-            "and has no control characters",
+            "and has no backslash or control characters",
             provider=provider,
             dataset_id=dataset_id,
         )

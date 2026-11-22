@@ -383,7 +383,7 @@ def test_query_records_parses_citydata_top_level_response() -> None:
     assert batch.total_count == 1
 
 
-@pytest.mark.parametrize("value", [".", "..", "a\nb", "a\x00b", "a\x7fb"])
+@pytest.mark.parametrize("value", [".", "..", "..\\..", "a\\b", "a\nb", "a\x00b", "a\x7fb"])
 def test_dot_segment_or_control_path_parameter_is_refused(value: str) -> None:
     """A path parameter httpx would resolve as a dot segment is refused before any request."""
     adapter, transport = _build_adapter([])
