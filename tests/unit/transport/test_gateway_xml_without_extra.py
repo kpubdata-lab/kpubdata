@@ -131,6 +131,102 @@ def test_gateway_refusal_without_messages_maps_the_same(
     assert _outcome(run, body, "text/xml") == with_extra
 
 
+def _declared(declaration: str, err_msg: str = "SERVICE ERROR") -> bytes:
+    return (
+        declaration + "<OpenAPI_ServiceResponse><cmmMsgHeader>"
+        f"<errMsg>{err_msg}</errMsg><returnReasonCode>30</returnReasonCode>"
+        "</cmmMsgHeader></OpenAPI_ServiceResponse>"
+    ).encode()
+
+
+#: Bodies expat refuses outright: ``decode_xml`` raises ParseError on each, so the
+#: fallback must not read them as a gateway refusal either.
+_PARSER_REFUSES = {
+    "cdata_end_in_text": _declared("", err_msg="SERVICE]]>ERROR"),
+    "declaration_without_version": _declared('<?xml encoding="UTF-8"?>'),
+    "declaration_junk": _declared("<?xml foo?>"),
+    "declaration_trailing_garbage": _declared('<?xml version="1.0" garbage?>'),
+    "declaration_mismatched_quotes": _declared("<?xml version=\"1.0'?>"),
+    "declaration_attributes_out_of_order": _declared(
+        '<?xml version="1.0" standalone="yes" encoding="UTF-8"?>'
+    ),
+    "declaration_bad_standalone": _declared('<?xml version="1.0" standalone="maybe"?>'),
+    "declaration_missing_separator": _declared('<?xml version="1.0"encoding="UTF-8"?>'),
+    "declared_utf16": _declared('<?xml version="1.0" encoding="UTF-16"?>'),
+    "declared_euc_kr_with_utf8_text": _declared(
+        '<?xml version="1.0" encoding="EUC-KR"?>', err_msg="\ud0a4"
+    ),
+}
+
+#: Bodies expat accepts but decodes with the declared codec, not UTF-8: the text
+#: it reads differs from what a UTF-8 reading gives, so the fallback refuses them.
+_PARSER_READS_DIFFERENTLY = {
+    "declared_latin1_with_utf8_text": _declared(
+        '<?xml version="1.0" encoding="ISO-8859-1"?>', err_msg="\ud0a4"
+    ),
+}
+
+#: A non-UTF-8 declaration on ASCII-only text: expat reads it the same, but only
+#: because the bytes happen to be ASCII. The fallback reads UTF-8 alone and
+#: refuses any other declared encoding rather than guess (deliberately stricter).
+_DECLARED_OTHER_ENCODING = {
+    "declared_euc_kr_ascii_text": _declared('<?xml version="1.0" encoding="EUC-KR"?>'),
+    "declared_us_ascii": _declared('<?xml version="1.0" encoding="US-ASCII"?>'),
+    "declared_utf8_without_dash": _declared('<?xml version="1.0" encoding="UTF8"?>'),
+}
+
+#: Well-formed declarations both readers accept and read identically.
+_WELL_FORMED_DECLARATIONS = {
+    "version_only": _declared('<?xml version="1.0"?>'),
+    "version_1_1": _declared('<?xml version="1.1"?>'),
+    "single_quotes": _declared("<?xml version='1.0' encoding='utf-8' standalone='no'?>"),
+    "mixed_quote_styles": _declared("<?xml version='1.0' encoding=\"UTF-8\"?>"),
+    "lowercase_utf8_with_utf8_text": _declared(
+        '<?xml version="1.0" encoding="utf-8"?>', err_msg="\ud0a4"
+    ),
+    "whitespace_around_equals": _declared('<?xml version = "1.0"\n\tencoding = "UTF-8"  ?>'),
+    "standalone_without_encoding": _declared('<?xml version="1.0" standalone="yes"?>'),
+}
+
+
+@pytest.mark.parametrize("name", sorted(_PARSER_REFUSES))
+def test_bodies_xmltodict_refuses_are_refused(name: str) -> None:
+    body = _PARSER_REFUSES[name]
+
+    with pytest.raises(ParseError):
+        decode_xml(body)
+    assert decode_gateway_envelope(body) is None
+
+
+@pytest.mark.parametrize("name", sorted(_PARSER_READS_DIFFERENTLY))
+def test_bodies_xmltodict_reads_differently_are_refused(name: str) -> None:
+    body = _PARSER_READS_DIFFERENTLY[name]
+    parsed = decode_xml(body)
+    header = cast(dict[str, dict[str, dict[str, str]]], parsed)["OpenAPI_ServiceResponse"][
+        "cmmMsgHeader"
+    ]
+
+    assert header["errMsg"] != "\ud0a4"
+    assert decode_gateway_envelope(body) is None
+
+
+@pytest.mark.parametrize("name", sorted(_DECLARED_OTHER_ENCODING))
+def test_declared_non_utf8_encoding_is_refused(name: str) -> None:
+    body = _DECLARED_OTHER_ENCODING[name]
+
+    assert decode_xml(body) == decode_xml(body.split(b"?>", 1)[1])
+    assert decode_gateway_envelope(body) is None
+
+
+@pytest.mark.parametrize("name", sorted(_WELL_FORMED_DECLARATIONS))
+def test_well_formed_declarations_decode_as_xmltodict_does(name: str) -> None:
+    body = _WELL_FORMED_DECLARATIONS[name]
+    decoded = decode_gateway_envelope(body)
+
+    assert decoded is not None
+    assert decoded == decode_xml(body)
+
+
 _NOT_A_GATEWAY_REFUSAL = {
     "service_envelope": (
         b'<?xml version="1.0"?><response><header><resultCode>30</resultCode>'
@@ -189,6 +285,9 @@ _NOT_A_GATEWAY_REFUSAL = {
     "unicode_separator_between_elements": _gateway_body("30").replace(
         b"<cmmMsgHeader>", "<cmmMsgHeader>\u3000".encode()
     ),
+    **_PARSER_REFUSES,
+    **_PARSER_READS_DIFFERENTLY,
+    **_DECLARED_OTHER_ENCODING,
 }
 
 
