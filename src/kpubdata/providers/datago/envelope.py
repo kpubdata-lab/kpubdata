@@ -241,13 +241,23 @@ class DataGoEnvelopeParser:
         extra = {"dataset_id": dataset_id, "result_code": code, "result_msg": msg}
         if code in {"30", "31", "20", "32"}:
             logger.debug("Datago API envelope error", extra=extra)
-            raise AuthError(msg, provider="datago", provider_code=code)
+            raise AuthError(
+                msg, provider="datago", provider_code=code, dataset_id=dataset_id or None
+            )
         if code == "22":
             logger.debug("Datago API envelope error", extra=extra)
-            raise RateLimitError(msg, provider="datago", provider_code=code, retryable=False)
+            raise RateLimitError(
+                msg,
+                provider="datago",
+                provider_code=code,
+                retryable=False,
+                dataset_id=dataset_id or None,
+            )
         if code == "10":
             logger.debug("Datago API envelope error", extra=extra)
-            raise InvalidRequestError(msg, provider="datago", provider_code=code)
+            raise InvalidRequestError(
+                msg, provider="datago", provider_code=code, dataset_id=dataset_id or None
+            )
         if code == "12":
             logger.debug("Datago API envelope error", extra=extra)
             raise DatasetNotFoundError(
@@ -258,9 +268,13 @@ class DataGoEnvelopeParser:
             )
         if code in {"01", "02"}:
             logger.debug("Datago API envelope error", extra=extra)
-            raise ServiceUnavailableError(msg, provider="datago", provider_code=code)
+            raise ServiceUnavailableError(
+                msg, provider="datago", provider_code=code, dataset_id=dataset_id or None
+            )
         logger.debug("Datago API envelope error", extra=extra)
-        raise ProviderResponseError(msg, provider="datago", provider_code=code)
+        raise ProviderResponseError(
+            msg, provider="datago", provider_code=code, dataset_id=dataset_id or None
+        )
 
     def normalize_items(self, items_wrapper: object) -> list[dict[str, object]]:
         """Normalize an items/item wrapper into a list of record dicts."""
