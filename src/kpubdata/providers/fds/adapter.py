@@ -97,7 +97,10 @@ class FdsAdapter:
         end_idx = page * page_size
 
         url = self._build_request_url(
-            dataset, start_idx, end_idx, filters=scalar_filters(query.filters)
+            dataset,
+            start_idx,
+            end_idx,
+            filters=scalar_filters(query.filters, provider="fds", dataset_id=dataset.id),
         )
         payload = self._request_and_decode(url, dataset.id)
         service = str(dataset.raw_metadata.get("default_operation", ""))

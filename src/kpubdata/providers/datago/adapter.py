@@ -204,7 +204,7 @@ class DataGoAdapter:
                 )
             if key.lower() in reserved:
                 continue
-            value = scalar_filter_value(key, raw_value)
+            value = scalar_filter_value(key, raw_value, provider="datago", dataset_id=dataset.id)
             if value is not None:
                 params[key] = value
         self._apply_default_filters(params, dataset)
@@ -371,7 +371,7 @@ class DataGoAdapter:
             for key, value in params.items():
                 if key in magic_keys or key == service_key_param:
                     continue
-                encoded = scalar_filter_value(key, value)
+                encoded = scalar_filter_value(key, value, provider="datago", dataset_id=dataset.id)
                 if encoded is not None:
                     request_params[key] = encoded
 
@@ -386,7 +386,7 @@ class DataGoAdapter:
         service_key_param = str(dataset.raw_metadata.get("service_key_param", "serviceKey"))
         for key, value in params.items():
             if key != service_key_param:
-                encoded = scalar_filter_value(key, value)
+                encoded = scalar_filter_value(key, value, provider="datago", dataset_id=dataset.id)
                 if encoded is not None:
                     request_params[key] = encoded
         self._apply_default_filters(request_params, dataset)

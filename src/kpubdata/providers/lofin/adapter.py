@@ -34,6 +34,9 @@ from kpubdata.transport.http import HttpTransport, TransportConfig, TransportReq
 
 logger = logging.getLogger("kpubdata.provider.lofin")
 
+#: Names ``call_raw`` reads for paging or checks as the format, matched case-insensitively.
+_RAW_SDK_PARAMS = frozenset({"pindex", "page", "psize", "page_size", "type"})
+
 
 def _lofin_ssl_context() -> ssl.SSLContext:
     """Create SSL context compatible with LOFIN server.
@@ -158,7 +161,9 @@ class LofinAdapter:
                     response_format=("Type",),
                     provider="lofin",
                     dataset_id=dataset.id,
-                )
+                ),
+                provider="lofin",
+                dataset_id=dataset.id,
             ),
         )
         payload = self._request_and_decode(url, dataset.id)
@@ -209,10 +214,31 @@ class LofinAdapter:
                 "param_keys": sorted(params.keys()),
             },
         )
-        page = self._int_param(params, "pIndex", self._int_param(params, "page", 1))
-        page_size = self._int_param(params, "pSize", self._int_param(params, "page_size", 100))
-        extra_keys = {"pIndex", "page", "pSize", "page_size"}
-        filters = {k: v for k, v in params.items() if k not in extra_keys}
+        # Paging and format names are matched case-insensitively, so ``PINDEX`` sets
+        # the page and ``type`` is checked instead of being sent next to the SDK's
+        # ``pIndex``/``Type`` as a duplicate the provider might read instead.
+        folded: dict[str, list[str]] = {}
+        for key in params:
+            folded.setdefault(key.lower(), []).append(key)
+        for name in _RAW_SDK_PARAMS:
+            if len(folded.get(name, ())) > 1:
+                raise InvalidRequestError(
+                    f"Parameters {sorted(folded[name])!r} name the same parameter; pass it once",
+                    provider="lofin",
+                    dataset_id=dataset.id,
+                )
+        for key in folded.get("type", ()):
+            if str(params[key]).strip().lower() != "json":
+                raise InvalidRequestError(
+                    f"Parameter {key!r} is the response format the SDK sets; "
+                    "LOFIN call_raw always requests and decodes JSON",
+                    provider="lofin",
+                    dataset_id=dataset.id,
+                )
+        lowered = {key.lower(): value for key, value in params.items()}
+        page = self._int_param(lowered, "pindex", self._int_param(lowered, "page", 1))
+        page_size = self._int_param(lowered, "psize", self._int_param(lowered, "page_size", 100))
+        filters = {k: v for k, v in params.items() if k.lower() not in _RAW_SDK_PARAMS}
 
         url = self._build_request_url(dataset, page=page, page_size=page_size, filters=filters)
         payload = self._request_and_decode(url, dataset.id)
