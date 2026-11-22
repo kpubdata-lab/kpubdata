@@ -2,7 +2,7 @@
   "packages": {
     "annotated-types==0.7.0": {
       "version": "0.7.0",
-      "scope": "extra:mcp",
+      "scope": "extra:validation",
       "license": "MIT License",
       "source": "https://github.com/annotated-types/annotated-types",
       "basis": "installed",
@@ -34,7 +34,7 @@
     },
     "attrs==26.1.0": {
       "version": "26.1.0",
-      "scope": "extra:mcp",
+      "scope": "dev",
       "license": "MIT",
       "source": "https://pypi.org/project/attrs/",
       "basis": "installed",
@@ -71,14 +71,6 @@
       "source": "https://github.com/certifi/python-certifi",
       "basis": "installed",
       "status": "needs review"
-    },
-    "cffi==2.0.0": {
-      "version": "2.0.0",
-      "scope": "dev",
-      "license": "MIT",
-      "source": "https://pypi.org/project/cffi/",
-      "basis": "installed",
-      "status": "recorded"
     },
     "charset-normalizer==3.4.7": {
       "version": "3.4.7",
@@ -117,14 +109,6 @@
       "scope": "dev",
       "license": "Apache-2.0",
       "source": "https://github.com/coveragepy/coveragepy",
-      "basis": "installed",
-      "status": "recorded"
-    },
-    "cryptography==50.0.1": {
-      "version": "50.0.1",
-      "scope": "dev",
-      "license": "Apache-2.0 OR BSD-3-Clause",
-      "source": "https://github.com/pyca/cryptography",
       "basis": "installed",
       "status": "recorded"
     },
@@ -168,35 +152,11 @@
       "basis": "installed",
       "status": "recorded"
     },
-    "httpcore2==2.13.1": {
-      "version": "2.13.1",
-      "scope": "extra:mcp",
-      "license": "BSD-3-Clause",
-      "source": "https://github.com/pydantic/httpx2",
-      "basis": "installed",
-      "status": "recorded"
-    },
     "httpcore==1.0.9": {
       "version": "1.0.9",
       "scope": "runtime",
       "license": "BSD-3-Clause",
       "source": "https://www.encode.io/httpcore/",
-      "basis": "installed",
-      "status": "recorded"
-    },
-    "httpx2-jsfetch==1.0": {
-      "version": "1.0",
-      "scope": "extra:mcp",
-      "license": "",
-      "source": "https://pypi.org/project/httpx2-jsfetch/",
-      "basis": "none",
-      "status": "needs review"
-    },
-    "httpx2==2.13.1": {
-      "version": "2.13.1",
-      "scope": "extra:mcp",
-      "license": "BSD-3-Clause",
-      "source": "https://github.com/pydantic/httpx2",
       "basis": "installed",
       "status": "recorded"
     },
@@ -234,7 +194,7 @@
     },
     "jsonschema-specifications==2025.9.1": {
       "version": "2025.9.1",
-      "scope": "extra:mcp",
+      "scope": "dev",
       "license": "MIT",
       "source": "https://github.com/python-jsonschema/jsonschema-specifications",
       "basis": "installed",
@@ -242,7 +202,7 @@
     },
     "jsonschema==4.26.0": {
       "version": "4.26.0",
-      "scope": "extra:mcp",
+      "scope": "dev",
       "license": "MIT",
       "source": "https://github.com/python-jsonschema/jsonschema",
       "basis": "installed",
@@ -285,22 +245,6 @@
       "scope": "extra:krx",
       "license": "Python Software Foundation License",
       "source": "https://matplotlib.org",
-      "basis": "installed",
-      "status": "recorded"
-    },
-    "mcp-types==2.3.0": {
-      "version": "2.3.0",
-      "scope": "extra:mcp",
-      "license": "MIT",
-      "source": "https://modelcontextprotocol.io",
-      "basis": "installed",
-      "status": "recorded"
-    },
-    "mcp==2.3.0": {
-      "version": "2.3.0",
-      "scope": "extra:mcp",
-      "license": "MIT",
-      "source": "https://modelcontextprotocol.io",
       "basis": "installed",
       "status": "recorded"
     },
@@ -376,14 +320,6 @@
       "basis": "installed",
       "status": "needs review"
     },
-    "opentelemetry-api==1.45.2": {
-      "version": "1.45.2",
-      "scope": "extra:mcp",
-      "license": "Apache-2.0",
-      "source": "https://github.com/open-telemetry/opentelemetry-python/tree/main/opentelemetry-api",
-      "basis": "installed",
-      "status": "recorded"
-    },
     "packaging==26.0": {
       "version": "26.0",
       "scope": "extra:docs",
@@ -448,17 +384,9 @@
       "basis": "installed",
       "status": "recorded"
     },
-    "pycparser==3.0": {
-      "version": "3.0",
-      "scope": "dev",
-      "license": "BSD-3-Clause",
-      "source": "https://github.com/eliben/pycparser",
-      "basis": "installed",
-      "status": "recorded"
-    },
     "pydantic-core==2.50.4": {
       "version": "2.50.4",
-      "scope": "extra:mcp",
+      "scope": "extra:validation",
       "license": "MIT",
       "source": "https://github.com/pydantic",
       "basis": "installed",
@@ -466,7 +394,7 @@
     },
     "pydantic==2.14.3": {
       "version": "2.14.3",
-      "scope": "extra:mcp",
+      "scope": "extra:validation",
       "license": "MIT",
       "source": "https://github.com/pydantic/pydantic",
       "basis": "installed",
@@ -477,14 +405,6 @@
       "scope": "extra:docs",
       "license": "BSD-2-Clause",
       "source": "https://pygments.org",
-      "basis": "installed",
-      "status": "recorded"
-    },
-    "pyjwt==2.15.1": {
-      "version": "2.15.1",
-      "scope": "extra:mcp",
-      "license": "MIT",
-      "source": "https://github.com/jpadilla/pyjwt",
       "basis": "installed",
       "status": "recorded"
     },
@@ -544,14 +464,6 @@
       "basis": "installed",
       "status": "needs review"
     },
-    "python-multipart==0.0.32": {
-      "version": "0.0.32",
-      "scope": "extra:mcp",
-      "license": "Apache-2.0",
-      "source": "https://github.com/Kludex/python-multipart",
-      "basis": "installed",
-      "status": "recorded"
-    },
     "pytz==2026.1.post1": {
       "version": "2026.1.post1",
       "scope": "extra:krx",
@@ -559,14 +471,6 @@
       "source": "http://pythonhosted.org/pytz",
       "basis": "installed",
       "status": "recorded"
-    },
-    "pywin32==311": {
-      "version": "311",
-      "scope": "extra:mcp",
-      "license": "",
-      "source": "https://pypi.org/project/pywin32/",
-      "basis": "none",
-      "status": "needs review"
     },
     "pyyaml-env-tag==1.1": {
       "version": "1.1",
@@ -586,7 +490,7 @@
     },
     "referencing==0.37.0": {
       "version": "0.37.0",
-      "scope": "extra:mcp",
+      "scope": "dev",
       "license": "MIT",
       "source": "https://github.com/python-jsonschema/referencing",
       "basis": "installed",
@@ -602,7 +506,7 @@
     },
     "rpds-py==0.30.0": {
       "version": "0.30.0",
-      "scope": "extra:mcp",
+      "scope": "dev",
       "license": "MIT",
       "source": "https://github.com/crate-py/rpds",
       "basis": "installed",
@@ -624,22 +528,6 @@
       "basis": "installed",
       "status": "recorded"
     },
-    "sse-starlette==3.3.4": {
-      "version": "3.3.4",
-      "scope": "extra:mcp",
-      "license": "BSD-3-Clause",
-      "source": "https://github.com/sysid/sse-starlette",
-      "basis": "installed",
-      "status": "recorded"
-    },
-    "starlette==1.7.0": {
-      "version": "1.7.0",
-      "scope": "extra:mcp",
-      "license": "BSD-3-Clause",
-      "source": "https://github.com/Kludex/starlette",
-      "basis": "installed",
-      "status": "recorded"
-    },
     "tomli==2.4.1": {
       "version": "2.4.1",
       "scope": "dev",
@@ -647,14 +535,6 @@
       "source": "https://pypi.org/project/tomli/",
       "basis": "none",
       "status": "needs review"
-    },
-    "truststore==0.10.4": {
-      "version": "0.10.4",
-      "scope": "extra:mcp",
-      "license": "MIT",
-      "source": "https://github.com/sethmlarson/truststore",
-      "basis": "installed",
-      "status": "recorded"
     },
     "types-pytz==2026.1.1.20260408": {
       "version": "2026.1.1.20260408",
@@ -682,7 +562,7 @@
     },
     "typing-inspection==0.4.5": {
       "version": "0.4.5",
-      "scope": "extra:mcp",
+      "scope": "extra:validation",
       "license": "MIT",
       "source": "https://github.com/pydantic/typing-inspection",
       "basis": "installed",
@@ -701,14 +581,6 @@
       "scope": "extra:docs",
       "license": "MIT",
       "source": "https://pypi.org/project/urllib3/",
-      "basis": "installed",
-      "status": "recorded"
-    },
-    "uvicorn==0.42.0": {
-      "version": "0.42.0",
-      "scope": "extra:mcp",
-      "license": "BSD-3-Clause",
-      "source": "https://uvicorn.dev/",
       "basis": "installed",
       "status": "recorded"
     },

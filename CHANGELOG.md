@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Upgrade notes
 
+- The unused `mcp` extra is removed; `pip install kpubdata[mcp]` now installs only kpubdata and pip warns about the unknown extra. The MCP server lives in its own repository (kpubdata-lab/kpubdata-mcp), and kpubdata imports nothing from `mcp`.
 - KOSIS result code `30` (no data for the request) is now an empty `RecordBatch` instead of `AuthError`, and code `10` (the key is missing) is now `AuthError` instead of `InvalidRequestError`; code `11`, `12` and `42` are `AuthError` too. Code that caught `AuthError` to detect an empty KOSIS period should check for an empty batch instead.
 - A spec-backed `list()`/`list_all()` given `start_date`, `end_date`, `sort`, `fields` or `cursor` now raises `InvalidRequestError`; those options were silently ignored and returned unfiltered data. Remove them, or pass the provider's own date filter that the dataset declares.
 - A spec filter given under its provider name (for example `dataTerm` rather than its alias) is now checked against the declared enum like its alias, and giving both names raises `InvalidRequestError`.
@@ -37,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The unused `mcp` extra is dropped from `pyproject.toml`, and the packages only it pulled in (`mcp`, `starlette`, `uvicorn`, `cryptography` and others) leave `uv.lock`, the licence inventory and `THIRD_PARTY_NOTICES.md` (#974). The installed-extras smoke test no longer imports `mcp` or checks OpenTelemetry.
 - `API_SPEC.md` section 9 usage examples for `seoul.subway_realtime_arrival` now run (`list(stationName=...)`, `call_raw("realtimeStationArrival", ...)`); the old ones raised `InvalidRequestError` or used `operation` as the service name. The provider pages now document the `krx.investor_flow` `RecordBatch.raw` exception and the nested `geometry` of `sgis` boundary items.
 - The quick start in `README.md` and `README.en.md` reads `batch.items[0]`; `RecordBatch` has no `records` attribute, so the old line raised `AttributeError`.
 - The datago provider page no longer shows `metro_path` and `g2b_contract`, which are not in the catalog and raised `DatasetNotFoundError`.

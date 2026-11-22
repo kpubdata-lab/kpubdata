@@ -51,7 +51,6 @@ Expected core set:
 
 - `xml`
 - `pandas`
-- `mcp`
 - `dev`
 - `docs`
 

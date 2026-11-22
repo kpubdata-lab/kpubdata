@@ -14,12 +14,10 @@ every dependency is clear.
 ## Needs review
 
 - `certifi` 2026.10.19: declared `MPL-2.0`
-- `httpx2-jsfetch` 1.0: declared `(none)`
 - `mergedeep` 1.3.4: declared `UNKNOWN`
 - `numpy` 2.4.4: declared `BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0`
 - `pathspec` 1.0.4: declared `Mozilla Public License 2.0 (MPL 2.0)`
 - `python-dateutil` 2.9.0.post0: declared `Dual License`
-- `pywin32` 311: declared `(none)`
 - `tomli` 2.4.1: declared `(none)`
 
 ## Packages (from `uv.lock`)
@@ -34,44 +32,37 @@ optional extra; `dev` only for development and documentation.
 
 | Package | Version | Scope | Declared licence | Status | Source |
 | --- | --- | --- | --- | --- | --- |
-| annotated-types | 0.7.0 | extra:mcp | MIT License | recorded | https://github.com/annotated-types/annotated-types |
+| annotated-types | 0.7.0 | extra:validation | MIT License | recorded | https://github.com/annotated-types/annotated-types |
 | anyio | 4.14.2 | runtime | MIT | recorded | https://pypi.org/project/anyio/ |
 | anyio | 4.15.1 | runtime | MIT | recorded | https://pypi.org/project/anyio/ |
 | ast-serialize | 0.13.1 | dev | MIT | recorded | https://github.com/mypyc/ast_serialize |
-| attrs | 26.1.0 | extra:mcp | MIT | recorded | https://pypi.org/project/attrs/ |
+| attrs | 26.1.0 | dev | MIT | recorded | https://pypi.org/project/attrs/ |
 | babel | 2.18.0 | extra:docs | BSD-3-Clause | recorded | https://github.com/python-babel/babel |
 | backrefs | 7.0 | extra:docs | MIT | recorded | https://github.com/facelessuser/backrefs |
 | build | 1.6.1 | dev | MIT | recorded | https://build.pypa.io |
 | certifi | 2026.10.19 | runtime | MPL-2.0 | needs review | https://github.com/certifi/python-certifi |
-| cffi | 2.0.0 | dev | MIT | recorded | https://pypi.org/project/cffi/ |
 | charset-normalizer | 3.4.7 | extra:docs | MIT | recorded | https://pypi.org/project/charset-normalizer/ |
 | click | 8.5.0 | extra:docs | BSD-3-Clause | recorded | https://github.com/pallets/click/ |
 | colorama | 0.4.6 | extra:docs | BSD License | recorded | https://github.com/tartley/colorama |
 | contourpy | 1.3.3 | extra:krx | BSD License | recorded | https://github.com/contourpy/contourpy |
 | coverage | 7.13.5 | dev | Apache-2.0 | recorded | https://github.com/coveragepy/coveragepy |
-| cryptography | 50.0.1 | dev | Apache-2.0 OR BSD-3-Clause | recorded | https://github.com/pyca/cryptography |
 | cycler | 0.12.1 | extra:krx | BSD License | recorded | https://matplotlib.org/cycler/ |
 | deprecated | 1.3.1 | extra:krx | MIT | recorded | https://github.com/laurent-laporte-pro/deprecated |
 | fonttools | 4.62.1 | extra:krx | MIT | recorded | http://github.com/fonttools/fonttools |
 | ghp-import | 2.1.0 | extra:docs | Apache Software License | recorded | https://github.com/c-w/ghp-import |
 | h11 | 0.16.0 | runtime | MIT | recorded | https://github.com/python-hyper/h11 |
-| httpcore2 | 2.13.1 | extra:mcp | BSD-3-Clause | recorded | https://github.com/pydantic/httpx2 |
 | httpcore | 1.0.9 | runtime | BSD-3-Clause | recorded | https://www.encode.io/httpcore/ |
-| httpx2-jsfetch | 1.0 | extra:mcp | (none) | needs review | https://pypi.org/project/httpx2-jsfetch/ |
-| httpx2 | 2.13.1 | extra:mcp | BSD-3-Clause | recorded | https://github.com/pydantic/httpx2 |
 | httpx | 0.28.1 | runtime | BSD-3-Clause | recorded | https://github.com/encode/httpx |
 | idna | 3.20 | runtime | BSD-3-Clause | recorded | https://github.com/kjd/idna |
 | iniconfig | 2.3.0 | dev | MIT | recorded | https://github.com/pytest-dev/iniconfig |
 | jinja2 | 3.1.6 | extra:docs | BSD License | recorded | https://github.com/pallets/jinja/ |
-| jsonschema-specifications | 2025.9.1 | extra:mcp | MIT | recorded | https://github.com/python-jsonschema/jsonschema-specifications |
-| jsonschema | 4.26.0 | extra:mcp | MIT | recorded | https://github.com/python-jsonschema/jsonschema |
+| jsonschema-specifications | 2025.9.1 | dev | MIT | recorded | https://github.com/python-jsonschema/jsonschema-specifications |
+| jsonschema | 4.26.0 | dev | MIT | recorded | https://github.com/python-jsonschema/jsonschema |
 | kiwisolver | 1.5.0 | extra:krx | BSD License | recorded | https://github.com/nucleic/kiwi |
 | librt | 0.16.0 | dev | MIT | recorded | https://github.com/mypyc/librt |
 | markdown | 3.10.2 | extra:docs | BSD-3-Clause | recorded | https://Python-Markdown.github.io/ |
 | markupsafe | 3.0.3 | extra:docs | BSD-3-Clause | recorded | https://github.com/pallets/markupsafe/ |
 | matplotlib | 3.10.9 | extra:krx | Python Software Foundation License | recorded | https://matplotlib.org |
-| mcp-types | 2.3.0 | extra:mcp | MIT | recorded | https://modelcontextprotocol.io |
-| mcp | 2.3.0 | extra:mcp | MIT | recorded | https://modelcontextprotocol.io |
 | mergedeep | 1.3.4 | extra:docs | UNKNOWN | needs review | https://github.com/clarketm/mergedeep |
 | mkdocs-get-deps | 0.2.2 | extra:docs | MIT | recorded | https://github.com/mkdocs/get-deps |
 | mkdocs-material-extensions | 1.3.1 | extra:docs | MIT | recorded | https://github.com/facelessuser/mkdocs-material-extensions |
@@ -81,7 +72,6 @@ optional extra; `dev` only for development and documentation.
 | mypy-extensions | 1.1.0 | dev | MIT | recorded | https://github.com/python/mypy_extensions |
 | mypy | 2.4.1 | dev | MIT | recorded | https://www.mypy-lang.org/ |
 | numpy | 2.4.4 | extra:krx | BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0 | needs review | https://numpy.org |
-| opentelemetry-api | 1.45.2 | extra:mcp | Apache-2.0 | recorded | https://github.com/open-telemetry/opentelemetry-python/tree/main/opentelemetry-api |
 | packaging | 26.0 | extra:docs | Apache-2.0 OR BSD-2-Clause | recorded | https://github.com/pypa/packaging |
 | paginate | 0.5.7 | extra:docs | MIT | recorded | https://github.com/Signum/paginate |
 | pandas-stubs | 2.3.3.260113 | dev | BSD-3-Clause | recorded | https://github.com/pandas-dev/pandas-stubs |
@@ -90,11 +80,9 @@ optional extra; `dev` only for development and documentation.
 | pillow | 13.0.0 | extra:krx | MIT-CMU | recorded | https://python-pillow.org |
 | platformdirs | 4.9.6 | extra:docs | MIT | recorded | https://github.com/tox-dev/platformdirs |
 | pluggy | 1.6.0 | dev | MIT | recorded | https://pypi.org/project/pluggy/ |
-| pycparser | 3.0 | dev | BSD-3-Clause | recorded | https://github.com/eliben/pycparser |
-| pydantic-core | 2.50.4 | extra:mcp | MIT | recorded | https://github.com/pydantic |
-| pydantic | 2.14.3 | extra:mcp | MIT | recorded | https://github.com/pydantic/pydantic |
+| pydantic-core | 2.50.4 | extra:validation | MIT | recorded | https://github.com/pydantic |
+| pydantic | 2.14.3 | extra:validation | MIT | recorded | https://github.com/pydantic/pydantic |
 | pygments | 2.20.0 | extra:docs | BSD-2-Clause | recorded | https://pygments.org |
-| pyjwt | 2.15.1 | extra:mcp | MIT | recorded | https://github.com/jpadilla/pyjwt |
 | pykrx | 1.2.9 | extra:krx | MIT | recorded | https://github.com/sharebook-kr/pykrx/ |
 | pymdown-extensions | 12.3 | extra:docs | MIT | recorded | https://github.com/facelessuser/pymdown-extensions |
 | pyparsing | 3.3.2 | extra:krx | MIT | recorded | https://github.com/pyparsing/pyparsing/ |
@@ -102,27 +90,21 @@ optional extra; `dev` only for development and documentation.
 | pytest-cov | 7.1.0 | dev | MIT | recorded | https://pypi.org/project/pytest-cov/ |
 | pytest | 9.2.0 | dev | MIT | recorded | https://docs.pytest.org/en/latest/ |
 | python-dateutil | 2.9.0.post0 | extra:docs | Dual License | needs review | https://github.com/dateutil/dateutil |
-| python-multipart | 0.0.32 | extra:mcp | Apache-2.0 | recorded | https://github.com/Kludex/python-multipart |
 | pytz | 2026.1.post1 | extra:krx | MIT | recorded | http://pythonhosted.org/pytz |
-| pywin32 | 311 | extra:mcp | (none) | needs review | https://pypi.org/project/pywin32/ |
 | pyyaml-env-tag | 1.1 | extra:docs | MIT | recorded | https://github.com/waylan/pyyaml-env-tag |
 | pyyaml | 6.0.3 | runtime | MIT | recorded | https://pyyaml.org/ |
-| referencing | 0.37.0 | extra:mcp | MIT | recorded | https://github.com/python-jsonschema/referencing |
+| referencing | 0.37.0 | dev | MIT | recorded | https://github.com/python-jsonschema/referencing |
 | requests | 2.33.1 | extra:docs | Apache-2.0 | recorded | https://github.com/psf/requests |
-| rpds-py | 0.30.0 | extra:mcp | MIT | recorded | https://github.com/crate-py/rpds |
+| rpds-py | 0.30.0 | dev | MIT | recorded | https://github.com/crate-py/rpds |
 | ruff | 0.17.5 | dev | MIT | recorded | https://github.com/astral-sh/ruff |
 | six | 1.17.0 | extra:docs | MIT | recorded | https://github.com/benjaminp/six |
-| sse-starlette | 3.3.4 | extra:mcp | BSD-3-Clause | recorded | https://github.com/sysid/sse-starlette |
-| starlette | 1.7.0 | extra:mcp | BSD-3-Clause | recorded | https://github.com/Kludex/starlette |
 | tomli | 2.4.1 | dev | (none) | needs review | https://pypi.org/project/tomli/ |
-| truststore | 0.10.4 | extra:mcp | MIT | recorded | https://github.com/sethmlarson/truststore |
 | types-pytz | 2026.1.1.20260408 | dev | Apache-2.0 | recorded | https://github.com/python/typeshed |
 | types-pyyaml | 6.0.12.20261113 | dev | Apache-2.0 | recorded | https://github.com/python/typeshed |
 | typing-extensions | 4.16.0 | runtime | PSF-2.0 | recorded | https://github.com/python/typing_extensions |
-| typing-inspection | 0.4.5 | extra:mcp | MIT | recorded | https://github.com/pydantic/typing-inspection |
+| typing-inspection | 0.4.5 | extra:validation | MIT | recorded | https://github.com/pydantic/typing-inspection |
 | tzdata | 2025.3 | extra:krx | Apache-2.0 | recorded | https://github.com/python/tzdata |
 | urllib3 | 2.8.0 | extra:docs | MIT | recorded | https://pypi.org/project/urllib3/ |
-| uvicorn | 0.42.0 | extra:mcp | BSD-3-Clause | recorded | https://uvicorn.dev/ |
 | watchdog | 6.0.0 | extra:docs | Apache-2.0 | recorded | https://github.com/gorakhargosh/watchdog/ |
 | wrapt | 2.1.2 | extra:krx | BSD-2-Clause | recorded | https://github.com/GrahamDumpleton/wrapt |
 | xmltodict | 1.0.4 | extra:xml | MIT | recorded | https://github.com/martinblech/xmltodict |
