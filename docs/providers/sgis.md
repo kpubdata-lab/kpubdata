@@ -37,7 +37,7 @@ constitute a successful authenticated live SGIS verification.
 
 ## 경계(boundary) 항목의 `geometry`
 
-경계 데이터셋의 각 항목은 속성 필드와 함께 중첩된 GeoJSON `geometry` 객체(`type`, `coordinates`)를 가진다.
+경계 데이터셋의 각 항목은 속성 필드와 `feature_type` 키를 가지며, 응답에 geometry 가 있으면 중첩된 GeoJSON `geometry` 객체(`type`, `coordinates`)도 가진다.
 다른 필드처럼 평평한 값이 아니므로 표 형태(DataFrame)로 바꾸면 한 칸에 딕셔너리가 들어간다.
 
 ## 지원 데이터셋
