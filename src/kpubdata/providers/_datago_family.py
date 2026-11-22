@@ -22,7 +22,7 @@ from collections.abc import Mapping, Sequence
 from typing import ClassVar, NoReturn, cast
 
 from kpubdata.config import KPubDataConfig
-from kpubdata.core._params import scalar_filter_value
+from kpubdata.core._params import scalar_filter_value, sdk_param_error
 from kpubdata.core._result_code import is_no_data_code, result_code_text
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
 from kpubdata.exceptions import (
@@ -154,11 +154,23 @@ class DataGoFamilyAdapter:
 
         reserved = {params_key.lower() for params_key in params}
         reserved.update({"pageno", "numofrows"})
+        service_key_param = str(dataset.raw_metadata.get("service_key_param", "serviceKey"))
         for key, raw_value in query.filters.items():
-            if key.lower() not in reserved:
-                value = scalar_filter_value(key, raw_value)
-                if value is not None:
-                    params[key] = value
+            # The service key comes from the configured credential, so a filter under
+            # its name is dropped. Format and page parameters are set by the SDK;
+            # refuse them instead of silently sending the SDK's value.
+            if key.lower() == service_key_param.lower():
+                continue
+            if key.lower() in reserved:
+                raise sdk_param_error(
+                    key,
+                    paging=key.lower() in {"pageno", "numofrows"},
+                    provider=self.provider_name,
+                    dataset_id=dataset.id,
+                )
+            value = scalar_filter_value(key, raw_value)
+            if value is not None:
+                params[key] = value
 
         payload = self._request_and_decode(url, params, dataset.id)
 

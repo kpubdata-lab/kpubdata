@@ -12,6 +12,7 @@ from collections.abc import Mapping, Sequence
 from typing import NoReturn, Protocol, cast
 
 from kpubdata.config import KPubDataConfig
+from kpubdata.core._params import drop_or_refuse_sdk_params, scalar_filters
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
 from kpubdata.exceptions import (
     AuthError,
@@ -109,7 +110,13 @@ class SgisAdapter:
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
         """Perform record query."""
         endpoint = self._dataset_endpoint(dataset)
-        request_params = self._build_boundary_params(dataset, query.filters)
+        filters = drop_or_refuse_sdk_params(
+            query.filters,
+            credential=("accessToken",),
+            provider=_SGIS_PROVIDER,
+            dataset_id=dataset.id,
+        )
+        request_params = self._build_boundary_params(dataset, scalar_filters(filters))
         payload = self._request_geojson(
             endpoint=endpoint, params=request_params, dataset_id=dataset.id
         )

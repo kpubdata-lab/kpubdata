@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 
 from kpubdata._hosts import host_is_allowed
 from kpubdata.config import KPubDataConfig
-from kpubdata.core._params import scalar_filter_value
+from kpubdata.core._params import scalar_filter_value, sdk_param_error
 from kpubdata.core.models import (
     DatasetRef,
     Query,
@@ -164,6 +164,7 @@ class DataGoAdapter:
 
         url = self._build_request_url(dataset)
         params = self._build_base_params(dataset)
+        base_param_names = {params_key.lower() for params_key in params}
         fixed_query_params = self._get_fixed_query_params(dataset)
         params.update(fixed_query_params)
         page_param = "pageNo"
@@ -186,13 +187,26 @@ class DataGoAdapter:
 
         reserved = {params_key.lower() for params_key in params}
         reserved.update({page_param.lower(), page_size_param.lower()})
+        service_key_param = str(dataset.raw_metadata.get("service_key_param", "serviceKey"))
+        sdk_param_names = base_param_names | {page_param.lower(), page_size_param.lower()}
+        sdk_param_names.discard(service_key_param.lower())
         for key, raw_value in query.filters.items():
-            # The auth key, format and page parameters are already filled —
-            # user filters must not overwrite them.
-            if key.lower() not in reserved:
-                value = scalar_filter_value(key, raw_value)
-                if value is not None:
-                    params[key] = value
+            # Format and page parameters are set by the SDK: refuse them instead of
+            # silently sending the SDK's value. The service key comes from the
+            # configured credential and fixed parameters from the catalogue, so a
+            # filter under either name is still dropped.
+            if key.lower() in sdk_param_names:
+                raise sdk_param_error(
+                    key,
+                    paging=key.lower() in {page_param.lower(), page_size_param.lower()},
+                    provider="datago",
+                    dataset_id=dataset.id,
+                )
+            if key.lower() in reserved:
+                continue
+            value = scalar_filter_value(key, raw_value)
+            if value is not None:
+                params[key] = value
         self._apply_default_filters(params, dataset)
         payload = self._request_and_decode(url, params, dataset.id)
         if is_odcloud:

@@ -604,7 +604,7 @@ for item in result.items[:3]:
 
 ```python
 ds = client.dataset("datago.subway_passengers")
-result = ds.list(pasngYmd="20260521", numOfRows=10)
+result = ds.list(pasngYmd="20260521", page_size=10)
 for item in result.items[:5]:
     print(item["stnNm"], item["pasngHr"], item["rideNope"], item["gffNope"])
 ```

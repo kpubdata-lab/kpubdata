@@ -14,6 +14,7 @@ from typing import cast
 from urllib.parse import urlencode
 
 from kpubdata.config import KPubDataConfig
+from kpubdata.core._params import drop_or_refuse_sdk_params, scalar_filters
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
 from kpubdata.exceptions import AuthError, DatasetNotFoundError, ParseError, ProviderResponseError
 from kpubdata.providers._common import (
@@ -117,7 +118,17 @@ class LawAdapter:
             },
         )
 
-        url = self._build_request_url(dataset, params=query.filters, page=page, page_size=page_size)
+        filters = drop_or_refuse_sdk_params(
+            query.filters,
+            credential=("OC",),
+            paging=("page", "display", "page_size"),
+            response_format=("type",),
+            provider="law",
+            dataset_id=dataset.id,
+        )
+        url = self._build_request_url(
+            dataset, params=scalar_filters(filters), page=page, page_size=page_size
+        )
         payload = self._request_and_decode(url, dataset.id)
         items = self._extract_items(payload, dataset)
         reported_count = reported_total(payload.get("totalCnt"))
@@ -210,7 +221,15 @@ class LawAdapter:
 
         if params:
             for key, value in params.items():
-                if value is None or key in {"OC", "target", "type", "display", "page", "page_size"}:
+                # Matched case-insensitively so an "oc" cannot add a second key.
+                if value is None or key.lower() in {
+                    "oc",
+                    "target",
+                    "type",
+                    "display",
+                    "page",
+                    "page_size",
+                }:
                     continue
                 request_params[key] = str(value)
 

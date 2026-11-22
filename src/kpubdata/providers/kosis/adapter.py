@@ -13,6 +13,7 @@ from typing import cast
 from urllib.parse import urlencode
 
 from kpubdata.config import KPubDataConfig
+from kpubdata.core._params import drop_or_refuse_sdk_params, scalar_filters
 from kpubdata.core.models import (
     DatasetRef,
     Query,
@@ -206,7 +207,15 @@ class KosisAdapter:
                 dataset_id=dataset.id,
             )
 
-        filters: dict[str, object] = dict(query.filters)
+        filters = scalar_filters(
+            drop_or_refuse_sdk_params(
+                query.filters,
+                credential=("apiKey",),
+                response_format=("format", "jsonVD"),
+                provider="kosis",
+                dataset_id=dataset.id,
+            )
+        )
         params = self._build_base_params(dataset)
         params["startPrdDe"] = start_date
         params["endPrdDe"] = end_date
@@ -214,11 +223,11 @@ class KosisAdapter:
         reserved = {key.casefold() for key in params}
         for key in _KOSIS_DEFAULT_QUERY_PARAM_KEYS:
             if key in filters:
-                params[key] = str(filters.pop(key))
+                params[key] = filters.pop(key)
 
         for key, value in filters.items():
             if key.casefold() not in reserved:
-                params[key] = str(value)
+                params[key] = value
 
         return self._compose_url(dataset, params)
 
@@ -234,7 +243,8 @@ class KosisAdapter:
         if selected_operation and selected_operation != "statisticsParameterData":
             request_params["operation"] = selected_operation
         for key, value in params.items():
-            if key != "apiKey":
+            # The configured key wins, whatever case the caller used.
+            if key.lower() != "apikey":
                 request_params[key] = str(value)
         return self._compose_url(dataset, request_params)
 

@@ -160,14 +160,44 @@ def test_build_params_assembles_auth_format_pagination_filters(apt_spec: SpecDef
 
 
 def test_build_params_reserved_keys_not_overwritten(apt_spec: SpecDefinition) -> None:
-    """User filters do not overwrite auth/format/pagination parameters."""
+    """A credential-named filter never overwrites the configured key."""
     executor = _make_executor(FakeTransport())
-    query = Query(
-        filters={"LAWD_CD": "11680", "DEAL_YMD": "202401", "serviceKey": "hijack", "pageNo": "999"}
-    )
+    query = Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401", "serviceKey": "hijack"})
     params = executor.build_params(apt_spec, query)
     assert params["serviceKey"] == "test-key-datago"
     assert params["pageNo"] == "1"
+
+
+@pytest.mark.parametrize("name", ["pageNo", "numOfRows", "NUMOFROWS"])
+def test_build_params_refuses_reserved_paging_filter(apt_spec: SpecDefinition, name: str) -> None:
+    """A paging parameter passed as a filter is refused, not silently replaced."""
+    transport = FakeTransport()
+    executor = _make_executor(transport)
+    query = Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401", name: "secret-999"})
+
+    with pytest.raises(InvalidRequestError, match="page_size") as excinfo:
+        executor.query(apt_spec, _ref(apt_spec), query)
+
+    assert name in str(excinfo.value)
+    assert "secret-999" not in str(excinfo.value)
+    assert transport.calls == []
+
+
+@pytest.mark.parametrize("name", ["resultType", "RESULTTYPE"])
+def test_build_params_refuses_format_filter_with_a_format_hint(
+    apt_spec: SpecDefinition, name: str
+) -> None:
+    """A format parameter passed as a filter is refused, and the hint is not about paging."""
+    transport = FakeTransport()
+    executor = _make_executor(transport)
+    query = Query(filters={"LAWD_CD": "11680", "DEAL_YMD": "202401", name: "xml"})
+
+    with pytest.raises(InvalidRequestError, match="format is fixed") as excinfo:
+        executor.query(apt_spec, _ref(apt_spec), query)
+
+    assert name in str(excinfo.value)
+    assert "page_size" not in str(excinfo.value)
+    assert transport.calls == []
 
 
 def test_build_params_rejects_invalid_enum_before_network(apt_spec: SpecDefinition) -> None:

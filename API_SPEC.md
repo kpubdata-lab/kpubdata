@@ -222,7 +222,37 @@ lowercase `true`/`false`). Lists, mappings, datetime objects and other
 unsupported objects raise `InvalidRequestError` **before an HTTP request**.
 Date/period formats are provider-specific: pass the required format as a
 string, rather than relying on an implicit conversion. Existing text and
-numeric filter strings are not reformatted (#968).
+numeric filter strings are not reformatted (#968). This applies to every
+provider's `list()`, spec-backed or custom adapter; custom adapters declare no
+boolean parameters, so they refuse boolean values.
+
+A `list()` filter named like a parameter the SDK sets is handled the same way on
+spec-backed datasets and on these adapters, with names matched case-insensitively:
+
+| Adapter | Credential (dropped) | Paging (refused) | Response format (refused) |
+| :--- | :--- | :--- | :--- |
+| spec datasets | the spec's auth parameter | the spec's page and size parameters | the spec's format parameter |
+| datago | the service key parameter | `pageNo`/`numOfRows` (or the odcloud names) | the format parameter |
+| localdata, semas | the service key parameter | `pageNo`, `numOfRows` | the format parameter |
+| neis | `KEY` | `pIndex`, `pSize` | `Type` |
+| korean | `key` | `start`, `num` | `req_type` |
+| kipris | `serviceKey` | `pageNo`, `numOfRows` | `_type` |
+| lofin | `Key` | `pIndex`, `pSize` | `Type` |
+| law | `OC` | `page`, `display`, `page_size` | `type` |
+| kosis | `apiKey` | — | `format`, `jsonVD` |
+| sgis | `accessToken` | — | — |
+
+A paging or format name raises `InvalidRequestError` naming the filter (never its
+value) before any HTTP request: for paging use `page` and `page_size`; the
+response format is fixed by the adapter. A filter named like the credential
+parameter is dropped, never sent or echoed, because the credential always comes
+from the configured key. data.go.kr fixed catalogue parameters, law's `target`
+and kosis's `orgId`/`tblId`/`startPrdDe`/`endPrdDe` keep their existing handling
+(the SDK's value is sent), and korean's `type_search` may still be set by a filter. fds, bok and seoul put the key and paging in the URL
+path, so no filter can reach them. `call_raw` keeps provider-native parameter
+handling, except that on neis, korean, kipris, kosis, law, lofin, localdata and
+semas a parameter named like the credential, in any case, never replaces or
+duplicates the configured key.
 
 For spec-backed normalized queries, every declared required filter must be
 present after authentication, format and pagination parameters are assembled.

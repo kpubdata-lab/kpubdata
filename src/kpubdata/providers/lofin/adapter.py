@@ -14,6 +14,7 @@ from typing import NoReturn, cast
 from urllib.parse import quote, urlencode
 
 from kpubdata.config import KPubDataConfig
+from kpubdata.core._params import drop_or_refuse_sdk_params, scalar_filters
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
 from kpubdata.exceptions import (
     AuthError,
@@ -146,7 +147,19 @@ class LofinAdapter:
         )
 
         url = self._build_request_url(
-            dataset, page=page, page_size=page_size, filters=query.filters
+            dataset,
+            page=page,
+            page_size=page_size,
+            filters=scalar_filters(
+                drop_or_refuse_sdk_params(
+                    query.filters,
+                    credential=("Key",),
+                    paging=("pIndex", "pSize"),
+                    response_format=("Type",),
+                    provider="lofin",
+                    dataset_id=dataset.id,
+                )
+            ),
         )
         payload = self._request_and_decode(url, dataset.id)
 
@@ -220,7 +233,7 @@ class LofinAdapter:
         *,
         page: int,
         page_size: int,
-        filters: dict[str, object] | None = None,
+        filters: Mapping[str, object] | None = None,
     ) -> str:
         """Build LOFIN API request URL."""
         base_url_raw = dataset.raw_metadata.get("base_url")
@@ -249,7 +262,11 @@ class LofinAdapter:
             ("pSize", str(safe_page_size)),
         ]
         if filters:
-            pairs.extend((str(key), str(value)) for key, value in filters.items())
+            # The configured key always wins: a raw parameter under its name is not
+            # appended as a second ``Key`` the provider might read instead.
+            pairs.extend(
+                (str(key), str(value)) for key, value in filters.items() if key.lower() != "key"
+            )
         return f"{base_url_raw}/{dataset_code}?{urlencode(pairs, quote_via=quote, safe='')}"
 
     def _request_and_decode(self, url: str, dataset_id: str = "") -> dict[str, object]:

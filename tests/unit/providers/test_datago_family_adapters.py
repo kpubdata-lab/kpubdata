@@ -604,3 +604,46 @@ def test_other_http_errors_stay_transport_errors(cls: Any, provider: str, status
         adapter.query_records(dataset, Query(page_size=1))
 
     assert excinfo.value.status_code == status_code
+
+
+# --- SDK-set parameter names passed as list() filters -----------------------
+
+
+@pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
+@pytest.mark.parametrize(
+    ("name", "hint"),
+    [
+        ("pageNo", "page_size"),
+        ("NUMOFROWS", "page_size"),
+        ("type", "format is fixed"),
+    ],
+)
+def test_list_refuses_a_paging_or_format_named_filter_before_http(
+    cls: Any, provider: str, name: str, hint: str
+) -> None:
+    """The SDK sets paging and format, so a filter under those names is refused, not replaced."""
+    adapter = _adapter(cls)
+    dataset = _ref(provider, base_url="https://api.test/svc", default_operation="getList")
+
+    with pytest.raises(InvalidRequestError, match=hint) as excinfo:
+        adapter.query_records(dataset, Query(filters={name: "secret-999", "x": "ok"}))
+
+    assert repr(name) in str(excinfo.value)
+    assert "secret-999" not in str(excinfo.value)
+    assert adapter._transport.calls == []
+
+
+@pytest.mark.parametrize(("cls", "provider"), _ADAPTERS)
+@pytest.mark.parametrize("name", ["serviceKey", "SERVICEKEY"])
+def test_list_drops_a_credential_named_filter_and_sends_the_configured_key(
+    cls: Any, provider: str, name: str
+) -> None:
+    adapter = _adapter(cls, _FakeResponse(_envelope("00", items=[])))
+    dataset = _ref(provider, base_url="https://api.test/svc", default_operation="getList")
+
+    adapter.query_records(dataset, Query(filters={name: "attacker-key", "x": "ok"}))
+
+    params = adapter._transport.calls[0]["params"]
+    assert params["serviceKey"] == "test-key"
+    assert "attacker-key" not in params.values()
+    assert params["x"] == "ok"

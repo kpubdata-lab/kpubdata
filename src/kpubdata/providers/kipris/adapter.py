@@ -20,6 +20,7 @@ from collections.abc import Mapping, Sequence
 from urllib.parse import urlencode
 
 from kpubdata.config import KPubDataConfig
+from kpubdata.core._params import drop_or_refuse_sdk_params, scalar_filters
 from kpubdata.core._result_code import is_no_data_code, result_code_text
 from kpubdata.core.models import DatasetRef, Query, RecordBatch, SchemaDescriptor
 from kpubdata.exceptions import (
@@ -95,8 +96,18 @@ class KiprisAdapter:
         page = query.page or 1
         page_size = min(query.page_size or _MAX_PAGE_SIZE, _MAX_PAGE_SIZE)
 
+        filters = scalar_filters(
+            drop_or_refuse_sdk_params(
+                query.filters,
+                credential=("serviceKey",),
+                paging=("pageNo", "numOfRows"),
+                response_format=("_type",),
+                provider="kipris",
+                dataset_id=dataset.id,
+            )
+        )
         required = self._required_filters(dataset)
-        missing = [name for name in required if not str(query.filters.get(name, "")).strip()]
+        missing = [name for name in required if not filters.get(name, "").strip()]
         if missing:
             raise InvalidRequestError(
                 f"kipris {dataset.dataset_key} queries require filter(s): {', '.join(missing)}",
@@ -107,7 +118,7 @@ class KiprisAdapter:
         params: dict[str, str] = {
             "serviceKey": self._require_api_key(),
             "_type": "json",
-            "applicationNumber": str(query.filters["applicationNumber"]),
+            "applicationNumber": filters["applicationNumber"],
             # The page asked for was never sent (#837): every "next page" was the same
             # request, so a full page made list_all fetch it again until its page limit.
             "pageNo": str(page),
@@ -162,7 +173,8 @@ class KiprisAdapter:
             "_type": "json",
         }
         for key, value in params.items():
-            if str(value).strip():
+            # The configured key always wins over a raw parameter under its name.
+            if key.lower() != "servicekey" and str(value).strip():
                 request_params[str(key)] = str(value)
         url = self._build_url(dataset, request_params, service=service)
         payload = self._request_and_decode(url, dataset.id)
