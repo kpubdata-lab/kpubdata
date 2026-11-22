@@ -39,6 +39,7 @@ end_index = page * page_size
 ```
 
 - 최대 `page_size`는 `1000`입니다.
+- 응답에 `list_total_count` 가 없으면 `total_count` 는 `None` 이고, 꽉 찬 페이지(`page_size` 개)면 `next_page` 가 다음 페이지를 가리켜 `list_all()` 이 이어서 읽습니다. 최상위 envelope 를 쓰는 `citydata` 는 한 번에 답하므로 받은 행 수가 `total_count` 입니다.
 
 ### URL 패턴
 

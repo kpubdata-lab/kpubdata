@@ -283,6 +283,21 @@ def reported_total(value: object) -> int | None:
     return None
 
 
+def capped_page_size(dataset: DatasetRef, requested: int | None, default: int = 100) -> int:
+    """The page size to send: ``requested`` (or ``default``), cut to the declared maximum.
+
+    A provider that caps a page at ``query_support.max_page_size`` returns fewer rows
+    than asked for, so the next-page arithmetic must use the size it will honour;
+    sending the larger size made ``list_all`` skip the rows in between. A dataset
+    that declares no maximum keeps the requested size.
+    """
+    page_size = requested or default
+    max_page_size = dataset.query_support.max_page_size if dataset.query_support else None
+    if max_page_size is not None and max_page_size > 0:
+        return min(page_size, max_page_size)
+    return page_size
+
+
 def require_string_field(entry: Mapping[str, object], field_name: str, provider: str) -> str:
     """Extract required non-empty string field from catalogue entry."""
     value = entry.get(field_name)
@@ -297,6 +312,7 @@ def require_string_field(entry: Mapping[str, object], field_name: str, provider:
 __all__ = [
     "build_dataset_ref",
     "build_schema_from_metadata",
+    "capped_page_size",
     "coerce_int",
     "load_catalogue",
     "reported_total",

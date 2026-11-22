@@ -25,6 +25,7 @@ from kpubdata.exceptions import (
 )
 from kpubdata.providers._common import (
     build_schema_from_metadata,
+    capped_page_size,
     coerce_int,
     load_catalogue,
     reported_total,
@@ -138,7 +139,7 @@ class LofinAdapter:
     def query_records(self, dataset: DatasetRef, query: Query) -> RecordBatch:
         """Query records by calling LOFIN API."""
         page = query.page or 1
-        page_size = query.page_size or 100
+        page_size = capped_page_size(dataset, query.page_size)
         logger.debug(
             "lofin query_records",
             extra={

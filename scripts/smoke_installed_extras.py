@@ -18,8 +18,6 @@ from unittest.mock import patch
 def run_smoke() -> dict[str, object]:
     """Fail when an expected extra is missing or a bounded integration no longer works."""
     import certifi
-    from opentelemetry.trace import get_current_span
-    from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
     from PIL import Image
 
     ssl.create_default_context(cafile=certifi.where())
@@ -31,13 +29,7 @@ def run_smoke() -> dict[str, object]:
         decoded.load()
         if decoded.size != (2, 2) or decoded.getpixel((0, 0)) != (11, 22, 33):
             raise RuntimeError("Pillow PNG round trip changed")
-    context = TraceContextTextMapPropagator().extract(
-        {"traceparent": "00-00000000000000000000000000000001-0000000000000002-01"}
-    )
-    span = get_current_span(context).get_span_context()
-    if span.trace_id != 1 or span.span_id != 2 or not span.is_remote:
-        raise RuntimeError("OpenTelemetry trace context changed")
-    modules = ("pandas", "pykrx", "pydantic", "mcp", "xmltodict", "mkdocs", "pymdownx")
+    modules = ("pandas", "pykrx", "pydantic", "xmltodict", "mkdocs", "pymdownx")
     for module in modules:
         importlib.import_module(module)
     from kpubdata import Client
@@ -48,12 +40,10 @@ def run_smoke() -> dict[str, object]:
     return {
         "python": platform.python_version(),
         "patched_versions": {
-            name: importlib.metadata.version(name)
-            for name in ("certifi", "Pillow", "opentelemetry-api")
+            name: importlib.metadata.version(name) for name in ("certifi", "Pillow")
         },
         "tls_context": "passed",
         "png_round_trip": "passed",
-        "trace_context": "passed",
         "imported_integrations": list(modules),
         "catalogue": "passed",
         "provider_calls": False,

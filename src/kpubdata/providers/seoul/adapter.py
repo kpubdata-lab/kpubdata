@@ -19,7 +19,12 @@ from kpubdata.exceptions import (
     ParseError,
     ProviderResponseError,
 )
-from kpubdata.providers._common import build_schema_from_metadata, coerce_int, load_catalogue
+from kpubdata.providers._common import (
+    build_schema_from_metadata,
+    coerce_int,
+    load_catalogue,
+    reported_total,
+)
 from kpubdata.providers.seoul.envelope import validate_envelope
 from kpubdata.transport.decode import decode_json
 from kpubdata.transport.http import HttpTransport, TransportConfig
@@ -101,8 +106,20 @@ class SeoulAdapter:
         payload = self._request_and_decode(url, dataset.id)
         service_name = self._service_name(dataset, operation=None)
         body, items = validate_envelope(payload, service_name, dataset)
-        total_count = coerce_int(body.get("list_total_count"), len(items))
-        next_page = page_no + 1 if total_count > 0 and end_index < total_count else None
+        # None when the provider sent no count (#806); it used to become len(items),
+        # which ended list_all after the first page.
+        total_count = reported_total(body.get("list_total_count"))
+        if total_count is None and dataset.raw_metadata.get("top_level_result") is True:
+            # The top-level form (citydata) answers in one response and sends no count.
+            total_count = len(items)
+        known_total = total_count or 0
+        if (known_total and end_index < known_total) or (
+            not known_total and len(items) == page_size
+        ):
+            # Without a count, a full page is the signal that another may follow.
+            next_page: int | None = page_no + 1
+        else:
+            next_page = None
 
         return RecordBatch(
             items=items,
