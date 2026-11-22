@@ -160,4 +160,70 @@ def decode_xml(data: str | bytes) -> dict[str, object]:
     raise ParseError(msg)
 
 
+#: A gateway refusal is a few hundred bytes; anything far larger is not one.
+_GATEWAY_ENVELOPE_MAX_BYTES = 8192
+#: The whole document: an optional declaration, then exactly
+#: ``<OpenAPI_ServiceResponse><cmmMsgHeader>`` holding only flat, attribute-free
+#: text elements. ``&`` is refused outright, so no entity or character
+#: reference is ever expanded, and a DOCTYPE cannot appear anywhere.
+#: XML whitespace only: Python's ``\s`` also matches Unicode separators that
+#: an XML parser would reject between elements.
+_GATEWAY_WS = r"[ \t\r\n]*"
+#: Element text: no markup, no reference, and none of the control characters
+#: XML 1.0 forbids, so a body ``decode_xml`` would refuse is not read here either.
+_GATEWAY_TEXT = r"[^<&\x00-\x08\x0b\x0c\x0e-\x1f\ufffe\uffff]"
+_GATEWAY_ENVELOPE = re.compile(
+    r"\A\ufeff?(?:<\?xml[^<>]{0,200}\?>)?"
+    + _GATEWAY_WS
+    + r"<OpenAPI_ServiceResponse>"
+    + _GATEWAY_WS
+    + r"<cmmMsgHeader>"
+    + _GATEWAY_WS
+    + r"((?:<([A-Za-z_]{1,40})>"
+    + _GATEWAY_TEXT
+    + r"{0,2048}</\2>"
+    + _GATEWAY_WS
+    + r"|<[A-Za-z_]{1,40}[ \t\r\n]?/>"
+    + _GATEWAY_WS
+    + r")*)</cmmMsgHeader>"
+    + _GATEWAY_WS
+    + r"</OpenAPI_ServiceResponse>"
+    + _GATEWAY_WS
+    + r"\Z"
+)
+_GATEWAY_FIELD = re.compile(
+    r"<([A-Za-z_]{1,40})>(" + _GATEWAY_TEXT + r"*)</\1>|<([A-Za-z_]{1,40})[ \t\r\n]?/>"
+)
+
+
+def decode_gateway_envelope(data: bytes) -> dict[str, object] | None:
+    """Read a data.go.kr gateway refusal without ``xmltodict``; ``None`` for anything else.
+
+    The gateway answers a rejected key with ``OpenAPI_ServiceResponse/cmmMsgHeader``
+    XML even on JSON endpoints, so on a base install the refusal used to surface as
+    "install the xml extra" instead of the auth or quota error it is (#1101). This
+    recognises that one envelope with a bounded, anchored regular expression and
+    returns the dict ``decode_xml`` would, so the existing gateway mapping reads it.
+    """
+    if len(data) > _GATEWAY_ENVELOPE_MAX_BYTES:
+        return None
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+    envelope = _GATEWAY_ENVELOPE.match(text)
+    if envelope is None:
+        return None
+    header: dict[str, object] = {}
+    for field in _GATEWAY_FIELD.finditer(envelope.group(1)):
+        name = field.group(1) or field.group(3)
+        if name in header:
+            # xmltodict would turn a repeated element into a list; do not guess.
+            return None
+        # An XML parser normalises line endings to a bare newline.
+        value = (field.group(2) or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+        header[name] = value or None
+    return {"OpenAPI_ServiceResponse": {"cmmMsgHeader": header}}
+
+
 __all__ = ["decode_json", "decode_xml", "detect_content_type"]
