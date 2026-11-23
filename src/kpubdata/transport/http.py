@@ -19,7 +19,7 @@ import weakref
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager, suppress
 from contextvars import ContextVar
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, fields, replace
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from http.cookiejar import Cookie, CookieJar, DefaultCookiePolicy
@@ -186,9 +186,13 @@ class _DropPlaintextResponseCookies:
 _DEFAULT_MAX_RESPONSE_BYTES = 50 * 1024 * 1024
 
 
-@dataclass
+@dataclass(repr=False)
 class TransportConfig:
-    """Transport layer configuration."""
+    """Transport layer configuration.
+
+    ``repr`` masks the values of credential headers (``Authorization`` and the
+    like), so a config printed in a log or a traceback does not carry them.
+    """
 
     timeout: float = 30.0
     max_retries: int = 3
@@ -212,14 +216,43 @@ class TransportConfig:
     #: redirected as before. Turn this on only for a provider known to redirect.
     follow_credentialed_redirects: bool = False
 
+    @override
+    def __repr__(self) -> str:
+        return _repr_with_masked_headers(self)
 
-@dataclass(frozen=True)
+
+@dataclass(frozen=True, repr=False)
 class TransportRequirements:
-    """Declarative transport customization for provider adapters."""
+    """Declarative transport customization for provider adapters.
+
+    ``repr`` masks credential header values, as ``TransportConfig`` does.
+    """
 
     verify_ssl: bool | None = None
     headers: Mapping[str, str] | None = None
     ssl_context_factory: Callable[[], ssl.SSLContext] | None = None
+
+    @override
+    def __repr__(self) -> str:
+        return _repr_with_masked_headers(self)
+
+
+def _repr_with_masked_headers(obj: TransportConfig | TransportRequirements) -> str:
+    """The dataclass ``repr`` of ``obj``, with credential header values masked.
+
+    The default ``repr`` printed headers verbatim, so ``Authorization: Bearer ...``
+    reached any log line or traceback that showed the config.
+    """
+    parts: list[str] = []
+    for item in fields(obj):
+        value: object = getattr(obj, item.name)
+        if item.name == "headers" and isinstance(value, Mapping):
+            value = {
+                name: "[REDACTED]" if _is_sensitive_header(str(name)) else header_value
+                for name, header_value in cast(Mapping[str, str], value).items()
+            }
+        parts.append(f"{item.name}={value!r}")
+    return f"{type(obj).__qualname__}({', '.join(parts)})"
 
 
 class HttpTransport:
@@ -663,7 +696,9 @@ class HttpTransport:
                             "status_code": response.status_code,
                             "content_type": response.headers.get("content-type", ""),
                             "content_length": len(response.content),
-                            "preview": _response_preview(response),
+                            "preview": _response_preview(
+                                response, secret_values=secret_values, withhold=no_store
+                            ),
                             **request_context,
                         },
                     )
@@ -1047,11 +1082,15 @@ def _contains_sensitive_headers(headers: Mapping[str, str] | None) -> bool:
     """Check if headers contain any sensitive keys."""
     if headers is None:
         return False
-    return any(
-        key.casefold() in SENSITIVE_PARAM_KEYS
-        or key.casefold() in {"cookie", "proxy-authorization"}
-        for key in headers
-    )
+    return any(_is_sensitive_header(key) for key in headers)
+
+
+def _is_sensitive_header(name: str) -> bool:
+    """Whether a header of this name carries a credential."""
+    return name.casefold() in SENSITIVE_PARAM_KEYS or name.casefold() in {
+        "cookie",
+        "proxy-authorization",
+    }
 
 
 #: The typed error a terminal HTTP status raises; any other status is a plain
@@ -1086,8 +1125,23 @@ def _contains_sensitive_params(params: dict[str, str] | None) -> bool:
     return any(key.casefold() in SENSITIVE_PARAM_KEYS for key in params)
 
 
-def _response_preview(response: httpx.Response, max_chars: int = 500) -> str:
-    """Build a short preview of response body for debug logs."""
+def _response_preview(
+    response: httpx.Response,
+    max_chars: int = 500,
+    *,
+    secret_values: tuple[str, ...] = (),
+    withhold: bool = False,
+) -> str:
+    """Build a short preview of response body for debug logs.
+
+    ``withhold`` is set for a ``no_store`` request, whose body is itself a
+    credential (the sgis token): no part of it is logged, only its size. Otherwise
+    every form of each of ``secret_values`` is replaced with ``[REDACTED]``, since a
+    provider can echo the key back in an error body.
+    """
+    if withhold:
+        return f"[withheld, {len(response.content)} bytes]"
+
     content_type = cast(str, response.headers.get("content-type", "")).casefold()
     is_text = (
         content_type.startswith("text/")
@@ -1100,9 +1154,29 @@ def _response_preview(response: httpx.Response, max_chars: int = 500) -> str:
         return f"[binary content, {len(response.content)} bytes]"
 
     try:
-        return response.text[:max_chars]
+        text = response.text
     except (LookupError, UnicodeDecodeError, ValueError):
         return "[decode error]"
+    forms = _secret_forms(secret_values)
+    if not forms:
+        return text[:max_chars]
+    # Redact over the whole text, match by match, and stop once the preview is long
+    # enough. Slicing first and redacting after leaves part of a secret that straddles
+    # the slice unmatched, and each replacement shortens the text, which pulls more of
+    # it in under the cut. Here every emitted chunk lies between whole matches.
+    pattern = re.compile("|".join(re.escape(form) for form in forms))
+    pieces: list[str] = []
+    length = 0
+    position = 0
+    for match in pattern.finditer(text):
+        if length >= max_chars:
+            break
+        pieces.extend((text[position : match.start()], "[REDACTED]"))
+        length += match.start() - position + len("[REDACTED]")
+        position = match.end()
+    else:
+        pieces.append(text[position : position + max_chars])
+    return "".join(pieces)[:max_chars]
 
 
 def _parse_retry_after(header_value: str) -> float | None:
