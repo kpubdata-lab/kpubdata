@@ -244,6 +244,9 @@ def decode_gateway_envelope(data: bytes) -> dict[str, object] | None:
     envelope = _GATEWAY_ENVELOPE.match(text)
     if envelope is None:
         return None
+    if not envelope.group(1):
+        # xmltodict reads an empty header as ``None``: it carries no refusal.
+        return None
     header: dict[str, object] = {}
     for field in _GATEWAY_FIELD.finditer(envelope.group(1)):
         name = field.group(1) or field.group(3)
