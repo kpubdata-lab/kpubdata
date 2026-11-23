@@ -39,7 +39,7 @@ export KPUBDATA_BOK_API_KEY="your-key"
 - 항목 코드: `0000003` (원/달러 매매기준율)
 - 필수 파라미터: `start_date`, `end_date`
 - 날짜 형식: `YYYYMMDD` (예: `"20240101"`)
-- 주기: `D` (일별)
+- 주기: `D` (일별, 기본값 — `frequency`를 주지 않으면 카탈로그에 선언된 `D`로 요청)
 
 ```python
 ds = client.dataset("bok.usd_krw")
@@ -57,7 +57,7 @@ for item in result.items:
 - 항목 코드: `010200000` (국고채 3년)
 - 필수 파라미터: `start_date`, `end_date`
 - 날짜 형식: `YYYYMMDD` (예: `"20240101"`)
-- 주기: `D` (일별)
+- 주기: `D` (일별, 기본값 — `frequency`를 주지 않으면 카탈로그에 선언된 `D`로 요청)
 
 ```python
 ds = client.dataset("bok.bond_yield_3y")
@@ -211,6 +211,8 @@ print(raw.keys())  # dict_keys(['StatisticSearch'])
 - 페이지네이션: `start_index`와 `end_index` 기반
 - 에러 응답: `RESULT.CODE`와 `RESULT.MESSAGE` 필드 포함
 - 날짜 형식은 frequency에 따라 달라짐 (월별=`YYYYMM`, 일별=`YYYYMMDD`, 연간=`YYYY`)
+- `frequency`를 주지 않으면 데이터셋 카탈로그의 `query_support.frequency` 첫 값을 쓰고, 선언이 없으면 `M`을 씁니다. 그래서 `usd_krw`, `bond_yield_3y`는 `D`, `base_rate`, `money_supply`는 `M`이 기본값입니다. 명시한 `frequency`는 선언 목록 밖이어도 그대로 보냅니다.
+- `list()`가 받는 필터는 `frequency`, `start_date`, `end_date`뿐입니다. 항목 코드(`item_code1`)는 카탈로그에 고정되어 있어 필터로 바꿀 수 없고, 그 밖의 필터를 주면 요청 전에 `InvalidRequestError`가 납니다. 예전에는 조용히 버려져 필터가 적용되지 않은 데이터가 돌아왔습니다.
 
 ## 참고 사항
 

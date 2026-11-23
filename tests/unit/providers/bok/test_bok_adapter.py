@@ -360,3 +360,104 @@ def test_normal_path_values_keep_the_same_url() -> None:
     adapter.query_records(dataset, Query(page_size=1, start_date="202401", end_date="202403"))
 
     assert str(transport.calls[0]["url"]).endswith("/1/1/722Y001/M/202401/202403/0101000")
+
+
+@pytest.mark.parametrize(
+    ("dataset_key", "expected_tail"),
+    [
+        ("usd_krw", "/731Y003/D/20240101/20240131/0000003"),
+        ("bond_yield_3y", "/817Y002/D/20240101/20240131/010200000"),
+    ],
+)
+def test_daily_dataset_defaults_to_its_declared_frequency(
+    dataset_key: str, expected_tail: str
+) -> None:
+    """A daily series asked for at "M" is refused by ECOS with ERROR-101."""
+    payload = _success_payload(items=[{"id": 1}], total_count=1)
+    adapter, dataset, transport = _build_adapter_with_transport(
+        [FakeResponse(payload)], dataset_key=dataset_key
+    )
+
+    adapter.query_records(dataset, Query(start_date="20240101", end_date="20240131"))
+
+    assert str(transport.calls[0]["url"]).endswith(expected_tail)
+
+
+@pytest.mark.parametrize(
+    ("dataset_key", "expected_tail"),
+    [
+        # base_rate declares no frequency, money_supply declares ["M"]: both stay "M".
+        ("base_rate", "/722Y001/M/202401/202403/0101000"),
+        ("money_supply", "/101Y003/M/202401/202403/BBHS00"),
+    ],
+)
+def test_monthly_or_undeclared_dataset_keeps_the_monthly_default(
+    dataset_key: str, expected_tail: str
+) -> None:
+    payload = _success_payload(items=[{"id": 1}], total_count=1)
+    adapter, dataset, transport = _build_adapter_with_transport(
+        [FakeResponse(payload)], dataset_key=dataset_key
+    )
+
+    adapter.query_records(dataset, Query(start_date="202401", end_date="202403"))
+
+    assert str(transport.calls[0]["url"]).endswith(expected_tail)
+
+
+def test_explicit_frequency_still_overrides_the_declared_default() -> None:
+    payload = _success_payload(items=[{"id": 1}], total_count=1)
+    adapter, dataset, transport = _build_adapter_with_transport(
+        [FakeResponse(payload)], dataset_key="usd_krw"
+    )
+
+    adapter.query_records(
+        dataset, Query(start_date="202401", end_date="202403", filters={"frequency": "M"})
+    )
+
+    assert str(transport.calls[0]["url"]).endswith("/731Y003/M/202401/202403/0000003")
+
+
+def test_call_raw_defaults_to_the_declared_frequency() -> None:
+    payload = _success_payload(items=[{"id": 1}], total_count=1)
+    adapter, dataset, transport = _build_adapter_with_transport(
+        [FakeResponse(payload)], dataset_key="usd_krw"
+    )
+
+    adapter.call_raw(dataset, "StatisticSearch", {"start_date": "20240101", "end_date": "20240131"})
+
+    assert "/731Y003/D/20240101/20240131/0000003" in str(transport.calls[0]["url"])
+
+
+@pytest.mark.parametrize(
+    "filters",
+    [
+        {"item_code1": "9999999"},
+        {"stationId": "ST-4", "frequency": "M"},
+    ],
+)
+def test_unknown_filter_is_refused_before_any_request(filters: dict[str, object]) -> None:
+    """The adapter only sends frequency and the dates; any other filter was dropped."""
+    adapter, dataset, transport = _build_adapter_with_transport([])
+
+    with pytest.raises(InvalidRequestError, match="does not support the filter") as excinfo:
+        adapter.query_records(
+            dataset, Query(start_date="202401", end_date="202403", filters=filters)
+        )
+
+    unknown = sorted(set(filters) - {"frequency"})
+    assert all(name in str(excinfo.value) for name in unknown)
+    assert excinfo.value.provider == "bok"
+    assert excinfo.value.dataset_id == dataset.id
+    assert transport.calls == []
+
+
+def test_accepted_filters_are_still_sent() -> None:
+    payload = _success_payload(items=[{"id": 1}], total_count=1)
+    adapter, dataset, transport = _build_adapter_with_transport([FakeResponse(payload)])
+
+    adapter.query_records(
+        dataset,
+        Query(filters={"frequency": "Q", "start_date": "2024Q1", "end_date": "2024Q2"}),
+    )
+
+    assert str(transport.calls[0]["url"]).endswith("/722Y001/Q/2024Q1/2024Q2/0101000")
