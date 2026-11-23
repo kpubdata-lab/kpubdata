@@ -253,6 +253,37 @@ class TestDataset:
         batches = list(ds.list_all(max_pages=10))
         assert len(batches) == 5
 
+    # Validates test_list_all_max_pages_reached_exactly_ends_without_error scenario.
+    def test_list_all_max_pages_reached_exactly_ends_without_error(self) -> None:
+        """
+        Validates scenario described by test_list_all_max_pages_reached_exactly_ends_without_error.
+
+        Returns:
+            None: Result of computation or return value from downstream call.
+
+        Raises:
+            Implementation may propagate exceptions from downstream dependencies.
+
+        Examples:
+            Verify expected behavior maintained without regression as described by test name.
+        """
+        adapter = MockAdapter()
+        dataset_ref = _ref()
+        # Exactly 3 pages, the last without a next page, plus a sentinel that must stay unread
+        adapter.batches = [
+            RecordBatch(items=[{"page": 1}], dataset=dataset_ref, next_page=2),
+            RecordBatch(items=[{"page": 2}], dataset=dataset_ref, next_page=3),
+            RecordBatch(items=[{"page": 3}], dataset=dataset_ref, next_page=None),
+            RecordBatch(items=[{"page": 4}], dataset=dataset_ref, next_page=None),
+        ]
+        ds = Dataset(ref=dataset_ref, adapter=adapter)
+
+        batches = list(ds.list_all(max_pages=3))
+
+        assert [b.items for b in batches] == [[{"page": 1}], [{"page": 2}], [{"page": 3}]]
+        # The mock pops one batch per request: only the sentinel is left, so page 4 was not asked
+        assert [b.items for b in adapter.batches] == [[{"page": 4}]]
+
     # Validates test_list_all_raises_when_max_pages_exceeded scenario.
     def test_list_all_raises_when_max_pages_exceeded(self) -> None:
         """
