@@ -450,6 +450,8 @@ def _parse_license(raw: object, problems: list[str]) -> LicenseSpec | None:
 
 #: Field types ``schema.json`` allows for ``fields[].type``.
 _FIELD_TYPES = ("string", "integer", "number", "boolean")
+#: Transforms ``schema.json`` allows for ``fields[].transform``.
+_FIELD_TRANSFORMS = ("date_yyyymmdd", "date_yyyymm", "to_int", "to_float", "strip_comma")
 
 
 def _parse_params(raw: object, problems: list[str]) -> tuple[ParamSpec, ...]:
@@ -697,6 +699,12 @@ def from_mapping(data: dict[str, object]) -> SpecDefinition:
                 if item.get("type", "string") not in _FIELD_TYPES:
                     problems.append(
                         f"fields.{item.get('name')}: type must be one of {', '.join(_FIELD_TYPES)}"
+                    )
+                transform = item.get("transform")
+                if transform is not None and transform not in _FIELD_TRANSFORMS:
+                    problems.append(
+                        f"fields.{item.get('name')}: transform must be one of "
+                        f"{', '.join(_FIELD_TRANSFORMS)}"
                     )
 
     if problems:
