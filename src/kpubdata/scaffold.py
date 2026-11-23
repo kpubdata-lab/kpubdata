@@ -108,7 +108,6 @@ from kpubdata.core.models import (
 from kpubdata.exceptions import DatasetNotFoundError, InvalidRequestError
 from kpubdata.providers._common import build_dataset_ref, load_catalogue
 
-
 _CATALOGUE_PATH = Path(__file__).parent / "catalogue.json"
 
 
@@ -141,9 +140,7 @@ class {class_name}:
         self._datasets: tuple[DatasetRef, ...] = (
             tuple(catalogue) if catalogue is not None else _load_default_catalogue()
         )
-        self._datasets_by_key: dict[str, DatasetRef] = {{
-            d.dataset_key: d for d in self._datasets
-        }}
+        self._datasets_by_key: dict[str, DatasetRef] = {{d.dataset_key: d for d in self._datasets}}
 
     @property
     def name(self) -> str:
@@ -158,8 +155,7 @@ class {class_name}:
         """Search datasets by text (casefolded match on name and id)."""
         needle = text.casefold()
         return [
-            d for d in self._datasets
-            if needle in d.id.casefold() or needle in d.name.casefold()
+            d for d in self._datasets if needle in d.id.casefold() or needle in d.name.casefold()
         ]
 
     def get_dataset(self, dataset_key: str) -> DatasetRef:
@@ -185,9 +181,7 @@ class {class_name}:
         """Optional schema metadata (None when unsupported)."""
         return None
 
-    def call_raw(
-        self, dataset: DatasetRef, operation: str, params: dict[str, object]
-    ) -> object:
+    def call_raw(self, dataset: DatasetRef, operation: str, params: dict[str, object]) -> object:
         """Raw escape hatch. TODO: return the backend's original response as-is."""
         raise InvalidRequestError(
             "call_raw is not implemented yet — fill in backend logic.",

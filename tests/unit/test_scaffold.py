@@ -372,3 +372,44 @@ def test_scaffolded_files_pass_the_english_comment_gate(tmp_path: Path) -> None:
     assert generated
     for path in generated:
         assert gate.findings(path) == [], path
+
+
+def _ruff_command() -> list[str]:
+    """Return a command that runs ruff from this environment, or skip."""
+    import importlib.util
+    import shutil
+
+    if importlib.util.find_spec("ruff") is not None:
+        return [sys.executable, "-m", "ruff"]
+    binary = shutil.which("ruff", path=str(Path(sys.executable).parent))
+    if binary is None:
+        pytest.skip("ruff is not available in this environment")
+    return [binary]
+
+
+def test_scaffolded_files_pass_ruff_check_and_format(tmp_path: Path) -> None:
+    """What `kpubdata scaffold` writes must pass the repository's own ruff gates."""
+    import shutil
+    import subprocess
+
+    ruff = _ruff_command()
+    repo_pyproject = Path(__file__).resolve().parents[2] / "pyproject.toml"
+    repo = _shared_repo_root(tmp_path)
+    # Run under the repository's ruff config. The temporary tree has no kpubdata/core
+    # package, so name kpubdata first-party explicitly, as it is in this repository.
+    shutil.copy(repo_pyproject, repo / "pyproject.toml")
+    first_party = ["--config", 'lint.isort.known-first-party = ["kpubdata"]']
+
+    result = scaffold_provider("my_prov", repo_root=repo, dataset_key="sample")
+    generated = [str(path) for path in result.created if path.suffix == ".py"]
+    assert generated
+
+    for args in (["check", "--no-cache"], ["format", "--check", "--no-cache"]):
+        proc = subprocess.run(
+            [*ruff, *args, *first_party, *generated],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert proc.returncode == 0, f"ruff {args[0]} failed:\n{proc.stdout}\n{proc.stderr}"
