@@ -225,7 +225,7 @@ def make_cache_key(
         "method": method.upper(),
         "url": url,
         "params": _normalize_mapping(params),
-        "headers": _normalize_mapping(headers_subset),
+        "headers": _normalize_mapping(headers_subset, casefold_names=True),
     }
     digest = hashlib.sha256(
         json.dumps(normalized_payload, ensure_ascii=True, separators=(",", ":")).encode("utf-8")
@@ -241,8 +241,16 @@ def _default_cache_dir() -> Path:
     return Path.home() / ".cache" / "kpubdata" / "responses"
 
 
-def _normalize_mapping(values: Mapping[str, object] | None) -> list[tuple[str, str]]:
+def _normalize_mapping(
+    values: Mapping[str, object] | None, *, casefold_names: bool = False
+) -> list[tuple[str, str]]:
     """Normalize mapping into sortable key-value list with fingerprinted credentials.
+
+    Query parameter names keep their casing, because ``STDT_CD`` and ``stdt_cd``
+    are different parameters on the wire and must not share a cache entry.
+    Header names are case-insensitive in HTTP, so callers pass
+    ``casefold_names=True`` for them. Credential detection is case-insensitive
+    either way.
 
     Sensitive values (credentials) use sha256 fingerprints instead of plaintext
     (#263) — no plaintext appears in cache keys and caches are isolated per
@@ -259,7 +267,7 @@ def _normalize_mapping(values: Mapping[str, object] | None) -> list[tuple[str, s
             normalized_value = _credential_fingerprint(text)
         else:
             normalized_value = text
-        normalized_items.append((key.casefold(), normalized_value))
+        normalized_items.append((key.casefold() if casefold_names else key, normalized_value))
     normalized_items.sort()
     return normalized_items
 

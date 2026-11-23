@@ -174,10 +174,39 @@ def test_key_is_stable_across_parameter_order() -> None:
     assert first == second
 
 
-def test_key_ignores_method_and_parameter_name_casing() -> None:
-    assert make_cache_key("get", "https://x.test/r", {"Page": "1"}, None) == make_cache_key(
+def test_key_ignores_method_casing() -> None:
+    assert make_cache_key("get", "https://x.test/r", {"page": "1"}, None) == make_cache_key(
         "GET", "https://x.test/r", {"page": "1"}, None
     )
+
+
+def test_key_separates_query_parameter_names_that_differ_only_in_case() -> None:
+    """Query parameter names are case-sensitive on the wire, so they are separate requests."""
+    assert make_cache_key("GET", "https://x.test/r", {"STDT_CD": "A"}, None) != make_cache_key(
+        "GET", "https://x.test/r", {"stdt_cd": "A"}, None
+    )
+
+
+def test_key_ignores_header_name_casing() -> None:
+    """HTTP header names are case-insensitive, so their casing must not split entries."""
+    assert make_cache_key(
+        "GET", "https://x.test/r", None, {"Accept": "application/json"}
+    ) == make_cache_key("GET", "https://x.test/r", None, {"accept": "application/json"})
+
+
+@pytest.mark.parametrize("name", ["serviceKey", "servicekey", "SERVICEKEY"])
+def test_key_fingerprints_credential_parameters_in_any_case(name: str) -> None:
+    """Credential detection stays case-insensitive, so no casing leaks the raw value (#263)."""
+    secret = "case-variant-secret"
+    key_a = make_cache_key("GET", "https://x.test/r", {name: secret}, None)
+    key_b = make_cache_key("GET", "https://x.test/r", {name: "another-secret"}, None)
+
+    assert secret not in key_a
+    assert key_a != key_b
+    with patch("kpubdata.transport.cache._credential_fingerprint") as fingerprint:
+        fingerprint.return_value = "redacted"
+        make_cache_key("GET", "https://x.test/r", {name: secret}, None)
+    fingerprint.assert_called_once_with(secret)
 
 
 def test_key_separates_different_urls_methods_and_values() -> None:
