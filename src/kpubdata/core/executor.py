@@ -47,7 +47,7 @@ from kpubdata.core.models import (
     ValidationReport,
 )
 from kpubdata.core.representation import Representation
-from kpubdata.core.spec import FieldSpec, SpecDefinition, reported_license
+from kpubdata.core.spec import SpecDefinition, reported_license
 from kpubdata.exceptions import (
     AuthError,
     DatasetNotFoundError,
@@ -170,10 +170,9 @@ class _CastingDecision:
                 raw_value = record[field.name]
                 # Count on the value the cast actually sees: numeric null markers
                 # ("", "-") become None, so they are nulls, not non-null values.
-                cast_type = _cast_type(field)
                 effective = (
                     _normalize_numeric_lexeme(raw_value)
-                    if cast_type in ("integer", "number")
+                    if field.type in ("integer", "number")
                     else raw_value
                 )
                 # Counted so the report can show a ratio. "10 failed of 12 non-null"
@@ -184,7 +183,7 @@ class _CastingDecision:
                     evidence.null_count += 1
                 else:
                     evidence.non_null_count += 1
-                succeeded, _coerced = _try_cast_field(raw_value, cast_type)
+                succeeded, _coerced = _try_cast_field(raw_value, field.type)
                 if not succeeded:
                     evidence.castable = False
                     evidence.failed_count += 1
@@ -202,7 +201,7 @@ class _CastingDecision:
             for record in records:
                 if field.name not in record:
                     continue
-                succeeded, coerced = _try_cast_field(record[field.name], _cast_type(field))
+                succeeded, coerced = _try_cast_field(record[field.name], field.type)
                 if succeeded:
                     record[field.name] = coerced
 
@@ -390,16 +389,6 @@ _PLAIN_NUMBER_RE = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)")
 _LEADING_ZERO_RE = re.compile(r"^[+-]?0\d")
 
 
-#: Transforms that cast through the numeric cast instead of changing the text: they
-#: set the type a column is cast to, so all-or-nothing casting and its report apply.
-_TRANSFORM_CAST_TYPES = {"to_int": "integer", "to_float": "number"}
-
-
-def _cast_type(field: FieldSpec) -> str:
-    """The type a field's column is cast to: its transform's, else its declared type."""
-    return _TRANSFORM_CAST_TYPES.get(field.transform or "", field.type)
-
-
 def _try_cast_field(value: object, field_type: str) -> tuple[bool, object]:
     """Attempt cast to declared type; return (success, value).
 
@@ -481,6 +470,9 @@ def _apply_transform(value: object, transform: str) -> object:
         and value.isdigit()
     ):
         return f"{value[:4]}-{value[4:6]}-{value[6:]}"
+    # ``to_int`` and ``to_float`` change nothing here: the column is cast to the
+    # declared ``type`` afterwards ("transform, then type cast", ADR 0006), and that
+    # cast alone decides the result for every type/transform pair.
     if (
         isinstance(value, str)
         and transform == "date_yyyymm"
@@ -1025,11 +1017,7 @@ class SpecExecutor:
         return extract_items(spec, payload)
 
     def _extract_total_count(self, spec: SpecDefinition, payload: dict[str, object]) -> int | None:
-        """Delegate to module function.
-
-        The copy read ``total_count_path`` without resolving ``{operation}``, so
-        verify saw a count that ``query`` and ``list_all`` reported as ``None``.
-        """
+        """Same as ``extract_total_count`` (resolves ``{operation}``)."""
         return extract_total_count(spec, payload)
 
     # ------------------------------------------------------------------

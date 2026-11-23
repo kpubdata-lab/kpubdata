@@ -1,8 +1,9 @@
-"""Declared ``boolean`` types and ``to_int``/``to_float`` transforms are applied.
+"""Declared ``boolean`` types are cast and unknown transforms are rejected.
 
 ``_try_cast_field`` had no ``boolean`` branch, so every value "cast" and stayed as
-it came; ``to_int`` and ``to_float`` did nothing; and the runtime loader accepted a
-``transform`` that ``schema.json`` does not list.
+it came, and the runtime loader accepted a ``transform`` that ``schema.json`` does
+not list. ``to_int`` and ``to_float`` keep main's behaviour: the column is cast to
+the declared ``type`` and the transform adds nothing to that.
 """
 
 from __future__ import annotations
@@ -15,7 +16,13 @@ import pytest
 import yaml
 
 from kpubdata.core.executor import SpecExecutor
-from kpubdata.core.spec import FieldSpec, SpecDefinition, find_spec, from_mapping
+from kpubdata.core.spec import (
+    _FIELD_TRANSFORMS,
+    FieldSpec,
+    SpecDefinition,
+    find_spec,
+    from_mapping,
+)
 from kpubdata.exceptions import InvalidRequestError
 
 SCHEMA = Path(__file__).resolve().parents[3] / "src" / "kpubdata" / "specs" / "schema.json"
@@ -58,32 +65,35 @@ def test_boolean_rejects_anything_else_for_the_whole_column(bad: object) -> None
     assert uncastable == ["flag"]
 
 
-def test_to_int_casts_through_the_integer_cast() -> None:
-    spec = _probe(FieldSpec(name="n", type="string", transform="to_int"))
-    out, uncastable = _normalize(spec, [{"n": "1,200"}, {"n": "7"}, {"n": ""}])
-    assert [item["n"] for item in out] == [1200, 7, None]
+@pytest.mark.parametrize(
+    ("field_type", "transform", "values", "expected"),
+    [
+        # The three pairs where casting to the transform's type diverged from main.
+        ("integer", "to_float", ["3"], [3]),
+        ("number", "to_int", ["3", "3.5"], [3.0, 3.5]),
+        ("string", "to_int", ["12"], ["12"]),
+        ("string", "to_float", ["1.5"], ["1.5"]),
+        ("integer", "to_int", ["1,200", "7", ""], [1200, 7, None]),
+        ("number", "to_float", ["1.5", "2"], [1.5, 2.0]),
+    ],
+)
+def test_to_int_and_to_float_leave_the_declared_cast_alone(
+    field_type: str, transform: str, values: list[str], expected: list[object]
+) -> None:
+    """``to_int``/``to_float`` add nothing to the cast to the declared ``type``."""
+    spec = _probe(FieldSpec(name="n", type=field_type, transform=transform))
+    out, uncastable = _normalize(spec, [{"n": value} for value in values])
+    assert [item["n"] for item in out] == expected
+    assert [type(item["n"]) for item in out] == [type(value) for value in expected]
     assert uncastable == []
 
 
-def test_to_int_reports_a_non_integer_column() -> None:
-    spec = _probe(FieldSpec(name="n", type="number", transform="to_int"))
-    out, uncastable = _normalize(spec, [{"n": "3"}, {"n": "3.5"}])
+def test_a_numeric_transform_does_not_rescue_an_uncastable_column() -> None:
+    spec = _probe(FieldSpec(name="n", type="integer", transform="to_int"))
+    out, report = SpecExecutor._normalize_fields(spec, [{"n": "3"}, {"n": "3.5"}])
     assert [item["n"] for item in out] == ["3", "3.5"]
-    assert uncastable == ["n"]
-
-
-def test_to_float_casts_through_the_number_cast() -> None:
-    spec = _probe(FieldSpec(name="x", type="string", transform="to_float"))
-    out, uncastable = _normalize(spec, [{"x": "1.5"}, {"x": "2"}])
-    assert [item["x"] for item in out] == [1.5, 2.0]
-    assert uncastable == []
-
-
-def test_to_float_reports_a_non_numeric_column() -> None:
-    spec = _probe(FieldSpec(name="x", type="string", transform="to_float"))
-    out, uncastable = _normalize(spec, [{"x": "1.5"}, {"x": "n/a"}])
-    assert [item["x"] for item in out] == ["1.5", "n/a"]
-    assert uncastable == ["x"]
+    issues = report.issues_of("uncastable")
+    assert [(issue.field, issue.declared_type) for issue in issues] == [("n", "integer")]
 
 
 def test_loader_rejects_an_unknown_transform() -> None:
@@ -105,3 +115,7 @@ def test_loader_accepts_every_schema_transform(transform: str) -> None:
     data["fields"] = [{"name": "x", "type": "integer", "transform": transform}]
     spec = from_mapping(data)
     assert spec.fields[0].transform == transform
+
+
+def test_loader_transforms_match_the_schema() -> None:
+    assert set(_FIELD_TRANSFORMS) == set(_schema_transforms())
