@@ -125,6 +125,24 @@ def test_max_pages_raises_like_the_legacy_path(apt_spec: SpecDefinition) -> None
     assert len(transport.calls) == 2
 
 
+def test_max_pages_reached_exactly_ends_without_error(apt_spec: SpecDefinition) -> None:
+    """Case 3b: a result of exactly max_pages pages is complete, not over the limit (#973)."""
+    adapter, transport = _adapter(
+        apt_spec,
+        [
+            _standard_envelope(_rows(0, 2), total_count=4),
+            _standard_envelope(_rows(2, 2), total_count=4),
+        ],
+    )
+    dataset = Dataset(_ref(apt_spec), adapter)
+
+    batches = list(dataset.list_all(LAWD_CD="11680", DEAL_YMD="202401", max_pages=2, page_size=2))
+
+    assert [len(batch.items) for batch in batches] == [2, 2]
+    assert batches[-1].next_page is None
+    assert len(transport.calls) == 2
+
+
 def test_page_size_above_max_size_is_capped_for_has_next(apt_spec: SpecDefinition) -> None:
     """Case 4: the next-page decision uses the capped size the request actually used."""
     spec = replace(apt_spec, pagination=replace(apt_spec.pagination, max_size=2))

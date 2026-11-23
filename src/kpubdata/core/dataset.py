@@ -186,7 +186,10 @@ class Dataset:
 
         Args:
             max_pages: Maximum number of pages to fetch. Defaults to 1000.
-                Raises InvalidRequestError if limit is reached.
+                This is a safety limit, not a way to take the first N pages: when
+                page N still reports a next page or cursor, the N pages are
+                yielded, page N+1 is not requested, and ``InvalidRequestError``
+                is raised. A result of exactly N pages ends without an error.
             partial: Keep what was read when a later page fails (#876). The pages
                 read before the failed request are yielded, then
                 ``IncompleteListError`` is raised with the failure as its cause. A
@@ -197,8 +200,8 @@ class Dataset:
 
         Raises:
             UnsupportedCapabilityError: If this dataset does not support list.
-            InvalidRequestError: If max_pages limit is reached or infinite loop
-                is detected.
+            InvalidRequestError: If more than ``max_pages`` pages would be needed,
+                or a pagination cycle or repeated page is detected.
             IncompleteListError: With ``partial=True``, after the pages read
                 before a failed request were yielded.
         """

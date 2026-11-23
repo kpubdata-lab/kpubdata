@@ -291,6 +291,12 @@ automatically until pagination is exhausted. `page` and `page_size` are
 pagination controls, not filters: they are never sent as raw provider
 parameters. When more than `max_pages` pages (default 1000) would be needed,
 the pages fetched so far are yielded and then `InvalidRequestError` is raised.
+This is intentional: `max_pages` is a safety limit against runaway pagination,
+not a way to take the first N pages, so a cut-off result never looks complete.
+Exactly `max_pages` pages are yielded and page `max_pages + 1` is not requested.
+A result that ends on page `max_pages` — its last page reports no next page or
+cursor — finishes without an error. To keep a capped prefix on purpose, iterate
+in a loop and catch the `InvalidRequestError` after it.
 
 Existing `index_range` specs report `query_support.pagination` as `index`.
 Normalized single and bulk queries use `page` and the capped `page_size` to
