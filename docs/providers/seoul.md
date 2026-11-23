@@ -89,6 +89,8 @@ http://openapi.seoul.go.kr:8088/{KEY}/json/citydata_ppltn/{START_INDEX}/{END_IND
 - envelope 키: `SeoulRtd.citydata_ppltn` (top-level `RESULT`와 같은 레벨)
 - 필수 경로 파라미터: `area`
 
+`list()`의 필터는 데이터셋의 경로 파라미터로만 쓰입니다. 경로 파라미터가 아닌 필터(예: `bike_realtime`의 `stationId`)를 주면 요청 전에 `InvalidRequestError`가 납니다. 예전에는 조용히 버려져 전체 데이터가 필터된 것처럼 돌아왔습니다. 결과를 좁히려면 받은 `items`를 직접 거르세요.
+
 ## 지원 데이터셋
 
 ### 1. `subway_realtime_arrival`

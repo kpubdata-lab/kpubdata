@@ -93,6 +93,20 @@ class SeoulAdapter:
         self._validate_pagination(page_no, page_size, dataset.id)
 
         path_params = self._require_path_params(dataset, query.filters)
+        # Only path parameters reach the request; any other filter would be dropped.
+        unknown_filters = sorted(set(query.filters) - set(path_params))
+        if unknown_filters:
+            accepted = (
+                f"accepts only its path parameter(s): {', '.join(path_params)}"
+                if path_params
+                else "accepts no filters"
+            )
+            raise InvalidRequestError(
+                f"Seoul API does not support the filter(s): {', '.join(unknown_filters)}; "
+                f"{dataset.id} {accepted}",
+                provider="seoul",
+                dataset_id=dataset.id,
+            )
         start_index = (page_no - 1) * page_size + 1
         end_index = page_no * page_size
         url = self._build_request_url(
