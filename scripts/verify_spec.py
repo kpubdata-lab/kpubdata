@@ -9,6 +9,10 @@ Steps (any failure exits 1):
 3. Replay contract — raw → envelope validation → items/total extraction
    matches expected
 
+In a full run, a spec with ``status: unstable`` or ``status: broken`` skips
+only the steps that need a working dataset (example run, example recency,
+live diff); fixture integrity, licence terms and transport security still run.
+
 Usage:
     uv run python scripts/verify_spec.py                     # all specs
     uv run python scripts/verify_spec.py --dataset datago.apt_trade
@@ -692,8 +696,11 @@ def run_verify(dataset_id: str | None = None) -> int:
             print(validate.stderr.rstrip())
         return 1
 
-    # specs with unstable/broken status skip fixture/example verification —
-    # case where fixture creation is impossible (e.g., usage request not approved).
+    # In a full run, unstable/broken specs skip only the steps that need a
+    # working dataset (example run, example recency, live diff) — the dataset
+    # cannot be called, and a recording may be impossible (usage application
+    # not approved). The offline integrity checks still run, so the status
+    # cannot be used to dodge a verification failure (AGENTS.md).
     skippable = frozenset({"unstable", "broken"})
 
     # 2-c'. The legacy baseline itself (#717) — checked once per run, because a
@@ -725,19 +732,21 @@ def run_verify(dataset_id: str | None = None) -> int:
 
     failed_any = not baseline_passed or not terms_passed or not http_passed
     for spec in specs:
-        if not dataset_id and spec.status in skippable:
-            print(f"[건너뜀] {spec.id} (status={spec.status})")
-            continue
         result = DatasetVerifyResult(dataset_id=spec.id)
-        result.steps.extend(_verify_fixtures(spec))
-        result.steps.extend(_verify_example_recency(spec))
-        result.steps.extend(_verify_licence_terms(spec))
-        result.steps.extend(_verify_insecure_http(spec))
-        result.steps.append(_run_example_script(spec))
-        result.steps.append(_run_live_schema_diff(spec))
+        offline_only = not dataset_id and spec.status in skippable
+        if offline_only:
+            result.steps.extend(_verify_offline_integrity(spec))
+        else:
+            result.steps.extend(_verify_fixtures(spec))
+            result.steps.extend(_verify_example_recency(spec))
+            result.steps.extend(_verify_licence_terms(spec))
+            result.steps.extend(_verify_insecure_http(spec))
+            result.steps.append(_run_example_script(spec))
+            result.steps.append(_run_live_schema_diff(spec))
 
         status = "통과" if result.passed else "실패"
-        print(f"[{status}] {spec.id}")
+        note = f" (status={spec.status} — 예제 실행·최신성·live 생략)" if offline_only else ""
+        print(f"[{status}] {spec.id}{note}")
         for step in result.steps:
             if not step.passed:
                 print(f"  오류({step.name}): {step.detail}")
@@ -746,6 +755,34 @@ def run_verify(dataset_id: str | None = None) -> int:
     total = len(specs)
     print(f"검증 결과: {total}개 데이터셋, {'실패 있음' if failed_any else '전체 통과'}")
     return 1 if failed_any else 0
+
+
+def _verify_offline_integrity(spec: SpecDefinition) -> list[StepResult]:
+    """The checks an unstable/broken spec still owes in a full run.
+
+    Fixture integrity and replay, licence terms and transport security need
+    no network and no working dataset, so the status does not excuse them.
+    A dataset that was never recorded (no fixture file of any kind) passes
+    the fixture step with a note; a meta or expected file left without its
+    raw counterpart is still checked, so deleting the raw file cannot turn
+    recorded evidence into "no fixtures".
+    """
+    out_dir = FIXTURES_ROOT / spec.provider / spec.dataset_key
+    recorded = [
+        path
+        for pattern in ("*.raw.json", "*.meta.json", "*.expected.json")
+        for path in out_dir.glob(pattern)
+    ]
+    steps: list[StepResult] = []
+    if recorded:
+        steps.extend(_verify_fixtures(spec))
+    else:
+        steps.append(
+            StepResult("fixture 존재", passed=True, detail=f"fixture 없음 — status={spec.status}")
+        )
+    steps.extend(_verify_licence_terms(spec))
+    steps.extend(_verify_insecure_http(spec))
+    return steps
 
 
 def _run_live_schema_diff(spec: SpecDefinition) -> StepResult:
