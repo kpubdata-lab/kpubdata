@@ -17,7 +17,10 @@ for the value-based masking that catches those (#737).
 
 from __future__ import annotations
 
+import re
 from urllib.parse import quote, quote_plus
+
+_PERCENT_ESCAPE = re.compile(r"%[0-9A-F]{2}")
 
 #: Holds casefolded names only; the comparison side casefolds as well.
 #:
@@ -55,13 +58,19 @@ def _secret_forms(secrets: tuple[str, ...]) -> tuple[str, ...]:
 
     data.go.kr keys carry ``+``, ``/`` and ``=``; the response URL holds them as
     ``%2B``, ``%2F`` and ``%3D``, so matching only the plain text misses them.
+    Percent escapes are also matched in lowercase hex (``%2b``), which some
+    servers echo, and the plain secret with ``/`` JSON-escaped as ``\\/``, as a
+    JSON body may echo it.
     Longest first, so a longer form is replaced before a shorter prefix of it.
     """
     forms: set[str] = set()
     for secret in secrets:
         if not secret:
             continue
-        forms.update({secret, quote(secret, safe=""), quote_plus(secret, safe="")})
+        encoded = {quote(secret, safe=""), quote_plus(secret, safe="")}
+        forms.update({secret, secret.replace("/", "\\/")})
+        forms.update(encoded)
+        forms.update(_PERCENT_ESCAPE.sub(lambda m: m.group().lower(), form) for form in encoded)
     return tuple(sorted(forms, key=len, reverse=True))
 
 

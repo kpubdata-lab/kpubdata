@@ -1153,16 +1153,30 @@ def _response_preview(
     if not is_text:
         return f"[binary content, {len(response.content)} bytes]"
 
-    forms = _secret_forms(secret_values)
     try:
-        # Take enough past the cut that a secret straddling it is still whole when
-        # it is replaced, then cut.
-        preview = response.text[: max_chars + (len(forms[0]) if forms else 0)]
+        text = response.text
     except (LookupError, UnicodeDecodeError, ValueError):
         return "[decode error]"
-    for form in forms:
-        preview = preview.replace(form, "[REDACTED]")
-    return preview[:max_chars]
+    forms = _secret_forms(secret_values)
+    if not forms:
+        return text[:max_chars]
+    # Redact over the whole text, match by match, and stop once the preview is long
+    # enough. Slicing first and redacting after leaves part of a secret that straddles
+    # the slice unmatched, and each replacement shortens the text, which pulls more of
+    # it in under the cut. Here every emitted chunk lies between whole matches.
+    pattern = re.compile("|".join(re.escape(form) for form in forms))
+    pieces: list[str] = []
+    length = 0
+    position = 0
+    for match in pattern.finditer(text):
+        if length >= max_chars:
+            break
+        pieces.extend((text[position : match.start()], "[REDACTED]"))
+        length += match.start() - position + len("[REDACTED]")
+        position = match.end()
+    else:
+        pieces.append(text[position : position + max_chars])
+    return "".join(pieces)[:max_chars]
 
 
 def _parse_retry_after(header_value: str) -> float | None:
