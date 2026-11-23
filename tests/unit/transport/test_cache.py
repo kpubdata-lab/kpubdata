@@ -257,6 +257,28 @@ def test_http_transport_get_cache_hit_logs_and_skips_network(
     assert hit_records[0].__dict__["cache_key"] == first_key
 
 
+def test_http_transport_does_not_share_entries_across_parameter_name_case(
+    tmp_path: Path,
+) -> None:
+    """``STDT_CD`` and ``stdt_cd`` are different requests and must each reach the network."""
+    cache = ResponseCache(base_dir=tmp_path)
+    transport = HttpTransport(TransportConfig(max_retries=0), cache=cache, cache_ttl_seconds=60)
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(str(request.url))
+        return httpx.Response(200, json={"echo": dict(request.url.params)})
+
+    with patch.object(transport, "_client", httpx.Client(transport=httpx.MockTransport(handler))):
+        upper = transport.request("GET", "https://example.test/svc", params={"STDT_CD": "A"})
+        lower = transport.request("GET", "https://example.test/svc", params={"stdt_cd": "A"})
+
+    assert len(seen) == 2
+    assert upper.json() == {"echo": {"STDT_CD": "A"}}
+    assert lower.json() == {"echo": {"stdt_cd": "A"}}
+    assert lower.extensions.get("kpubdata.cache_hit") is not True
+
+
 # test http transport post is never cached Explains scenario validated by test.
 def test_http_transport_post_is_never_cached(tmp_path: Path) -> None:
     """
