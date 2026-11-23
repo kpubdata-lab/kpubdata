@@ -108,7 +108,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Provider-specific transports now honor explicit TLS and redirect preferences previously lost during construction; review any insecure opt-ins (#971).
 - For a refused key returning HTTP 403 from `semas` or `localdata`, catch `AuthError` (or `PublicDataError`) instead of `TransportError` (#916).
 - Call datasets through `Client` rather than constructing `DataGoAdapter` directly to access spec-owned identifiers removed from its legacy catalogue (#898).
-- bok and seoul `list()` given a filter the adapter does not send now raises `InvalidRequestError` instead of returning unfiltered rows; remove the filter and filter the returned items yourself. bok `usd_krw` and `bond_yield_3y` now default to daily (`D`) requests, so pass `YYYYMMDD` dates, or `frequency="M"` with `YYYYMM` dates for the old request.
 
 ### Known limitations
 
