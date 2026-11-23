@@ -298,8 +298,9 @@ A result that ends on page `max_pages` — its last page reports no next page or
 cursor — finishes without an error. To keep a capped prefix on purpose, iterate
 in a loop and catch the `InvalidRequestError` after it.
 Catching it also catches other pagination faults, because a repeated provider
-page, a pagination cycle (a page or cursor requested twice) and several empty pages
-in a row with a continuation token also raise `InvalidRequestError`. Code that
+page and several empty pages in a row with a continuation token also raise
+`InvalidRequestError`, as does a pagination cycle (a page or cursor requested
+twice) on the legacy `Dataset.list_all` path only. Code that
 keeps a capped prefix should tell them apart instead of accepting any truncation,
 for example by checking that it received exactly `max_pages` pages before it
 treats the error as the intended cap. Do not rely on the message text.

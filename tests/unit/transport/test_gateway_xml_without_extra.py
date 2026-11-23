@@ -297,6 +297,17 @@ def test_only_the_strict_gateway_envelope_is_recognised(name: str) -> None:
 
 
 @pytest.mark.parametrize(
+    "header",
+    [b"<cmmMsgHeader>  </cmmMsgHeader>", b"<cmmMsgHeader></cmmMsgHeader>", b"<cmmMsgHeader/>"],
+)
+def test_empty_gateway_header_is_no_refusal_as_in_xmltodict(header: bytes) -> None:
+    body = b"<OpenAPI_ServiceResponse>" + header + b"</OpenAPI_ServiceResponse>"
+
+    assert decode_xml(body) == {"OpenAPI_ServiceResponse": {"cmmMsgHeader": None}}
+    assert decode_gateway_envelope(body) is None
+
+
+@pytest.mark.parametrize(
     "fixture",
     [
         "error_gateway_key_not_registered.xml",
