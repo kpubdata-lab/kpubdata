@@ -249,7 +249,10 @@ parameter is dropped, never sent or echoed, because the credential always comes
 from the configured key. data.go.kr fixed catalogue parameters, law's `target`
 and kosis's `orgId`/`tblId`/`startPrdDe`/`endPrdDe` keep their existing handling
 (the SDK's value is sent), and korean's `type_search` may still be set by a filter. fds, bok and seoul put the key and paging in the URL
-path, so no filter can reach them. `call_raw` keeps provider-native parameter
+path, so no filter can reach them. bok `list()` sends only the `frequency`,
+`start_date` and `end_date` filters and seoul `list()` only the dataset's path
+parameters; any other filter on them raises `InvalidRequestError` naming the
+filter before any HTTP request, instead of being dropped. `call_raw` keeps provider-native parameter
 handling, except that on neis, korean, kipris, kosis, law, lofin, localdata and
 semas a parameter named like the credential, in any case, never replaces or
 duplicates the configured key. lofin `call_raw` also reads `pIndex`/`pSize` (and

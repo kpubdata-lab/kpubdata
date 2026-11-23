@@ -7,8 +7,12 @@ or provider adapter.
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
+from importlib.resources import files
+from types import MappingProxyType
 from typing import NoReturn, cast
 
 from kpubdata.config import KPubDataConfig
@@ -39,6 +43,9 @@ from kpubdata.transport.decode import decode_json
 from kpubdata.transport.http import HttpTransport, TransportConfig
 
 logger = logging.getLogger("kpubdata.provider.bok")
+
+# Query filters this adapter puts into the request; any other filter would be dropped.
+_ACCEPTED_FILTERS = frozenset({"frequency", "start_date", "end_date"})
 
 
 class BokAdapter:
@@ -154,9 +161,17 @@ class BokAdapter:
             RateLimitError: When call rate limit exceeded.
             ServiceUnavailableError: When BOK ECOS service is under maintenance.
         """
+        unknown_filters = sorted(set(query.filters) - _ACCEPTED_FILTERS)
+        if unknown_filters:
+            raise InvalidRequestError(
+                f"BOK ECOS does not support the filter(s): {', '.join(unknown_filters)}; "
+                f"{dataset.id} accepts only {', '.join(sorted(_ACCEPTED_FILTERS))}",
+                provider="bok",
+                dataset_id=dataset.id,
+            )
         page = query.page or 1
         page_size = capped_page_size(dataset, query.page_size)
-        frequency = self._resolve_frequency(query)
+        frequency = self._resolve_frequency(dataset, query)
         start_date = query.start_date or self._resolve_string_param(query, "start_date")
         end_date = query.end_date or self._resolve_string_param(query, "end_date")
         logger.debug(
@@ -263,7 +278,7 @@ class BokAdapter:
                 "param_keys": sorted(params.keys()),
             },
         )
-        frequency = self._string_param(params, "frequency") or "M"
+        frequency = self._string_param(params, "frequency") or self._default_frequency(dataset)
         start_date = self._require_param(params, "start_date", dataset.id)
         end_date = self._require_param(params, "end_date", dataset.id)
         start_index = self._int_param(params, "start_index", 1)
@@ -513,16 +528,32 @@ class BokAdapter:
             msg, provider="bok", provider_code=code, dataset_id=dataset_id or None
         )
 
-    def _resolve_frequency(self, query: Query) -> str:
-        """Extract frequency parameter from query or return default.
+    def _resolve_frequency(self, dataset: DatasetRef, query: Query) -> str:
+        """Extract frequency parameter from query or return the dataset's default.
 
         Args:
+            dataset: Target dataset.
             query: Query instance.
 
         Returns:
-            Period code string (e.g., "M"). Defaults to "M" (monthly) if missing.
+            Period code string (e.g., "M"). Defaults to the dataset's first
+            declared frequency, or "M" (monthly) when it declares none.
         """
-        return self._resolve_string_param(query, "frequency") or "M"
+        return self._resolve_string_param(query, "frequency") or self._default_frequency(dataset)
+
+    @staticmethod
+    def _default_frequency(dataset: DatasetRef) -> str:
+        """Return the first frequency the dataset declares, or "M" when it declares none.
+
+        A daily series asked for at "M" is refused by ECOS (ERROR-101), so the
+        declared frequency is the only safe default.
+        """
+        declared = dataset.raw_metadata.get("frequency")
+        if isinstance(declared, (list, tuple)):
+            for value in cast(Sequence[object], declared):
+                if isinstance(value, str) and value:
+                    return value
+        return "M"
 
     def _resolve_string_param(self, query: Query, key: str) -> str | None:
         """Extract string parameter from query extra or filters.
@@ -648,9 +679,40 @@ class BokAdapter:
         """Load and return default catalog.
 
         Returns:
-            DatasetRef tuple loaded from kpubdata.providers.bok catalog.
+            DatasetRef tuple loaded from kpubdata.providers.bok catalog. A dataset
+            whose ``query_support`` declares ``frequency`` carries that list in
+            ``raw_metadata["frequency"]``, since the canonical ``QuerySupport``
+            has no place for it.
         """
-        return load_catalogue("kpubdata.providers.bok", "bok")
+        datasets = load_catalogue("kpubdata.providers.bok", "bok")
+        catalogue_text = (
+            files("kpubdata.providers.bok").joinpath("catalogue.json").read_text(encoding="utf-8")
+        )
+        declared: dict[str, tuple[str, ...]] = {}
+        for entry in cast(list[object], json.loads(catalogue_text)):
+            if not isinstance(entry, dict):
+                continue
+            entry_dict = cast(dict[str, object], entry)
+            query_support = entry_dict.get("query_support")
+            key = entry_dict.get("dataset_key")
+            if not isinstance(query_support, dict) or not isinstance(key, str):
+                continue
+            frequency = cast(dict[str, object], query_support).get("frequency")
+            if isinstance(frequency, list):
+                declared[key] = tuple(
+                    value for value in cast(list[object], frequency) if isinstance(value, str)
+                )
+        return tuple(
+            replace(
+                dataset,
+                raw_metadata=MappingProxyType(
+                    {**dataset.raw_metadata, "frequency": declared[dataset.dataset_key]}
+                ),
+            )
+            if dataset.dataset_key in declared
+            else dataset
+            for dataset in datasets
+        )
 
 
 __all__ = ["BokAdapter"]

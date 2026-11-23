@@ -421,3 +421,37 @@ def test_path_parameter_with_dots_inside_is_encoded_not_refused() -> None:
         "http://openapi.seoul.go.kr:8088/test-seoul-key/json/tbCycleRentUseMonthInfo/1/10/"
         "2024.01%2F..%2Fx"
     )
+
+
+@pytest.mark.parametrize(
+    ("dataset_key", "filters", "unknown"),
+    [
+        ("bike_realtime", {"stationId": "ST-4"}, ["stationId"]),
+        ("bike_rent_month", {"RENT_NM": "202401", "stationId": "ST-4"}, ["stationId"]),
+        ("subway_realtime_arrival", {"stationName": "강남", "line": "2", "b": "x"}, ["b", "line"]),
+    ],
+)
+def test_unknown_filter_is_refused_before_any_request(
+    dataset_key: str, filters: dict[str, object], unknown: list[str]
+) -> None:
+    """Only path parameters reach the URL; any other filter used to be dropped."""
+    adapter, transport = _build_adapter([])
+    dataset = adapter.get_dataset(dataset_key)
+
+    with pytest.raises(InvalidRequestError, match="does not support the filter") as excinfo:
+        _ = adapter.query_records(dataset, Query(filters=filters))
+
+    assert f"filter(s): {', '.join(unknown)};" in str(excinfo.value)
+    assert excinfo.value.provider == "seoul"
+    assert excinfo.value.dataset_id == dataset.id
+    assert transport.calls == []
+
+
+def test_dataset_without_path_params_still_lists_without_filters() -> None:
+    adapter, transport = _build_adapter([FakeResponse(_load_fixture("bike_realtime_success.json"))])
+    dataset = adapter.get_dataset("bike_realtime")
+
+    batch = adapter.query_records(dataset, Query())
+
+    assert len(batch.items) == 3
+    assert str(transport.calls[0]["url"]).endswith("/json/bikeList/1/100")
