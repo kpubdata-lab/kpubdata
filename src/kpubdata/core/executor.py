@@ -1040,19 +1040,30 @@ class SpecExecutor:
     def _stage_fields(
         spec: SpecDefinition, items: list[dict[str, object]]
     ) -> list[dict[str, object]]:
-        """Stage 1 only: rename + transform (no casting) (#481)."""
+        """Stage 1 only: rename + transform (no casting) (#481).
+
+        Every field reads its source from the original item, so the result does not
+        depend on field order: renaming in place let ``c <- b`` read the output of
+        ``b <- a``, and ``addr <- addr2`` overwrote a raw ``addr`` another field read.
+        Undeclared keys are kept; a renamed source is dropped unless it is itself a
+        declared field name.
+        """
         if not spec.fields:
             return items
+        declared = {field.name for field in spec.fields}
+        renamed_sources = {
+            field.source_name
+            for field in spec.fields
+            if field.source_name and field.source_name != field.name
+        }
+        dropped = renamed_sources - declared
         staged: list[dict[str, object]] = []
         for item in items:
-            record: dict[str, object] = dict(item)
+            record = {key: value for key, value in item.items() if key not in dropped}
             for field in spec.fields:
                 source_name = field.source_name or field.name
-                if source_name not in record:
-                    continue
-                record[field.name] = _apply_transform(record[source_name], field.transform or "")
-                if source_name != field.name:
-                    record.pop(source_name, None)
+                if source_name in item:
+                    record[field.name] = _apply_transform(item[source_name], field.transform or "")
             staged.append(record)
         return staged
 
