@@ -96,9 +96,29 @@ class StabilizationGateTests(unittest.TestCase):
         )
 
     def test_new_sdk_export_needs_exception(self) -> None:
+        """The export is found by the parsed ``__all__`` comparison, not the patch."""
+        name_status = "M\tsrc/kpubdata/__init__.py"
         patch = '+++ b/src/kpubdata/__init__.py\n+    "NewExport",\n'
-        self.assertTrue(
-            check_scope(SDK, "fix: exports", "", set(), "M\tsrc/kpubdata/__init__.py", patch)
+        contents = content_indicators(
+            SDK,
+            name_status,
+            {"src/kpubdata/__init__.py": '__all__ = ["Client"]\n'}.get,
+            {"src/kpubdata/__init__.py": '__all__ = ["Client", "NewExport"]\n'}.get,
+        )
+        self.assertTrue(check_scope(SDK, "fix: exports", "", set(), name_status, patch, contents))
+
+    def test_a_reordered_export_list_passes_the_whole_check(self) -> None:
+        """Reordering moves lines in the patch but adds no name, so nothing is flagged."""
+        name_status = "M\tsrc/kpubdata/__init__.py"
+        patch = '+++ b/src/kpubdata/__init__.py\n-    "Client",\n+    "Client",\n'
+        contents = content_indicators(
+            SDK,
+            name_status,
+            {"src/kpubdata/__init__.py": '__all__ = [\n    "Client",\n    "Query",\n]\n'}.get,
+            {"src/kpubdata/__init__.py": '__all__ = [\n    "Query",\n    "Client",\n]\n'}.get,
+        )
+        self.assertEqual(
+            check_scope(SDK, "fix: exports", "", set(), name_status, patch, contents), ()
         )
 
     def test_normal_workflow_fix_still_passes(self) -> None:
@@ -255,6 +275,10 @@ class PublicExportContentTests(unittest.TestCase):
     def test_a_reordered_or_shrunk_list_is_not_flagged(self) -> None:
         self.assertEqual(self._added('__all__ = ["Query", "Client"]\n'), [])
         self.assertEqual(self._added('__all__ = ["Client"]\n'), [])
+
+    def test_an_operator_other_than_add_is_flagged(self) -> None:
+        head = BASE_INIT + "__all__ *= 2\n"
+        self.assertEqual(self._added(head), ["SDK public exports not a literal list: " + INIT])
 
     def test_a_computed_export_list_is_flagged(self) -> None:
         head = BASE_INIT + "__all__ += _names()\n"

@@ -93,7 +93,9 @@ datago catalogue 에 남은 25개:
    `call_raw` 로 부를 수 있었다면 그 차이를 CHANGELOG 에 적거나, 옮기지 않는다.
 7. **catalogue 항목 제거.** 같은 PR 에서 catalogue 항목과
    `scripts/catalogue_only_baseline.txt` 의 그 줄을 지운다. 그 항목을 직접 쓰던 테스트는 지우지
-   말고 spec 경로로 옮긴다. 그 다음 `scripts/check_catalogue_baseline.py`,
+   말고 spec 경로로 옮긴다. 그 다음
+   `KPUBDATA_BASELINE_BASE=origin/main python scripts/check_catalogue_baseline.py` (기준 ref 가
+   없으면 실패한다 — baseline 은 기준 브랜치의 사본과 비교된다),
    `scripts/sync_supported_data.py`, `scripts/gen_dataset_status.py`,
    `scripts/gen_readme_datasets.py`, `scripts/gen_status_page.py` 를 실행해 결과를 커밋한다.
 

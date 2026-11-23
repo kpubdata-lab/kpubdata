@@ -90,8 +90,11 @@ jobs:
         run: uv run python scripts/check_catalogue_baseline.py
         env:
           # The baseline may only shrink against the base branch's copy, not the
-          # copy in the pull request itself.
-          KPUBDATA_BASELINE_BASE: origin/${{ github.base_ref || 'main' }}
+          # copy in the pull request itself. The event's base SHA, not the live
+          # branch tip: a rerun or queued run must not see main's later changes.
+          # The merge commit checked out with fetch-depth 0 carries it as a parent.
+          # On a push, github.sha compares the commit with itself.
+          KPUBDATA_BASELINE_BASE: ${{ github.event.pull_request.base.sha || github.sha }}
 
       - name: Contract replay verify
         run: make verify

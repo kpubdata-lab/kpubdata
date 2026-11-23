@@ -67,7 +67,11 @@ def public_exports(source: str) -> set[str]:
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign) and any(_is_all(target) for target in node.targets):
             names |= _literal_names(node.value)
-        elif isinstance(node, (ast.AugAssign, ast.AnnAssign)) and _is_all(node.target):
+        elif isinstance(node, ast.AugAssign) and _is_all(node.target):
+            if not isinstance(node.op, ast.Add):
+                raise ValueError("__all__ is changed by an operator other than +=")
+            names |= _literal_names(node.value)
+        elif isinstance(node, ast.AnnAssign) and _is_all(node.target):
             if node.value is None:
                 continue
             names |= _literal_names(node.value)
@@ -201,8 +205,6 @@ def scope_indicators(
                 reasons.append("new Builder HTTP route")
             if path == "src/app/router.tsx" and _STUDIO_ROUTE.match(added):
                 reasons.append("new Studio route")
-            if path == "src/kpubdata/__init__.py" and re.match(r'^\s*"[^"]+",\s*$', added):
-                reasons.append("new SDK public export")
 
     return sorted(set(reasons))
 
