@@ -14,20 +14,28 @@ Three things fail:
   dataset is written as a spec, not added to a catalogue;
 - a baseline line whose catalogue entry is gone -- the list only shrinks, so remove the
   line in the same change;
-- a key declared by both a catalogue and a spec.
+- a key declared by both a catalogue and a spec;
+- a baseline line the base branch's baseline does not carry. The baseline in the
+  change under review is not its own anchor: a change that adds a catalogue entry
+  and appends it to the baseline would otherwise pass. A one-for-one swap is an
+  addition too. The base ref comes from ``KPUBDATA_BASELINE_BASE``, as for
+  ``scripts/verify_spec.py`` (#766); without it, or when it cannot be read, the
+  gate fails closed.
 
 The spec id is read with a regex, as ``check_baseline_shrink.py`` does, so the gate
 needs nothing beyond Python itself.
 
 Usage:
-    python scripts/check_catalogue_baseline.py [--root PATH]
+    KPUBDATA_BASELINE_BASE=origin/main python scripts/check_catalogue_baseline.py [--root PATH]
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -65,6 +73,48 @@ def baseline_ids(root: Path) -> set[str]:
     return {line.strip() for line in lines if line.strip() and not line.startswith("#")}
 
 
+def base_baseline_ids(root: Path, ref: str) -> set[str] | None:
+    """The baseline's entries at ``ref``, read with ``git show`` (#766).
+
+    Mirrors ``_base_branch_entries`` in ``scripts/verify_spec.py``, but against
+    ``root`` rather than the script's own checkout so ``--root`` keeps working. A ref
+    that does not resolve is None, and the gate fails closed. A ref that resolves but
+    does not carry the baseline reads as the empty set, so every entry is an addition.
+    """
+    resolves = subprocess.run(
+        ["git", "rev-parse", "--verify", ref],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if resolves.returncode != 0:
+        return None
+    show = subprocess.run(
+        ["git", "show", f"{ref}:{BASELINE.as_posix()}"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if show.returncode != 0:
+        return set()
+    return {
+        line.strip()
+        for line in show.stdout.splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    }
+
+
+def growth(baseline: set[str], base: set[str]) -> list[str]:
+    """Baseline entries the base branch does not carry; the list may only shrink."""
+    return [
+        f"{dataset_id} is not in the base branch's {BASELINE}; the list may only shrink, "
+        "and a one-for-one swap is an addition"
+        for dataset_id in sorted(baseline - base)
+    ]
+
+
 def evaluate(
     catalogue: set[str],
     specs: set[str],
@@ -98,9 +148,25 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     root = Path(args.root).resolve()
-    problems = evaluate(catalogue_ids(root), spec_ids(root), baseline_ids(root))
+    baseline = baseline_ids(root)
+    problems = evaluate(catalogue_ids(root), spec_ids(root), baseline)
+    ref = os.environ.get("KPUBDATA_BASELINE_BASE", "").strip()
+    if not ref:
+        problems.append(
+            "KPUBDATA_BASELINE_BASE is not set; name the base branch (for example "
+            f"origin/main) so {BASELINE} is compared with the base branch's copy"
+        )
+    else:
+        base = base_baseline_ids(root, ref)
+        if base is None:
+            problems.append(
+                f"cannot read the base branch's {BASELINE} at {ref}; "
+                "the gate cannot pass without its anchor"
+            )
+        else:
+            problems.extend(growth(baseline, base))
     if not problems:
-        print(f"catalogue baseline holds: {len(baseline_ids(root))} catalogue-only entries")
+        print(f"catalogue baseline holds: {len(baseline)} catalogue-only entries")
         return 0
     for problem in problems:
         print(f"::error::{problem}", file=sys.stderr)

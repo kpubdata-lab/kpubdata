@@ -8,12 +8,13 @@ identify semantically new work disguised as a fix or refactor.
 
 from __future__ import annotations
 
+import ast
 import json
 import os
 import re
 import subprocess
 import sys
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 
 _FEATURE_TITLE = re.compile(r"^feat(?:\([^)\n]+\))?!?:\s")
@@ -28,11 +29,140 @@ _ISSUE_WRITER = re.compile(
     r"|[\"']issue[\"']\s*,\s*[\"']create[\"']"
     r"|\b(?:rest\.)?issues\.create\s*\("
 )
+# The module whose ``__all__`` is the SDK's public API (AGENTS.md, ADR 0007).
+_SDK_INIT = "src/kpubdata/__init__.py"
+_CATALOGUE = re.compile(r"src/kpubdata/providers/([^/]+)/catalogue\.json")
 
 
-def scope_indicators(repository: str, title: str, name_status: str, patch: str) -> list[str]:
-    """Return objective signs of expansion, not a semantic approval decision."""
+def _literal_names(node: ast.expr) -> set[str]:
+    """Strings of a list or tuple literal (or a sum of them); ValueError otherwise."""
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        return _literal_names(node.left) | _literal_names(node.right)
+    if isinstance(node, (ast.List, ast.Tuple)):
+        names: set[str] = set()
+        for element in node.elts:
+            if not (isinstance(element, ast.Constant) and isinstance(element.value, str)):
+                raise ValueError("__all__ holds a non-literal element")
+            names.add(element.value)
+        return names
+    raise ValueError("__all__ is not a literal list")
+
+
+def _is_all(node: ast.expr) -> bool:
+    return isinstance(node, ast.Name) and node.id == "__all__"
+
+
+def public_exports(source: str) -> set[str]:
+    """Every name a module's ``__all__`` can hold, read with ``ast``, not regexes.
+
+    Assignments, augmented assignments and ``append``/``extend``/``insert`` calls all
+    count, wherever they sit in the module. Anything that cannot be read as literal
+    strings raises ValueError, so the caller fails closed.
+    """
+    try:
+        tree = ast.parse(source)
+    except SyntaxError as exc:
+        raise ValueError(f"cannot parse: {exc}") from exc
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and any(_is_all(target) for target in node.targets):
+            names |= _literal_names(node.value)
+        elif isinstance(node, ast.AugAssign) and _is_all(node.target):
+            if not isinstance(node.op, ast.Add):
+                raise ValueError("__all__ is changed by an operator other than +=")
+            names |= _literal_names(node.value)
+        elif isinstance(node, ast.AnnAssign) and _is_all(node.target):
+            if node.value is None:
+                continue
+            names |= _literal_names(node.value)
+        elif (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and _is_all(node.func.value)
+        ):
+            if node.func.attr == "append" and len(node.args) == 1:
+                names |= _literal_names(ast.List(elts=list(node.args)))
+            elif node.func.attr == "extend" and len(node.args) == 1:
+                names |= _literal_names(node.args[0])
+            elif node.func.attr == "insert" and len(node.args) == 2:
+                names |= _literal_names(ast.List(elts=[node.args[1]]))
+            elif node.func.attr not in {"remove", "pop", "clear", "sort", "index", "count"}:
+                raise ValueError(f"__all__.{node.func.attr} cannot be read")
+    return names
+
+
+def catalogue_keys(text: str) -> set[str]:
+    """The ``dataset_key`` of every entry in a provider catalogue; ValueError if unreadable."""
+    entries = json.loads(text)
+    if not isinstance(entries, list):
+        raise ValueError("a catalogue is a list of entries")
+    keys: set[str] = set()
+    for entry in entries:
+        if not isinstance(entry, dict) or not isinstance(entry.get("dataset_key"), str):
+            raise ValueError("a catalogue entry without a dataset_key")
+        keys.add(entry["dataset_key"])
+    return keys
+
+
+def content_indicators(
+    repository: str,
+    name_status: str,
+    read_base: Callable[[str], str | None],
+    read_head: Callable[[str], str | None],
+) -> list[str]:
+    """Names and dataset keys HEAD adds, from both sides' parsed content.
+
+    Patch lines miss an export with a trailing comment, an ``append``, an augmented
+    assignment or two names on one line, and a catalogue gains a dataset by a modified
+    file, not an added one. Both sides are parsed and compared instead. A file absent
+    at the base reads as empty, so all it carries is new. A file the diff lists as
+    added or modified but HEAD cannot produce raises ValueError (the gate errors).
+    """
+    if not repository.endswith("/kpubdata"):
+        return []
     reasons: list[str] = []
+    for line in name_status.splitlines():
+        status, _, path = line.partition("\t")
+        if status not in {"A", "M"}:
+            continue
+        catalogue = _CATALOGUE.fullmatch(path)
+        if path != _SDK_INIT and catalogue is None:
+            continue
+        head = read_head(path)
+        if head is None:
+            raise ValueError(f"{path} is listed as changed but HEAD does not carry it")
+        base = read_base(path)
+        if path == _SDK_INIT:
+            try:
+                added = public_exports(head) - (public_exports(base) if base else set())
+            except ValueError:
+                reasons.append(f"SDK public exports not a literal list: {path}")
+                continue
+            reasons.extend(f"new SDK public export: {name}" for name in sorted(added))
+        elif catalogue is not None:
+            try:
+                added = catalogue_keys(head) - (catalogue_keys(base) if base else set())
+            except ValueError:
+                reasons.append(f"catalogue not readable: {path}")
+                continue
+            provider = catalogue.group(1)
+            reasons.extend(f"new catalogue dataset: {provider}.{key}" for key in sorted(added))
+    return reasons
+
+
+def scope_indicators(
+    repository: str,
+    title: str,
+    name_status: str,
+    patch: str,
+    contents: Sequence[str] = (),
+) -> list[str]:
+    """Return objective signs of expansion, not a semantic approval decision.
+
+    ``contents`` carries the indicators ``content_indicators`` found by comparing base
+    and HEAD content; they take the same exception path as every other indicator.
+    """
+    reasons: list[str] = list(contents)
     if _FEATURE_TITLE.match(title):
         reasons.append("feat title")
 
@@ -75,8 +205,6 @@ def scope_indicators(repository: str, title: str, name_status: str, patch: str) 
                 reasons.append("new Builder HTTP route")
             if path == "src/app/router.tsx" and _STUDIO_ROUTE.match(added):
                 reasons.append("new Studio route")
-            if path == "src/kpubdata/__init__.py" and re.match(r'^\s*"[^"]+",\s*$', added):
-                reasons.append("new SDK public export")
 
     return sorted(set(reasons))
 
@@ -88,9 +216,10 @@ def check_scope(
     labels: set[str],
     name_status: str,
     patch: str,
+    contents: Sequence[str] = (),
 ) -> tuple[str, ...]:
     """Pure PR-policy decision; empty tuple means permitted."""
-    indicators = scope_indicators(repository, title, name_status, patch)
+    indicators = scope_indicators(repository, title, name_status, patch, contents)
     if not indicators:
         return ()
 
@@ -171,6 +300,14 @@ def _git(args: list[str]) -> str:
     return result.stdout
 
 
+def _show(ref: str, path: str) -> str | None:
+    """``path`` at ``ref``, or None when the ref does not carry it."""
+    try:
+        return _git(["show", f"{ref}:{path}"])
+    except subprocess.CalledProcessError:
+        return None
+
+
 def main() -> int:
     event_path = os.environ.get("GITHUB_EVENT_PATH")
     if not event_path:
@@ -215,7 +352,13 @@ def main() -> int:
                 "src/kpubdata/__init__.py",
             ]
         )
-        problems = check_scope(repository, title, body, labels, changed, patch)
+        contents = content_indicators(
+            repository,
+            changed,
+            lambda path: _show(base, path),
+            lambda path: _show("HEAD", path),
+        )
+        problems = check_scope(repository, title, body, labels, changed, patch, contents)
     except (KeyError, TypeError, ValueError, OSError, subprocess.CalledProcessError) as exc:
         print(f"error: scope verification was not possible: {exc}", file=sys.stderr)
         return 2
