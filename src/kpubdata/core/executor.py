@@ -1004,13 +1004,12 @@ class SpecExecutor:
         return extract_items(spec, payload)
 
     def _extract_total_count(self, spec: SpecDefinition, payload: dict[str, object]) -> int | None:
-        """Extract total count using spec's total_count_path rule (None if absent).
+        """Delegate to module function.
 
-        ``0`` stays ``0``: "no results" and "count unknown" are different answers,
-        and ``coerced if coerced else None`` turned the first into the second (#642).
+        The copy read ``total_count_path`` without resolving ``{operation}``, so
+        verify saw a count that ``query`` and ``list_all`` reported as ``None``.
         """
-        raw = _dot_get(payload, spec.response.total_count_path)
-        return _to_int(raw)
+        return extract_total_count(spec, payload)
 
     # ------------------------------------------------------------------
     # Normalization
@@ -1298,12 +1297,14 @@ def normalize_items(
 
 
 def extract_total_count(spec: SpecDefinition, payload: dict[str, object]) -> int | None:
-    """Extract total count using spec's total_count_path rule (None if absent)."""
+    """Extract total count using spec's total_count_path rule (None if absent).
+
+    ``0`` stays ``0``: "no results" and "count unknown" are different answers,
+    and ``coerced if coerced else None`` turned the first into the second (#642).
+    """
     resolved = _resolve_path(spec.response.total_count_path, spec)
     raw = _dot_get(payload, resolved)
-    coerced = _to_int(raw)
-    # 0 is a count, not a missing one (#642).
-    return coerced
+    return _to_int(raw)
 
 
 def _message_path(code_path: str | None) -> str | None:
