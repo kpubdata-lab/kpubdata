@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+import unicodedata
 from dataclasses import dataclass
 
 # The eleven types POLICY 2.1.3 allows, the same in all three repositories. `i18n` was
@@ -74,7 +75,7 @@ _ISSUE_NUMBER = re.compile(r"\(#[0-9]+\)\s*$")
 
 # POLICY 2.1.3: the title is English (#742). The squash commit inherits the title,
 # so Korean in a title would reach main's log. Bodies stay free-form.
-_HANGUL = re.compile(r"[가-힣]")
+_HANGUL = re.compile("[ᄀ-ᇿ㄰-㆏ꥠ-꥿가-힣ힰ-퟿]")
 
 # Any other issue reference mid-title (#742): `from #123`, `(studio#418)`. The
 # trailing rule above keeps its clearer squash-specific message for its own case.
@@ -140,7 +141,7 @@ def parse(title: str, *, pull_request: bool = False) -> Title:
         )
     # POLICY 2.1.3: titles are English (#742). An issue title may stay Korean — the
     # labeller then simply skips it — but a PR title becomes the merge commit title.
-    if _HANGUL.search(title):
+    if _HANGUL.search(unicodedata.normalize("NFC", title)):
         raise TitleError(
             "titles are written in English (POLICY 2.1.3) — the merge commit inherits "
             "the PR title. Put Korean in the body."

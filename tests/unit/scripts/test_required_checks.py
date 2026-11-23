@@ -169,3 +169,120 @@ def test_this_repository_requires_only_checks_its_workflows_produce(script) -> N
     produced = script.produced_contexts(REPO_ROOT / ".github" / "workflows")
 
     assert "CI gate" in produced
+
+
+def test_a_block_style_matrix_is_expanded(tmp_path: Path, script) -> None:
+    """studio#416 again: a block list matrix made `Lint` look like one plain job."""
+    _write(
+        tmp_path,
+        "ci.yml",
+        "name: CI\non:\n  pull_request:\njobs:\n"
+        "  lint:\n"
+        "    name: Lint\n"
+        "    strategy:\n"
+        "      matrix:\n"
+        "        python-version:\n"
+        '          - "3.11"\n'
+        '          - "3.12"\n',
+    )
+
+    assert script.produced_contexts(tmp_path) == {"Lint (3.11)", "Lint (3.12)"}
+    assert script.main(["--workflows", str(tmp_path), "--required", "Lint"]) == 1
+
+
+def test_a_multi_axis_matrix_lists_values_in_key_order(tmp_path: Path, script) -> None:
+    _write(
+        tmp_path,
+        "ci.yml",
+        "name: CI\non: pull_request\njobs:\n"
+        "  t:\n"
+        "    name: T\n"
+        "    strategy:\n"
+        "      matrix:\n"
+        "        os: [linux, mac]\n"
+        "        py:\n"
+        "          - 3.11\n",
+    )
+
+    assert script.produced_contexts(tmp_path) == {"T (linux, 3.11)", "T (mac, 3.11)"}
+
+
+def test_an_include_entry_adds_a_combination(tmp_path: Path, script) -> None:
+    _write(
+        tmp_path,
+        "ci.yml",
+        "name: CI\non:\n  pull_request:\njobs:\n"
+        "  t:\n"
+        "    name: T\n"
+        "    strategy:\n"
+        "      matrix:\n"
+        "        py: ['3.11']\n"
+        "        include:\n"
+        "          - py: '3.13'\n"
+        "          - py: '3.11'\n"
+        "            experimental: true\n",
+    )
+
+    # The second entry matches an existing combination and extends it; the first
+    # matches none and stands alone.
+    assert script.produced_contexts(tmp_path) == {"T (3.11, true)", "T (3.13)"}
+
+
+def test_an_exclude_entry_removes_a_combination(tmp_path: Path, script) -> None:
+    _write(
+        tmp_path,
+        "ci.yml",
+        "name: CI\non:\n  pull_request:\njobs:\n"
+        "  t:\n"
+        "    name: T\n"
+        "    strategy:\n"
+        "      matrix:\n"
+        "        py: ['3.11', '3.12']\n"
+        "        exclude:\n"
+        "          - py: '3.12'\n",
+    )
+
+    assert script.produced_contexts(tmp_path) == {"T (3.11)"}
+
+
+def test_a_dispatch_only_workflow_produces_nothing_for_pull_requests(
+    tmp_path: Path, script
+) -> None:
+    _write(
+        tmp_path,
+        "ci.yml",
+        "name: CI\non:\n  pull_request:\njobs:\n  gate:\n    name: CI gate\n",
+    )
+    _write(
+        tmp_path,
+        "build.yml",
+        "name: Build\non:\n  workflow_dispatch:\njobs:\n  gate:\n    name: gate\n",
+    )
+
+    assert script.produced_contexts(tmp_path) == {"CI gate"}
+    assert script.main(["--workflows", str(tmp_path), "--required", "CI gate", "gate"]) == 1
+
+
+@pytest.mark.parametrize(
+    "trigger",
+    [
+        "on: pull_request",
+        "on: [push, pull_request]",
+        "on:\n  push:\n  pull_request_target:\n    types: [opened]",
+    ],
+)
+def test_pull_request_trigger_spellings_are_all_recognised(
+    tmp_path: Path, script, trigger: str
+) -> None:
+    _write(tmp_path, "ci.yml", f"name: CI\n{trigger}\njobs:\n  a:\n    name: A\n")
+
+    assert script.produced_contexts(tmp_path) == {"A"}
+
+
+@pytest.mark.parametrize("trigger", ["on: push", "on: [push, schedule]", "on:\n  push:"])
+def test_workflows_without_a_pull_request_trigger_are_ignored(
+    tmp_path: Path, script, trigger: str
+) -> None:
+    _write(tmp_path, "ci.yml", f"name: CI\n{trigger}\njobs:\n  a:\n    name: A\n")
+
+    assert script.produced_contexts(tmp_path) == set()

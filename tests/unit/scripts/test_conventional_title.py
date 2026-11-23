@@ -241,3 +241,16 @@ def test_the_cli_applies_the_pull_request_rules_only_when_asked(script, capsys) 
     assert script.main([long_title]) == 0
     assert script.main(["--pull-request", long_title]) == 1
     assert "at most 100" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        "ㄹㅇ",  # compatibility jamo only
+        "한글",  # NFD-decomposed syllables
+        "가",  # conjoining jamo only
+    ],
+)
+def test_jamo_and_decomposed_hangul_titles_are_refused(script, description: str) -> None:
+    with pytest.raises(script.TitleError, match="English"):
+        script.parse(f"fix(cli): {description}")

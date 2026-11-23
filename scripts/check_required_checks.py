@@ -40,16 +40,20 @@ import subprocess
 import sys
 from pathlib import Path
 
+import yaml
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-_JOB_ID = re.compile(r"^  ([A-Za-z_][\w-]*):", re.MULTILINE)
-_JOB_NAME = re.compile(r"^    name:\s*(.+)$", re.MULTILINE)
-_MATRIX_AXIS = re.compile(r"^        ([\w-]+):\s*\[([^\]]+)\]", re.MULTILINE)
 _MATRIX_REF = re.compile(r"\$\{\{\s*matrix\.([\w-]+)\s*\}\}")
+_PR_EVENTS = frozenset({"pull_request", "pull_request_target"})
+_MATRIX_CONTROL = frozenset({"include", "exclude"})
 
 
-def _unquote(value: str) -> str:
-    return value.strip().strip("\"'")
+def _text(value: object) -> str:
+    """Spell a matrix value the way a job name shows it."""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)
 
 
 def _substitute(name: str, chosen: dict[str, str]) -> str:
@@ -57,53 +61,108 @@ def _substitute(name: str, chosen: dict[str, str]) -> str:
     return _MATRIX_REF.sub(lambda match: chosen.get(match.group(1), match.group(0)), name)
 
 
+def _events(workflow: dict[object, object]) -> set[str]:
+    """Event names in ``on:``. YAML 1.1 reads the bare key ``on`` as boolean True."""
+    triggers = workflow.get("on", workflow.get(True))
+    if isinstance(triggers, str):
+        return {triggers}
+    if isinstance(triggers, list):
+        return {str(item) for item in triggers}
+    if isinstance(triggers, dict):
+        return {str(key) for key in triggers}
+    return set()
+
+
+def _combinations(matrix: dict[object, object]) -> list[dict[str, str]] | None:
+    """Expand ``strategy.matrix`` the way GitHub does; None when it is not literal.
+
+    Axes are every key but ``include``/``exclude``. ``exclude`` drops combinations that
+    match all of its keys. An ``include`` entry that agrees with an existing
+    combination on every original axis it names adds its extra keys to that
+    combination; one that matches none becomes a combination of its own.
+    """
+    axes: dict[str, list[str]] = {}
+    for key, values in matrix.items():
+        if key in _MATRIX_CONTROL:
+            continue
+        if not isinstance(values, list):
+            return None  # an expression such as fromJSON(...) cannot be expanded here
+        axes[str(key)] = [_text(value) for value in values]
+    combos = [dict(zip(axes, picked, strict=True)) for picked in itertools.product(*axes.values())]
+    if not axes:
+        combos = []
+
+    def entries(key: str) -> list[dict[str, str]]:
+        raw = matrix.get(key) or []
+        if not isinstance(raw, list):
+            return []
+        return [
+            {str(k): _text(v) for k, v in item.items()} for item in raw if isinstance(item, dict)
+        ]
+
+    for rule in entries("exclude"):
+        combos = [c for c in combos if not all(c.get(k) == v for k, v in rule.items())]
+    for extra in entries("include"):
+        original = {k: v for k, v in extra.items() if k in axes}
+        hits = [c for c in combos if all(c[k] == v for k, v in original.items())]
+        if original and hits:
+            for combo in hits:
+                for k, v in extra.items():
+                    combo.setdefault(k, v)
+        else:
+            combos.append(extra)
+    return combos
+
+
+def _job_contexts(job_id: str, job: dict[object, object]) -> set[str]:
+    raw_name = job.get("name")
+    base = str(raw_name) if raw_name is not None else job_id
+    strategy = job.get("strategy")
+    matrix = strategy.get("matrix") if isinstance(strategy, dict) else None
+    if not isinstance(matrix, dict):
+        return {base}
+    combos = _combinations(matrix)
+    if not combos:
+        return {base}
+    interpolated = bool(_MATRIX_REF.search(base))
+    contexts: set[str] = set()
+    for combo in combos:
+        if interpolated:
+            contexts.add(_substitute(base, combo))
+        else:
+            contexts.add(f"{base} ({', '.join(combo.values())})")
+    return contexts
+
+
 def produced_contexts(workflows: Path) -> set[str]:
-    """The status-check contexts these workflow files can produce.
+    """The status-check contexts that pull requests can get from these workflow files.
 
     A job's context is its ``name``, or its id when it has none. A matrix job produces
     one context per combination, and how that is spelled depends on the name:
 
     * a name that interpolates the matrix — ``Tests (py${{ matrix.python-version }})``
       — becomes the substituted name, ``Tests (py3.10)``;
-    * a name that does not gets the combination appended, ``Lint (3.10)``, which is
-      what GitHub does.
+    * a name that does not gets the combination appended, ``Lint (3.10, ubuntu)``,
+      which is what GitHub does.
 
-    The first draft only knew the second rule, and reported all four of this
-    repository's ``Tests (pyX.Y)`` contexts as missing — a check that cries wolf about
-    the very list it is meant to confirm is worse than no check.
+    Only workflows triggered by ``pull_request`` or ``pull_request_target`` count: a job
+    that runs on ``workflow_dispatch`` alone never reports on a pull request, so
+    requiring it blocks every one for ever.
 
-    The YAML is read with regular expressions on purpose. Requiring PyYAML would make
-    this a script someone has to install something to run, and the thing it guards
-    against is precisely the check nobody got around to running.
+    The files are parsed as YAML (PyYAML is a runtime dependency). Regular expressions
+    missed block-style matrices, which is the studio#416 outage again.
     """
     contexts: set[str] = set()
     for path in sorted(workflows.glob("*.y*ml")):
-        text = path.read_text(encoding="utf-8")
-        _, _, jobs = text.partition("\njobs:")
-        if not jobs:
+        workflow = yaml.safe_load(path.read_text(encoding="utf-8"))
+        if not isinstance(workflow, dict) or not _events(workflow) & _PR_EVENTS:
             continue
-        starts = [m.start() for m in _JOB_ID.finditer(jobs)]
-        for index, start in enumerate(starts):
-            end = starts[index + 1] if index + 1 < len(starts) else len(jobs)
-            block = jobs[start:end]
-            job_id = _JOB_ID.match(block).group(1)  # type: ignore[union-attr]
-            name_match = _JOB_NAME.search(block)
-            base = _unquote(name_match.group(1)) if name_match else job_id
-            axis_pairs = [
-                (axis, [_unquote(v) for v in values.split(",")])
-                for axis, values in _MATRIX_AXIS.findall(block)
-            ]
-            if not axis_pairs:
-                contexts.add(base)
-                continue
-            interpolated = bool(_MATRIX_REF.search(base))
-            axis_names = [axis for axis, _ in axis_pairs]
-            for combo in itertools.product(*(values for _, values in axis_pairs)):
-                chosen = {axis_names[index]: value for index, value in enumerate(combo)}
-                if interpolated:
-                    contexts.add(_substitute(base, chosen))
-                else:
-                    contexts.add(f"{base} ({', '.join(combo)})")
+        jobs = workflow.get("jobs")
+        if not isinstance(jobs, dict):
+            continue
+        for job_id, job in jobs.items():
+            if isinstance(job, dict):
+                contexts |= _job_contexts(str(job_id), job)
     return contexts
 
 

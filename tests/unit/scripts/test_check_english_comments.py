@@ -58,3 +58,32 @@ def test_a_korean_comment_still_fails(tmp_path: Path) -> None:
     (tmp_path / "bad.py").write_text(korean, encoding="utf-8")
 
     assert cec.main([str(tmp_path)]) == 1
+
+
+# Escapes, not literals: an editor may re-compose a decomposed literal into NFC.
+@pytest.mark.parametrize(
+    "comment",
+    [
+        "# ㅁㅁ ㅎㅎ",  # compatibility jamo only
+        "# 한글",  # NFD-decomposed syllables
+        "# 가",  # conjoining jamo only
+        "# ꥠ",  # Hangul Jamo Extended-A
+        "# ힰ",  # Hangul Jamo Extended-B
+    ],
+)
+def test_jamo_and_decomposed_hangul_comments_fail(tmp_path: Path, comment: str) -> None:
+    (tmp_path / "bad.py").write_text(comment + "\n", encoding="utf-8")
+
+    assert cec.main([str(tmp_path)]) == 1
+
+
+def test_a_decomposed_hangul_docstring_fails(tmp_path: Path) -> None:
+    (tmp_path / "bad.py").write_text('"""한."""\n', encoding="utf-8")
+
+    assert cec.main([str(tmp_path)]) == 1
+
+
+def test_hangul_in_a_string_literal_is_still_allowed(tmp_path: Path) -> None:
+    (tmp_path / "ok.py").write_text('x = "ㅁㅁ"\n', encoding="utf-8")
+
+    assert cec.main([str(tmp_path)]) == 0
