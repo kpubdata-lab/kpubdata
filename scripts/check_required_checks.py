@@ -51,6 +51,8 @@ _MATRIX_CONTROL = frozenset({"include", "exclude"})
 _TRIGGER_FILTERS = frozenset({"paths", "paths-ignore", "branches", "branches-ignore"})
 # Branch protection is read from, and applies to, pull requests into this branch.
 _PROTECTED_BRANCH = "main"
+# What GitHub runs a pull_request workflow for when `types:` is not given.
+_DEFAULT_TYPES = frozenset({"opened", "synchronize", "reopened"})
 _BOOL_TAG = "tag:yaml.org,2002:bool"
 _INT_TAG = "tag:yaml.org,2002:int"
 
@@ -99,8 +101,14 @@ def _filters_out_protected_branch(config: dict[object, object]) -> bool:
 
     A ``branches`` list that names the protected branch with no negated pattern lets
     every pull request into it through, so it is not a filter that matters here. Any
-    ``paths``, ``paths-ignore`` or ``branches-ignore`` can skip some pull request.
+    ``paths``, ``paths-ignore`` or ``branches-ignore`` can skip some pull request, and so
+    can ``types`` that leave out ``opened``, ``synchronize`` or ``reopened``.
     """
+    if "types" in config:
+        types = config["types"]
+        listed = {str(t) for t in types} if isinstance(types, list) else {str(types)}
+        if not listed >= _DEFAULT_TYPES:
+            return True
     used = _TRIGGER_FILTERS & {str(key) for key in config}
     if not used:
         return False

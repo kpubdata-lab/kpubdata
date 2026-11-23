@@ -268,7 +268,7 @@ def test_a_dispatch_only_workflow_produces_nothing_for_pull_requests(
     [
         "on: pull_request",
         "on: [push, pull_request]",
-        "on:\n  push:\n  pull_request_target:\n    types: [opened]",
+        "on:\n  push:\n  pull_request_target:\n    types: [opened, synchronize, reopened]",
     ],
 )
 def test_pull_request_trigger_spellings_are_all_recognised(
@@ -450,7 +450,35 @@ def test_a_branches_filter_naming_the_protected_branch_is_fine(tmp_path: Path, s
     _write(
         tmp_path,
         "ci.yml",
-        "name: CI\non:\n  pull_request:\n    branches: [main]\n    types: [opened]\n"
+        "name: CI\non:\n  pull_request:\n    branches: [main]\n    types: [opened, synchronize, reopened]\n"
+        "jobs:\n  a:\n    name: A\n",
+    )
+
+    assert script.produced_contexts(tmp_path) == {"A"}
+
+
+@pytest.mark.parametrize("event", ["pull_request", "pull_request_target"])
+@pytest.mark.parametrize("types", ["[closed]", "[synchronize]", "[opened, reopened]"])
+def test_a_types_filter_missing_a_default_type_is_filtered(
+    tmp_path: Path, script, event: str, types: str
+) -> None:
+    """release.yml runs on `types: [closed]`, so its jobs never report on an open PR."""
+    _write(
+        tmp_path,
+        "r.yml",
+        f"name: R\non:\n  {event}:\n    types: {types}\njobs:\n  a:\n    name: A\n",
+    )
+
+    assert script.produced_contexts(tmp_path) == set()
+    assert script.main(["--workflows", str(tmp_path), "--required", "A"]) == 1
+
+
+@pytest.mark.parametrize("event", ["pull_request", "pull_request_target"])
+def test_types_covering_the_defaults_are_unfiltered(tmp_path: Path, script, event: str) -> None:
+    _write(
+        tmp_path,
+        "r.yml",
+        f"name: R\non:\n  {event}:\n    types: [opened, synchronize, reopened, labeled]\n"
         "jobs:\n  a:\n    name: A\n",
     )
 
