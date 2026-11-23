@@ -141,7 +141,7 @@ def parse(title: str, *, pull_request: bool = False) -> Title:
         )
     # POLICY 2.1.3: titles are English (#742). An issue title may stay Korean — the
     # labeller then simply skips it — but a PR title becomes the merge commit title.
-    if _HANGUL.search(unicodedata.normalize("NFC", title)):
+    if _HANGUL.search(unicodedata.normalize("NFKC", title)):
         raise TitleError(
             "titles are written in English (POLICY 2.1.3) — the merge commit inherits "
             "the PR title. Put Korean in the body."

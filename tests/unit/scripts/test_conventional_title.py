@@ -249,6 +249,9 @@ def test_the_cli_applies_the_pull_request_rules_only_when_asked(script, capsys) 
         "ㄹㅇ",  # compatibility jamo only
         "한글",  # NFD-decomposed syllables
         "가",  # conjoining jamo only
+        "\uffa1\uffa2",  # halfwidth Hangul
+        "\u3200",  # parenthesised Hangul
+        "\u3260",  # circled Hangul
     ],
 )
 def test_jamo_and_decomposed_hangul_titles_are_refused(script, description: str) -> None:

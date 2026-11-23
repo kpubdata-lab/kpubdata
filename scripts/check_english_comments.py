@@ -26,8 +26,8 @@ HANGUL = re.compile("[ᄀ-ᇿ㄰-㆏ꥠ-꥿가-힣ힰ-퟿]")
 
 
 def has_hangul(text: str) -> bool:
-    """Hangul in any form: syllables, jamo, compatibility jamo, decomposed (NFD) text."""
-    return HANGUL.search(unicodedata.normalize("NFC", text)) is not None
+    """Hangul in any form: syllables, jamo, and NFD, halfwidth or circled variants (NFKC)."""
+    return HANGUL.search(unicodedata.normalize("NFKC", text)) is not None
 
 
 DEFAULT_ROOTS = ("src", "tests", "scripts")

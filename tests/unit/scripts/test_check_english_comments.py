@@ -69,6 +69,9 @@ def test_a_korean_comment_still_fails(tmp_path: Path) -> None:
         "# 가",  # conjoining jamo only
         "# ꥠ",  # Hangul Jamo Extended-A
         "# ힰ",  # Hangul Jamo Extended-B
+        "# \uffa1\uffa2",  # halfwidth Hangul
+        "# \u3200",  # parenthesised Hangul
+        "# \u3260",  # circled Hangul
     ],
 )
 def test_jamo_and_decomposed_hangul_comments_fail(tmp_path: Path, comment: str) -> None:
