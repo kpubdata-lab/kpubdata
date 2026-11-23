@@ -163,7 +163,7 @@ class NeisAdapter:
         request_params: dict[str, str] = {"KEY": self._require_api_key(), "Type": "json"}
         for key, value in params.items():
             # The configured key always wins over a raw parameter under its name.
-            if key.lower() != "key" and str(value).strip():
+            if value is not None and key.lower() != "key" and str(value).strip():
                 request_params[str(key)] = str(value)
         base_url = dataset.raw_metadata.get("base_url", "")
         url = f"{base_url}/{operation}?{urlencode(request_params)}"

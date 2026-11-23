@@ -161,7 +161,8 @@ class SgisAdapter:
         endpoint = self._resolve_raw_endpoint(dataset, operation)
         request_params: dict[str, str] = {}
         for key, value in params.items():
-            request_params[key] = str(value)
+            if value is not None:
+                request_params[key] = str(value)
 
         if "accessToken" not in request_params:
             request_params["accessToken"] = self._auth.get_access_token()

@@ -136,7 +136,9 @@ class FdsAdapter:
         start_idx = self._int_param(params, "start_idx", 1)
         end_idx = self._int_param(params, "end_idx", 10)
         filters = {
-            k: v for k, v in params.items() if k not in ("start_idx", "end_idx") and str(v).strip()
+            k: v
+            for k, v in params.items()
+            if v is not None and k not in ("start_idx", "end_idx") and str(v).strip()
         }
         url = self._build_request_url(dataset, start_idx, end_idx, service=service, filters=filters)
         payload = self._request_and_decode(url, dataset.id)
@@ -161,7 +163,7 @@ class FdsAdapter:
         service_id = service or str(dataset.raw_metadata.get("default_operation", ""))
         key = quote(self._require_api_key(), safe="")
         url = f"{base_url.rstrip('/')}/{key}/{service_id}/json/{start_idx}/{end_idx}"
-        extra = {k: str(v) for k, v in (filters or {}).items() if str(v).strip()}
+        extra = {k: str(v) for k, v in (filters or {}).items() if v is not None and str(v).strip()}
         if extra:
             from urllib.parse import urlencode
 
