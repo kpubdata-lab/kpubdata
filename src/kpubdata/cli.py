@@ -18,7 +18,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from enum import Enum
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, NoReturn, cast
 
 from kpubdata import __version__
 from kpubdata.client import Client
@@ -69,9 +69,39 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
 
 
+def _redact_key_values(message: str) -> str:
+    """Mask the value that follows, or is attached to, any flag whose name contains "key".
+
+    argparse echoes unrecognized arguments verbatim, so a misplaced or mistyped
+    ``--provider-key`` would otherwise print the credential.
+    """
+    out: list[str] = []
+    redact_next = False
+    for token in message.split(" "):
+        name, eq, _value = token.partition("=")
+        if token.startswith("-") and "key" in name.lower():
+            out.append(f"{name}=[REDACTED]" if eq else token)
+            redact_next = not eq
+        elif redact_next and not token.startswith("-"):
+            out.append("[REDACTED]")
+            redact_next = False
+        else:
+            out.append(token)
+            redact_next = False
+    return " ".join(out)
+
+
+class _RedactingParser(argparse.ArgumentParser):
+    """ArgumentParser whose error text never echoes a key flag's value."""
+
+    def error(self, message: str) -> NoReturn:
+        self.print_usage(sys.stderr)
+        self.exit(2, f"{self.prog}: error: {_redact_key_values(message)}\n")
+
+
 def _build_parser() -> argparse.ArgumentParser:
     """Build and return the argparse parser."""
-    parser = argparse.ArgumentParser(prog="kpubdata")
+    parser = _RedactingParser(prog="kpubdata")
     _ = parser.add_argument("--cache", action="store_true", help="Enable response cache")
     _ = parser.add_argument(
         "--log-level",
@@ -525,9 +555,7 @@ def _render_csv(items: list[dict[str, object]]) -> str:
 
 def _render_table(rows: Sequence[Mapping[str, object]], *, headers: Sequence[str]) -> str:
     """Render rows as an aligned text table."""
-    if not headers:
-        return "(no columns)"
-    if not rows:
+    if not rows or not headers:
         return "(no rows)"
 
     normalized_rows: list[dict[str, str]] = [
@@ -549,9 +577,7 @@ def _render_table(rows: Sequence[Mapping[str, object]], *, headers: Sequence[str
 
 def _table_headers(items: list[dict[str, object]]) -> list[str]:
     """Return the header keys for a table, capped at the column limit."""
-    if not items:
-        return []
-    return list(items[0].keys())[:_MAX_TABLE_COLUMNS]
+    return _csv_headers(items)[:_MAX_TABLE_COLUMNS]
 
 
 def _csv_headers(items: list[dict[str, object]]) -> list[str]:
@@ -586,14 +612,19 @@ def _reject_python_parameter_names(params: Mapping[str, str], reserved: Sequence
         )
 
 
+_SECRET_FLAGS = frozenset({"--provider-key"})
+
+
 def _split_assignment(value: str, *, flag_name: str) -> tuple[str, str]:
     """Split one KEY=VALUE string; raise InvalidRequestError when malformed."""
+    # A --provider-key argument is a credential: never echo it back.
+    shown = "" if flag_name in _SECRET_FLAGS else f": {value}"
     if "=" not in value:
-        raise InvalidRequestError(f"{flag_name} expects KEY=VALUE: {value}")
+        raise InvalidRequestError(f"{flag_name} expects KEY=VALUE{shown}")
     key, parsed_value = value.split("=", 1)
     normalized_key = key.strip()
     if not normalized_key:
-        raise InvalidRequestError(f"{flag_name} expects a non-empty key: {value}")
+        raise InvalidRequestError(f"{flag_name} expects a non-empty key before '='{shown}")
     return normalized_key, parsed_value
 
 
