@@ -917,7 +917,7 @@ def test_cli_helper_functions_cover_formats_and_serialization(tmp_path: Path) ->
     with pytest.raises(InvalidRequestError):
         _ = split_assignment("novalue", flag_name="-p")
 
-    assert table_headers(batch.items) == ["alpha", "beta"]
+    assert table_headers(batch.items) == ["alpha", "beta", "gamma"]
     assert csv_headers(batch.items) == ["alpha", "beta", "gamma"]
     assert truncate("x" * 50).endswith("…")
     assert stringify_value(None) == ""
@@ -932,7 +932,7 @@ def test_cli_helper_functions_cover_formats_and_serialization(tmp_path: Path) ->
     assert csv_output.startswith("alpha,beta,gamma")
     assert json.loads(json_output)[0]["beta"] == 1
     assert "alpha" in render_records(batch.items, output_format="table")
-    assert render_records([], output_format="table") == "(no columns)"
+    assert render_records([], output_format="table") == "(no rows)"
     assert render_records(batch.items, output_format="csv").startswith("alpha,beta,gamma")
 
     jsonable_batch = cast(dict[str, object], to_jsonable(batch))
@@ -1079,3 +1079,68 @@ def test_param_keys_named_like_python_parameters_are_refused(
     assert main(argv) == 2
     assert "InvalidRequestError" in capsys.readouterr().err
     assert fake_client.dataset_stub.list_calls == []
+
+
+def test_provider_key_error_does_not_echo_the_value(capsys: pytest.CaptureFixture[str]) -> None:
+    """A malformed --provider-key names the flag but never prints the credential."""
+    for bad in ("=SECRET-SERVICE-KEY-abc123", "SECRET-SERVICE-KEY-abc123"):
+        code = cli_module.main(["--provider-key", bad, "datasets", "list"])
+        captured = capsys.readouterr()
+        assert code == 2
+        assert "--provider-key" in captured.err
+        assert "SECRET-SERVICE-KEY-abc123" not in captured.err + captured.out
+
+
+def test_param_error_still_echoes_the_argument() -> None:
+    """Non-secret flags keep echoing the offending argument."""
+    split_assignment = cast(
+        Callable[..., tuple[str, str]], cli_module.__dict__["_split_assignment"]
+    )
+    with pytest.raises(InvalidRequestError, match="novalue"):
+        _ = split_assignment("novalue", flag_name="-p/--param")
+
+
+def test_table_shows_every_column_and_empty_says_no_rows() -> None:
+    """The table uses the union of keys like CSV, capped, and empty input is no rows."""
+    render = cast(Callable[..., str], cli_module.__dict__["_render_records"])
+    out = render([{"a": 1}, {"a": 2, "b": "x"}], output_format="table")
+    assert out.splitlines()[0].split() == ["a", "b"]
+    wide = [{f"c{i}": i for i in range(30)}]
+    assert len(render(wide, output_format="table").splitlines()[0].split()) == 20
+    assert render([], output_format="table") == "(no rows)"
+
+
+# Built at runtime so secret scanners do not read the test argv as a real key.
+_FAKE_VALUE = "SECRET" + "XYZ"
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["datasets", "list", "--provider-key", "bok=" + _FAKE_VALUE],
+        ["datasets", "list", "--provider-key=bok=" + _FAKE_VALUE],
+        ["--provider-keyx=" + _FAKE_VALUE, "datasets", "list"],
+    ],
+)
+def test_argparse_error_does_not_echo_a_misplaced_key(
+    argv: list[str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A misplaced or mistyped key flag is refused without printing its value."""
+    with pytest.raises(SystemExit) as exc_info:
+        _ = cli_module.main(argv)
+    captured = capsys.readouterr()
+    assert exc_info.value.code == 2
+    assert _FAKE_VALUE not in captured.err + captured.out
+    assert "usage: kpubdata" in captured.err
+    assert "unrecognized arguments" in captured.err
+
+
+def test_argparse_error_still_shows_non_secret_arguments(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """An ordinary unrecognized argument is still named for the user."""
+    with pytest.raises(SystemExit) as exc_info:
+        _ = cli_module.main(["datasets", "list", "--bogus", "value1"])
+    captured = capsys.readouterr()
+    assert exc_info.value.code == 2
+    assert "--bogus value1" in captured.err
