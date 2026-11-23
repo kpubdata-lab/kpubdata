@@ -173,7 +173,7 @@ class KoreanAdapter:
         }
         for key, value in params.items():
             # The configured key always wins over a raw parameter under its name.
-            if key.lower() != "key" and str(value).strip():
+            if value is not None and key.lower() != "key" and str(value).strip():
                 request_params[str(key)] = str(value)
         url = self._build_url(dataset, request_params, service=service)
         payload = self._request_and_decode(url, dataset.id)

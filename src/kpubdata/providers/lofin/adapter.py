@@ -239,7 +239,9 @@ class LofinAdapter:
         lowered = {key.lower(): value for key, value in params.items()}
         page = self._int_param(lowered, "pindex", self._int_param(lowered, "page", 1))
         page_size = self._int_param(lowered, "psize", self._int_param(lowered, "page_size", 100))
-        filters = {k: v for k, v in params.items() if k.lower() not in _RAW_SDK_PARAMS}
+        filters = {
+            k: v for k, v in params.items() if v is not None and k.lower() not in _RAW_SDK_PARAMS
+        }
 
         url = self._build_request_url(dataset, page=page, page_size=page_size, filters=filters)
         payload = self._request_and_decode(url, dataset.id)
