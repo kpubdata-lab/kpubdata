@@ -19,9 +19,16 @@ import io
 import re
 import sys
 import tokenize
+import unicodedata
 from pathlib import Path
 
-HANGUL = re.compile(r"[가-힣]")
+HANGUL = re.compile("[ᄀ-ᇿ㄰-㆏ꥠ-꥿가-힣ힰ-퟿]")
+
+
+def has_hangul(text: str) -> bool:
+    """Hangul in any form: syllables, jamo, and NFD, halfwidth or circled variants (NFKC)."""
+    return HANGUL.search(unicodedata.normalize("NFKC", text)) is not None
+
 
 DEFAULT_ROOTS = ("src", "tests", "scripts")
 
@@ -42,7 +49,7 @@ def findings(path: Path) -> list[tuple[int, str, str]]:
     try:
         tokens = tokenize.generate_tokens(io.StringIO(source).readline)
         for token in tokens:
-            if token.type is tokenize.COMMENT and HANGUL.search(token.string):
+            if token.type is tokenize.COMMENT and has_hangul(token.string):
                 found.append((token.start[0], "comment", token.string.strip()))
     except (tokenize.TokenError, IndentationError, SyntaxError):
         # A file that does not tokenise is a separate problem; the syntax
@@ -56,7 +63,7 @@ def findings(path: Path) -> list[tuple[int, str, str]]:
 
     for node in _docstring_nodes(tree):
         text = ast.get_docstring(node, clean=False)
-        if text is None or not HANGUL.search(text):
+        if text is None or not has_hangul(text):
             continue
         line = getattr(node, "lineno", 1)
         first = next((ln.strip() for ln in text.splitlines() if ln.strip()), "")

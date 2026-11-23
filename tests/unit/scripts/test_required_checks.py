@@ -169,3 +169,317 @@ def test_this_repository_requires_only_checks_its_workflows_produce(script) -> N
     produced = script.produced_contexts(REPO_ROOT / ".github" / "workflows")
 
     assert "CI gate" in produced
+
+
+def test_a_block_style_matrix_is_expanded(tmp_path: Path, script) -> None:
+    """studio#416 again: a block list matrix made `Lint` look like one plain job."""
+    _write(
+        tmp_path,
+        "ci.yml",
+        "name: CI\non:\n  pull_request:\njobs:\n"
+        "  lint:\n"
+        "    name: Lint\n"
+        "    strategy:\n"
+        "      matrix:\n"
+        "        python-version:\n"
+        '          - "3.11"\n'
+        '          - "3.12"\n',
+    )
+
+    assert script.produced_contexts(tmp_path) == {"Lint (3.11)", "Lint (3.12)"}
+    assert script.main(["--workflows", str(tmp_path), "--required", "Lint"]) == 1
+
+
+def test_a_multi_axis_matrix_lists_values_in_key_order(tmp_path: Path, script) -> None:
+    _write(
+        tmp_path,
+        "ci.yml",
+        "name: CI\non: pull_request\njobs:\n"
+        "  t:\n"
+        "    name: T\n"
+        "    strategy:\n"
+        "      matrix:\n"
+        "        os: [linux, mac]\n"
+        "        py:\n"
+        "          - 3.11\n",
+    )
+
+    assert script.produced_contexts(tmp_path) == {"T (linux, 3.11)", "T (mac, 3.11)"}
+
+
+def test_an_include_entry_adds_a_combination(tmp_path: Path, script) -> None:
+    _write(
+        tmp_path,
+        "ci.yml",
+        "name: CI\non:\n  pull_request:\njobs:\n"
+        "  t:\n"
+        "    name: T\n"
+        "    strategy:\n"
+        "      matrix:\n"
+        "        py: ['3.11']\n"
+        "        include:\n"
+        "          - py: '3.13'\n"
+        "          - py: '3.11'\n"
+        "            experimental: true\n",
+    )
+
+    # The second entry matches an existing combination and extends it; the first
+    # matches none and stands alone.
+    assert script.produced_contexts(tmp_path) == {"T (3.11, true)", "T (3.13)"}
+
+
+def test_an_exclude_entry_removes_a_combination(tmp_path: Path, script) -> None:
+    _write(
+        tmp_path,
+        "ci.yml",
+        "name: CI\non:\n  pull_request:\njobs:\n"
+        "  t:\n"
+        "    name: T\n"
+        "    strategy:\n"
+        "      matrix:\n"
+        "        py: ['3.11', '3.12']\n"
+        "        exclude:\n"
+        "          - py: '3.12'\n",
+    )
+
+    assert script.produced_contexts(tmp_path) == {"T (3.11)"}
+
+
+def test_a_dispatch_only_workflow_produces_nothing_for_pull_requests(
+    tmp_path: Path, script
+) -> None:
+    _write(
+        tmp_path,
+        "ci.yml",
+        "name: CI\non:\n  pull_request:\njobs:\n  gate:\n    name: CI gate\n",
+    )
+    _write(
+        tmp_path,
+        "build.yml",
+        "name: Build\non:\n  workflow_dispatch:\njobs:\n  gate:\n    name: gate\n",
+    )
+
+    assert script.produced_contexts(tmp_path) == {"CI gate"}
+    assert script.main(["--workflows", str(tmp_path), "--required", "CI gate", "gate"]) == 1
+
+
+@pytest.mark.parametrize(
+    "trigger",
+    [
+        "on: pull_request",
+        "on: [push, pull_request]",
+        "on:\n  push:\n  pull_request_target:\n    types: [opened, synchronize, reopened]",
+    ],
+)
+def test_pull_request_trigger_spellings_are_all_recognised(
+    tmp_path: Path, script, trigger: str
+) -> None:
+    _write(tmp_path, "ci.yml", f"name: CI\n{trigger}\njobs:\n  a:\n    name: A\n")
+
+    assert script.produced_contexts(tmp_path) == {"A"}
+
+
+@pytest.mark.parametrize("trigger", ["on: push", "on: [push, schedule]", "on:\n  push:"])
+def test_workflows_without_a_pull_request_trigger_are_ignored(
+    tmp_path: Path, script, trigger: str
+) -> None:
+    _write(tmp_path, "ci.yml", f"name: CI\n{trigger}\njobs:\n  a:\n    name: A\n")
+
+    assert script.produced_contexts(tmp_path) == set()
+
+
+def _matrix_contexts(script, tmp_path: Path, matrix: str, name: str = "T") -> set[str]:
+    """Contexts of one job whose ``strategy.matrix`` is the given block (already indented)."""
+    _write(
+        tmp_path,
+        "ci.yml",
+        "name: CI\non:\n  pull_request:\njobs:\n  t:\n"
+        f"    name: {name}\n    strategy:\n      matrix:\n{matrix}",
+    )
+    return script.produced_contexts(tmp_path)
+
+
+def test_githubs_documented_include_example(tmp_path: Path, script) -> None:
+    """The fruit/animal/color/shape example from GitHub's matrix documentation."""
+    contexts = _matrix_contexts(
+        script,
+        tmp_path,
+        "        fruit: [apple, pear]\n"
+        "        animal: [cat, dog]\n"
+        "        include:\n"
+        "          - color: green\n"
+        "          - color: pink\n"
+        "            animal: cat\n"
+        "          - fruit: apple\n"
+        "            shape: circle\n"
+        "          - fruit: banana\n"
+        "          - fruit: banana\n"
+        "            animal: cat\n",
+    )
+
+    assert contexts == {
+        "T (apple, cat, pink, circle)",
+        "T (apple, dog, green, circle)",
+        "T (pear, cat, pink)",
+        "T (pear, dog, green)",
+        "T (banana)",
+        "T (banana, cat)",
+    }
+
+
+def test_include_naming_keys_no_combination_has_does_not_crash(tmp_path: Path, script) -> None:
+    contexts = _matrix_contexts(
+        script,
+        tmp_path,
+        "        fruit: [apple]\n"
+        "        animal: [cat]\n"
+        "        include:\n"
+        "          - fruit: banana\n"
+        "          - fruit: banana\n"
+        "            animal: cat\n",
+    )
+
+    assert contexts == {"T (apple, cat)", "T (banana)", "T (banana, cat)"}
+
+
+def test_an_include_without_axis_keys_extends_every_combination(tmp_path: Path, script) -> None:
+    contexts = _matrix_contexts(
+        script, tmp_path, "        py: ['3.11', '3.12']\n        include:\n          - flag: x\n"
+    )
+
+    assert contexts == {"T (3.11, x)", "T (3.12, x)"}
+
+
+def test_a_later_include_overwrites_a_value_an_earlier_one_added(tmp_path: Path, script) -> None:
+    contexts = _matrix_contexts(
+        script,
+        tmp_path,
+        "        py: ['3.11']\n        include:\n          - color: green\n          - color: pink\n",
+    )
+
+    assert contexts == {"T (3.11, pink)"}
+
+
+@pytest.mark.parametrize(
+    "matrix",
+    [
+        "        include: ${{ fromJSON(needs.plan.outputs.matrix) }}\n",
+        "        py: ${{ fromJSON(needs.plan.outputs.py) }}\n",
+        "        py: ['3.11']\n        exclude:\n          - py: '3.11'\n",
+    ],
+    ids=["expression include", "expression axis", "exclude removes everything"],
+)
+def test_an_unexpandable_matrix_does_not_report_the_bare_name(
+    tmp_path: Path, script, matrix: str
+) -> None:
+    assert _matrix_contexts(script, tmp_path, matrix) == set()
+    assert script.main(["--workflows", str(tmp_path), "--required", "T"]) == 1
+
+
+def test_an_expression_matrix_is_explained(
+    tmp_path: Path, script, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _matrix_contexts(script, tmp_path, "        include: ${{ fromJSON(x) }}\n")
+
+    script.main(["--workflows", str(tmp_path), "--required", "T"])
+
+    assert "cannot verify" in capsys.readouterr().err
+
+
+def test_a_reusable_workflow_caller_is_not_its_own_context(tmp_path: Path, script) -> None:
+    _write(
+        tmp_path,
+        "ci.yml",
+        "name: CI\non: pull_request\njobs:\n  call:\n    name: Caller\n"
+        "    uses: ./.github/workflows/inner.yml\n",
+    )
+
+    assert script.produced_contexts(tmp_path) == set()
+    assert script.main(["--workflows", str(tmp_path), "--required", "Caller"]) == 1
+
+
+@pytest.mark.parametrize(
+    "trigger",
+    [
+        "on:\n  pull_request:\n    paths: ['src/**']",
+        "on:\n  pull_request:\n    paths-ignore: ['docs/**']",
+        "on:\n  pull_request:\n    branches: [release]",
+        "on:\n  pull_request:\n    branches: [main, '!main']",
+    ],
+)
+def test_a_filtered_pull_request_trigger_is_not_reliably_produced(
+    tmp_path: Path, script, trigger: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _write(tmp_path, "ci.yml", f"name: CI\n{trigger}\njobs:\n  a:\n    name: A\n")
+    _write(tmp_path, "gate.yml", "name: G\non: pull_request\njobs:\n  g:\n    name: G\n")
+
+    assert script.produced_contexts(tmp_path) == {"G"}
+    assert script.main(["--workflows", str(tmp_path), "--required", "A"]) == 1
+    assert "filtered" in capsys.readouterr().err
+
+
+def test_a_context_is_reliable_when_any_workflow_produces_it_unfiltered(
+    tmp_path: Path, script
+) -> None:
+    _write(
+        tmp_path,
+        "a.yml",
+        "name: A\non:\n  pull_request:\n    paths: ['x']\n  pull_request_target:\njobs:\n  a:\n    name: A\n",
+    )
+
+    assert script.produced_contexts(tmp_path) == {"A"}
+
+
+def test_yaml_one_one_booleans_keep_githubs_spelling(tmp_path: Path, script) -> None:
+    """GitHub reads `yes`/`on` as strings and `010` as ten; PyYAML's defaults do not."""
+    contexts = _matrix_contexts(
+        script, tmp_path, "        flag: [yes, off]\n        n: [010]\n        t: [true]\n"
+    )
+
+    assert contexts == {"T (yes, 10, true)", "T (off, 10, true)"}
+
+
+def test_the_real_required_set_comes_from_unfiltered_workflows(script) -> None:
+    produced = script.produced_contexts(REPO_ROOT / ".github" / "workflows")
+
+    assert {"CI gate", "PR title"} <= produced
+
+
+def test_a_branches_filter_naming_the_protected_branch_is_fine(tmp_path: Path, script) -> None:
+    """`branches: [main]` runs for every pull request into main, which is what is protected."""
+    _write(
+        tmp_path,
+        "ci.yml",
+        "name: CI\non:\n  pull_request:\n    branches: [main]\n    types: [opened, synchronize, reopened]\n"
+        "jobs:\n  a:\n    name: A\n",
+    )
+
+    assert script.produced_contexts(tmp_path) == {"A"}
+
+
+@pytest.mark.parametrize("event", ["pull_request", "pull_request_target"])
+@pytest.mark.parametrize("types", ["[closed]", "[synchronize]", "[opened, reopened]"])
+def test_a_types_filter_missing_a_default_type_is_filtered(
+    tmp_path: Path, script, event: str, types: str
+) -> None:
+    """release.yml runs on `types: [closed]`, so its jobs never report on an open PR."""
+    _write(
+        tmp_path,
+        "r.yml",
+        f"name: R\non:\n  {event}:\n    types: {types}\njobs:\n  a:\n    name: A\n",
+    )
+
+    assert script.produced_contexts(tmp_path) == set()
+    assert script.main(["--workflows", str(tmp_path), "--required", "A"]) == 1
+
+
+@pytest.mark.parametrize("event", ["pull_request", "pull_request_target"])
+def test_types_covering_the_defaults_are_unfiltered(tmp_path: Path, script, event: str) -> None:
+    _write(
+        tmp_path,
+        "r.yml",
+        f"name: R\non:\n  {event}:\n    types: [opened, synchronize, reopened, labeled]\n"
+        "jobs:\n  a:\n    name: A\n",
+    )
+
+    assert script.produced_contexts(tmp_path) == {"A"}
