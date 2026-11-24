@@ -9,6 +9,10 @@ Steps (any failure exits 1):
 3. Replay contract — raw → envelope validation → items/total extraction
    matches expected
 
+In a full run, a spec with ``status: unstable`` or ``status: broken`` skips
+only the steps that need a working dataset (example run, example recency,
+live diff); fixture integrity, licence terms and transport security still run.
+
 Usage:
     uv run python scripts/verify_spec.py                     # all specs
     uv run python scripts/verify_spec.py --dataset datago.apt_trade
@@ -23,6 +27,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -46,6 +51,20 @@ SPEC_ROOT = REPO_ROOT / "src" / "kpubdata" / "specs"
 #: Fixtures recorded before the spec digest existed (#522), one meta path per
 #: line relative to ``FIXTURES_ROOT``. Only these may lack ``spec_sha256`` (#717).
 LEGACY_BASELINE = REPO_ROOT / "scripts" / "legacy_evidence_baseline.txt"
+
+#: The values the schema allows for a spec's top-level ``status``, and that line
+#: written plainly. Marking a recorded spec broken or unstable changes only this
+#: line, which the recorder never executed, so spec binding tolerates a change
+#: confined to it. Only a bare value is matched: no quotes, no comment, and no
+#: U+0085, U+2028 or U+2029, at which YAML starts a new line that could redefine
+#: another key while the regex still saw one line.
+SPEC_STATUSES = ("active", "deprecated", "broken", "unstable")
+_STATUS_LINE = re.compile(
+    r"^status:[ \t]*(?:" + "|".join(SPEC_STATUSES) + r")[ \t]*$", re.MULTILINE
+)
+#: Any top-level ``status`` key, however it is written.
+_ANY_STATUS_KEY = re.compile(r"^status\s*:", re.MULTILINE)
+_YAML_ONLY_BREAKS = ("\x85", "\u2028", "\u2029")
 
 #: Specs whose licence says ``allowed`` without the attribution proof (#732).
 #: Entries are spec ids (``provider.dataset_key``), one per line.
@@ -409,6 +428,32 @@ def _fixture_key(meta_path: Path) -> str:
     return meta_path.relative_to(FIXTURES_ROOT).as_posix()
 
 
+def _status_recorded_under(spec_path: Path, recorded: str) -> str | None:
+    """Return the status a fixture was recorded under when only the status changed.
+
+    The spec file must have exactly one top-level ``status:`` line, holding a
+    bare allowed value, and no line break that only YAML sees. Each allowed
+    status is put in its place in turn; when one gives the recorded digest, the
+    file differs from what was recorded in that line alone and that status is
+    returned. None when the file cannot be read or any other line changed.
+    """
+    try:
+        text = spec_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    if any(char in text for char in _YAML_ONLY_BREAKS):
+        return None
+    if len(_ANY_STATUS_KEY.findall(text)) != 1 or len(_STATUS_LINE.findall(text)) != 1:
+        return None
+    with tempfile.TemporaryDirectory() as tmp:
+        candidate = Path(tmp) / spec_path.name
+        for status in SPEC_STATUSES:
+            candidate.write_text(_STATUS_LINE.sub(f"status: {status}", text), encoding="utf-8")
+            if spec_file_digest(candidate) == recorded:
+                return status
+    return None
+
+
 def _verify_fixtures(spec: SpecDefinition) -> list[StepResult]:
     """Verify fixture integrity + replay contract."""
     results: list[StepResult] = []
@@ -465,8 +510,12 @@ def _verify_fixtures(spec: SpecDefinition) -> list[StepResult]:
         binding = f"fixture[{example}] spec 결속"
         recorded_spec = meta.get("spec_sha256")
         if isinstance(recorded_spec, str) and recorded_spec:
-            current_spec = spec_file_digest(SPEC_ROOT / spec.provider / f"{spec.dataset_key}.yaml")
+            spec_path = SPEC_ROOT / spec.provider / f"{spec.dataset_key}.yaml"
+            current_spec = spec_file_digest(spec_path)
+            recorded_status = None
             if current_spec != recorded_spec:
+                recorded_status = _status_recorded_under(spec_path, recorded_spec)
+            if current_spec != recorded_spec and recorded_status is None:
                 results.append(
                     StepResult(
                         binding,
@@ -478,7 +527,10 @@ def _verify_fixtures(spec: SpecDefinition) -> list[StepResult]:
                     )
                 )
                 continue
-            results.append(StepResult(binding, passed=True, detail=recorded_spec[:12]))
+            detail = recorded_spec[:12]
+            if recorded_status is not None:
+                detail += f" (status 줄만 변경 — 기록 당시 status: {recorded_status})"
+            results.append(StepResult(binding, passed=True, detail=detail))
         elif "spec_sha256" not in meta and _fixture_key(meta_path) in legacy:
             results.append(
                 StepResult(
@@ -692,8 +744,11 @@ def run_verify(dataset_id: str | None = None) -> int:
             print(validate.stderr.rstrip())
         return 1
 
-    # specs with unstable/broken status skip fixture/example verification —
-    # case where fixture creation is impossible (e.g., usage request not approved).
+    # In a full run, unstable/broken specs skip only the steps that need a
+    # working dataset (example run, example recency, live diff) — the dataset
+    # cannot be called, and a recording may be impossible (usage application
+    # not approved). The offline integrity checks still run, so the status
+    # cannot be used to dodge a verification failure (AGENTS.md).
     skippable = frozenset({"unstable", "broken"})
 
     # 2-c'. The legacy baseline itself (#717) — checked once per run, because a
@@ -725,19 +780,21 @@ def run_verify(dataset_id: str | None = None) -> int:
 
     failed_any = not baseline_passed or not terms_passed or not http_passed
     for spec in specs:
-        if not dataset_id and spec.status in skippable:
-            print(f"[건너뜀] {spec.id} (status={spec.status})")
-            continue
         result = DatasetVerifyResult(dataset_id=spec.id)
-        result.steps.extend(_verify_fixtures(spec))
-        result.steps.extend(_verify_example_recency(spec))
-        result.steps.extend(_verify_licence_terms(spec))
-        result.steps.extend(_verify_insecure_http(spec))
-        result.steps.append(_run_example_script(spec))
-        result.steps.append(_run_live_schema_diff(spec))
+        offline_only = not dataset_id and spec.status in skippable
+        if offline_only:
+            result.steps.extend(_verify_offline_integrity(spec))
+        else:
+            result.steps.extend(_verify_fixtures(spec))
+            result.steps.extend(_verify_example_recency(spec))
+            result.steps.extend(_verify_licence_terms(spec))
+            result.steps.extend(_verify_insecure_http(spec))
+            result.steps.append(_run_example_script(spec))
+            result.steps.append(_run_live_schema_diff(spec))
 
         status = "통과" if result.passed else "실패"
-        print(f"[{status}] {spec.id}")
+        note = f" (status={spec.status} — 예제 실행·최신성·live 생략)" if offline_only else ""
+        print(f"[{status}] {spec.id}{note}")
         for step in result.steps:
             if not step.passed:
                 print(f"  오류({step.name}): {step.detail}")
@@ -746,6 +803,34 @@ def run_verify(dataset_id: str | None = None) -> int:
     total = len(specs)
     print(f"검증 결과: {total}개 데이터셋, {'실패 있음' if failed_any else '전체 통과'}")
     return 1 if failed_any else 0
+
+
+def _verify_offline_integrity(spec: SpecDefinition) -> list[StepResult]:
+    """The checks an unstable/broken spec still owes in a full run.
+
+    Fixture integrity and replay, licence terms and transport security need
+    no network and no working dataset, so the status does not excuse them.
+    A dataset that was never recorded (no fixture file of any kind) passes
+    the fixture step with a note; a meta or expected file left without its
+    raw counterpart is still checked, so deleting the raw file cannot turn
+    recorded evidence into "no fixtures".
+    """
+    out_dir = FIXTURES_ROOT / spec.provider / spec.dataset_key
+    recorded = [
+        path
+        for pattern in ("*.raw.json", "*.meta.json", "*.expected.json")
+        for path in out_dir.glob(pattern)
+    ]
+    steps: list[StepResult] = []
+    if recorded:
+        steps.extend(_verify_fixtures(spec))
+    else:
+        steps.append(
+            StepResult("fixture 존재", passed=True, detail=f"fixture 없음 — status={spec.status}")
+        )
+    steps.extend(_verify_licence_terms(spec))
+    steps.extend(_verify_insecure_http(spec))
+    return steps
 
 
 def _run_live_schema_diff(spec: SpecDefinition) -> StepResult:

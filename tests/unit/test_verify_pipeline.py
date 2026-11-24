@@ -10,6 +10,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
+from collections.abc import Callable
 from datetime import date
 from pathlib import Path
 from typing import cast
@@ -18,6 +19,7 @@ import httpx
 import pytest
 
 from kpubdata import Client
+from kpubdata.core.spec import SpecDefinition
 from kpubdata.transport.http import HttpTransport
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -1167,3 +1169,344 @@ def test_a_resolved_ref_reads_its_entries(tmp_path: Path, monkeypatch: pytest.Mo
     entries = verify_mod._base_branch_entries(root / "scripts" / "insecure_http_baseline.txt")
 
     assert entries == {"datago.apt_trade"}
+
+
+# ----------------------------------------------------------------------
+# broken/unstable specs: live steps skipped, offline integrity kept
+# ----------------------------------------------------------------------
+
+
+def _status_spec(status: str, **endpoint_changes: object) -> SpecDefinition:
+    """apt_trade under another status, its endpoint optionally changed."""
+    import dataclasses
+
+    spec = _http_spec("datago.apt_trade", **endpoint_changes) if endpoint_changes else None
+    return dataclasses.replace(spec or _spec("datago.apt_trade"), status=status)
+
+
+def _run_full_verify(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    spec: object,
+    *,
+    example_ok: bool = True,
+) -> tuple[int, list[str]]:
+    """Run `make verify` over one spec, offline: the schema subprocess and the
+    once-per-run baselines are stubbed, and the example step is recorded."""
+    import subprocess
+    from types import SimpleNamespace
+
+    ran: list[str] = []
+
+    def fake_example(target: object) -> object:
+        ran.append(getattr(target, "id", ""))
+        detail = "" if example_ok else "replay 실행 실패: example broken"
+        return verify_mod.StepResult("examples 실행", passed=example_ok, detail=detail)
+
+    def fake_run(*args: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr(verify_mod, "subprocess", SimpleNamespace(run=fake_run))
+    monkeypatch.setattr(verify_mod, "discover_specs", lambda: [spec])
+    monkeypatch.setattr(verify_mod, "_check_legacy_baseline", lambda: [])
+    monkeypatch.setattr(verify_mod, "_check_terms_baseline", lambda: [])
+    monkeypatch.setattr(verify_mod, "_check_insecure_http_baseline", lambda: [])
+    monkeypatch.setattr(verify_mod, "_run_example_script", fake_example)
+    empty = tmp_path / "empty-baseline.txt"
+    empty.write_text("", encoding="utf-8")
+    monkeypatch.setattr(verify_mod, "INSECURE_HTTP_BASELINE", empty)
+    monkeypatch.setattr(verify_mod, "UNCONFIRMED_TERMS_BASELINE", empty)
+    monkeypatch.delenv("LIVE", raising=False)
+    return verify_mod.run_verify(), ran
+
+
+def _tamper_raw(fixtures: Path) -> None:
+    raw_file = next((fixtures / "datago" / "apt_trade").glob("*.raw.json"))
+    payload = json.loads(raw_file.read_text(encoding="utf-8"))
+    payload["response"]["body"]["totalCount"] = "999"
+    raw_file.write_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=1) + "\n", encoding="utf-8"
+    )
+
+
+@pytest.mark.parametrize("status", ["broken", "unstable"])
+class TestSkippableStatusKeepsOfflineChecks:
+    """`status: broken` must not dodge verification (AGENTS.md): only the steps
+    that need a working dataset are skipped."""
+
+    def test_a_tampered_fixture_digest_fails(
+        self, status: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        fixtures = tmp_path / "fixtures"
+        _record_apt(fixtures)
+        _tamper_raw(fixtures)
+        monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", fixtures)
+
+        code, _ran = _run_full_verify(monkeypatch, tmp_path, _status_spec(status))
+
+        assert code == 1
+
+    def test_unjustified_plain_http_fails_the_transport_check(
+        self,
+        status: str,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        fixtures = tmp_path / "fixtures"
+        _record_apt(fixtures)
+        monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", fixtures)
+        spec = _status_spec(status, base_url=_HTTP_URL)
+
+        code, _ran = _run_full_verify(monkeypatch, tmp_path, spec)
+
+        assert code == 1
+        assert "전송 보안[datago.apt_trade]" in capsys.readouterr().out
+
+    def test_unconfirmed_terms_fail_the_licence_check(
+        self, status: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import dataclasses
+
+        fixtures = tmp_path / "fixtures"
+        _record_apt(fixtures)
+        monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", fixtures)
+        spec = dataclasses.replace(_unconfirmed_terms_spec("datago.apt_trade"), status=status)
+
+        code, _ran = _run_full_verify(monkeypatch, tmp_path, spec)
+
+        assert code == 1
+
+    def test_a_failing_example_is_still_skipped(
+        self,
+        status: str,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        """The intended skip: the example (and recency, live diff) needs the dataset."""
+        fixtures = tmp_path / "fixtures"
+        _record_apt(fixtures)
+        monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", fixtures)
+
+        code, ran = _run_full_verify(monkeypatch, tmp_path, _status_spec(status), example_ok=False)
+
+        assert code == 0
+        assert ran == []
+        assert f"status={status}" in capsys.readouterr().out
+
+    def test_no_fixtures_at_all_is_allowed(
+        self, status: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A dataset whose recording is impossible (application pending) has none."""
+        monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path / "no-fixtures")
+
+        code, ran = _run_full_verify(monkeypatch, tmp_path, _status_spec(status))
+
+        assert code == 0
+        assert ran == []
+
+    def test_an_orphan_meta_without_its_raw_fails(
+        self, status: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Deleting the raw file cannot turn recorded evidence into 'no fixtures'."""
+        fixtures = tmp_path / "fixtures"
+        _record_apt(fixtures)
+        for raw_file in (fixtures / "datago" / "apt_trade").glob("*.raw.json"):
+            raw_file.unlink()
+        monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", fixtures)
+
+        code, _ran = _run_full_verify(monkeypatch, tmp_path, _status_spec(status))
+
+        assert code == 1
+
+
+class TestActiveStatusUnchanged:
+    def test_a_failing_example_fails(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        fixtures = tmp_path / "fixtures"
+        _record_apt(fixtures)
+        monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", fixtures)
+
+        code, ran = _run_full_verify(
+            monkeypatch, tmp_path, _status_spec("active"), example_ok=False
+        )
+
+        assert code == 1
+        assert ran == ["datago.apt_trade"]
+
+    def test_a_clean_spec_passes_and_runs_its_example(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        fixtures = tmp_path / "fixtures"
+        _record_apt(fixtures)
+        monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", fixtures)
+
+        code, ran = _run_full_verify(monkeypatch, tmp_path, _status_spec("active"))
+
+        assert code == 0
+        assert ran == ["datago.apt_trade"]
+
+    def test_missing_fixtures_still_fail(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path / "no-fixtures")
+
+        code, _ran = _run_full_verify(monkeypatch, tmp_path, _status_spec("active"))
+
+        assert code == 1
+
+    def test_a_tampered_fixture_digest_fails(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        fixtures = tmp_path / "fixtures"
+        _record_apt(fixtures)
+        _tamper_raw(fixtures)
+        monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", fixtures)
+
+        code, _ran = _run_full_verify(monkeypatch, tmp_path, _status_spec("active"))
+
+        assert code == 1
+
+
+# ----------------------------------------------------------------------
+# spec binding tolerates a change confined to the status line (#1117)
+# ----------------------------------------------------------------------
+
+
+def _spec_root_with(tmp_path: Path, edit: Callable[[str], str]) -> Path:
+    """Copy apt_trade.yaml under tmp_path, passing its text through ``edit``."""
+    source = (Path(verify_mod.SPEC_ROOT) / "datago" / "apt_trade.yaml").read_text(encoding="utf-8")
+    assert source.count("\nstatus: active\n") == 1
+    spec_root = tmp_path / "specs"
+    (spec_root / "datago").mkdir(parents=True)
+    (spec_root / "datago" / "apt_trade.yaml").write_text(edit(source), encoding="utf-8")
+    return spec_root
+
+
+def _as_status(status: str) -> Callable[[str], str]:
+    return lambda text: text.replace("\nstatus: active\n", f"\nstatus: {status}\n")
+
+
+@pytest.mark.parametrize("status", ["broken", "unstable", "deprecated"])
+def test_a_status_only_change_keeps_the_evidence_bound(
+    status: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Marking a recorded spec broken must not void its fixtures."""
+    _record_apt(tmp_path)
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
+    monkeypatch.setattr(verify_mod, "SPEC_ROOT", _spec_root_with(tmp_path, _as_status(status)))
+
+    steps = verify_mod._verify_fixtures(_spec("datago.apt_trade"))
+
+    binding = _binding_steps(steps)
+    assert binding and all(step.passed for step in binding)
+    assert all("기록 당시 status: active" in step.detail for step in binding)
+    assert all(step.passed for step in steps)
+
+
+def test_a_status_change_with_any_other_edit_still_voids_the_evidence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _record_apt(tmp_path)
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
+    spec_root = _spec_root_with(
+        tmp_path, lambda text: _as_status("broken")(text) + "\n# a field changed too\n"
+    )
+    monkeypatch.setattr(verify_mod, "SPEC_ROOT", spec_root)
+
+    steps = verify_mod._verify_fixtures(_spec("datago.apt_trade"))
+
+    binding = _binding_steps(steps)
+    assert binding and not any(step.passed for step in binding)
+    assert all("재기록" in step.detail for step in binding)
+
+
+def test_a_spec_with_two_status_lines_gets_no_tolerance(tmp_path: Path) -> None:
+    """With two top-level status lines, substituting both could match a recording
+    that differs in more than one line, so neither is tolerated."""
+    from kpubdata.core.spec import spec_file_digest
+
+    source = (Path(verify_mod.SPEC_ROOT) / "datago" / "apt_trade.yaml").read_text(encoding="utf-8")
+    recorded_path = tmp_path / "recorded.yaml"
+    recorded_path.write_text(source + "status: active\n", encoding="utf-8")
+    recorded = spec_file_digest(recorded_path)
+    assert recorded is not None
+    current = tmp_path / "apt_trade.yaml"
+    current.write_text(_as_status("broken")(source) + "status: broken\n", encoding="utf-8")
+
+    assert verify_mod._status_recorded_under(current, recorded) is None
+
+
+@pytest.mark.parametrize("brk", ["\x85", "\u2028", "\u2029"])
+@pytest.mark.parametrize("status", ["broken", "active"])
+def test_a_key_hidden_on_the_status_line_voids_the_evidence(
+    brk: str, status: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """YAML starts a new line at these characters, so the text after one can
+    redefine the endpoint; the status tolerance must not cover it."""
+    _record_apt(tmp_path)
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
+    injected = "endpoint: {base_url: 'https://evil.example/x', operation: getEvil}"
+    spec_root = _spec_root_with(
+        tmp_path,
+        lambda text: text.replace("\nstatus: active\n", f"\nstatus: {status}{brk}{injected}\n"),
+    )
+    monkeypatch.setattr(verify_mod, "SPEC_ROOT", spec_root)
+
+    steps = verify_mod._verify_fixtures(_spec("datago.apt_trade"))
+
+    binding = _binding_steps(steps)
+    assert binding and not any(step.passed for step in binding)
+
+
+@pytest.mark.parametrize(
+    "line", ['status: "broken"', "status: broken  # dataset down", "status: 'broken'"]
+)
+def test_only_a_bare_status_value_is_tolerated(
+    line: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _record_apt(tmp_path)
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
+    spec_root = _spec_root_with(
+        tmp_path, lambda text: text.replace("\nstatus: active\n", f"\n{line}\n")
+    )
+    monkeypatch.setattr(verify_mod, "SPEC_ROOT", spec_root)
+
+    steps = verify_mod._verify_fixtures(_spec("datago.apt_trade"))
+
+    assert not any(step.passed for step in _binding_steps(steps))
+
+
+def test_an_unchanged_spec_reports_no_status_note(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _record_apt(tmp_path)
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
+
+    steps = verify_mod._verify_fixtures(_spec("datago.apt_trade"))
+
+    binding = _binding_steps(steps)
+    assert binding and all(step.passed and "status" not in step.detail for step in binding)
+
+
+def test_a_recorded_spec_marked_broken_passes_a_full_verify(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The draft PR's reproducer: a recorded spec flipped to broken, its example
+    failing. Offline checks pass on the old evidence; the example is skipped."""
+    fixtures = tmp_path / "fixtures"
+    _record_apt(fixtures)
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", fixtures)
+    monkeypatch.setattr(verify_mod, "SPEC_ROOT", _spec_root_with(tmp_path, _as_status("broken")))
+
+    code, ran = _run_full_verify(monkeypatch, tmp_path, _status_spec("broken"), example_ok=False)
+
+    assert code == 0
+    assert ran == []
+
+
+def test_spec_statuses_match_the_schema() -> None:
+    schema = json.loads(
+        (REPO_ROOT / "src" / "kpubdata" / "specs" / "schema.json").read_text(encoding="utf-8")
+    )
+    assert set(verify_mod.SPEC_STATUSES) == set(schema["properties"]["status"]["enum"])

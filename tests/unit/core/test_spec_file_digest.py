@@ -128,3 +128,82 @@ def test_no_bundled_spec_on_record_changed_its_digest() -> None:
         spec_path = root / "src" / "kpubdata" / "specs" / provider / f"{dataset}.yaml"
         if spec_path.exists():
             assert spec_file_digest(spec_path) == recorded, meta_path.name
+
+
+_YAML_ONLY_BREAKS = ["\x85", "\u2028", "\u2029"]
+_INJECTED = "endpoint: {base_url: 'https://evil.example/x', operation: getEvil}"
+
+
+@pytest.mark.parametrize("brk", _YAML_ONLY_BREAKS)
+def test_a_key_hidden_on_the_last_verified_line_moves_the_digest(tmp_path: Path, brk: str) -> None:
+    # YAML starts a new line at these characters; the digest must not drop what
+    # follows them along with the last_verified line it rewrites.
+    original = tmp_path / "a.yaml"
+    changed = tmp_path / "b.yaml"
+    original.write_text(_SPEC, encoding="utf-8")
+    changed.write_text(
+        _SPEC.replace('"2026-01-01"\n', '"2026-01-01"' + brk + _INJECTED + "\n"),
+        encoding="utf-8",
+    )
+
+    assert spec_file_digest(changed) != spec_file_digest(original)
+
+
+@pytest.mark.parametrize("brk", _YAML_ONLY_BREAKS)
+def test_a_key_hidden_on_a_field_title_line_moves_the_digest(tmp_path: Path, brk: str) -> None:
+    original = tmp_path / "a.yaml"
+    changed = tmp_path / "b.yaml"
+    labelled = _FIELD_SPEC.replace("  type: integer\n", "  type: integer\n  title: x\n")
+    original.write_text(labelled, encoding="utf-8")
+    changed.write_text(
+        labelled.replace("  title: x\n", "  title: x" + brk + "  type: string\n"),
+        encoding="utf-8",
+    )
+
+    assert spec_file_digest(changed) != spec_file_digest(original)
+
+
+_SWALLOW_SPEC = """id: datago.x
+fields:
+- name: amount
+  title: Amount
+  type: integer
+  description: e.g. 5"
+"""
+
+
+@pytest.mark.parametrize("title", ['"Amount', "'Amount", "|", ">-", "[Amount", "{a"])
+def test_a_title_that_reads_on_into_the_next_lines_moves_the_digest(
+    tmp_path: Path, title: str
+) -> None:
+    # An unclosed quote or a block indicator makes YAML swallow the field's type
+    # into the title; the changed title line must stay in the digest.
+    original = tmp_path / "a.yaml"
+    changed = tmp_path / "b.yaml"
+    original.write_text(_SWALLOW_SPEC, encoding="utf-8")
+    changed.write_text(
+        _SWALLOW_SPEC.replace("  title: Amount\n", f"  title: {title}\n"), encoding="utf-8"
+    )
+
+    assert spec_file_digest(changed) != spec_file_digest(original)
+
+
+@pytest.mark.parametrize("value", ["2026-12-31", '"2026-12-31', "|", '"2026-12-31" # x'])
+def test_a_last_verified_line_not_in_the_recorder_form_moves_the_digest(
+    tmp_path: Path, value: str
+) -> None:
+    path = tmp_path / "spec.yaml"
+    path.write_text(_SPEC, encoding="utf-8")
+    before = spec_file_digest(path)
+    path.write_text(_SPEC.replace('"2026-01-01"', value), encoding="utf-8")
+
+    assert spec_file_digest(path) != before
+
+
+def test_a_single_quoted_last_verified_date_keeps_the_digest(tmp_path: Path) -> None:
+    path = tmp_path / "spec.yaml"
+    path.write_text(_SPEC, encoding="utf-8")
+    before = spec_file_digest(path)
+    path.write_text(_SPEC.replace('"2026-01-01"', "'2026-12-31'"), encoding="utf-8")
+
+    assert spec_file_digest(path) == before
