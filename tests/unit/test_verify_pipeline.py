@@ -19,6 +19,7 @@ import httpx
 import pytest
 
 from kpubdata import Client
+from kpubdata.core.spec import SpecDefinition
 from kpubdata.transport.http import HttpTransport
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -1175,7 +1176,7 @@ def test_a_resolved_ref_reads_its_entries(tmp_path: Path, monkeypatch: pytest.Mo
 # ----------------------------------------------------------------------
 
 
-def _status_spec(status: str, **endpoint_changes: object):
+def _status_spec(status: str, **endpoint_changes: object) -> SpecDefinition:
     """apt_trade under another status, its endpoint optionally changed."""
     import dataclasses
 
@@ -1420,13 +1421,55 @@ def test_a_status_change_with_any_other_edit_still_voids_the_evidence(
     assert all("재기록" in step.detail for step in binding)
 
 
-def test_a_second_status_line_is_not_tolerated(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+def test_a_spec_with_two_status_lines_gets_no_tolerance(tmp_path: Path) -> None:
+    """With two top-level status lines, substituting both could match a recording
+    that differs in more than one line, so neither is tolerated."""
+    from kpubdata.core.spec import spec_file_digest
+
+    source = (Path(verify_mod.SPEC_ROOT) / "datago" / "apt_trade.yaml").read_text(encoding="utf-8")
+    recorded_path = tmp_path / "recorded.yaml"
+    recorded_path.write_text(source + "status: active\n", encoding="utf-8")
+    recorded = spec_file_digest(recorded_path)
+    assert recorded is not None
+    current = tmp_path / "apt_trade.yaml"
+    current.write_text(_as_status("broken")(source) + "status: broken\n", encoding="utf-8")
+
+    assert verify_mod._status_recorded_under(current, recorded) is None
+
+
+@pytest.mark.parametrize("brk", ["\x85", "\u2028", "\u2029"])
+@pytest.mark.parametrize("status", ["broken", "active"])
+def test_a_key_hidden_on_the_status_line_voids_the_evidence(
+    brk: str, status: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Only one top-level status line may differ; a duplicate is another edit."""
+    """YAML starts a new line at these characters, so the text after one can
+    redefine the endpoint; the status tolerance must not cover it."""
     _record_apt(tmp_path)
     monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
-    spec_root = _spec_root_with(tmp_path, lambda text: text + "status: active\n")
+    injected = "endpoint: {base_url: 'https://evil.example/x', operation: getEvil}"
+    spec_root = _spec_root_with(
+        tmp_path,
+        lambda text: text.replace("\nstatus: active\n", f"\nstatus: {status}{brk}{injected}\n"),
+    )
+    monkeypatch.setattr(verify_mod, "SPEC_ROOT", spec_root)
+
+    steps = verify_mod._verify_fixtures(_spec("datago.apt_trade"))
+
+    binding = _binding_steps(steps)
+    assert binding and not any(step.passed for step in binding)
+
+
+@pytest.mark.parametrize(
+    "line", ['status: "broken"', "status: broken  # dataset down", "status: 'broken'"]
+)
+def test_only_a_bare_status_value_is_tolerated(
+    line: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _record_apt(tmp_path)
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", tmp_path)
+    spec_root = _spec_root_with(
+        tmp_path, lambda text: text.replace("\nstatus: active\n", f"\n{line}\n")
+    )
     monkeypatch.setattr(verify_mod, "SPEC_ROOT", spec_root)
 
     steps = verify_mod._verify_fixtures(_spec("datago.apt_trade"))

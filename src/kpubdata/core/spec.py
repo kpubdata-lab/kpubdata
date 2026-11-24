@@ -925,12 +925,17 @@ def find_spec(
     return None
 
 
+#: The rest of one line as YAML counts lines. YAML also breaks lines at U+0085,
+#: U+2028 and U+2029, which ``.`` matches and ``read_text`` keeps, so a pattern
+#: built on ``.*`` would drop YAML lines hidden after one of them from the digest.
+#: A line holding one of them is not matched here and stays in the digest.
+_REST_OF_LINE = r"[^\n\x85\u2028\u2029]*$"
 #: The one line the recorder rewrites after a successful record (#522).
-_LAST_VERIFIED_LINE = re.compile(r"^last_verified:.*$\n?", re.MULTILINE)
+_LAST_VERIFIED_LINE = re.compile(r"^last_verified:" + _REST_OF_LINE + r"\n?", re.MULTILINE)
 #: A field's display name and unit (#877): what a reader is shown, never what the
 #: recorder sent or how a value is cast. Only the field-level keys, indented two spaces
 #: under a ``fields`` item; the spec's own top-level ``title`` stays in the digest.
-_DISPLAY_ONLY_LINE = re.compile(r"^  (?:title|unit):.*$\n?", re.MULTILINE)
+_DISPLAY_ONLY_LINE = re.compile(r"^  (?:title|unit):" + _REST_OF_LINE + r"\n?", re.MULTILINE)
 
 
 def spec_file_digest(path: Path) -> str | None:

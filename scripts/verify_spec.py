@@ -52,11 +52,19 @@ SPEC_ROOT = REPO_ROOT / "src" / "kpubdata" / "specs"
 #: line relative to ``FIXTURES_ROOT``. Only these may lack ``spec_sha256`` (#717).
 LEGACY_BASELINE = REPO_ROOT / "scripts" / "legacy_evidence_baseline.txt"
 
-#: A spec's top-level ``status:`` line and the values the schema allows for it.
-#: Marking a recorded spec broken or unstable changes only this line, which the
-#: recorder never executed, so spec binding tolerates a change confined to it.
-_STATUS_LINE = re.compile(r"^status:.*$", re.MULTILINE)
+#: The values the schema allows for a spec's top-level ``status``, and that line
+#: written plainly. Marking a recorded spec broken or unstable changes only this
+#: line, which the recorder never executed, so spec binding tolerates a change
+#: confined to it. Only a bare value is matched: no quotes, no comment, and no
+#: U+0085, U+2028 or U+2029, at which YAML starts a new line that could redefine
+#: another key while the regex still saw one line.
 SPEC_STATUSES = ("active", "deprecated", "broken", "unstable")
+_STATUS_LINE = re.compile(
+    r"^status:[ \t]*(?:" + "|".join(SPEC_STATUSES) + r")[ \t]*$", re.MULTILINE
+)
+#: Any top-level ``status`` key, however it is written.
+_ANY_STATUS_KEY = re.compile(r"^status\s*:", re.MULTILINE)
+_YAML_ONLY_BREAKS = ("\x85", "\u2028", "\u2029")
 
 #: Specs whose licence says ``allowed`` without the attribution proof (#732).
 #: Entries are spec ids (``provider.dataset_key``), one per line.
@@ -423,7 +431,8 @@ def _fixture_key(meta_path: Path) -> str:
 def _status_recorded_under(spec_path: Path, recorded: str) -> str | None:
     """Return the status a fixture was recorded under when only the status changed.
 
-    The spec file must have exactly one top-level ``status:`` line. Each allowed
+    The spec file must have exactly one top-level ``status:`` line, holding a
+    bare allowed value, and no line break that only YAML sees. Each allowed
     status is put in its place in turn; when one gives the recorded digest, the
     file differs from what was recorded in that line alone and that status is
     returned. None when the file cannot be read or any other line changed.
@@ -432,7 +441,9 @@ def _status_recorded_under(spec_path: Path, recorded: str) -> str | None:
         text = spec_path.read_text(encoding="utf-8")
     except OSError:
         return None
-    if len(_STATUS_LINE.findall(text)) != 1:
+    if any(char in text for char in _YAML_ONLY_BREAKS):
+        return None
+    if len(_ANY_STATUS_KEY.findall(text)) != 1 or len(_STATUS_LINE.findall(text)) != 1:
         return None
     with tempfile.TemporaryDirectory() as tmp:
         candidate = Path(tmp) / spec_path.name
