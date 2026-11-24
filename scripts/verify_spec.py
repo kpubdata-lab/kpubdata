@@ -27,6 +27,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -50,6 +51,12 @@ SPEC_ROOT = REPO_ROOT / "src" / "kpubdata" / "specs"
 #: Fixtures recorded before the spec digest existed (#522), one meta path per
 #: line relative to ``FIXTURES_ROOT``. Only these may lack ``spec_sha256`` (#717).
 LEGACY_BASELINE = REPO_ROOT / "scripts" / "legacy_evidence_baseline.txt"
+
+#: A spec's top-level ``status:`` line and the values the schema allows for it.
+#: Marking a recorded spec broken or unstable changes only this line, which the
+#: recorder never executed, so spec binding tolerates a change confined to it.
+_STATUS_LINE = re.compile(r"^status:.*$", re.MULTILINE)
+SPEC_STATUSES = ("active", "deprecated", "broken", "unstable")
 
 #: Specs whose licence says ``allowed`` without the attribution proof (#732).
 #: Entries are spec ids (``provider.dataset_key``), one per line.
@@ -413,6 +420,29 @@ def _fixture_key(meta_path: Path) -> str:
     return meta_path.relative_to(FIXTURES_ROOT).as_posix()
 
 
+def _status_recorded_under(spec_path: Path, recorded: str) -> str | None:
+    """Return the status a fixture was recorded under when only the status changed.
+
+    The spec file must have exactly one top-level ``status:`` line. Each allowed
+    status is put in its place in turn; when one gives the recorded digest, the
+    file differs from what was recorded in that line alone and that status is
+    returned. None when the file cannot be read or any other line changed.
+    """
+    try:
+        text = spec_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    if len(_STATUS_LINE.findall(text)) != 1:
+        return None
+    with tempfile.TemporaryDirectory() as tmp:
+        candidate = Path(tmp) / spec_path.name
+        for status in SPEC_STATUSES:
+            candidate.write_text(_STATUS_LINE.sub(f"status: {status}", text), encoding="utf-8")
+            if spec_file_digest(candidate) == recorded:
+                return status
+    return None
+
+
 def _verify_fixtures(spec: SpecDefinition) -> list[StepResult]:
     """Verify fixture integrity + replay contract."""
     results: list[StepResult] = []
@@ -469,8 +499,12 @@ def _verify_fixtures(spec: SpecDefinition) -> list[StepResult]:
         binding = f"fixture[{example}] spec 결속"
         recorded_spec = meta.get("spec_sha256")
         if isinstance(recorded_spec, str) and recorded_spec:
-            current_spec = spec_file_digest(SPEC_ROOT / spec.provider / f"{spec.dataset_key}.yaml")
+            spec_path = SPEC_ROOT / spec.provider / f"{spec.dataset_key}.yaml"
+            current_spec = spec_file_digest(spec_path)
+            recorded_status = None
             if current_spec != recorded_spec:
+                recorded_status = _status_recorded_under(spec_path, recorded_spec)
+            if current_spec != recorded_spec and recorded_status is None:
                 results.append(
                     StepResult(
                         binding,
@@ -482,7 +516,10 @@ def _verify_fixtures(spec: SpecDefinition) -> list[StepResult]:
                     )
                 )
                 continue
-            results.append(StepResult(binding, passed=True, detail=recorded_spec[:12]))
+            detail = recorded_spec[:12]
+            if recorded_status is not None:
+                detail += f" (status 줄만 변경 — 기록 당시 status: {recorded_status})"
+            results.append(StepResult(binding, passed=True, detail=detail))
         elif "spec_sha256" not in meta and _fixture_key(meta_path) in legacy:
             results.append(
                 StepResult(
