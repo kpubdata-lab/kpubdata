@@ -53,9 +53,10 @@ def _canon(obj: object) -> str:
     return json.dumps(obj, ensure_ascii=False, sort_keys=True, indent=1) + "\n"
 
 
-#: Any ``last_verified`` line, whatever its value, with its line break.
-_ANY_LAST_VERIFIED_LINE = re.compile(r"^last_verified:.*(?:\n|\Z)", re.MULTILINE)
-#: The top-level ``status: active`` line the sync inserts last_verified after.
+#: Any top-level ``last_verified`` key line, whatever its value or the spacing
+#: before its colon, with its line break.
+_ANY_LAST_VERIFIED_LINE = re.compile(r"^last_verified[ \t]*:.*(?:\n|\Z)", re.MULTILINE)
+#: The top-level ``status: active`` line the sync inserts last_verified before.
 _ACTIVE_STATUS_LINE = re.compile(r"^status: active[ \t]*$", re.MULTILINE)
 
 
@@ -65,7 +66,9 @@ def _last_verified_sync_keeps_digest(spec_path: Path, spec_sha: str) -> bool:
     The digest drops a last_verified line only in its quoted-date form, and the sync
     writes that form. So the record stays bound exactly when the spec's current
     last_verified lines are already dropped: removing all of them leaves the digest
-    as it is. A spec with no such line is fine; the sync inserts one the digest drops.
+    as it is. A spec with no such line is fine: the sync inserts a whole line the
+    digest drops, before the status line, so dropping it gives back the original text.
+    A ``last_verified :`` key the sync would not rewrite is refused the same way.
     """
     text = spec_path.read_text(encoding="utf-8")
     if not _ANY_LAST_VERIFIED_LINE.search(text):
@@ -135,6 +138,7 @@ def record_dataset(
         # The sync below rewrites every last_verified line into the quoted form the
         # digest drops. A line in another form is part of `spec_sha`, so the sync
         # would move the digest and void the record before verify ever reads it.
+        # Checked for every transport, so a test records exactly what a live run does.
         print(
             f"오류: {spec_path} 의 last_verified 줄이 spec digest 에서 빠지는 형식이 아닙니다. "
             '`last_verified: "YYYY-MM-DD"` 로 고친 뒤 다시 기록하세요.'
@@ -213,9 +217,15 @@ def record_dataset(
                 r"^last_verified:.*$", f'last_verified: "{today}"', text, flags=re.MULTILINE
             )
         else:
-            text = _ACTIVE_STATUS_LINE.sub(
-                lambda match: f'{match.group(0)}\nlast_verified: "{today}"', text, count=1
+            synced = _ACTIVE_STATUS_LINE.sub(
+                lambda match: f'last_verified: "{today}"\n{match.group(0)}', text, count=1
             )
+            if synced == text:
+                print(
+                    f"참고: {spec_path} 에 `status: active` 줄이 없어 last_verified 를 "
+                    "추가하지 않았습니다."
+                )
+            text = synced
         spec_path.write_text(text, encoding="utf-8")
 
     # Clean up old fixtures for examples removed from spec (tool hygiene — not manual edit)
