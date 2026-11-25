@@ -749,6 +749,119 @@ def test_a_live_transport_still_updates_last_verified(tmp_path: Path) -> None:
     assert '"2020-01-01"' not in target.read_text(encoding="utf-8")
 
 
+def _live_record(spec_root: Path, fixtures: Path, monkeypatch: pytest.MonkeyPatch) -> list[Path]:
+    from kpubdata.transport.http import HttpTransport
+
+    live = HttpTransport()
+    monkeypatch.setattr(live, "request", FakeLiveTransport().request)
+    return record_mod.record_dataset(
+        "datago.apt_trade",
+        fixtures_root=fixtures,
+        spec_root=spec_root,
+        config=FakeLiveConfig(),
+        transport=live,
+        recorded_by="live",
+    )
+
+
+def _spec_root_holding(tmp_path: Path, text: str) -> Path:
+    spec_root = tmp_path / "specs"
+    (spec_root / "datago").mkdir(parents=True)
+    (spec_root / "datago" / "apt_trade.yaml").write_text(text, encoding="utf-8")
+    return spec_root
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        'last_verified: "2020-01-01"\n',
+        "last_verified: '2020-01-01'\n",
+        'last_verified: "2020-01-01"',
+        "",
+    ],
+)
+def test_a_live_record_stays_bound_after_the_last_verified_sync(
+    line: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The sync after a record must not void the record it just made."""
+    spec_root = _spec_root_holding(tmp_path, "id: datago.apt_trade\nstatus: active\n" + line)
+    fixtures = tmp_path / "fixtures"
+
+    written = _live_record(spec_root, fixtures, monkeypatch)
+
+    assert written
+    synced = (spec_root / "datago" / "apt_trade.yaml").read_text(encoding="utf-8")
+    assert synced.count("last_verified: ") == 1 and "2020-01-01" not in synced
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", fixtures)
+    monkeypatch.setattr(verify_mod, "SPEC_ROOT", spec_root)
+    binding = _binding_steps(verify_mod._verify_fixtures(_spec("datago.apt_trade")))
+    assert binding and all(step.passed for step in binding)
+
+
+@pytest.mark.parametrize("status_line", ["status: active", "status: active  "])
+def test_an_inserted_last_verified_keeps_a_status_line_at_the_end_of_the_file_bound(
+    status_line: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """With no newline after the status line, inserting after it would add one."""
+    spec_root = _spec_root_holding(tmp_path, "id: datago.apt_trade\n" + status_line)
+    fixtures = tmp_path / "fixtures"
+
+    assert _live_record(spec_root, fixtures, monkeypatch)
+
+    synced = (spec_root / "datago" / "apt_trade.yaml").read_text(encoding="utf-8")
+    assert synced.endswith('"\n' + status_line)
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", fixtures)
+    monkeypatch.setattr(verify_mod, "SPEC_ROOT", spec_root)
+    binding = _binding_steps(verify_mod._verify_fixtures(_spec("datago.apt_trade")))
+    assert binding and all(step.passed for step in binding)
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "last_verified: 2020-01-01\n",
+        'last_verified: "2020-01-01"  # checked by hand\n',
+        'last_verified: "2020-1-1"\n',
+        'last_verified: "2020-01-01"\u2028endpoint: {operation: getEvil}\n',
+        'last_verified : "2020-01-01"\n',
+    ],
+)
+def test_a_last_verified_line_the_digest_keeps_stops_the_record(
+    line: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The sync would rewrite this line and void the record, so nothing is recorded."""
+    original = "id: datago.apt_trade\nstatus: active\n" + line
+    spec_root = _spec_root_holding(tmp_path, original)
+    fixtures = tmp_path / "fixtures"
+
+    written = _live_record(spec_root, fixtures, monkeypatch)
+
+    assert written == []
+    assert not list(fixtures.rglob("*.json"))
+    assert (spec_root / "datago" / "apt_trade.yaml").read_text(encoding="utf-8") == original
+    assert 'last_verified: "YYYY-MM-DD"' in capsys.readouterr().out
+
+
+def test_the_inserted_last_verified_follows_the_top_level_status_line(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`status: active` inside another value is not the status line."""
+    spec_root = _spec_root_holding(
+        tmp_path, 'id: datago.apt_trade\nnote: "status: active only on weekdays"\nstatus: active\n'
+    )
+    fixtures = tmp_path / "fixtures"
+
+    assert _live_record(spec_root, fixtures, monkeypatch)
+
+    synced = (spec_root / "datago" / "apt_trade.yaml").read_text(encoding="utf-8")
+    assert 'note: "status: active only on weekdays"\nlast_verified: "' in synced
+    assert synced.endswith('"\nstatus: active\n')
+    monkeypatch.setattr(verify_mod, "FIXTURES_ROOT", fixtures)
+    monkeypatch.setattr(verify_mod, "SPEC_ROOT", spec_root)
+    binding = _binding_steps(verify_mod._verify_fixtures(_spec("datago.apt_trade")))
+    assert binding and all(step.passed for step in binding)
+
+
 # ----------------------------------------------------------------------
 # example recency: a declared window fails stale examples (#734)
 # ----------------------------------------------------------------------
@@ -1510,3 +1623,16 @@ def test_spec_statuses_match_the_schema() -> None:
         (REPO_ROOT / "src" / "kpubdata" / "specs" / "schema.json").read_text(encoding="utf-8")
     )
     assert set(verify_mod.SPEC_STATUSES) == set(schema["properties"]["status"]["enum"])
+
+
+def test_a_spec_without_an_active_status_line_is_told_nothing_was_inserted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    spec_root = _spec_root_holding(tmp_path, "id: datago.apt_trade\nstatus: active  # ok\n")
+
+    assert _live_record(spec_root, tmp_path / "fixtures", monkeypatch)
+
+    assert "last_verified 를 추가하지 않았습니다" in capsys.readouterr().out
+    assert "last_verified" not in (spec_root / "datago" / "apt_trade.yaml").read_text(
+        encoding="utf-8"
+    )
