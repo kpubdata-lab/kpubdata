@@ -23,6 +23,7 @@ import json
 import os
 import re
 import sys
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -50,6 +51,29 @@ _DEFAULT_PAGE_SIZE = 10
 def _canon(obj: object) -> str:
     """Canonical JSON serialization for hash comparison (ensure_ascii=False, fixed newlines)."""
     return json.dumps(obj, ensure_ascii=False, sort_keys=True, indent=1) + "\n"
+
+
+#: Any ``last_verified`` line, whatever its value, with its line break.
+_ANY_LAST_VERIFIED_LINE = re.compile(r"^last_verified:.*(?:\n|\Z)", re.MULTILINE)
+#: The top-level ``status: active`` line the sync inserts last_verified after.
+_ACTIVE_STATUS_LINE = re.compile(r"^status: active[ \t]*$", re.MULTILINE)
+
+
+def _last_verified_sync_keeps_digest(spec_path: Path, spec_sha: str) -> bool:
+    """Tell whether syncing last_verified after this record leaves ``spec_sha`` valid.
+
+    The digest drops a last_verified line only in its quoted-date form, and the sync
+    writes that form. So the record stays bound exactly when the spec's current
+    last_verified lines are already dropped: removing all of them leaves the digest
+    as it is. A spec with no such line is fine; the sync inserts one the digest drops.
+    """
+    text = spec_path.read_text(encoding="utf-8")
+    if not _ANY_LAST_VERIFIED_LINE.search(text):
+        return True
+    with tempfile.TemporaryDirectory() as tmp:
+        stripped = Path(tmp) / spec_path.name
+        stripped.write_text(_ANY_LAST_VERIFIED_LINE.sub("", text), encoding="utf-8")
+        return spec_file_digest(stripped) == spec_sha
 
 
 def _is_live_transport(transport: object) -> bool:
@@ -106,6 +130,15 @@ def record_dataset(
         # outside the frozen legacy baseline (#717). Stop before any call or
         # write instead of leaving a `"spec_sha256": null` fixture behind.
         print(f"오류: spec 파일을 읽을 수 없어 spec digest 를 계산하지 못했습니다: {spec_path}")
+        return []
+    if not _last_verified_sync_keeps_digest(spec_path, spec_sha):
+        # The sync below rewrites every last_verified line into the quoted form the
+        # digest drops. A line in another form is part of `spec_sha`, so the sync
+        # would move the digest and void the record before verify ever reads it.
+        print(
+            f"오류: {spec_path} 의 last_verified 줄이 spec digest 에서 빠지는 형식이 아닙니다. "
+            '`last_verified: "YYYY-MM-DD"` 로 고친 뒤 다시 기록하세요.'
+        )
         return []
 
     out_dir = fixtures_root / spec.provider / spec.dataset_key
@@ -180,7 +213,9 @@ def record_dataset(
                 r"^last_verified:.*$", f'last_verified: "{today}"', text, flags=re.MULTILINE
             )
         else:
-            text = text.replace("status: active", f'status: active\nlast_verified: "{today}"', 1)
+            text = _ACTIVE_STATUS_LINE.sub(
+                lambda match: f'{match.group(0)}\nlast_verified: "{today}"', text, count=1
+            )
         spec_path.write_text(text, encoding="utf-8")
 
     # Clean up old fixtures for examples removed from spec (tool hygiene — not manual edit)
