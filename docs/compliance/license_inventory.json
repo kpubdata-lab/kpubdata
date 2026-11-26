@@ -512,12 +512,12 @@
       "basis": "installed",
       "status": "recorded"
     },
-    "ruff==0.17.5": {
-      "version": "0.17.5",
+    "ruff==0.17.6": {
+      "version": "0.17.6",
       "scope": "dev",
       "license": "MIT",
       "source": "https://github.com/astral-sh/ruff",
-      "basis": "installed",
+      "basis": "pypi-version-metadata",
       "status": "recorded"
     },
     "six==1.17.0": {
