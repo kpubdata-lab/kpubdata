@@ -80,8 +80,8 @@ optional extra; `dev` only for development and documentation.
 | pillow | 13.0.0 | extra:krx | MIT-CMU | recorded | https://python-pillow.org |
 | platformdirs | 4.9.6 | extra:docs | MIT | recorded | https://github.com/tox-dev/platformdirs |
 | pluggy | 1.6.0 | dev | MIT | recorded | https://pypi.org/project/pluggy/ |
-| pydantic-core | 2.50.4 | extra:validation | MIT | recorded | https://github.com/pydantic |
-| pydantic | 2.14.3 | extra:validation | MIT | recorded | https://github.com/pydantic/pydantic |
+| pydantic-core | 2.50.5 | extra:validation | MIT | recorded | https://github.com/pydantic |
+| pydantic | 2.14.4 | extra:validation | MIT | recorded | https://github.com/pydantic/pydantic |
 | pygments | 2.20.0 | extra:docs | BSD-2-Clause | recorded | https://pygments.org |
 | pykrx | 1.2.9 | extra:krx | MIT | recorded | https://github.com/sharebook-kr/pykrx/ |
 | pymdown-extensions | 12.3 | extra:docs | MIT | recorded | https://github.com/facelessuser/pymdown-extensions |
