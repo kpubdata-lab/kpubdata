@@ -184,14 +184,14 @@ fields:
   description: 법정동 이름
 examples:
 - name: seoul_gangnam_2024_01
-  description: 서울 강남구 2024년 1월 아파트 매매 실거래가
+  description: 서울 종로구 2024년 1월 아파트 매매 실거래가
   params:
     LAWD_CD: '11110'
     DEAL_YMD: '202401'
   page: 1
   page_size: 100
 - name: seoul_gangnam_2024_01_full_page
-  description: 서울 강남구 2024년 1월 매매가 (최대 행)
+  description: 서울 종로구 2024년 1월 매매가 (최대 행)
   params:
     LAWD_CD: '11110'
     DEAL_YMD: '202401'
