@@ -12,7 +12,7 @@
 
 ```mermaid
 flowchart TD
-    Client["Local AI / MCP client"] --> MCP["kpubdata-mcp (v0.1 계획, 미구현)"]
+    Client["Local AI / MCP client"] --> MCP["kpubdata-mcp (v0.1 초기 구현)"]
     MCP -->|"Live: SDK public API only"| SDK["kpubdata Python SDK"]
     SDK --> Provider["Official provider APIs"]
     Engine["kpubdata-engine (independent MVP)"] -->|"collect via public API"| SDK
@@ -21,8 +21,9 @@ flowchart TD
 ```
 
 - **SDK**: 공공기관 API 접근·인증·정규화. MCP 또는 Engine 설치가 필요하지 않습니다.
-- **MCP v0.1**: 별도 비공개 설계 저장소이며 구현·릴리스 승인은 없습니다.
-  Live 조회만 사용하고 Engine/Studio/Watch에 런타임 의존하지 않습니다.
+- **MCP v0.1**: 비공개 소스 체크아웃에서 `stdio`로 SDK 카탈로그를 탐색하고
+  스키마와 상태를 확인할 수 있습니다. Live 조회는 허용 목록이 비어 비활성화돼
+  있으며 패키지는 미출시 상태입니다. Live 조회 경로는 SDK 공개 API를 사용합니다.
 - **Engine**: SDK를 쓰는 독립 Build/Run/Export/Publish MVP입니다. 검증된 Gold
   아티팩트의 외부 계약이 확립된 뒤 MCP v0.2에 읽기 경로를 제공합니다.
 - **기존 Builder/Studio/Watch**: 아래 구조의 역사적 역할·호환성을 설명하는
