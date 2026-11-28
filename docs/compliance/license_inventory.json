@@ -384,20 +384,20 @@
       "basis": "installed",
       "status": "recorded"
     },
-    "pydantic-core==2.50.4": {
-      "version": "2.50.4",
+    "pydantic-core==2.50.5": {
+      "version": "2.50.5",
       "scope": "extra:validation",
       "license": "MIT",
       "source": "https://github.com/pydantic",
-      "basis": "installed",
+      "basis": "pypi-version-metadata",
       "status": "recorded"
     },
-    "pydantic==2.14.3": {
-      "version": "2.14.3",
+    "pydantic==2.14.4": {
+      "version": "2.14.4",
       "scope": "extra:validation",
       "license": "MIT",
       "source": "https://github.com/pydantic/pydantic",
-      "basis": "installed",
+      "basis": "pypi-version-metadata",
       "status": "recorded"
     },
     "pygments==2.20.0": {
