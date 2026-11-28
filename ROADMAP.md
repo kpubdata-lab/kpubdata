@@ -35,15 +35,14 @@
 
 ### NEXT — 독립 MCP의 Live v0.1 (SDK 코드에 포함하지 않음)
 
-1. 독립 비공개 [kpubdata-mcp](https://github.com/kpubdata-lab/kpubdata-mcp)는 **설계 문서만
-   준비된 상태**입니다([#974](https://github.com/kpubdata-lab/kpubdata/issues/974)).
-   SDK/Builder/Studio 안정화 동결([#918](https://github.com/kpubdata-lab/kpubdata/issues/918))에
-   대한 **별도 명시적 범위 승인**, 후보 데이터셋/약관, 소스 라이선스를 결정하기 전에는
-   MCP 구현이나 릴리스를 완료했다고 주장하지 않습니다.
-2. 승인 후 MCP 저장소에서 SDK의 **공개 API만** 사용해 `stdio`, 읽기 전용
-   탐색·설명·단일 페이지 조회·상태 확인 네 도구를 작은 PR로 구현합니다.
-   페이지/용량/시간 상한, 키 비노출, 에러·출처 표현, 설치·MCP 클라이언트·실API
-   검증을 증빙합니다. Engine은 MCP Live v0.1의 의존성이 아닙니다.
+1. 독립 비공개 [kpubdata-mcp](https://github.com/kpubdata-lab/kpubdata-mcp)는 초기 구현 단계입니다.
+   소스 체크아웃에서 `stdio`를 시작해 SDK 카탈로그의 탐색·설명·상태 확인을 실행할 수
+   있습니다. 단일 페이지 조회 도구도 구현됐지만, 허용 목록이 비어 Live 조회는
+   비활성화돼 있으며 패키지는 미출시 상태입니다. 구현 승인 범위는
+   [#974](https://github.com/kpubdata-lab/kpubdata/issues/974)에 기록돼 있습니다.
+2. Live v0.1은 데이터셋별 이용 조건·AI 호스트 전송 조건을 확인하고, 승인된 후보를
+   대상으로 설치·MCP 클라이언트·실API 검증을 마친 뒤 릴리스 판단을 합니다.
+   Live 조회는 SDK의 공개 API를 사용하며 Engine 없이 실행됩니다.
 3. SDK의 구형 MCP optional extra 및 오래된 문서 표현은 **별도 호환성 검토 후**
    정리합니다. 새 MCP 기능을 넣기 위해 SDK 공개 계약을 편의적으로 확장하지 않습니다.
 
@@ -141,9 +140,9 @@ Provider expansion.
 
 | 항목 | 분리 대상 레포 | 상태 |
 | :--- | :--- | :--- |
-| MCP adapter | `kpubdata-mcp` | 비공개 설계 저장소 생성(2026-11-19), 구현·출시 미승인 |
+| MCP adapter | `kpubdata-mcp` | 비공개 초기 구현, Live 조회 비활성화, 미출시 |
 | HTTP/REST API 서비스 | `kpubdata-api` | 미생성 (필요 시 분리) |
-| LLM tool schema / agent helper | `kpubdata-mcp` | 독립 설계 문서 준비, 기능 미구현 |
+| LLM tool schema / agent helper | `kpubdata-mcp` | 탐색·설명·상태 확인 사용 가능, Live 조회 비활성화 |
 
 ---
 
@@ -161,6 +160,6 @@ Provider expansion.
 | :--- | :--- | :--- |
 | [kpubdata](https://github.com/kpubdata-lab/kpubdata) | **KPubData** — 한국 공공데이터 접근을 위한 독립 Python SDK | 이 문서 |
 | [kpubdata-engine](https://github.com/kpubdata-lab/kpubdata-engine) | **KPubData Engine** — SDK 기반 독립 데이터 빌드 및 검증된 스냅샷 생성(MVP) | [ROADMAP.md](https://github.com/kpubdata-lab/kpubdata-engine/blob/main/ROADMAP.md) |
-| [kpubdata-mcp](https://github.com/kpubdata-lab/kpubdata-mcp) | **KPubData MCP Server** — 독립 AI 인터페이스(비공개 설계 단계) | [ROADMAP.md](https://github.com/kpubdata-lab/kpubdata-mcp/blob/main/ROADMAP.md) |
+| [kpubdata-mcp](https://github.com/kpubdata-lab/kpubdata-mcp) | **KPubData MCP Server** — 독립 AI 인터페이스(비공개 초기 구현) | [ROADMAP.md](https://github.com/kpubdata-lab/kpubdata-mcp/blob/main/ROADMAP.md) |
 | [kpubdata-builder](https://github.com/kpubdata-lab/kpubdata-builder) | **KPubData Builder(레거시)** — 기존 릴리스·호환성 이력 | [ROADMAP.md](https://github.com/kpubdata-lab/kpubdata-builder/blob/main/ROADMAP.md) |
 | [kpubdata-studio](https://github.com/kpubdata-lab/kpubdata-studio) | **KPubData Studio** — KPubData Builder 의 시각적 작업공간 (관련 프로젝트) | [ROADMAP.md](https://github.com/kpubdata-lab/kpubdata-studio/blob/main/ROADMAP.md) |
